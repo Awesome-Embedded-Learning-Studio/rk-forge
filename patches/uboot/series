@@ -1,0 +1,4 @@
+# patches/uboot/series — quilt-style ordered apply list.
+# U-Boot RK3506 SoC support is ALREADY upstream (Jonas Karlman v2 merged), so this
+# series is usually empty or holds only a board/defconfig delta. If it stays empty,
+# that itself is evidence the mainline-first thesis holds.

@@ -1,0 +1,40 @@
+# --- build outputs ---
+/build/
+/output/
+/out/
+/release/
+*.o
+*.o.d
+*.ko
+*.mod
+*.mod.c
+*.cmd
+.tmp_versions/
+Module.symvers
+modules.order
+
+# --- Rockchip build artifacts ---
+/resource.img
+/parameter.txt
+idbloader.img
+u-boot.itb
+*.img.tmp
+
+# --- third_party ---
+# linux_mainline/uboot/rkbin are git submodules (tracked as gitlinks, see .gitmodules);
+# their working-dir dirties are ignored via `ignore = dirty` there. The vendor-sdk
+# reference clone is a LOCAL clone (not a submodule) used only for sdk-diff — fully ignored:
+/third_party/vendor-sdk/
+
+# (imx-forge template moved out of this repo to ~/imx-forge; no longer present to ignore)
+
+# --- editor / tooling ---
+/.vscode/
+/.idea/
+*.swp
+*~
+.cache/
+compile_commands.json
+
+# keep placeholder files tracked
+!**/.gitkeep

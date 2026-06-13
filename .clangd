@@ -1,0 +1,5 @@
+# clangd config. Points at the mainline kernel build dir for compile_commands.json.
+# RK3506 is ARCH=arm (32-bit), so the kernel tree is arch/arm — adjust the path
+# below once third_party/linux_mainline is present and configured.
+CompileFlags:
+  CompilationDatabase: third_party/linux_mainline

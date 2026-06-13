@@ -1,0 +1,14 @@
+# C/C++ style. Authoritative for the repo (CONTRIBUTING.md points here).
+# Ported from imx-forge's convention (LLVM base, 4-space, 100-col, attach braces).
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+PointerAlignment: Left
+BreakBeforeBraces: Attach
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+Standard: c++17
