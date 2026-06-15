@@ -34,9 +34,10 @@ bootrom → vendor idblock(vendor DDR v1.06 + SPL + usbplug)
 **0. 应用 patches 到干净上游**:
 ```bash
 cd third_party/explore/uboot && git checkout 5ca1a73c && git am ../../patches/uboot/*.patch   # 2026.07-rc4
-cd third_party/explore/linux && git checkout v7.0.12 && git am ../../patches/linux_mainline/*.patch
+cd third_party/explore/linux && git checkout v7.1 && git am ../../patches/linux_mainline/*.patch   # v7.1(2026-06-15 发布);v7.0.12 亦可,patch 版本无关
 ```
 (两 patch 均已验证可干净复现:uboot rebuild 与参考 binary 仅差构建时间戳串;linux dtb 字节一致。)
+**linux patch 版本无关**:经 v7.0.12 与 v7.1 双验证——v7.1 下 dtsi 编出的 dtb 与 7.0.12 字节相同(sha `2789c261`),且 v7.1 boot 到交互 shell 通过(`Linux version 7.1.0-00001-g346c849db`,日志 `boot-sdl-2026-06151312-kernel-7.1.txt`)。7.1 还没上游 rk3506.dtsi,我们仍是贡献点。
 
 **1. 编 U-Boot + 打 FIT + 拷 Windows**(命令同 [05](05-2026-06-15-nand-boot-bbm-ecc-debug.md) §64-75):
 ```bash

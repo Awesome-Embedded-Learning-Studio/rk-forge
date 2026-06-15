@@ -4,8 +4,10 @@
 #
 # Since RK3506 pinctrl+clk are already in mainline, entries here are typically
 # board/DT/defconfig deltas on top of the SoC support — small and upstream-bound.
-# Verified 2026-06-15: applying to a clean v7.0.12 (f53879e2e) tree and building
-# `rockchip/rk3506b-aes.dtb` reproduces the reference dtb BYTE-FOR-BYTE
-# (sha 2789c26149c79d0d...; dtc is deterministic, no timestamp).
+# Verified 2026-06-15: applying to a clean v7.0.12 (f53879e2e) OR v7.1 tree and
+# building `rockchip/rk3506b-aes.dtb` reproduces the reference dtb BYTE-FOR-BYTE
+# (sha 2789c26149c79d0d...; dtc is deterministic, no timestamp). Patch is
+# version-agnostic within 7.x. v7.1 boots to interactive shell on the board
+# (log boot-sdl-2026-06151312-kernel-7.1.txt).
 
 0001-ARM-dts-rockchip-add-rk3506-SoC-AES-RK3506B-board-DT.patch
