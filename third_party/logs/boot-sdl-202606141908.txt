@@ -1,0 +1,87 @@
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xe-0x1-0x2, 0x5-0x1-0x2,status:a007
+rdtrn:0x15-0x2e-0x47(0x32)
+wrtrn:0x0-0x20-0x3f(0x3f)
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g26c8833 #charliechen (Jun 14 2026 - 11:45:32)
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 12
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking firmware-1 0x00800000 ... crc32 error!
+Unsupported hash algorithm for 'hash' hash node in 'firmware-1' image node
+Trying fit image at 0x3000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(690eb8a14d...) + OK
+## Checking uboot 0x00200000 ... sha256(01983f818b...) + OK
+## Checking fdt 0x002a14a0 ... sha256(55ba14e6c4...) + OK
+Jumping to U-Boot(0x00200000) via OP-TEE(0x00001000)
+Total: 93.470/137.167 ms
+
+I/TC: 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00200000
+I/TC: OP-TEE version: 3.13.0-894-g0e7e5b3c7ff #chenjh (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 Tue Nov 12 09:21:23 CST 2024 arm, fwver: v1.25 
+I/TC: OP-TEE memory: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2017.09-g0481582-dirty #charliechen (Sep 07 2025 - 10:21:56 +0800)
+
+Model: Rockchip RK3506 EVB Board
+MPIDR: 0xf00
+PreSerial: 0, raw, 0xff0a0000
+DRAM:  512 MiB
+Sysmem: init
+Relocation Offset: 1d4f2000
+Relocation fdt: 1c4fb290 - 1c4fedf0
+CR: M/C/I
+Using default environment
+
+DM: v2
+SPI Nand ID ef aa 23
+Bootdev(atags): mtd 1
+PartType: EFI
+boot mode: None
+Failed to load DTB, ret=-19
+No valid DTB, ret=-22
+Failed to get kernel dtb, ret=-22
+Model: Rockchip RK3506 EVB Board
+rockchip_set_serialno: could not find efuse/otp device
+CLK: (arm clk use pvtpll, rate = 1200M)
+  gpll 1500000 KHz
+  v0pll 1179648 KHz
+  v1pll 903168 KHz
+  clk_gpll_div 187500 KHz
+  clk_gpll_div_100m 93750 KHz
+  clk_v0pll_div 147456 KHz
+  clk_v1pll_div 129024 KHz
+  aclk_bus_root 187500 KHz
+  hclk_bus_root 147456 KHz
+  pclk_bus_root 93750 KHz
+  aclk_hsperi_root 147456 KHz
+  hclk_ksperi_root 93750 KHz
+Net:   No ethernet found.
+Hit key to stop autoboot('CTRL+C'):  0 
+## Booting FIT Image FIT: No fit blob
+FIT: No FIT image
+ANDROID: reboot reason: "(none)"
+No valid android hdr
+Android image load failed
+Android boot failed, error -1.
+=> 

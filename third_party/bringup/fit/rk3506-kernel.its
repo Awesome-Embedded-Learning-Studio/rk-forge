@@ -1,0 +1,53 @@
+/*
+ * 主线 Linux 内核 FIT(RK3506B,NAND 引导用)。
+ * 一个 .itb 含 zImage(kernel)+ rk3506b-aes.dtb(fdt)。
+ * U-Boot mtd read boot ${kernel_addr_r}; bootm ${kernel_addr_r} 加载。
+ * load 地址用 rk3506_common.h 的 env(kernel_addr_r=0x02080000, fdt_addr_r=0x01e00000)。
+ * 打包:vendor mkimage -f rk3506-kernel.its -E -p 0x800 rk3506-kernel.itb
+ *   (-E external data, RK SPL 读取约定; -p 0x800 image position align, 同 vendor zboot.its)
+ */
+
+/dts-v1/;
+
+/ {
+	description = "Mainline Linux FIT for RK3506B (NAND boot)";
+	#address-cells = <1>;
+
+	images {
+
+		kernel {
+			description = "Linux kernel (zImage, self-decompressing)";
+			data = /incbin/("zImage");
+			type = "kernel";
+			arch = "arm";
+			os = "linux";
+			compression = "none";
+			load = <0x02080000>;
+			entry = <0x02080000>;
+			hash {
+				algo = "sha256";
+			};
+		};
+
+		fdt {
+			description = "RK3506B AES board flat DT";
+			data = /incbin/("rk3506b-aes.dtb");
+			type = "flat_dt";
+			arch = "arm";
+			compression = "none";
+			load = <0x01e00000>;
+			hash {
+				algo = "sha256";
+			};
+		};
+	};
+
+	configurations {
+		default = "conf";
+		conf {
+			description = "Boot mainline Linux with FDT";
+			kernel = "kernel";
+			fdt = "fdt";
+		};
+	};
+};

@@ -1,0 +1,50 @@
+# vendor-sdk (ATK-DLRK3506 BSP) host 构建依赖 — Ubuntu 24.04 适配
+
+日期: 2026-06-14
+背景: Rockchip/ATK SDK 文档推荐的 host 依赖是按 **Ubuntu 16.04** 给的,
+      本机是 **Ubuntu 24.04**,直接装会卡在几个已不存在的包上。
+      以下对照经 `apt-cache policy` 实测。
+
+## 原 16.04 列表(SDK 文档原文)
+
+    sudo apt-get install git ssh make gcc libssl-dev \
+    liblz4-tool expect expect-dev g++ patchelf chrpath chrpath \
+    diffstat binfmt-support qemu-user-static live-build bison flex fakeroot \
+    cmake gcc-multilib g++-multilib unzip device-tree-compiler ncurses-dev \
+    bzip2 expat gpgv2 cpp-aarch64-linux-gnu libgmp-dev \
+    libmpc-dev bc python-is-python3 python2
+
+## 24.04 上的问题包(逐项实测)
+
+| 16.04 包名        | 24.04 状态          | 处理                                            |
+|-------------------|---------------------|-------------------------------------------------|
+| `expect-dev`      | ❌ 已移除           | 删除(24.04 只有 `expect`,dev 头不再单独发)   |
+| `ncurses-dev`     | ❌ 无此包名         | 改 `libncurses-dev`(规范名)                   |
+| `gpgv2`           | ❌ 已合并           | 改 `gpgv`(22.04 起 gpgv2 并入 gpgv)           |
+| `python2`         | ❌ candidate=(none) | 删除,改用 pyenv 隔离装 2.7.18,见 problem1.txt |
+| `chrpath`         | (原列表写两次)     | 去重,只留一个                                  |
+| `expat`           | ✅ 2.6.1            | 保留(若编译报缺 expat.h,补 `libexpat1-dev`)  |
+| 其余 30 个        | ✅ 全可用           | 原样保留                                        |
+
+## 24.04 等效命令(可直接复制)
+
+    sudo apt-get install -y \
+      git ssh make gcc libssl-dev liblz4-tool \
+      expect g++ patchelf chrpath gawk texinfo \
+      diffstat binfmt-support qemu-user-static live-build bison flex fakeroot \
+      cmake gcc-multilib g++-multilib unzip device-tree-compiler libncurses-dev \
+      bzip2 expat gpgv cpp-aarch64-linux-gnu libgmp-dev \
+      libmpc-dev bc python-is-python3
+
+## 备注
+
+- **python2**(u-boot 2017 需要):不进 apt,用 pyenv 隔离 → 见 `problem1.txt`。
+  进 vendor-sdk 编 U-Boot 前先 `pyenv shell 2.7.18`。
+- **python-is-python3**:装它会让 `/usr/bin/python` → python3,正好解决 vendor-sdk
+  打包 repo 的 `#!/usr/bin/env python` shebang(vendor-sdk 环境坑①),
+  装了就不用每次 `python3 .repo/repo/repo ...` 绕过。
+- **gcc-multilib / g++-multilib**:32/64 混编支持;纯 arm 交叉编译未必用得上,
+  留着无害(已被 gcc-13 依赖兜底)。
+- **live-build**:在 universe 源,确认 sources.list 启用了 universe。
+- 本列表服务于**参照系 BSP**(vendor-sdk)。rk-forge 主线构建(U-Boot/kernel)
+  的 host 依赖更轻,主要由 `scripts/doctor.sh` 检查。

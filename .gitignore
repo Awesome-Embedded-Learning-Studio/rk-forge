@@ -25,6 +25,10 @@ u-boot.itb
 # their working-dir dirties are ignored via `ignore = dirty` there. The vendor-sdk
 # reference clone is a LOCAL clone (not a submodule) used only for sdk-diff — fully ignored:
 /third_party/vendor-sdk/
+verdor-sdk.gz
+# mainline exploration trees (linux/uboot/rkbin read during premise verification;
+# NOT yet formalized as submodules — see PLAN.md). Local plain clones, fully ignored:
+/third_party/explore/
 
 # (imx-forge template moved out of this repo to ~/imx-forge; no longer present to ignore)
 

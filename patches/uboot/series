@@ -1,4 +1,11 @@
 # patches/uboot/series — quilt-style ordered apply list.
-# U-Boot RK3506 SoC support is ALREADY upstream (Jonas Karlman v2 merged), so this
-# series is usually empty or holds only a board/defconfig delta. If it stays empty,
-# that itself is evidence the mainline-first thesis holds.
+# One filename per line (relative to this dir). '#' = comment, blank lines OK.
+# Applied by scripts/apply-series.sh via `git am` (run from third_party/<uboot tree>).
+#
+# U-Boot RK3506 SoC support is ALREADY upstream (Jonas Karlman v2 merged into
+# 2026.07-rc4), so this series holds ONLY the board/DT/defconfig delta. Verified
+# 2026-06-15: applying this single patch to a clean 2026.07-rc4 (5ca1a73c) tree and
+# rebuilding reproduces the booting U-Boot (binary differs from reference only in
+# the embedded build-timestamp string — 29 bytes; binman-fake/ confirmed unneeded).
+
+0001-rockchip-rk3506-add-AES-RK3506B-board-support-DT-def.patch

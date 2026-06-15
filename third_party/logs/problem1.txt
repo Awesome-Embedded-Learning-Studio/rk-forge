@@ -1,0 +1,67 @@
+# Problem 1: vendor-sdk U-Boot 构建报 "python2 is missing"
+
+日期: 2026-06-14
+组件: third_party/vendor-sdk (ATK-DLRK3506 BSP) 的 U-Boot 构建
+
+## 现象
+跑 vendor-sdk 的 `./build.sh lunch` → 选 defconfig → 打包 U-Boot loader 时,
+device/rockchip/common/scripts/check-loader.sh 中断并提示:
+
+    Your python2 is missing for U-Boot
+    Please install it:
+        wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
+        ...
+        sudo make install
+
+## 根因
+- vendor-sdk 的 u-boot 是 **2017 古董 BSP**(Makefile `VERSION = 2017`),
+  `scripts/*.py`(fill_scrapyard.py / mailmapper / dtc/pylibfdt/setup.py)
+  顶上 `#!/usr/bin/env python2`。
+- check-loader.sh 是**软门**:逻辑只有 `if ! which python2`,根本没真正调用
+  python2 —— PATH 上有 `python2` 这个名字就放行。
+- 本机 Ubuntu 24.04 的 `apt python2` candidate 已是 `(none)`,发行版不再提供。
+
+## ❌ 不采用的方案
+提示里给的 `wget + ./configure + sudo make install` Python 2.7.18 ——
+会把一个 2020 年 EOL 的解释器全局装进 `/usr/local/bin/python2`,污染系统所有
+shell,最脏,别照做。
+
+## ✅ 采用方案:pyenv 隔离
+python2.7.18 只装到 `~/.pyenv/versions/2.7.18`,系统零污染;不满意
+`rm -rf ~/.pyenv` 一把删干净。
+
+    # 1. 装 pyenv(透明,不碰 /usr)
+    git clone --depth 1 https://github.com/pyenv/pyenv.git ~/.pyenv
+    # 2. ~/.zshrc 追加 PYENV_ROOT / PATH / `pyenv init - zsh`(幂等,已配)
+    # 3. 编译依赖(唯一需要 sudo 的一步)
+    sudo apt install -y make build-essential libssl-dev zlib1g-dev \
+      libbz2-dev libreadline-dev libsqlite3-dev libffi-dev \
+      libncursesw5-dev tk-dev libgdbm-dev liblzma-dev uuid-dev
+    # 4. 装 python2.7.18(几分钟)
+    pyenv install 2.7.18
+    #    末尾的 "ssl extension was not compiled" 警告可忽略 ——
+    #    U-Boot loader 打包不碰 ssl(check-loader.sh 只 which,py2 脚本也不导入 ssl)。
+
+## 验证(2026-06-14 已通过)
+    pyenv shell 2.7.18
+    bash third_party/vendor-sdk/device/rockchip/common/scripts/check-loader.sh \
+      && echo PASS
+    → CHECK-LOADER: PASS (python2 gate satisfied) ✓
+    which python2   → /home/charliechen/.pyenv/shims/python2
+    python2 -V      → Python 2.7.18
+
+## 日常用法
+每次开新终端编 vendor-sdk 的 U-Boot 前:
+
+    pyenv shell 2.7.18   # 仅当前 shell 激活
+    ./build.sh lunch
+
+- 新终端自动 source 过 zshrc(pyenv init 已在),无需额外操作。
+- ⚠ 别用 `pyenv global 2.7.18` —— 会把整个系统默认 python 变成 2.7,
+  破坏日常 python3。只 `pyenv shell`(临时)即可。
+
+## 备注
+此 python2 只服务于**参照系 BSP**(vendor-sdk)。
+rk-forge 主线 U-Boot 走 `third_party/uboot/`(上游 denx u-boot,Python3-only),
+根本不需要 python2 —— 见 `third_party/README.md` 与 `PLAN.md`。
+所以这个报错本质是"走了 BSP 路线"的信号,rk-forge 正式构建不触发它。
