@@ -1,0 +1,10 @@
+#!/bin/busybox sh
+/bin/busybox mount -t proc none /proc
+/bin/busybox mount -t sysfs none /sys
+/bin/busybox mount -t devtmpfs none /dev 2>/dev/null || /bin/busybox mount -t tmpfs none /dev
+/bin/busybox --install -s
+echo
+echo "===== rk-forge mainline Linux initramfs ====="
+echo "Kernel: $(/bin/busybox uname -r)  Machine: $(/bin/busybox cat /proc/device-tree/model 2>/dev/null)"
+echo "===== dropping to shell ====="
+exec /bin/busybox sh

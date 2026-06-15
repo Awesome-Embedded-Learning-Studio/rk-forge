@@ -40,14 +40,28 @@
 				algo = "sha256";
 			};
 		};
+
+		ramdisk {
+			description = "Minimal initramfs (static busybox shell)";
+			data = /incbin/("initramfs.cpio.gz");
+			type = "ramdisk";
+			arch = "arm";
+			os = "linux";
+			compression = "gzip";
+			load = <0x08000000>;
+			hash {
+				algo = "sha256";
+			};
+		};
 	};
 
 	configurations {
 		default = "conf";
 		conf {
-			description = "Boot mainline Linux with FDT";
+			description = "Boot mainline Linux with FDT + initramfs";
 			kernel = "kernel";
 			fdt = "fdt";
+			ramdisk = "ramdisk";
 		};
 	};
 };
