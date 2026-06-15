@@ -1,0 +1,346 @@
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xe-0x1-0x2, 0x4-0x1-0x2,status:a007
+rdtrn:0x15-0x2e-0x47(0x32)
+wrtrn:0x0-0x20-0x3f(0x3f)
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g26c8833 #charliechen (Jun 14 2026 - 11:45:32)
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 12
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(93603ca22c...) + OK
+## Checking uboot 0x00800000 ... sha256(ccfc329856...) + OK
+## Checking fdt 0x008748e0 ... sha256(f1ee0efa7a...) + OK
+Jumping to U-Boot(0x00800000) via OP-TEE(0x00001000)
+Total: 63.443/107.146 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-958-g46dcf51e88a #chenjh (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 Thu Mar  6 10:17:27 CST 2025 arm, fwver: v2.10 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00800000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2026.07-rc4-g5ca1a73c7d30 (Jun 15 2026 - 10:50:34 +0800)
+
+Model: Rockchip RK3506 Evaluation Board (ATK RK3506B)
+SoC:   RK3506B
+DRAM:  512 MiB
+Core:  35 devices, 17 uclasses, devicetree: separate
+MMC:   
+Loading Environment from nowhere... OK
+In:    serial@ff0a0000
+Out:   serial@ff0a0000
+Err:   serial@ff0a0000
+Hit any key to stop autoboot: 0
+Scanning for bootflows in all bootdevs
+Seq  Method       State   Uclass    Part  Name                      Filename
+---  -----------  ------  --------  ----  ------------------------  ----------------
+Scanning global bootmeth 'efi_mgr':
+Cannot persist EFI variables without system partition
+Missing RNG device for EFI_RNG_PROTOCOL
+No bootdevs for 'mmc0'
+Unknown uclass 'nvme' in label
+Unknown uclass 'scsi' in label
+Unknown uclass 'usb' in label
+Unknown uclass 'pxe' in label
+Unknown uclass 'dhcp' in label
+No more bootdevs
+---  -----------  ------  --------  ----  ------------------------  ----------------
+(0 bootflows, 0 valid)
+=> setenv bootargs 'earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000'
+=> mtd read boot 0x04000000 0 0x1000000
+Reading 16777216 byte(s) (8192 page(s)) at offset 0x00000000
+=> bootm 0x04000000
+## Loading kernel (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel (zImage, self-decompressing)
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x04000800
+     Data Size:    12059136 Bytes = 11.5 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x02080000
+     Entry Point:  0x02080000
+     Hash algo:    sha256
+     Hash value:   205e2c71e2207039d1faf2f787913901fcb0fc999946eea7fa5e948553dd8655
+   Verifying Hash Integrity ... sha256+ OK
+## Loading ramdisk (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'ramdisk' ramdisk subimage
+     Description:  Minimal initramfs (static busybox shell)
+     Type:         RAMDisk Image
+     Compression:  gzip compressed
+     Data Start:   0x04b82200
+     Data Size:    969871 Bytes = 947.1 KiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x08000000
+     Entry Point:  unavailable
+     Hash algo:    sha256
+     Hash value:   03f6b9f0eb4bb962d551bfaa570a623c852aecf524324480e1759c050637eb5c
+   Verifying Hash Integrity ... sha256+ OK
+   Loading ramdisk from 0x04b82200 to 0x08000000
+WARNING: 'compression' nodes for ramdisks are deprecated, please fix your .its file!
+## Loading fdt (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'fdt' fdt subimage
+     Description:  RK3506B AES board flat DT
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x04b80a00
+     Data Size:    5807 Bytes = 5.7 KiB
+     Architecture: ARM
+     Load Address: 0x01e00000
+     Hash algo:    sha256
+     Hash value:   d2ef997ff209ddf2f816a9624c5569ff2788eedcd255f2314f8e2ae1f707ca01
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x04b80a00 to 0x01e00000
+   Booting using the fdt blob at 0x1e00000
+Working FDT set to 1e00000
+   Loading Kernel Image to 2080000
+   Loading Ramdisk to 1ce49000, end 1cf35c8f ... OK
+   Loading Device Tree to 1ce44000, end 1ce486ae ... OK
+Working FDT set to 1ce44000
+No RNG device
+
+Starting kernel ...
+
+[    0.000000] Booting Linux on physical CPU 0xf00
+[    0.000000] Linux version 7.1.0-00001-g346c849dbaab-dirty (charliechen@Charliechen) (arm-none-linux-gnueabihf-gcc (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 10.3.1 20210621, GNU ld (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 2.36.1.20210621) #2 SMP Mon Jun 15 17:44:04 CST 2026
+[    0.000000] CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=10c5387d
+[    0.000000] CPU: div instructions available: patching division code
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    0.000000] OF: fdt: Machine model: AES RK3506B Board
+[    0.000000] earlycon: uart8250 at MMIO32 0xff0a0000 (options '')
+[    0.000000] printk: legacy bootconsole [uart8250] enabled
+[    0.000000] Memory policy: Data cache writealloc
+[    0.000000] efi: UEFI not found.
+[    0.000000] cma: Reserved 64 MiB at 0x18800000
+[    0.000000] OF: reserved mem: Reserved memory: No reserved-memory node in the DT
+[    0.000000] psci: probing for conduit method from DT.
+[    0.000000] psci: PSCIv1.0 detected in firmware.
+[    0.000000] psci: Using standard PSCI v0.2 function IDs
+[    0.000000] psci: MIGRATE_INFO_TYPE not supported.
+[    0.000000] psci: SMC Calling Convention v1.1
+[    0.000000] Zone ranges:
+[    0.000000]   DMA      [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000]   Normal   empty
+[    0.000000]   HighMem  empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] percpu: Embedded 18 pages/cpu s41804 r8192 d23732 u73728
+[    0.000000] Kernel command line: earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000
+[    0.000000] printk: log buffer data + meta data: 131072 + 409600 = 540672 bytes
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 131072
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=3, Nodes=1
+[    0.000000] rcu: Hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=16 to nr_cpu_ids=3.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=3
+[    0.000000] NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] arch_timer: cp15 timer running at 24.00MHz (virt).
+[    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.000002] sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+[    0.000743] Switching to timer-based delay loop, resolution 41ns
+[    0.001966] Console: colour dummy device 80x30
+[    0.002464] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=240000)
+[    0.003427] CPU: Testing write buffer coherency: ok
+[    0.003935] pid_max: default: 32768 minimum: 301
+[    0.004628] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.005327] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.006544] VFS: Finished mounting rootfs on nullfs
+[    0.007906] /cpus/cpu@f00 missing clock-frequency property
+[    0.008520] /cpus/cpu@f01 missing clock-frequency property
+[    0.009048] /cpus/cpu@f02 missing clock-frequency property
+[    0.009561] CPU0: thread -1, cpu 0, socket 15, mpidr 80000f00
+[    0.010116] cacheinfo: Unable to detect cache hierarchy for CPU 0
+[    0.012932] Setting up static identity map for 0x300000 - 0x3000ac
+[    0.014057] rcu: Hierarchical SRCU implementation.
+[    0.014524] rcu: 	Max phase no-delay instances is 1000.
+[    0.015559] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.016995] EFI services will not be available.
+[    0.017878] smp: Bringing up secondary CPUs ...
+I/TC: Secondary CPU 1 initializing
+I/TC: Secondary CPU 1 switching to normal world boot
+I/TC: Secondary CPU 2 initializing
+I/TC: Secondary CPU 2 switching to normal world boot
+[    0.020414] CPU1: thread -1, cpu 1, socket 15, mpidr 80000f01
+[    0.022843] CPU2: thread -1, cpu 2, socket 15, mpidr 80000f02
+[    0.023199] smp: Brought up 1 node, 3 CPUs
+[    0.024657] SMP: Total of 3 processors activated (144.00 BogoMIPS).
+[    0.025236] CPU: All CPU(s) started in SVC mode.
+[    0.025958] Memory: 419624K/524288K available (17408K kernel code, 2579K rwdata, 7368K rodata, 2048K init, 400K bss, 36472K reserved, 65536K cma-reserved, 0K highmem)
+[    0.028202] devtmpfs: initialized
+[    0.031450] VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+[    0.032452] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.033422] posixtimers hash table entries: 2048 (order: 2, 16384 bytes, linear)
+[    0.034218] futex hash table entries: 1024 (65536 bytes on 1 NUMA nodes, total 64 KiB, linear).
+[    0.038266] DMI: not present or invalid.
+[    0.039635] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.041720] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.044611] thermal_sys: Registered thermal governor 'step_wise'
+[    0.044760] cpuidle: using governor menu
+[    0.046079] No ATAGs?
+[    0.046485] hw-breakpoint: found 5 (+1 reserved) breakpoint and 4 watchpoint registers.
+[    0.047240] hw-breakpoint: maximum watchpoint size is 8 bytes.
+[    0.049904] Serial: AMBA PL011 UART driver
+[    0.058736] rockchip-gpio ff940000.gpio: probed /pinctrl/gpio@ff940000
+[    0.060639] rockchip-gpio ff870000.gpio: probed /pinctrl/gpio@ff870000
+[    0.062495] rockchip-gpio ff1c0000.gpio: probed /pinctrl/gpio@ff1c0000
+[    0.064243] rockchip-gpio ff1d0000.gpio: probed /pinctrl/gpio@ff1d0000
+[    0.066041] rockchip-gpio ff1e0000.gpio: probed /pinctrl/gpio@ff1e0000
+[    0.073065] iommu: Default domain type: Translated
+[    0.073534] iommu: DMA domain TLB invalidation policy: strict mode
+[    0.075625] SCSI subsystem initialized
+[    0.076893] usbcore: registered new interface driver usbfs
+[    0.077470] usbcore: registered new interface driver hub
+[    0.078021] usbcore: registered new device driver usb
+[    0.079506] pps_core: LinuxPPS API ver. 1 registered
+[    0.079986] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.080866] PTP clock support registered
+[    0.081448] EDAC MC: Ver: 3.0.0
+[    0.082427] scmi_core: SCMI protocol bus registered
+[    0.085863] vgaarb: loaded
+[    0.087135] clocksource: Switched to clocksource arch_sys_counter
+[    0.104482] NET: Registered PF_INET protocol family
+[    0.105236] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.107081] tcp_listen_portaddr_hash hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.107966] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.108728] TCP established hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    0.109477] TCP bind hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.110251] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.110965] UDP hash table entries: 256 (order: 2, 14336 bytes, linear)
+[    0.111830] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.113273] RPC: Registered named UNIX socket transport module.
+[    0.113851] RPC: Registered udp transport module.
+[    0.114288] RPC: Registered tcp transport module.
+[    0.114723] RPC: Registered tcp-with-tls transport module.
+[    0.115229] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.115833] PCI: CLS 0 bytes, default 64
+[    0.117341] Trying to unpack rootfs image as initramfs...
+[    0.118247] Initialise system trusted keyrings
+[    0.119294] workingset: timestamp_bits=30 (anon: 26) max_order=17 bucket_order=0 (anon: 0)
+[    0.120871] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.127542] NFS: Registering the id_resolver key type
+[    0.128124] Key type id_resolver registered
+[    0.128538] Key type id_legacy registered
+[    0.129015] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    0.129669] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    0.131196] Key type asymmetric registered
+[    0.131610] Asymmetric key parser 'x509' registered
+[    0.132262] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 245)
+[    0.132974] io scheduler mq-deadline registered
+[    0.133413] io scheduler kyber registered
+[    0.133880] io scheduler bfq registered
+[    0.155791] Freeing initrd memory: 948K
+[    0.157349] ledtrig-cpu: registered to indicate activity on CPUs
+[    0.281001] Serial: 8250/16550 driver, 5 ports, IRQ sharing enabled
+[    0.287770] printk: legacy console [ttyS0] disabled
+[    0.288898] ff0a0000.serial: ttyS0 at MMIO 0xff0a0000 (irq = 34, base_baud = 1500000) is a 16550A
+[    0.289837] printk: legacy console [ttyS0] enabled
+[    0.289837] printk: legacy console [ttyS0] enabled
+[    0.290718] printk: legacy bootconsole [uart8250] disabled
+[    0.290718] printk: legacy bootconsole [uart8250] disabled
+[    0.296154] msm_serial: driver initialized
+[    0.297058] SuperH (H)SCI(F) driver initialized
+[    0.297826] STMicroelectronics ASC driver initialized
+[    0.298670] STM32 USART driver initialized
+[    0.324049] brd: module loaded
+[    0.333416] loop: module loaded
+[    0.343594] spi-nand spi0.0: Winbond SPI NAND was found.
+[    0.344101] spi-nand spi0.0: 512 MiB, block size: 128 KiB, page size: 2048, OOB size: 128
+[    0.344993] 7 fixed-partitions partitions found on MTD device spi0.0
+[    0.345578] Creating 7 MTD partitions on "spi0.0":
+[    0.346030] 0x000000400000-0x000000800000 : "uboot"
+[    0.350428] 0x000000800000-0x000000900000 : "misc"
+[    0.353666] 0x000000900000-0x000000940000 : "vnvm"
+[    0.356621] 0x000000940000-0x000001740000 : "recovery"
+[    0.364618] 0x000001740000-0x000002740000 : "boot"
+[    0.373169] 0x000002740000-0x00000d540000 : "rootfs"
+[    0.436456] 0x00000d540000-0x000020000000 : "userdata"
+[    0.549353] CAN device driver interface
+[    0.550779] bgmac_bcma: Broadcom 47xx GBit MAC driver loaded
+[    0.552420] e1000e: Intel(R) PRO/1000 Network Driver
+[    0.552881] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[    0.553492] igb: Intel(R) Gigabit Ethernet Network Driver
+[    0.553981] igb: Copyright (c) 2007-2014 Intel Corporation.
+[    0.559743] pegasus: Pegasus/Pegasus II USB Ethernet driver
+[    0.560351] usbcore: registered new interface driver pegasus
+[    0.560933] usbcore: registered new interface driver asix
+[    0.561470] usbcore: registered new interface driver ax88179_178a
+[    0.562063] usbcore: registered new interface driver cdc_ether
+[    0.562669] usbcore: registered new interface driver smsc75xx
+[    0.563238] usbcore: registered new interface driver smsc95xx
+[    0.563802] usbcore: registered new interface driver net1080
+[    0.564353] usbcore: registered new interface driver cdc_subset
+[    0.564926] usbcore: registered new interface driver zaurus
+[    0.565470] usbcore: registered new interface driver cdc_ncm
+[    0.571475] usbcore: registered new interface driver usb-storage
+[    0.579850] i2c_dev: i2c /dev entries driver
+[    0.610830] usbcore: registered new interface driver usbhid
+[    0.611352] usbhid: USB HID core driver
+[    0.621183] NET: Registered PF_INET6 protocol family
+[    0.623598] Segment Routing with IPv6
+[    0.624028] In-situ OAM (IOAM) with IPv6
+[    0.624504] NET: Registered PF_PACKET protocol family
+[    0.624966] can: controller area network core
+[    0.625405] NET: Registered PF_CAN protocol family
+[    0.625841] can: raw protocol
+[    0.626118] can: broadcast manager protocol
+[    0.626500] can: netlink gateway - max_hops=1
+[    0.627480] Key type dns_resolver registered
+[    0.628083] ThumbEE CPU extension supported.
+[    0.628498] Registering SWP/SWPB emulation handler
+[    0.640651] Loading compiled-in X.509 certificates
+[    1.036615] clk: Disabling unused clocks
+[    1.037385] PM: genpd: Disabling unused power domains
+[    1.038394] dw-apb-uart ff0a0000.serial: forbid DMA for kernel console
+[    1.041070] Freeing unused kernel image (initmem) memory: 2048K
+[    1.041919] Run /init as init process
+
+===== rk-forge mainline Linux initramfs =====
+Kernel: 7.1.0-00001-g346c849dbaab-dirty  Machine: AES RK3506B Board
+===== dropping to shell =====
+sh: can't access tty; job control turned off
+~ # cat /proc/mtd 
+dev:    size   erasesize  name
+mtd0: 00400000 00020000 "uboot"
+mtd1: 00100000 00020000 "misc"
+mtd2: 00040000 00020000 "vnvm"
+mtd3: 00e00000 00020000 "recovery"
+mtd4: 01000000 00020000 "boot"
+mtd5: 0ae00000 00020000 "rootfs"
+mtd6: 12ac0000 00020000 "userdata"
+~ # dmesg | grep -iE 'spi-nand|rockchip_sfc|w25n|sfc'
+[    0.343594] spi-nand spi0.0: Winbond SPI NAND was found.
+[    0.344101] spi-nand spi0.0: 512 MiB, block size: 128 KiB, page size: 2048, OOB size: 128
+~ # 
