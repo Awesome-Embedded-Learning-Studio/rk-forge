@@ -11,3 +11,4 @@
 # (log boot-sdl-2026-06151312-kernel-7.1.txt).
 
 0001-ARM-dts-rockchip-add-rk3506-SoC-AES-RK3506B-board-DT.patch
+0002-ARM-dts-rockchip-rk3506b-aes-enable-SFC-SPI-NAND-MTD-partitions.patch
