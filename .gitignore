@@ -40,5 +40,15 @@ verdor-sdk.gz
 .cache/
 compile_commands.json
 
+# --- bringup build outputs (reproducible via scripts/pack-*.sh + assemble-update.sh) ---
+# The .its are SOURCE (tracked); everything else under fit/ + all of out/ are
+# regenerated artifacts. tee.bin is a staged rkbin blob copy (pack-fit.sh re-stages it).
+/third_party/bringup/out/
+/third_party/bringup/fit/*.itb
+/third_party/bringup/fit/*.bin
+/third_party/bringup/fit/zImage
+/third_party/bringup/fit/*.dtb
+/third_party/bringup/fit/initramfs.cpio.gz
+
 # keep placeholder files tracked
 !**/.gitkeep
