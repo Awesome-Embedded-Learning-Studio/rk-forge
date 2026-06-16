@@ -1,0 +1,64 @@
+From ff4b08b566a995bf3c25ac6c3ad7f988f182dbbb Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Mon, 15 Jun 2026 23:48:33 +0800
+Subject: [PATCH 2/2] arm: dts: rk3506: raise SFC to 80 MHz + add
+ rockchip,max-dll
+
+Now that the mainline U-Boot rockchip_sfc driver ports the vendor delay-line
+tuning (previous patch), the SFC sampling is stable above 50 MHz on this
+board's RK3506 SFC (VER_5) + Winbond W25N04KV. U-Boot loads the kernel FIT
+from this NAND, so it must run the same tuned rate as Linux.
+
+- flash@0 spi-max-frequency 50 MHz -> 80 MHz, matching the vendor BSP and the
+  Linux side. This also re-exposes any residual timing margin instead of hiding
+  it behind the cap.
+- add rockchip,max-dll = <0x17F> to the SFC controller node (the vendor value)
+  to cap the DLL cell scan. The driver reads it optionally and otherwise derives
+  the max from the SFC version.
+
+Depends on the driver tuning patch; without it 80 MHz reintroduces the corrupt
+kernel-FIT reads that prevented U-Boot from loading the image.
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
+---
+ arch/arm/dts/rk3506-u-boot.dtsi | 11 ++++-------
+ arch/arm/dts/rk3506.dtsi        |  1 +
+ 2 files changed, 5 insertions(+), 7 deletions(-)
+
+diff --git a/arch/arm/dts/rk3506-u-boot.dtsi b/arch/arm/dts/rk3506-u-boot.dtsi
+index 3e57c91f..6a57acf2 100644
+--- a/arch/arm/dts/rk3506-u-boot.dtsi
++++ b/arch/arm/dts/rk3506-u-boot.dtsi
+@@ -34,13 +34,10 @@
+ 	flash@0 {
+ 		compatible = "spi-nand";
+ 		reg = <0>;
+-		/* XXX: rk-forge bring-up — cap at vendor's SFC_DLL_THRESHOLD_RATE
+-		 * (50MHz). Mainline rockchip_sfc.c has NO sampling delay-line (DLL)
+-		 * tuning, unlike vendor's driver (rockchip_sfc_delay_lines_tuning).
+-		 * At 80MHz untuned, SFC read sampling is marginal → non-deterministic
+-		 * bit errors (FIT magic fe→de→dc) and eventual latch-up (all 0xee).
+-		 * ≤50MHz is safe without DLL. If still flaky, drop to 24MHz. */
+-		spi-max-frequency = <50000000>;
++		/* 80 MHz: mainline rockchip_sfc.c now ports the vendor delay-line
++		 * tuning (rockchip_sfc_delay_lines_tuning), so full speed is safe.
++		 * Was capped at 50 MHz (SFC_DLL_THRESHOLD_RATE) pre-tuning. */
++		spi-max-frequency = <80000000>;
+ 		spi-rx-bus-width = <4>;
+ 		spi-tx-bus-width = <1>;
+ 		bootph-all;
+diff --git a/arch/arm/dts/rk3506.dtsi b/arch/arm/dts/rk3506.dtsi
+index b44db90a..735f805d 100644
+--- a/arch/arm/dts/rk3506.dtsi
++++ b/arch/arm/dts/rk3506.dtsi
+@@ -94,6 +94,7 @@
+ 		clocks = <&cru SCLK_FSPI>, <&cru HCLK_FSPI>;
+ 		clock-names = "clk_sfc", "hclk_sfc";
+ 		rockchip,sfc-no-dma;	/* XXX: rk-forge debug — SFC DMA corrupts reads (printf breaks DMA state), try PIO */
++		rockchip,max-dll = <0x17F>;	/* RK3506 SFC is VER_5; cap DLL cell scan (vendor value) */
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		status = "disabled";
+-- 
+2.43.0
+

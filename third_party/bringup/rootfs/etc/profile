@@ -1,0 +1,7 @@
+# /etc/profile — busybox sh env for the UBIFS rootfs (rk-forge).
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export HOME=/root
+export TERM=${TERM:-vt100}
+export PS1='rk3506b-aes:\w# '
+alias ll='ls -l'
+alias la='ls -la'

@@ -52,3 +52,6 @@ compile_commands.json
 
 # keep placeholder files tracked
 !**/.gitkeep
+
+*.bin
+*.img

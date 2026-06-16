@@ -1,0 +1,1203 @@
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0x11-0x1-0x2, 0x5-0x1-0x2,status:a007
+rdtrn:0x15-0x2e-0x47(0x32)
+wrtrn:0x0-0x20-0x3f(0x3f)
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+Boot1 Release Time: Nov  5 2024 17:09:59, version: 1.02 NO FTL
+rom_version: 0x30303156
+chip_id:524b350600,0
+ChipType = 33
+sfc nor id: ff ef aa
+sfc_nand id: ef aa 23
+sfc_nand_density 100000
+sfc_nand_density ffc00
+UsbBoot ...3989
+powerOn 658364
+prog gpt: ffbdf 21
+SoftReset, 10942808 us
+
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+SRX
+get rd_skew=0x2e, wr_skew=0x20
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xc-0x1-0x2, 0x0-0x1-0x2,status:a007
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g1e54c433094-250107 #lxh (Jan 16 2025 - 16:37:07), fwver: v1.11
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 12
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+SPL: A/B-slot: _a, successful: 0, tries-remain: 7
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(93603ca22c...) + OK
+## Checking uboot 0x00800000 ... sha256(07d29ab030...) + OK
+## Checking fdt 0x00874e40 ... sha256(8e3f2ac7ab...) + OK
+Jumping to U-Boot(0x00800000) via OP-TEE(0x00001000)
+Total: 64.458/105.640 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-958-g46dcf51e88a #chenjh (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 Thu Mar  6 10:17:27 CST 2025 arm, fwver: v2.10 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00800000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2026.07-rc4-gff4b08b566a9-dirty (Jun 16 2026 - 09:43:00 +0800)
+
+Model: Rockchip RK3506 Evaluation Board (ATK RK3506B)
+SoC:   RK3506B
+DRAM:  512 MiB
+Core:  35 devices, 17 uclasses, devicetree: separate
+MMC:   
+Loading Environment from nowhere... OK
+In:    serial@ff0a0000
+Out:   serial@ff0a0000
+Err:   serial@ff0a0000
+Hit any key to stop autoboot: 0
+Scanning for bootflows in all bootdevs
+Seq  Method       State   Uclass    Part  Name                      Filename
+---  -----------  ------  --------  ----  ------------------------  ----------------
+Scanning global bootmeth 'efi_mgr':
+Cannot persist EFI variables without system partition
+Missing RNG device for EFI_RNG_PROTOCOL
+No bootdevs for 'mmc0'
+Unknown uclass 'nvme' in label
+Unknown uclass 'scsi' in label
+Unknown uclass 'usb' in label
+Unknown uclass 'pxe' in label
+Unknown uclass 'dhcp' in label
+No more bootdevs
+---  -----------  ------  --------  ----  ------------------------  ----------------
+(0 bootflows, 0 valid)
+=> setenv bootargs 'earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait rw'
+=>  mtd read boot 0x04000000 0 0x1000000
+rockchip_sfc: dll tuning target=50000000Hz real=100000000Hz cell_max=383 step=10 cs=0
+rockchip_sfc:   dll window [0, 230] (230 cells)
+rockchip_sfc:   dll window [270, 373] (103 cells)
+rockchip_sfc: dll ok best=[0,230] -> cell 92 (real 100000000Hz)
+Reading 16777216 byte(s) (8192 page(s)) at offset 0x00000000
+=> bootm 0x04000000
+## Loading kernel (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel (zImage, self-decompressing)
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x04000800
+     Data Size:    12059136 Bytes = 11.5 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x02080000
+     Entry Point:  0x02080000
+     Hash algo:    sha256
+     Hash value:   b5603967da8fe331b8f269f3266bdad75051744ec098b74f050411cbcae65728
+   Verifying Hash Integrity ... sha256+ OK
+## Loading fdt (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'fdt' fdt subimage
+     Description:  RK3506B AES board flat DT (bootargs: ubi.mtd=5 root=ubi0:rootfs)
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x04b80a00
+     Data Size:    5904 Bytes = 5.8 KiB
+     Architecture: ARM
+     Load Address: 0x01e00000
+     Hash algo:    sha256
+     Hash value:   dd5816f9915a7b158b81c2906db3288f5853640a51c0981d40107f9e831e674a
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x04b80a00 to 0x01e00000
+   Booting using the fdt blob at 0x1e00000
+Working FDT set to 1e00000
+   Loading Kernel Image to 2080000
+   Loading Device Tree to 1cf31000, end 1cf3570f ... OK
+Working FDT set to 1cf31000
+No RNG device
+
+Starting kernel ...
+
+[    0.000000] Booting Linux on physical CPU 0xf00
+[    0.000000] Linux version 7.1.0-00005-g453820219629-dirty (charliechen@Charliechen) (arm-none-linux-gnueabihf-gcc (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 10.3.1 20210621, GNU ld (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 2.36.1.20210621) #6 SMP Tue Jun 16 09:42:03 CST 2026
+[    0.000000] CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=10c5387d
+[    0.000000] CPU: div instructions available: patching division code
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    0.000000] OF: fdt: Machine model: AES RK3506B Board
+[    0.000000] earlycon: uart8250 at MMIO32 0xff0a0000 (options '')
+[    0.000000] printk: legacy bootconsole [uart8250] enabled
+[    0.000000] Memory policy: Data cache writealloc
+[    0.000000] efi: UEFI not found.
+[    0.000000] cma: Reserved 64 MiB at 0x18800000
+[    0.000000] OF: reserved mem: Reserved memory: No reserved-memory node in the DT
+[    0.000000] psci: probing for conduit method from DT.
+[    0.000000] psci: PSCIv1.0 detected in firmware.
+[    0.000000] psci: Using standard PSCI v0.2 function IDs
+[    0.000000] psci: MIGRATE_INFO_TYPE not supported.
+[    0.000000] psci: SMC Calling Convention v1.1
+[    0.000000] Zone ranges:
+[    0.000000]   DMA      [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000]   Normal   empty
+[    0.000000]   HighMem  empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] percpu: Embedded 18 pages/cpu s41804 r8192 d23732 u73728
+[    0.000000] Kernel command line: earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait rw
+[    0.000000] printk: log buffer data + meta data: 131072 + 409600 = 540672 bytes
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 131072
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=3, Nodes=1
+[    0.000000] rcu: Hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=16 to nr_cpu_ids=3.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=3
+[    0.000000] NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] arch_timer: cp15 timer running at 24.00MHz (virt).
+[    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.000001] sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+[    0.000745] Switching to timer-based delay loop, resolution 41ns
+[    0.001957] Console: colour dummy device 80x30
+[    0.002461] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=240000)
+[    0.003428] CPU: Testing write buffer coherency: ok
+[    0.003940] pid_max: default: 32768 minimum: 301
+[    0.004643] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.005343] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.006527] VFS: Finished mounting rootfs on nullfs
+[    0.007901] /cpus/cpu@f00 missing clock-frequency property
+[    0.008519] /cpus/cpu@f01 missing clock-frequency property
+[    0.009049] /cpus/cpu@f02 missing clock-frequency property
+[    0.009563] CPU0: thread -1, cpu 0, socket 15, mpidr 80000f00
+[    0.010119] cacheinfo: Unable to detect cache hierarchy for CPU 0
+[    0.012915] Setting up static identity map for 0x300000 - 0x3000ac
+[    0.014042] rcu: Hierarchical SRCU implementation.
+[    0.014511] rcu: 	Max phase no-delay instances is 1000.
+[    0.015537] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.016973] EFI services will not be available.
+[    0.017843] smp: Bringing up secondary CPUs ...
+I/TC: Secondary CPU 1 initializing
+I/TC: Secondary CPU 1 switching to normal world boot
+I/TC: Secondary CPU 2 initializing
+I/TC: Secondary CPU 2 switching to normal world boot
+[    0.020379] CPU1: thread -1, cpu 1, socket 15, mpidr 80000f01
+[    0.022788] CPU2: thread -1, cpu 2, socket 15, mpidr 80000f02
+[    0.023144] smp: Brought up 1 node, 3 CPUs
+[    0.024602] SMP: Total of 3 processors activated (144.00 BogoMIPS).
+[    0.025181] CPU: All CPU(s) started in SVC mode.
+[    0.025908] Memory: 420572K/524288K available (17408K kernel code, 2579K rwdata, 7368K rodata, 2048K init, 400K bss, 35524K reserved, 65536K cma-reserved, 0K highmem)
+[    0.028164] devtmpfs: initialized
+[    0.031475] VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+[    0.032483] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.033457] posixtimers hash table entries: 2048 (order: 2, 16384 bytes, linear)
+[    0.034255] futex hash table entries: 1024 (65536 bytes on 1 NUMA nodes, total 64 KiB, linear).
+[    0.038304] DMI: not present or invalid.
+[    0.039699] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.041831] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.044677] thermal_sys: Registered thermal governor 'step_wise'
+[    0.044829] cpuidle: using governor menu
+[    0.046197] No ATAGs?
+[    0.046612] hw-breakpoint: found 5 (+1 reserved) breakpoint and 4 watchpoint registers.
+[    0.047367] hw-breakpoint: maximum watchpoint size is 8 bytes.
+[    0.050024] Serial: AMBA PL011 UART driver
+[    0.059044] rockchip-gpio ff940000.gpio: probed /pinctrl/gpio@ff940000
+[    0.060854] rockchip-gpio ff870000.gpio: probed /pinctrl/gpio@ff870000
+[    0.062706] rockchip-gpio ff1c0000.gpio: probed /pinctrl/gpio@ff1c0000
+[    0.064469] rockchip-gpio ff1d0000.gpio: probed /pinctrl/gpio@ff1d0000
+[    0.066272] rockchip-gpio ff1e0000.gpio: probed /pinctrl/gpio@ff1e0000
+[    0.073489] iommu: Default domain type: Translated
+[    0.073959] iommu: DMA domain TLB invalidation policy: strict mode
+[    0.075865] SCSI subsystem initialized
+[    0.077142] usbcore: registered new interface driver usbfs
+[    0.077723] usbcore: registered new interface driver hub
+[    0.078277] usbcore: registered new device driver usb
+[    0.079705] pps_core: LinuxPPS API ver. 1 registered
+[    0.080187] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.081067] PTP clock support registered
+[    0.081678] EDAC MC: Ver: 3.0.0
+[    0.082684] scmi_core: SCMI protocol bus registered
+[    0.086253] vgaarb: loaded
+[    0.087497] clocksource: Switched to clocksource arch_sys_counter
+[    0.110103] NET: Registered PF_INET protocol family
+[    0.110886] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.112708] tcp_listen_portaddr_hash hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.113524] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.114251] TCP established hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    0.114995] TCP bind hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.115773] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.116506] UDP hash table entries: 256 (order: 2, 14336 bytes, linear)
+[    0.117383] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.118932] RPC: Registered named UNIX socket transport module.
+[    0.119513] RPC: Registered udp transport module.
+[    0.119951] RPC: Registered tcp transport module.
+[    0.120385] RPC: Registered tcp-with-tls transport module.
+[    0.120890] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.121493] PCI: CLS 0 bytes, default 64
+[    0.123625] Initialise system trusted keyrings
+[    0.124807] workingset: timestamp_bits=30 (anon: 26) max_order=17 bucket_order=0 (anon: 0)
+[    0.126264] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.127619] NFS: Registering the id_resolver key type
+[    0.128170] Key type id_resolver registered
+[    0.128570] Key type id_legacy registered
+[    0.129009] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    0.129640] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    0.131107] Key type asymmetric registered
+[    0.131523] Asymmetric key parser 'x509' registered
+[    0.132133] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 245)
+[    0.132829] io scheduler mq-deadline registered
+[    0.133251] io scheduler kyber registered
+[    0.133678] io scheduler bfq registered
+[    0.151693] ledtrig-cpu: registered to indicate activity on CPUs
+[    0.275009] Serial: 8250/16550 driver, 5 ports, IRQ sharing enabled
+[    0.281833] printk: legacy console [ttyS0] disabled
+[    0.282961] ff0a0000.serial: ttyS0 at MMIO 0xff0a0000 (irq = 34, base_baud = 1500000) is a 16550A
+[    0.283900] printk: legacy console [ttyS0] enabled
+[    0.283900] printk: legacy console [ttyS0] enabled
+[    0.284779] printk: legacy bootconsole [uart8250] disabled
+[    0.284779] printk: legacy bootconsole [uart8250] disabled
+[    0.290294] msm_serial: driver initialized
+[    0.291206] SuperH (H)SCI(F) driver initialized
+[    0.291826] STMicroelectronics ASC driver initialized
+[    0.292676] STM32 USART driver initialized
+[    0.324707] brd: module loaded
+[    0.334141] loop: module loaded
+[    0.344238] rockchip-sfc ff488000.spi: dll tuning: target=50000000Hz real=50000000Hz cell_max=383 step=10 cs=0
+[    0.345199] rockchip-sfc ff488000.spi:   dll window [0, 230] (230 cells)
+[    0.345823] rockchip-sfc ff488000.spi:   dll window [270, 373] (103 cells)
+[    0.346435] rockchip-sfc ff488000.spi: dll ok: best=[0,230] -> cell 92 (real 50000000Hz)
+[    0.347210] spi-nand spi0.0: Winbond SPI NAND was found.
+[    0.347760] spi-nand spi0.0: 512 MiB, block size: 128 KiB, page size: 2048, OOB size: 128
+[    0.348706] 7 fixed-partitions partitions found on MTD device spi0.0
+[    0.349295] Creating 7 MTD partitions on "spi0.0":
+[    0.349728] 0x000000400000-0x000000800000 : "uboot"
+[    0.354135] 0x000000800000-0x000000900000 : "misc"
+[    0.357329] 0x000000900000-0x000000940000 : "vnvm"
+[    0.360414] 0x000000940000-0x000001740000 : "recovery"
+[    0.368718] 0x000001740000-0x000002740000 : "boot"
+[    0.377455] 0x000002740000-0x00000d540000 : "rootfs"
+[    0.444445] 0x00000d540000-0x000020000000 : "userdata"
+[    0.563336] CAN device driver interface
+[    0.564728] bgmac_bcma: Broadcom 47xx GBit MAC driver loaded
+[    0.566357] e1000e: Intel(R) PRO/1000 Network Driver
+[    0.566818] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[    0.567421] igb: Intel(R) Gigabit Ethernet Network Driver
+[    0.567971] igb: Copyright (c) 2007-2014 Intel Corporation.
+[    0.573550] pegasus: Pegasus/Pegasus II USB Ethernet driver
+[    0.574157] usbcore: registered new interface driver pegasus
+[    0.574767] usbcore: registered new interface driver asix
+[    0.575310] usbcore: registered new interface driver ax88179_178a
+[    0.575899] usbcore: registered new interface driver cdc_ether
+[    0.576467] usbcore: registered new interface driver smsc75xx
+[    0.577026] usbcore: registered new interface driver smsc95xx
+[    0.577686] usbcore: registered new interface driver net1080
+[    0.578278] usbcore: registered new interface driver cdc_subset
+[    0.578862] usbcore: registered new interface driver zaurus
+[    0.579438] usbcore: registered new interface driver cdc_ncm
+[    0.585426] usbcore: registered new interface driver usb-storage
+[    0.593780] i2c_dev: i2c /dev entries driver
+[    0.624519] usbcore: registered new interface driver usbhid
+[    0.625041] usbhid: USB HID core driver
+[    0.634922] NET: Registered PF_INET6 protocol family
+[    0.637271] Segment Routing with IPv6
+[    0.637800] In-situ OAM (IOAM) with IPv6
+[    0.638304] NET: Registered PF_PACKET protocol family
+[    0.638768] can: controller area network core
+[    0.639212] NET: Registered PF_CAN protocol family
+[    0.639653] can: raw protocol
+[    0.639929] can: broadcast manager protocol
+[    0.640311] can: netlink gateway - max_hops=1
+[    0.641183] Key type dns_resolver registered
+[    0.641816] ThumbEE CPU extension supported.
+[    0.642232] Registering SWP/SWPB emulation handler
+[    0.654481] Loading compiled-in X.509 certificates
+[    0.675947] ubi0: attaching mtd5
+[    0.879251] ubi0: scanning is finished
+[    0.918845] ubi0: volume 0 ("rootfs") re-sized from 25 to 1308 LEBs
+[    0.920439] ubi0: attached mtd5 (name "rootfs", size 174 MiB)
+[    0.920989] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    0.921601] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    0.922201] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    0.922816] ubi0: good PEBs: 1392, bad PEBs: 0, corrupted PEBs: 0
+[    0.923356] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    0.923994] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 1419602216
+[    0.924799] ubi0: available PEBs: 0, total reserved PEBs: 1392, PEBs reserved for bad PEB handling: 80
+[    0.925652] ubi0: background thread "ubi_bgt0d" started, PID 53
+[    1.040801] clk: Disabling unused clocks
+[    1.041491] PM: genpd: Disabling unused power domains
+[    1.042528] dw-apb-uart ff0a0000.serial: forbid DMA for kernel console
+[    1.045664] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[    1.046531] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 54
+[    1.128409] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[    1.129101] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    1.129983] UBIFS (ubi0:0): FS size: 164687872 bytes (157 MiB, 1297 LEBs), max 1400 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    1.131046] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[    1.131571] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID F51AA2A3-01D6-41FC-8AEA-074A22A0C511, small LPT model
+[    1.146578] VFS: Mounted root (ubifs filesystem) on device 0:17.
+[    1.162080] devtmpfs: mounted
+[    1.162615] VFS: Pivoted into new rootfs
+[    1.165089] Freeing unused kernel image (initmem) memory: 2048K
+[    1.165946] Run /sbin/init as init process
+[    1.597585] random: crng init done
+~ # echo txlvmask-50mhz-ok > /test.txt && reboot
+~ # umount: devtmpfs busy - remounted read-only
+[   11.110978] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" stops
+The system is going down NOW!
+Sent SIGTERM to all processes
+Sent SIGKILL to all processes
+Requesting system reboot
+[   13.115895] reboot: Restarting system
+󃐠d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+SRX
+get rd_skew=0x2e, wr_skew=0x20
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xc-0x1-0x2, 0x0-0x1-0x2,status:a007
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g1e54c433094-250107 #lxh (Jan 16 2025 - 16:37:07), fwver: v1.11
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 12
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+SPL: A/B-slot: _a, successful: 0, tries-remain: 7
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(93603ca22c...) + OK
+## Checking uboot 0x00800000 ... sha256(07d29ab030...) + OK
+## Checking fdt 0x00874e40 ... sha256(8e3f2ac7ab...) + OK
+Jumping to U-Boot(0x00800000) via OP-TEE(0x00001000)
+Total: 64.535/105.693 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-958-g46dcf51e88a #chenjh (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 Thu Mar  6 10:17:27 CST 2025 arm, fwver: v2.10 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00800000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2026.07-rc4-gff4b08b566a9-dirty (Jun 16 2026 - 09:43:00 +0800)
+
+Model: Rockchip RK3506 Evaluation Board (ATK RK3506B)
+SoC:   RK3506B
+DRAM:  512 MiB
+Core:  35 devices, 17 uclasses, devicetree: separate
+MMC:   
+Loading Environment from nowhere... OK
+In:    serial@ff0a0000
+Out:   serial@ff0a0000
+Err:   serial@ff0a0000
+Hit any key to stop autoboot: 0
+Scanning for bootflows in all bootdevs
+Seq  Method       State   Uclass    Part  Name                      Filename
+---  -----------  ------  --------  ----  ------------------------  ----------------
+Scanning global bootmeth 'efi_mgr':
+Cannot persist EFI variables without system partition
+Missing RNG device for EFI_RNG_PROTOCOL
+No bootdevs for 'mmc0'
+Unknown uclass 'nvme' in label
+Unknown uclass 'scsi' in label
+Unknown uclass 'usb' in label
+Unknown uclass 'pxe' in label
+Unknown uclass 'dhcp' in label
+No more bootdevs
+---  -----------  ------  --------  ----  ------------------------  ----------------
+(0 bootflows, 0 valid)
+=> setenv bootargs 'earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait rw'
+=> mtd read boot 0x04000000 0 0x1000000
+rockchip_sfc: dll tuning target=50000000Hz real=100000000Hz cell_max=383 step=10 cs=0
+rockchip_sfc:   dll window [0, 230] (230 cells)
+rockchip_sfc:   dll window [270, 373] (103 cells)
+rockchip_sfc: dll ok best=[0,230] -> cell 92 (real 100000000Hz)
+Reading 16777216 byte(s) (8192 page(s)) at offset 0x00000000
+=> bootm 0x04000000
+## Loading kernel (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel (zImage, self-decompressing)
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x04000800
+     Data Size:    12059136 Bytes = 11.5 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x02080000
+     Entry Point:  0x02080000
+     Hash algo:    sha256
+     Hash value:   b5603967da8fe331b8f269f3266bdad75051744ec098b74f050411cbcae65728
+   Verifying Hash Integrity ... sha256+ OK
+## Loading fdt (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'fdt' fdt subimage
+     Description:  RK3506B AES board flat DT (bootargs: ubi.mtd=5 root=ubi0:rootfs)
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x04b80a00
+     Data Size:    5904 Bytes = 5.8 KiB
+     Architecture: ARM
+     Load Address: 0x01e00000
+     Hash algo:    sha256
+     Hash value:   dd5816f9915a7b158b81c2906db3288f5853640a51c0981d40107f9e831e674a
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x04b80a00 to 0x01e00000
+   Booting using the fdt blob at 0x1e00000
+Working FDT set to 1e00000
+   Loading Kernel Image to 2080000
+   Loading Device Tree to 1cf31000, end 1cf3570f ... OK
+Working FDT set to 1cf31000
+No RNG device
+
+Starting kernel ...
+
+[    0.000000] Booting Linux on physical CPU 0xf00
+[    0.000000] Linux version 7.1.0-00005-g453820219629-dirty (charliechen@Charliechen) (arm-none-linux-gnueabihf-gcc (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 10.3.1 20210621, GNU ld (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 2.36.1.20210621) #6 SMP Tue Jun 16 09:42:03 CST 2026
+[    0.000000] CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=10c5387d
+[    0.000000] CPU: div instructions available: patching division code
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    0.000000] OF: fdt: Machine model: AES RK3506B Board
+[    0.000000] earlycon: uart8250 at MMIO32 0xff0a0000 (options '')
+[    0.000000] printk: legacy bootconsole [uart8250] enabled
+[    0.000000] Memory policy: Data cache writealloc
+[    0.000000] efi: UEFI not found.
+[    0.000000] cma: Reserved 64 MiB at 0x18800000
+[    0.000000] OF: reserved mem: Reserved memory: No reserved-memory node in the DT
+[    0.000000] psci: probing for conduit method from DT.
+[    0.000000] psci: PSCIv1.0 detected in firmware.
+[    0.000000] psci: Using standard PSCI v0.2 function IDs
+[    0.000000] psci: MIGRATE_INFO_TYPE not supported.
+[    0.000000] psci: SMC Calling Convention v1.1
+[    0.000000] Zone ranges:
+[    0.000000]   DMA      [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000]   Normal   empty
+[    0.000000]   HighMem  empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] percpu: Embedded 18 pages/cpu s41804 r8192 d23732 u73728
+[    0.000000] Kernel command line: earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait rw
+[    0.000000] printk: log buffer data + meta data: 131072 + 409600 = 540672 bytes
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 131072
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=3, Nodes=1
+[    0.000000] rcu: Hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=16 to nr_cpu_ids=3.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=3
+[    0.000000] NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] arch_timer: cp15 timer running at 24.00MHz (virt).
+[    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.000002] sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+[    0.000743] Switching to timer-based delay loop, resolution 41ns
+[    0.001957] Console: colour dummy device 80x30
+[    0.002463] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=240000)
+[    0.003428] CPU: Testing write buffer coherency: ok
+[    0.003939] pid_max: default: 32768 minimum: 301
+[    0.004641] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.005343] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.006534] VFS: Finished mounting rootfs on nullfs
+[    0.007906] /cpus/cpu@f00 missing clock-frequency property
+[    0.008520] /cpus/cpu@f01 missing clock-frequency property
+[    0.009050] /cpus/cpu@f02 missing clock-frequency property
+[    0.009563] CPU0: thread -1, cpu 0, socket 15, mpidr 80000f00
+[    0.010120] cacheinfo: Unable to detect cache hierarchy for CPU 0
+[    0.012912] Setting up static identity map for 0x300000 - 0x3000ac
+[    0.014041] rcu: Hierarchical SRCU implementation.
+[    0.014511] rcu: 	Max phase no-delay instances is 1000.
+[    0.015553] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.016990] EFI services will not be available.
+[    0.017864] smp: Bringing up secondary CPUs ...
+I/TC: Secondary CPU 1 initializing
+I/TC: Secondary CPU 1 switching to normal world boot
+I/TC: Secondary CPU 2 initializing
+I/TC: Secondary CPU 2 switching to normal world boot
+[    0.020383] CPU1: thread -1, cpu 1, socket 15, mpidr 80000f01
+[    0.022822] CPU2: thread -1, cpu 2, socket 15, mpidr 80000f02
+[    0.023173] smp: Brought up 1 node, 3 CPUs
+[    0.024630] SMP: Total of 3 processors activated (144.00 BogoMIPS).
+[    0.025210] CPU: All CPU(s) started in SVC mode.
+[    0.025932] Memory: 420572K/524288K available (17408K kernel code, 2579K rwdata, 7368K rodata, 2048K init, 400K bss, 35524K reserved, 65536K cma-reserved, 0K highmem)
+[    0.028187] devtmpfs: initialized
+[    0.031498] VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+[    0.032508] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.033480] posixtimers hash table entries: 2048 (order: 2, 16384 bytes, linear)
+[    0.034275] futex hash table entries: 1024 (65536 bytes on 1 NUMA nodes, total 64 KiB, linear).
+[    0.038334] DMI: not present or invalid.
+[    0.039733] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.041864] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.044723] thermal_sys: Registered thermal governor 'step_wise'
+[    0.044872] cpuidle: using governor menu
+[    0.046252] No ATAGs?
+[    0.046672] hw-breakpoint: found 5 (+1 reserved) breakpoint and 4 watchpoint registers.
+[    0.047428] hw-breakpoint: maximum watchpoint size is 8 bytes.
+[    0.050082] Serial: AMBA PL011 UART driver
+[    0.059077] rockchip-gpio ff940000.gpio: probed /pinctrl/gpio@ff940000
+[    0.060890] rockchip-gpio ff870000.gpio: probed /pinctrl/gpio@ff870000
+[    0.062744] rockchip-gpio ff1c0000.gpio: probed /pinctrl/gpio@ff1c0000
+[    0.064519] rockchip-gpio ff1d0000.gpio: probed /pinctrl/gpio@ff1d0000
+[    0.066321] rockchip-gpio ff1e0000.gpio: probed /pinctrl/gpio@ff1e0000
+[    0.073568] iommu: Default domain type: Translated
+[    0.074039] iommu: DMA domain TLB invalidation policy: strict mode
+[    0.075910] SCSI subsystem initialized
+[    0.077125] usbcore: registered new interface driver usbfs
+[    0.077699] usbcore: registered new interface driver hub
+[    0.078249] usbcore: registered new device driver usb
+[    0.079883] pps_core: LinuxPPS API ver. 1 registered
+[    0.080366] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.081263] PTP clock support registered
+[    0.081832] EDAC MC: Ver: 3.0.0
+[    0.082822] scmi_core: SCMI protocol bus registered
+[    0.086438] vgaarb: loaded
+[    0.087499] clocksource: Switched to clocksource arch_sys_counter
+[    0.110461] NET: Registered PF_INET protocol family
+[    0.111188] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.113074] tcp_listen_portaddr_hash hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.113889] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.114615] TCP established hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    0.115357] TCP bind hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.116133] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.116854] UDP hash table entries: 256 (order: 2, 14336 bytes, linear)
+[    0.117924] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.119409] RPC: Registered named UNIX socket transport module.
+[    0.119988] RPC: Registered udp transport module.
+[    0.120425] RPC: Registered tcp transport module.
+[    0.120859] RPC: Registered tcp-with-tls transport module.
+[    0.121365] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.121969] PCI: CLS 0 bytes, default 64
+[    0.124134] Initialise system trusted keyrings
+[    0.125031] workingset: timestamp_bits=30 (anon: 26) max_order=17 bucket_order=0 (anon: 0)
+[    0.126432] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.127780] NFS: Registering the id_resolver key type
+[    0.128333] Key type id_resolver registered
+[    0.128732] Key type id_legacy registered
+[    0.129201] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    0.129837] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    0.131249] Key type asymmetric registered
+[    0.131661] Asymmetric key parser 'x509' registered
+[    0.132280] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 245)
+[    0.132976] io scheduler mq-deadline registered
+[    0.133399] io scheduler kyber registered
+[    0.133823] io scheduler bfq registered
+[    0.151648] ledtrig-cpu: registered to indicate activity on CPUs
+[    0.274626] Serial: 8250/16550 driver, 5 ports, IRQ sharing enabled
+[    0.281321] printk: legacy console [ttyS0] disabled
+[    0.282377] ff0a0000.serial: ttyS0 at MMIO 0xff0a0000 (irq = 34, base_baud = 1500000) is a 16550A
+[    0.283321] printk: legacy console [ttyS0] enabled
+[    0.283321] printk: legacy console [ttyS0] enabled
+[    0.284203] printk: legacy bootconsole [uart8250] disabled
+[    0.284203] printk: legacy bootconsole [uart8250] disabled
+[    0.289854] msm_serial: driver initialized
+[    0.290777] SuperH (H)SCI(F) driver initialized
+[    0.291399] STMicroelectronics ASC driver initialized
+[    0.292198] STM32 USART driver initialized
+[    0.324804] brd: module loaded
+[    0.334233] loop: module loaded
+[    0.344326] rockchip-sfc ff488000.spi: dll tuning: target=50000000Hz real=50000000Hz cell_max=383 step=10 cs=0
+[    0.345291] rockchip-sfc ff488000.spi:   dll window [0, 230] (230 cells)
+[    0.345917] rockchip-sfc ff488000.spi:   dll window [280, 373] (93 cells)
+[    0.346521] rockchip-sfc ff488000.spi: dll ok: best=[0,230] -> cell 92 (real 50000000Hz)
+[    0.347294] spi-nand spi0.0: Winbond SPI NAND was found.
+[    0.347818] spi-nand spi0.0: 512 MiB, block size: 128 KiB, page size: 2048, OOB size: 128
+[    0.348727] 7 fixed-partitions partitions found on MTD device spi0.0
+[    0.349312] Creating 7 MTD partitions on "spi0.0":
+[    0.349746] 0x000000400000-0x000000800000 : "uboot"
+[    0.354279] 0x000000800000-0x000000900000 : "misc"
+[    0.357730] 0x000000900000-0x000000940000 : "vnvm"
+[    0.360658] 0x000000940000-0x000001740000 : "recovery"
+[    0.368960] 0x000001740000-0x000002740000 : "boot"
+[    0.377991] 0x000002740000-0x00000d540000 : "rootfs"
+[    0.445174] 0x00000d540000-0x000020000000 : "userdata"
+[    0.564551] CAN device driver interface
+[    0.565965] bgmac_bcma: Broadcom 47xx GBit MAC driver loaded
+[    0.567822] e1000e: Intel(R) PRO/1000 Network Driver
+[    0.568291] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[    0.568900] igb: Intel(R) Gigabit Ethernet Network Driver
+[    0.569385] igb: Copyright (c) 2007-2014 Intel Corporation.
+[    0.574893] pegasus: Pegasus/Pegasus II USB Ethernet driver
+[    0.575497] usbcore: registered new interface driver pegasus
+[    0.576077] usbcore: registered new interface driver asix
+[    0.576614] usbcore: registered new interface driver ax88179_178a
+[    0.577205] usbcore: registered new interface driver cdc_ether
+[    0.577879] usbcore: registered new interface driver smsc75xx
+[    0.578500] usbcore: registered new interface driver smsc95xx
+[    0.579079] usbcore: registered new interface driver net1080
+[    0.579639] usbcore: registered new interface driver cdc_subset
+[    0.580214] usbcore: registered new interface driver zaurus
+[    0.580757] usbcore: registered new interface driver cdc_ncm
+[    0.586587] usbcore: registered new interface driver usb-storage
+[    0.595058] i2c_dev: i2c /dev entries driver
+[    0.625873] usbcore: registered new interface driver usbhid
+[    0.626397] usbhid: USB HID core driver
+[    0.636275] NET: Registered PF_INET6 protocol family
+[    0.638614] Segment Routing with IPv6
+[    0.639041] In-situ OAM (IOAM) with IPv6
+[    0.639505] NET: Registered PF_PACKET protocol family
+[    0.639967] can: controller area network core
+[    0.640410] NET: Registered PF_CAN protocol family
+[    0.640850] can: raw protocol
+[    0.641126] can: broadcast manager protocol
+[    0.641506] can: netlink gateway - max_hops=1
+[    0.642380] Key type dns_resolver registered
+[    0.643010] ThumbEE CPU extension supported.
+[    0.643425] Registering SWP/SWPB emulation handler
+[    0.655750] Loading compiled-in X.509 certificates
+[    0.677284] ubi0: attaching mtd5
+[    1.073492] ubi0: scanning is finished
+[    1.079899] ubi0: attached mtd5 (name "rootfs", size 174 MiB)
+[    1.080449] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    1.081060] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    1.081659] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    1.082273] ubi0: good PEBs: 1392, bad PEBs: 0, corrupted PEBs: 0
+[    1.082813] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    1.083451] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 1419602216
+[    1.084255] ubi0: available PEBs: 0, total reserved PEBs: 1392, PEBs reserved for bad PEB handling: 80
+[    1.085113] ubi0: background thread "ubi_bgt0d" started, PID 52
+[    1.085795] clk: Disabling unused clocks
+[    1.086456] PM: genpd: Disabling unused power domains
+[    1.087465] dw-apb-uart ff0a0000.serial: forbid DMA for kernel console
+[    1.089238] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[    1.090102] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 53
+[    1.098710] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 3:4096, read only 126976 bytes, retry
+[    1.108554] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 3:4096, read only 126976 bytes, retry
+[    1.118256] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 3:4096, read only 126976 bytes, retry
+[    1.128057] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 3:4096, read 126976 bytes
+[    1.129069] CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.129083] Hardware name: Generic DT based system
+[    1.129088] Call trace: 
+[    1.129101]  unwind_backtrace from show_stack+0x10/0x14
+[    1.129124]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.129141]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.129155]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.129167]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.129183]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.129203]  ubifs_leb_read from ubifs_start_scan+0x74/0xd0
+[    1.129220]  ubifs_start_scan from ubifs_scan+0x28/0x32c
+[    1.129236]  ubifs_scan from ubifs_read_master+0x40/0x838
+[    1.129251]  ubifs_read_master from ubifs_get_tree+0x1030/0x16a4
+[    1.129266]  ubifs_get_tree from vfs_get_tree+0x24/0xdc
+[    1.129286]  vfs_get_tree from path_mount+0x398/0xae8
+[    1.129304]  path_mount from init_mount+0x58/0x90
+[    1.129323]  init_mount from do_mount_root+0x94/0x120
+[    1.129345]  do_mount_root from mount_root_generic+0xd0/0x278
+[    1.129363]  mount_root_generic from prepare_namespace+0x1e8/0x29c
+[    1.129382]  prepare_namespace from kernel_init+0x18/0x12c
+[    1.129398]  kernel_init from ret_from_fork+0x14/0x28
+[    1.129408] Exception stack(0xe0845fb0 to 0xe0845ff8)
+[    1.129418] 5fa0:                                     00000000 00000000 00000000 00000000
+[    1.129427] 5fc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    1.129433] 5fe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[    1.150825] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 4:4096, read only 126976 bytes, retry
+[    1.160438] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 4:4096, read only 126976 bytes, retry
+[    1.170158] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 4:4096, read only 126976 bytes, retry
+[    1.180016] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 4:4096, read 126976 bytes
+[    1.181025] CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.181038] Hardware name: Generic DT based system
+[    1.181044] Call trace: 
+[    1.181054]  unwind_backtrace from show_stack+0x10/0x14
+[    1.181078]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.181095]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.181110]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.181122]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.181140]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.181158]  ubifs_leb_read from ubifs_start_scan+0x74/0xd0
+[    1.181175]  ubifs_start_scan from ubifs_scan+0x28/0x32c
+[    1.181191]  ubifs_scan from ubifs_read_master+0xa0/0x838
+[    1.181207]  ubifs_read_master from ubifs_get_tree+0x1030/0x16a4
+[    1.181222]  ubifs_get_tree from vfs_get_tree+0x24/0xdc
+[    1.181241]  vfs_get_tree from path_mount+0x398/0xae8
+[    1.181259]  path_mount from init_mount+0x58/0x90
+[    1.181277]  init_mount from do_mount_root+0x94/0x120
+[    1.181299]  do_mount_root from mount_root_generic+0xd0/0x278
+[    1.181317]  mount_root_generic from prepare_namespace+0x1e8/0x29c
+[    1.181337]  prepare_namespace from kernel_init+0x18/0x12c
+[    1.181353]  kernel_init from ret_from_fork+0x14/0x28
+[    1.181364] Exception stack(0xe0845fb0 to 0xe0845ff8)
+[    1.181373] 5fa0:                                     00000000 00000000 00000000 00000000
+[    1.181382] 5fc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    1.181389] 5fe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[    1.181855] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 88 bytes from PEB 26:22064, read only 88 bytes, retry
+[    1.195470] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 88 bytes from PEB 26:22064, read only 88 bytes, retry
+[    1.196682] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 88 bytes from PEB 26:22064, read only 88 bytes, retry
+[    1.197925] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 88 bytes from PEB 26:22064, read 88 bytes
+[    1.198860] CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.198873] Hardware name: Generic DT based system
+[    1.198879] Call trace: 
+[    1.198887]  unwind_backtrace from show_stack+0x10/0x14
+[    1.198908]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.198925]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.198939]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.198950]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.198967]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.198985]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.199000]  ubifs_read_node from dbg_old_index_check_init+0x64/0x94
+[    1.199017]  dbg_old_index_check_init from ubifs_get_tree+0x1030/0x16a4
+[    1.199033]  ubifs_get_tree from vfs_get_tree+0x24/0xdc
+[    1.199054]  vfs_get_tree from path_mount+0x398/0xae8
+[    1.199071]  path_mount from init_mount+0x58/0x90
+[    1.199090]  init_mount from do_mount_root+0x94/0x120
+[    1.199111]  do_mount_root from mount_root_generic+0xd0/0x278
+[    1.199129]  mount_root_generic from prepare_namespace+0x1e8/0x29c
+[    1.199148]  prepare_namespace from kernel_init+0x18/0x12c
+[    1.199164]  kernel_init from ret_from_fork+0x14/0x28
+[    1.199174] Exception stack(0xe0845fb0 to 0xe0845ff8)
+[    1.199184] 5fa0:                                     00000000 00000000 00000000 00000000
+[    1.199192] 5fc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    1.199199] 5fe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[    1.248881] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[    1.249573] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    1.250450] UBIFS (ubi0:0): FS size: 164687872 bytes (157 MiB, 1297 LEBs), max 1400 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    1.251506] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[    1.252024] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID F51AA2A3-01D6-41FC-8AEA-074A22A0C511, small LPT model
+[    1.253242] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 88 bytes from PEB 26:22064, read only 88 bytes, retry
+[    1.254494] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 88 bytes from PEB 26:22064, read only 88 bytes, retry
+[    1.255691] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 88 bytes from PEB 26:22064, read only 88 bytes, retry
+[    1.256870] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 88 bytes from PEB 26:22064, read 88 bytes
+[    1.257856] CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.257871] Hardware name: Generic DT based system
+[    1.257876] Call trace: 
+[    1.257886]  unwind_backtrace from show_stack+0x10/0x14
+[    1.257911]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.257927]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.257942]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.257954]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.257970]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.257989]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.258003]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.258019]  ubifs_load_znode from ubifs_lookup_level0+0x1bc/0x1fc
+[    1.258036]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.258051]  ubifs_tnc_locate from ubifs_iget+0xac/0x4d0
+[    1.258065]  ubifs_iget from ubifs_get_tree+0xd5c/0x16a4
+[    1.258079]  ubifs_get_tree from vfs_get_tree+0x24/0xdc
+[    1.258099]  vfs_get_tree from path_mount+0x398/0xae8
+[    1.258116]  path_mount from init_mount+0x58/0x90
+[    1.258135]  init_mount from do_mount_root+0x94/0x120
+[    1.258158]  do_mount_root from mount_root_generic+0xd0/0x278
+[    1.258177]  mount_root_generic from prepare_namespace+0x1e8/0x29c
+[    1.258195]  prepare_namespace from kernel_init+0x18/0x12c
+[    1.258210]  kernel_init from ret_from_fork+0x14/0x28
+[    1.258221] Exception stack(0xe0845fb0 to 0xe0845ff8)
+[    1.258231] 5fa0:                                     00000000 00000000 00000000 00000000
+[    1.258239] 5fc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    1.258246] 5fe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[    1.258443] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 108 bytes from PEB 26:21432, read only 108 bytes, retry
+[    1.273111] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 108 bytes from PEB 26:21432, read only 108 bytes, retry
+[    1.274323] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 108 bytes from PEB 26:21432, read only 108 bytes, retry
+[    1.275519] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 108 bytes from PEB 26:21432, read 108 bytes
+[    1.276463] CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.276475] Hardware name: Generic DT based system
+[    1.276480] Call trace: 
+[    1.276488]  unwind_backtrace from show_stack+0x10/0x14
+[    1.276510]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.276526]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.276541]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.276553]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.276569]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.276588]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.276603]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.276619]  ubifs_load_znode from ubifs_lookup_level0+0xcc/0x1fc
+[    1.276634]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.276649]  ubifs_tnc_locate from ubifs_iget+0xac/0x4d0
+[    1.276663]  ubifs_iget from ubifs_get_tree+0xd5c/0x16a4
+[    1.276676]  ubifs_get_tree from vfs_get_tree+0x24/0xdc
+[    1.276696]  vfs_get_tree from path_mount+0x398/0xae8
+[    1.276713]  path_mount from init_mount+0x58/0x90
+[    1.276730]  init_mount from do_mount_root+0x94/0x120
+[    1.276751]  do_mount_root from mount_root_generic+0xd0/0x278
+[    1.276769]  mount_root_generic from prepare_namespace+0x1e8/0x29c
+[    1.276788]  prepare_namespace from kernel_init+0x18/0x12c
+[    1.276804]  kernel_init from ret_from_fork+0x14/0x28
+[    1.276816] Exception stack(0xe0845fb0 to 0xe0845ff8)
+[    1.276825] 5fa0:                                     00000000 00000000 00000000 00000000
+[    1.276832] 5fc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    1.276839] 5fe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[    1.277026] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21048, read only 128 bytes, retry
+[    1.291686] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21048, read only 128 bytes, retry
+[    1.292906] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21048, read only 128 bytes, retry
+[    1.294108] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21048, read 128 bytes
+[    1.295051] CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.295062] Hardware name: Generic DT based system
+[    1.295067] Call trace: 
+[    1.295076]  unwind_backtrace from show_stack+0x10/0x14
+[    1.295097]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.295113]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.295128]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.295139]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.295155]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.295174]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.295189]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.295204]  ubifs_load_znode from ubifs_lookup_level0+0xcc/0x1fc
+[    1.295220]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.295235]  ubifs_tnc_locate from ubifs_iget+0xac/0x4d0
+[    1.295248]  ubifs_iget from ubifs_get_tree+0xd5c/0x16a4
+[    1.295261]  ubifs_get_tree from vfs_get_tree+0x24/0xdc
+[    1.295281]  vfs_get_tree from path_mount+0x398/0xae8
+[    1.295298]  path_mount from init_mount+0x58/0x90
+[    1.295317]  init_mount from do_mount_root+0x94/0x120
+[    1.295339]  do_mount_root from mount_root_generic+0xd0/0x278
+[    1.295359]  mount_root_generic from prepare_namespace+0x1e8/0x29c
+[    1.295378]  prepare_namespace from kernel_init+0x18/0x12c
+[    1.295394]  kernel_init from ret_from_fork+0x14/0x28
+[    1.295404] Exception stack(0xe0845fb0 to 0xe0845ff8)
+[    1.295413] 5fa0:                                     00000000 00000000 00000000 00000000
+[    1.295422] 5fc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    1.295429] 5fe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[    1.295614] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 188 bytes from PEB 26:20480, read only 188 bytes, retry
+[    1.310312] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 188 bytes from PEB 26:20480, read only 188 bytes, retry
+[    1.311526] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 188 bytes from PEB 26:20480, read only 188 bytes, retry
+[    1.312722] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 188 bytes from PEB 26:20480, read 188 bytes
+[    1.313664] CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.313676] Hardware name: Generic DT based system
+[    1.313681] Call trace: 
+[    1.313688]  unwind_backtrace from show_stack+0x10/0x14
+[    1.313709]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.313726]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.313740]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.313752]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.313769]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.313788]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.313802]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.313818]  ubifs_load_znode from ubifs_lookup_level0+0xcc/0x1fc
+[    1.313833]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.313848]  ubifs_tnc_locate from ubifs_iget+0xac/0x4d0
+[    1.313862]  ubifs_iget from ubifs_get_tree+0xd5c/0x16a4
+[    1.313876]  ubifs_get_tree from vfs_get_tree+0x24/0xdc
+[    1.313895]  vfs_get_tree from path_mount+0x398/0xae8
+[    1.313911]  path_mount from init_mount+0x58/0x90
+[    1.313929]  init_mount from do_mount_root+0x94/0x120
+[    1.313949]  do_mount_root from mount_root_generic+0xd0/0x278
+[    1.313969]  mount_root_generic from prepare_namespace+0x1e8/0x29c
+[    1.313988]  prepare_namespace from kernel_init+0x18/0x12c
+[    1.314004]  kernel_init from ret_from_fork+0x14/0x28
+[    1.314014] Exception stack(0xe0845fb0 to 0xe0845ff8)
+[    1.314023] 5fa0:                                     00000000 00000000 00000000 00000000
+[    1.314032] 5fc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    1.314038] 5fe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[    1.314329] VFS: Mounted root (ubifs filesystem) on device 0:17.
+[    1.328789] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 48 bytes from PEB 26:22016, read only 48 bytes, retry
+[    1.330011] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 48 bytes from PEB 26:22016, read only 48 bytes, retry
+[    1.331192] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 48 bytes from PEB 26:22016, read only 48 bytes, retry
+[    1.332367] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 48 bytes from PEB 26:22016, read 48 bytes
+[    1.333295] CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.333308] Hardware name: Generic DT based system
+[    1.333314] Call trace: 
+[    1.333323]  unwind_backtrace from show_stack+0x10/0x14
+[    1.333345]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.333362]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.333378]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.333388]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.333406]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.333424]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.333439]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.333455]  ubifs_load_znode from ubifs_lookup_level0+0xcc/0x1fc
+[    1.333470]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.333485]  ubifs_tnc_locate from ubifs_iget+0xac/0x4d0
+[    1.333499]  ubifs_iget from ubifs_lookup+0x16c/0x278
+[    1.333512]  ubifs_lookup from __lookup_slow+0x88/0x140
+[    1.333531]  __lookup_slow from lookup_slow+0x30/0x44
+[    1.333548]  lookup_slow from path_lookupat+0x1c4/0x2e0
+[    1.333562]  path_lookupat from filename_lookup+0xb8/0x154
+[    1.333574]  filename_lookup from kern_path+0x34/0x5c
+[    1.333584]  kern_path from init_mount+0x38/0x90
+[    1.333602]  init_mount from devtmpfs_mount+0x54/0x88
+[    1.333620]  devtmpfs_mount from prepare_namespace+0x1ec/0x29c
+[    1.333640]  prepare_namespace from kernel_init+0x18/0x12c
+[    1.333657]  kernel_init from ret_from_fork+0x14/0x28
+[    1.333668] Exception stack(0xe0845fb0 to 0xe0845ff8)
+[    1.333677] 5fa0:                                     00000000 00000000 00000000 00000000
+[    1.333685] 5fc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    1.333692] 5fe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[    1.333877] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 188 bytes from PEB 26:21824, read only 188 bytes, retry
+[    1.349366] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 188 bytes from PEB 26:21824, read only 188 bytes, retry
+[    1.350591] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 188 bytes from PEB 26:21824, read only 188 bytes, retry
+[    1.351790] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 188 bytes from PEB 26:21824, read 188 bytes
+[    1.352734] CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.352746] Hardware name: Generic DT based system
+[    1.352751] Call trace: 
+[    1.352758]  unwind_backtrace from show_stack+0x10/0x14
+[    1.352779]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.352795]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.352809]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.352819]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.352836]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.352854]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.352868]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.352885]  ubifs_load_znode from ubifs_lookup_level0+0xcc/0x1fc
+[    1.352901]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.352916]  ubifs_tnc_locate from ubifs_iget+0xac/0x4d0
+[    1.352929]  ubifs_iget from ubifs_lookup+0x16c/0x278
+[    1.352942]  ubifs_lookup from __lookup_slow+0x88/0x140
+[    1.352961]  __lookup_slow from lookup_slow+0x30/0x44
+[    1.352978]  lookup_slow from path_lookupat+0x1c4/0x2e0
+[    1.352992]  path_lookupat from filename_lookup+0xb8/0x154
+[    1.353003]  filename_lookup from kern_path+0x34/0x5c
+[    1.353014]  kern_path from init_mount+0x38/0x90
+[    1.353032]  init_mount from devtmpfs_mount+0x54/0x88
+[    1.353050]  devtmpfs_mount from prepare_namespace+0x1ec/0x29c
+[    1.353069]  prepare_namespace from kernel_init+0x18/0x12c
+[    1.353085]  kernel_init from ret_from_fork+0x14/0x28
+[    1.353096] Exception stack(0xe0845fb0 to 0xe0845ff8)
+[    1.353104] 5fa0:                                     00000000 00000000 00000000 00000000
+[    1.353113] 5fc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    1.353120] 5fe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[    1.353583] devtmpfs: mounted
+[    1.368367] VFS: Pivoted into new rootfs
+[    1.370715] Freeing unused kernel image (initmem) memory: 2048K
+[    1.371564] Run /sbin/init as init process
+[    1.372191] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 148 bytes from PEB 26:20784, read only 148 bytes, retry
+[    1.373434] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 148 bytes from PEB 26:20784, read only 148 bytes, retry
+[    1.374645] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 148 bytes from PEB 26:20784, read only 148 bytes, retry
+[    1.375841] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 148 bytes from PEB 26:20784, read 148 bytes
+[    1.376784] CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.376798] Hardware name: Generic DT based system
+[    1.376804] Call trace: 
+[    1.376813]  unwind_backtrace from show_stack+0x10/0x14
+[    1.376834]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.376850]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.376865]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.376876]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.376893]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.376913]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.376928]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.376944]  ubifs_load_znode from ubifs_lookup_level0+0xcc/0x1fc
+[    1.376960]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.376975]  ubifs_tnc_locate from ubifs_tnc_lookup_nm+0x34/0x140
+[    1.376991]  ubifs_tnc_lookup_nm from ubifs_lookup+0x110/0x278
+[    1.377006]  ubifs_lookup from __lookup_slow+0x88/0x140
+[    1.377025]  __lookup_slow from lookup_slow+0x30/0x44
+[    1.377042]  lookup_slow from link_path_walk+0x554/0x644
+[    1.377057]  link_path_walk from path_openat+0x94/0xf38
+[    1.377070]  path_openat from do_file_open+0x9c/0x140
+[    1.377082]  do_file_open from do_open_execat+0x64/0x180
+[    1.377096]  do_open_execat from alloc_bprm+0x14/0x1f4
+[    1.377110]  alloc_bprm from kernel_execve+0x34/0x188
+[    1.377126]  kernel_execve from try_to_run_init_process+0xc/0x38
+[    1.377140]  try_to_run_init_process from kernel_init+0xd8/0x12c
+[    1.377155]  kernel_init from ret_from_fork+0x14/0x28
+[    1.377165] Exception stack(0xe0845fb0 to 0xe0845ff8)
+[    1.377174] 5fa0:                                     00000000 00000000 00000000 00000000
+[    1.377182] 5fc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    1.377189] 5fe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[    1.393703] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21304, read only 128 bytes, retry
+[    1.394932] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21304, read only 128 bytes, retry
+[    1.396128] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21304, read only 128 bytes, retry
+[    1.397313] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21304, read 128 bytes
+[    1.398307] CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.398322] Hardware name: Generic DT based system
+[    1.398328] Call trace: 
+[    1.398337]  unwind_backtrace from show_stack+0x10/0x14
+[    1.398361]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.398378]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.398393]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.398404]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.398421]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.398441]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.398455]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.398471]  ubifs_load_znode from ubifs_lookup_level0+0xcc/0x1fc
+[    1.398487]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.398502]  ubifs_tnc_locate from ubifs_iget+0xac/0x4d0
+[    1.398516]  ubifs_iget from ubifs_lookup+0x16c/0x278
+[    1.398529]  ubifs_lookup from __lookup_slow+0x88/0x140
+[    1.398548]  __lookup_slow from lookup_slow+0x30/0x44
+[    1.398564]  lookup_slow from link_path_walk+0x554/0x644
+[    1.398578]  link_path_walk from path_openat+0x94/0xf38
+[    1.398591]  path_openat from do_file_open+0x9c/0x140
+[    1.398602]  do_file_open from do_open_execat+0x64/0x180
+[    1.398616]  do_open_execat from alloc_bprm+0x14/0x1f4
+[    1.398630]  alloc_bprm from kernel_execve+0x34/0x188
+[    1.398644]  kernel_execve from try_to_run_init_process+0xc/0x38
+[    1.398659]  try_to_run_init_process from kernel_init+0xd8/0x12c
+[    1.398674]  kernel_init from ret_from_fork+0x14/0x28
+[    1.398685] Exception stack(0xe0845fb0 to 0xe0845ff8)
+[    1.398694] 5fa0:                                     00000000 00000000 00000000 00000000
+[    1.398702] 5fc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    1.398709] 5fe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[    1.399722] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21544, read only 128 bytes, retry
+[    1.415740] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21544, read only 128 bytes, retry
+[    1.416956] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21544, read only 128 bytes, retry
+[    1.418206] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21544, read 128 bytes
+[    1.419159] CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.419171] Hardware name: Generic DT based system
+[    1.419176] Call trace: 
+[    1.419185]  unwind_backtrace from show_stack+0x10/0x14
+[    1.419207]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.419223]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.419238]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.419249]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.419266]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.419286]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.419300]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.419315]  ubifs_load_znode from ubifs_lookup_level0+0xcc/0x1fc
+[    1.419331]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.419346]  ubifs_tnc_locate from ubifs_iget+0xac/0x4d0
+[    1.419360]  ubifs_iget from ubifs_lookup+0x16c/0x278
+[    1.419373]  ubifs_lookup from path_openat+0xb84/0xf38
+[    1.419387]  path_openat from do_file_open+0x9c/0x140
+[    1.419399]  do_file_open from do_open_execat+0x64/0x180
+[    1.419415]  do_open_execat from alloc_bprm+0x14/0x1f4
+[    1.419429]  alloc_bprm from kernel_execve+0x34/0x188
+[    1.419443]  kernel_execve from try_to_run_init_process+0xc/0x38
+[    1.419458]  try_to_run_init_process from kernel_init+0xd8/0x12c
+[    1.419472]  kernel_init from ret_from_fork+0x14/0x28
+[    1.419483] Exception stack(0xe0845fb0 to 0xe0845ff8)
+[    1.419491] 5fa0:                                     00000000 00000000 00000000 00000000
+[    1.419499] 5fc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+[    1.419506] 5fe0: 00000000 00000000 00000000 00000000 00000013 00000000
+[    1.444454] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 108 bytes from PEB 26:20672, read only 108 bytes, retry
+[    1.445702] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 108 bytes from PEB 26:20672, read only 108 bytes, retry
+[    1.446903] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 108 bytes from PEB 26:20672, read only 108 bytes, retry
+[    1.448152] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 108 bytes from PEB 26:20672, read 108 bytes
+[    1.449110] CPU: 0 UID: 0 PID: 1 Comm: init Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.449124] Hardware name: Generic DT based system
+[    1.449130] Call trace: 
+[    1.449139]  unwind_backtrace from show_stack+0x10/0x14
+[    1.449163]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.449181]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.449196]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.449207]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.449224]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.449243]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.449257]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.449273]  ubifs_load_znode from ubifs_lookup_level0+0xcc/0x1fc
+[    1.449290]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.449305]  ubifs_tnc_locate from ubifs_tnc_lookup_nm+0x34/0x140
+[    1.449320]  ubifs_tnc_lookup_nm from ubifs_lookup+0x110/0x278
+[    1.449334]  ubifs_lookup from __lookup_slow+0x88/0x140
+[    1.449353]  __lookup_slow from lookup_slow+0x30/0x44
+[    1.449371]  lookup_slow from link_path_walk+0x554/0x644
+[    1.449386]  link_path_walk from path_lookupat+0x34/0x2e0
+[    1.449396]  path_lookupat from filename_lookup+0xb8/0x154
+[    1.449407]  filename_lookup from do_readlinkat+0x58/0x124
+[    1.449421]  do_readlinkat from ret_fast_syscall+0x0/0x54
+[    1.449433] Exception stack(0xe0845fa8 to 0xe0845ff0)
+[    1.449443] 5fa0:                   00000001 00172420 00138570 bed89d38 00001000 001745b8
+[    1.449452] 5fc0: 00000001 00172420 001738e8 00000055 00000000 00000000 00000000 00000000
+[    1.449459] 5fe0: 00000055 bed89d30 000fce95 00010ba6
+[    1.483500] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 108 bytes from PEB 26:20936, read only 108 bytes, retry
+[    1.484750] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 108 bytes from PEB 26:20936, read only 108 bytes, retry
+[    1.485959] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 108 bytes from PEB 26:20936, read only 108 bytes, retry
+[    1.487159] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 108 bytes from PEB 26:20936, read 108 bytes
+[    1.488160] CPU: 0 UID: 0 PID: 1 Comm: init Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.488176] Hardware name: Generic DT based system
+[    1.488181] Call trace: 
+[    1.488191]  unwind_backtrace from show_stack+0x10/0x14
+[    1.488215]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.488232]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.488248]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.488259]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.488275]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.488295]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.488309]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.488325]  ubifs_load_znode from ubifs_lookup_level0+0xcc/0x1fc
+[    1.488341]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.488356]  ubifs_tnc_locate from ubifs_iget+0xac/0x4d0
+[    1.488370]  ubifs_iget from ubifs_lookup+0x16c/0x278
+[    1.488383]  ubifs_lookup from __lookup_slow+0x88/0x140
+[    1.488402]  __lookup_slow from lookup_slow+0x30/0x44
+[    1.488419]  lookup_slow from link_path_walk+0x554/0x644
+[    1.488434]  link_path_walk from path_openat+0x94/0xf38
+[    1.488447]  path_openat from do_file_open+0x9c/0x140
+[    1.488458]  do_file_open from do_sys_openat2+0x68/0xfc
+[    1.488474]  do_sys_openat2 from sys_openat+0x9c/0xc4
+[    1.488489]  sys_openat from ret_fast_syscall+0x0/0x54
+[    1.488501] Exception stack(0xe0845fa8 to 0xe0845ff0)
+[    1.488512] 5fa0:                   00175d78 00175540 ffffff9c 0015e264 00020000 00000000
+[    1.488520] 5fc0: 00175d78 00175540 00000008 00000142 0015d56b 00000000 00000000 00173a18
+[    1.488527] 5fe0: 00000142 bed8ac00 000d2511 00010ba6
+[    1.488963] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21176, read only 128 bytes, retry
+[    1.503314] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21176, read only 128 bytes, retry
+[    1.504533] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21176, read only 128 bytes, retry
+[    1.505732] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 128 bytes from PEB 26:21176, read 128 bytes
+[    1.506675] CPU: 0 UID: 0 PID: 1 Comm: init Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.506687] Hardware name: Generic DT based system
+[    1.506693] Call trace: 
+[    1.506700]  unwind_backtrace from show_stack+0x10/0x14
+[    1.506721]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.506738]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.506752]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.506763]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.506780]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.506798]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.506813]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.506829]  ubifs_load_znode from ubifs_lookup_level0+0xcc/0x1fc
+[    1.506844]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.506859]  ubifs_tnc_locate from ubifs_tnc_lookup_nm+0x34/0x140
+[    1.506875]  ubifs_tnc_lookup_nm from ubifs_lookup+0x110/0x278
+[    1.506889]  ubifs_lookup from path_openat+0xb84/0xf38
+[    1.506903]  path_openat from do_file_open+0x9c/0x140
+[    1.506915]  do_file_open from do_sys_openat2+0x68/0xfc
+[    1.506931]  do_sys_openat2 from sys_openat+0x9c/0xc4
+[    1.506946]  sys_openat from ret_fast_syscall+0x0/0x54
+[    1.506958] Exception stack(0xe0845fa8 to 0xe0845ff0)
+[    1.506969] 5fa0:                   00175d78 00175540 ffffff9c 0015e264 00020000 00000000
+[    1.506977] 5fc0: 00175d78 00175540 00000008 00000142 0015d56b 00000000 00000000 00173a18
+[    1.506984] 5fe0: 00000142 bed8ac00 000d2511 00010ba6
+[    1.542358] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 148 bytes from PEB 26:21672, read only 148 bytes, retry
+[    1.543585] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 148 bytes from PEB 26:21672, read only 148 bytes, retry
+[    1.544788] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 148 bytes from PEB 26:21672, read only 148 bytes, retry
+[    1.545984] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 148 bytes from PEB 26:21672, read 148 bytes
+[    1.546927] CPU: 0 UID: 0 PID: 1 Comm: init Not tainted 7.1.0-00005-g453820219629-dirty #6 VOLUNTARY 
+[    1.546939] Hardware name: Generic DT based system
+[    1.546944] Call trace: 
+[    1.546954]  unwind_backtrace from show_stack+0x10/0x14
+[    1.546978]  show_stack from dump_stack_lvl+0x50/0x64
+[    1.546995]  dump_stack_lvl from ubi_io_read+0x158/0x32c
+[    1.547010]  ubi_io_read from ubi_eba_read_leb+0x9c/0x40c
+[    1.547021]  ubi_eba_read_leb from ubi_leb_read+0x70/0xb0
+[    1.547038]  ubi_leb_read from ubifs_leb_read+0x2c/0x78
+[    1.547058]  ubifs_leb_read from ubifs_read_node+0x94/0x24c
+[    1.547072]  ubifs_read_node from ubifs_load_znode+0x94/0x444
+[    1.547088]  ubifs_load_znode from ubifs_lookup_level0+0xcc/0x1fc
+[    1.547104]  ubifs_lookup_level0 from ubifs_tnc_locate+0x58/0x1e4
+[    1.547120]  ubifs_tnc_locate from ubifs_iget+0xac/0x4d0
+[    1.547133]  ubifs_iget from ubifs_lookup+0x16c/0x278
+[    1.547146]  ubifs_lookup from __lookup_slow+0x88/0x140
+[    1.547165]  __lookup_slow from lookup_slow+0x30/0x44
+[    1.547183]  lookup_slow from path_lookupat+0x1c4/0x2e0
+[    1.547198]  path_lookupat from filename_lookup+0xb8/0x154
+[    1.547210]  filename_lookup from do_faccessat+0x100/0x2ec
+[    1.547224]  do_faccessat from ret_fast_syscall+0x0/0x54
+[    1.547236] Exception stack(0xe0845fa8 to 0xe0845ff0)
+[    1.547247] 5fa0:                   00000036 00000008 0015f23e 00000006 00000000 00000000
+[    1.547256] 5fc0: 00000036 00000008 00000000 00000021 00000036 00000000 00000000 00173a18
+[    1.547262] 5fe0: 00000021 bed8ab04 000d2787 00010ba6
+~ # 

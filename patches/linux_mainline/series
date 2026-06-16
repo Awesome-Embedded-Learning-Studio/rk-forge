@@ -12,3 +12,13 @@
 
 0001-ARM-dts-rockchip-add-rk3506-SoC-AES-RK3506B-board-DT.patch
 0002-ARM-dts-rockchip-rk3506b-aes-enable-SFC-SPI-NAND-MTD-partitions.patch
+# SFC sampling delay-line tuning — the root fix for the 80 MHz read ECC errors.
+# Ports vendor rockchip_sfc_delay_lines_tuning() into the mainline driver
+# (writes SFC_DLL_CTRL0 0x3C / SCLK_SMP_DLL). After 0003, 80 MHz is safe.
+0003-spi-rockchip-sfc-add-delay-line-tuning.patch
+# Persistent-rootfs bootargs (ubi.mtd=5 root=ubi0:rootfs) — the board-verified
+# milestone state; harmless for the initramfs-shell boot variant.
+0004-ARM-dts-rk3506b-aes-persistent-rootfs-bootargs.patch
+# Raise SFC to 80 MHz + rockchip,max-dll=<0x17F> (vendor value). Depends on 0003;
+# without it 80 MHz reintroduces the UBI -EBADMSG ECC errors.
+0005-ARM-dts-rk3506b-aes-raise-SFC-to-80MHz.patch

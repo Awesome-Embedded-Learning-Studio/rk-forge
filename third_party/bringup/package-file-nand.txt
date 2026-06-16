@@ -1,0 +1,17 @@
+# package-file-nand.txt — RKAF manifest for the NAND-rootfs update.img variant.
+#
+# vs package-file-aes.txt: adds the rootfs row so afptool bundles rootfs.ubi.img,
+# and boot is the no-ramdisk FIT (boot-nand.img, staged under the name boot.img
+# by assemble-update.sh --nand). Flashing the resulting update-nand.img writes
+# uboot + boot + rootfs in one go — the full persistent-NAND-rootfs path.
+#
+# To flash only uboot+boot and keep the initramfs-shell rescue variant, use
+# package-file-aes.txt instead (assemble-update.sh without --nand).
+
+# NAME		Relative path
+package-file	package-file
+bootloader	Image/MiniLoaderAll.bin
+parameter	Image/parameter.txt
+uboot		Image/uboot.img
+boot		Image/boot.img
+rootfs		Image/rootfs.img

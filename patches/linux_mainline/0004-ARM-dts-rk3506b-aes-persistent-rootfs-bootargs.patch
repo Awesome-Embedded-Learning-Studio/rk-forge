@@ -1,0 +1,43 @@
+From b578098f7445ccc8d593f3c5c5a8b47658d31b25 Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Mon, 15 Jun 2026 23:32:55 +0800
+Subject: [PATCH 2/3] ARM: dts: rockchip: rk3506b-aes: add persistent-rootfs
+ bootargs
+
+Point the kernel at the UBI rootfs for the persistent-NAND milestone: add
+ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait to bootargs (mtd5 is the
+"rootfs" fixed partition added in the SFC node), and pin the console baud to
+match the loader (console=ttyS0,1500000).
+
+Harmless for the initramfs-shell boot variant: if the boot FIT also bundles an
+initramfs with /init, the kernel runs that /init and ignores root=.
+
+This is the bootargs state verified on the board for the UBI/UBIFS rootfs boot
+(mainline U-Boot 2026.07 + kernel 7.1 + busybox; test.txt survives reboot).
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
+---
+ arch/arm/boot/dts/rockchip/rk3506b-aes.dts | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+index c493c4708..d7665601e 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
++++ b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+@@ -14,7 +14,12 @@ / {
+ 
+ 	chosen {
+ 		stdout-path = "serial0:1500000n8";
+-		bootargs = "earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0";
++		/* Mount the NAND rootfs (UBI volume "rootfs" on mtd5 — the 6th fixed
++		 * partition in the SFC node below) as root; rootwait lets UBI attach
++		 * first. Harmless for the initramfs-shell boot variant: if the boot FIT
++		 * also bundles an initramfs with /init, the kernel runs that /init and
++		 * ignores root=. mtd5 = uboot/misc/vnvm/recovery/boot/rootfs order. */
++		bootargs = "earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait";
+ 	};
+ 
+ 	memory@0 {
+-- 
+2.43.0
+

@@ -1,0 +1,76 @@
+From 45382021962977ddc0b25b6b2bdd66b0324297b1 Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Mon, 15 Jun 2026 23:34:06 +0800
+Subject: [PATCH 3/3] ARM: dts: rockchip: rk3506b-aes: raise SFC to 80 MHz +
+ add rockchip,max-dll
+
+Now that the mainline rockchip_sfc.c ports the vendor delay-line tuning
+(previous patch), the SFC sampling is stable above 50 MHz on this board's
+RK3506 SFC (VER_5) + Winbond W25N04KV. Restore full speed:
+
+- flash@0 spi-max-frequency 50 MHz -> 80 MHz, matching the vendor BSP (the
+  rate the W25N04KV + this SFC are designed and validated for). This also
+  re-exposes any residual timing margin instead of hiding it behind the cap.
+- add rockchip,max-dll = <0x17F> to the SFC controller node (the vendor value)
+  to cap the DLL cell scan. The driver reads it optionally and otherwise
+  derives the max from the SFC version.
+
+Depends on the driver tuning patch; without it 80 MHz reintroduces the UBI
+-EBADMSG ECC errors.
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
+---
+ arch/arm/boot/dts/rockchip/rk3506.dtsi     | 6 ++++--
+ arch/arm/boot/dts/rockchip/rk3506b-aes.dts | 5 +++--
+ 2 files changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/boot/dts/rockchip/rk3506.dtsi b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+index 1eb7a9be1..99edf5ca8 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506.dtsi
++++ b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+@@ -9,8 +9,9 @@
+  * + sfc (SPI flash controller) — drives the W25N04KV SPI-NAND, needed for a
+  *   persistent rootfs on NAND. Uses the mainline `rockchip,sfc` binding (the
+  *   same node proven on the U-Boot side); vendor BSP instead uses a private
+- *   `fspi` driver — we stay mainline (no DLL tuning → capped at 50MHz). See
+- *   notes/10 + BLOBS.md.
++ *   `fspi` driver — we stay mainline. The mainline rockchip_sfc.c now ports
++ *   the vendor delay-line tuning, so the SFC runs at full speed. See notes/10
++ *   + BLOBS.md.
+  * Other peripherals (i2c/spi/pwm/sai/mmc/usb/display/io-domains) still deferred.
+  */
+ 
+@@ -128,6 +129,7 @@ sfc: spi@ff488000 {
+ 		clocks = <&cru SCLK_FSPI>, <&cru HCLK_FSPI>;
+ 		clock-names = "clk_sfc", "hclk_sfc";
+ 		rockchip,sfc-no-dma;	/* DMA reads corrupt on this board; force PIO (notes/10) */
++		rockchip,max-dll = <0x17F>;	/* RK3506 SFC is VER_5; cap DLL cell scan (vendor value) */
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		status = "disabled";
+diff --git a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+index d7665601e..132265999 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
++++ b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+@@ -37,7 +37,8 @@ &uart0 {
+  * + attach UBI for persistent rootfs (see notes/10). Partition layout mirrors
+  * third_party/bringup/parameter-nand-aes.txt (512B-sector units → bytes, 128KB
+  * erase-block aligned); the 0x0–0x400000 (0–4MB) loader/idblock area is left
+- * unpartitioned. 50MHz cap: mainline rockchip_sfc.c has no DLL tuning (notes/10).
++ * unpartitioned. 80 MHz: the mainline rockchip_sfc.c now ports the vendor
++ * delay-line tuning, so full speed is safe (was capped at 50 MHz pre-tuning).
+  */
+ &sfc {
+ 	status = "okay";
+@@ -45,7 +46,7 @@ &sfc {
+ 	flash@0 {
+ 		compatible = "spi-nand";	/* W25N04KV; mainline winbond.c id (0xaa,0x23) */
+ 		reg = <0>;
+-		spi-max-frequency = <50000000>;
++		spi-max-frequency = <80000000>;
+ 		spi-rx-bus-width = <4>;
+ 		spi-tx-bus-width = <1>;
+ 
+-- 
+2.43.0
+

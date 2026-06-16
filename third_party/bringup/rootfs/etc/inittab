@@ -1,0 +1,24 @@
+# /etc/inittab — busybox init for the UBIFS rootfs on RK3506B-aes (rk-forge).
+#
+# Boot path: the kernel mounts ubi0:rootfs (bootargs root=ubi0:rootfs
+# rootfstype=ubifs) then execs /sbin/init -> busybox init, which reads this.
+# devtmpfs is auto-mounted by the kernel (CONFIG_DEVTMPFS_MOUNT=y), so /dev is
+# already populated before init runs — we don't mount it again here.
+
+::sysinit:/bin/mount -t proc    none /proc
+::sysinit:/bin/mount -t sysfs   none /sys
+::sysinit:/bin/mkdir -p /dev/pts
+::sysinit:/bin/mount -t devpts  none /dev/pts
+::sysinit:/bin/mount -t tmpfs   none /tmp
+::sysinit:/bin/mount -t tmpfs   none /run
+::sysinit:/bin/hostname -F /etc/hostname
+
+# console shell (respawn, no login — bringup phase). ONLY ttyS0: console=ttyS0
+# means /dev/console and /dev/ttyS0 are the same UART — two respawn lines would
+# spawn two sh's on one tty, splitting input chars between them (typed "ls" →
+# one sh gets "l", the other "s" → "s: not found"). One line only.
+ttyS0::respawn:/bin/sh
+
+::restart:/sbin/init
+::ctrlaltdel:/sbin/reboot
+::shutdown:/bin/umount -a -r

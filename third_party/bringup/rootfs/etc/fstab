@@ -1,0 +1,10 @@
+# /etc/fstab — UBIFS rootfs on RK3506B-aes (rk-forge).
+# Root (/) is mounted by the kernel from bootargs (root=ubi0:rootfs), NOT here.
+# These pseudo-fs mounts are also done by busybox init via inittab; kept here so
+# `mount -a` works (e.g. recovery shells).
+
+proc     /proc      proc    defaults            0 0
+sysfs    /sys       sysfs   defaults            0 0
+devpts   /dev/pts   devpts  mode=620            0 0
+tmpfs    /tmp       tmpfs   defaults            0 0
+tmpfs    /run       tmpfs   defaults            0 0

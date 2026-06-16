@@ -9,3 +9,10 @@
 # the embedded build-timestamp string — 29 bytes; binman-fake/ confirmed unneeded).
 
 0001-rockchip-rk3506-add-AES-RK3506B-board-support-DT-def.patch
+# SFC sampling delay-line tuning — same root fix as the linux side. Without this
+# U-Boot cannot read the kernel FIT from NAND at 80 MHz (corrupt reads). Ports
+# vendor rockchip_sfc_delay_lines_tuning() into the mainline U-Boot driver.
+0002-spi-rockchip-sfc-add-delay-line-tuning.patch
+# Raise SFC to 80 MHz + rockchip,max-dll=<0x17F>. Depends on 0002; mirror of the
+# linux 0005 so U-Boot and Linux run the same tuned rate.
+0003-arm-dts-rk3506-raise-SFC-to-80MHz.patch
