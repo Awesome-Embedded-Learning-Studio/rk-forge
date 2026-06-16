@@ -1,7 +1,7 @@
 From 45382021962977ddc0b25b6b2bdd66b0324297b1 Mon Sep 17 00:00:00 2001
 From: CharlieChen114514 <725610365@qq.com>
 Date: Mon, 15 Jun 2026 23:34:06 +0800
-Subject: [PATCH 3/3] ARM: dts: rockchip: rk3506b-aes: raise SFC to 80 MHz +
+Subject: [PATCH 5/6] ARM: dts: rockchip: rk3506b-aes: raise SFC to 80 MHz +
  add rockchip,max-dll
 
 Now that the mainline rockchip_sfc.c ports the vendor delay-line tuning
@@ -71,6 +71,3 @@ index d7665601e..132265999 100644
  		spi-rx-bus-width = <4>;
  		spi-tx-bus-width = <1>;
  
--- 
-2.43.0
-

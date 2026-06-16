@@ -1,7 +1,7 @@
 From b578098f7445ccc8d593f3c5c5a8b47658d31b25 Mon Sep 17 00:00:00 2001
 From: CharlieChen114514 <725610365@qq.com>
 Date: Mon, 15 Jun 2026 23:32:55 +0800
-Subject: [PATCH 2/3] ARM: dts: rockchip: rk3506b-aes: add persistent-rootfs
+Subject: [PATCH 4/6] ARM: dts: rockchip: rk3506b-aes: add persistent-rootfs
  bootargs
 
 Point the kernel at the UBI rootfs for the persistent-NAND milestone: add
@@ -38,6 +38,3 @@ index c493c4708..d7665601e 100644
  	};
  
  	memory@0 {
--- 
-2.43.0
-

@@ -1,7 +1,7 @@
 From ff4b08b566a995bf3c25ac6c3ad7f988f182dbbb Mon Sep 17 00:00:00 2001
 From: CharlieChen114514 <725610365@qq.com>
 Date: Mon, 15 Jun 2026 23:48:33 +0800
-Subject: [PATCH 2/2] arm: dts: rk3506: raise SFC to 80 MHz + add
+Subject: [PATCH 3/4] arm: dts: rk3506: raise SFC to 80 MHz + add
  rockchip,max-dll
 
 Now that the mainline U-Boot rockchip_sfc driver ports the vendor delay-line
@@ -59,6 +59,3 @@ index b44db90a..735f805d 100644
  		#address-cells = <1>;
  		#size-cells = <0>;
  		status = "disabled";
--- 
-2.43.0
-

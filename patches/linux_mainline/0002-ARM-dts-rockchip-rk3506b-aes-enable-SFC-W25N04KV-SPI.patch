@@ -1,7 +1,7 @@
 From 9f483af6feaa465f7bc2d872d20ef88580b1b3c8 Mon Sep 17 00:00:00 2001
 From: CharlieChen114514 <725610365@qq.com>
 Date: Mon, 15 Jun 2026 18:02:26 +0800
-Subject: [PATCH] ARM: dts: rockchip: rk3506b-aes: enable SFC + W25N04KV
+Subject: [PATCH 2/6] ARM: dts: rockchip: rk3506b-aes: enable SFC + W25N04KV
  SPI-NAND + MTD partitions
 
 Add the SPI flash controller (rockchip,sfc @ 0xff488000) to the RK3506 SoC
@@ -130,6 +130,3 @@ index 0d45ae455..c493c4708 100644
 +		};
 +	};
 +};
--- 
-2.43.0
-

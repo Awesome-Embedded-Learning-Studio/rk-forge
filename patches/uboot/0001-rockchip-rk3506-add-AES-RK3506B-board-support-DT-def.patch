@@ -1,7 +1,7 @@
 From e290f9ccb033e2101bef72a729b20fc7c9f1f1bc Mon Sep 17 00:00:00 2001
 From: charliechen <charliechen@rk-forge>
 Date: Mon, 15 Jun 2026 11:42:46 +0800
-Subject: [PATCH] rockchip: rk3506: add AES RK3506B board support (DT +
+Subject: [PATCH 1/4] rockchip: rk3506: add AES RK3506B board support (DT +
  defconfig)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -475,6 +475,3 @@ index 00000000..382dedb0
 +CONFIG_SYS_BOOTM_LEN=0x2000000
 +# NAND partition: boot = 16MB @ sector 0xBA00 (= byte 0x1740000), holds kernel FIT
 +CONFIG_MTDPARTS_DEFAULT="mtdparts=spi-nand0:16m@0x1740000(boot)"
--- 
-2.43.0
-

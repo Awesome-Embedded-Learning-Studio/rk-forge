@@ -1,24 +1,28 @@
 # patches/linux_mainline/series — quilt-style ordered apply list.
 # One filename per line (relative to this dir). '#' = comment, blank lines OK.
-# Applied by scripts/apply-series.sh via `git am` (run from third_party/linux_mainline).
+# Applied by scripts/apply-series.sh via `git am` (run from the linux tree).
 #
-# Since RK3506 pinctrl+clk are already in mainline, entries here are typically
-# board/DT/defconfig deltas on top of the SoC support — small and upstream-bound.
-# Verified 2026-06-15: applying to a clean v7.0.12 (f53879e2e) OR v7.1 tree and
-# building `rockchip/rk3506b-aes.dtb` reproduces the reference dtb BYTE-FOR-BYTE
-# (sha 2789c26149c79d0d...; dtc is deterministic, no timestamp). Patch is
-# version-agnostic within 7.x. v7.1 boots to interactive shell on the board
-# (log boot-sdl-2026-06151312-kernel-7.1.txt).
+# RK3506 pinctrl+clk are already mainline; this series is the board/DT/driver
+# delta on top of SoC support. Regenerated 2026-06-16 from explore/linux
+# (base v7.1 = 8cd9520d3) via `git format-patch`; reproduces the board-verified
+# boot (RW UBIFS rootfs, cold-reboot persistent, 3-cycle stress passed).
 
 0001-ARM-dts-rockchip-add-rk3506-SoC-AES-RK3506B-board-DT.patch
-0002-ARM-dts-rockchip-rk3506b-aes-enable-SFC-SPI-NAND-MTD-partitions.patch
-# SFC sampling delay-line tuning — the root fix for the 80 MHz read ECC errors.
-# Ports vendor rockchip_sfc_delay_lines_tuning() into the mainline driver
-# (writes SFC_DLL_CTRL0 0x3C / SCLK_SMP_DLL). After 0003, 80 MHz is safe.
-0003-spi-rockchip-sfc-add-delay-line-tuning.patch
-# Persistent-rootfs bootargs (ubi.mtd=5 root=ubi0:rootfs) — the board-verified
-# milestone state; harmless for the initramfs-shell boot variant.
-0004-ARM-dts-rk3506b-aes-persistent-rootfs-bootargs.patch
-# Raise SFC to 80 MHz + rockchip,max-dll=<0x17F> (vendor value). Depends on 0003;
-# without it 80 MHz reintroduces the UBI -EBADMSG ECC errors.
-0005-ARM-dts-rk3506b-aes-raise-SFC-to-80MHz.patch
+0002-ARM-dts-rockchip-rk3506b-aes-enable-SFC-W25N04KV-SPI.patch
+# SFC sampling delay-line tuning — fixes high-speed read ECC errors by writing
+# SFC_DLL_CTRL0 (vendor rockchip_sfc_delay_lines_tuning ported). Widest-window
+# scan + dev_info diagnostics; THRESHOLD 24MHz so 50MHz still trains.
+0003-spi-rockchip-sfc-add-sampling-delay-line-tuning-for-.patch
+# Persistent-rootfs bootargs (ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rw).
+0004-ARM-dts-rockchip-rk3506b-aes-add-persistent-rootfs-b.patch
+# SFC 80MHz + rockchip,max-dll (intermediate state; 0006 lowers to 50MHz where
+# the DLL window is 230 cells vs ~70 at 80MHz on this board).
+0005-ARM-dts-rockchip-rk3506b-aes-raise-SFC-to-80-MHz-add.patch
+# RW rootfs root-cause fix (board-verified 2026-06-16): port the vendor fspi
+# write-reliability mechanisms the mainline driver lacked — SFC_CTRL_WPEN
+# (BIT29, WP#/IO2 driving) per op + a per-transfer power-good gate polling
+# GRF_PMU+0x100 bit0 (compatible rockchip,rk3506-fspi, rockchip,grf=<&grf_pmu>).
+# Also lowers SFC to 50MHz. With these, Linux SFC writes are reliable (vendor
+# parity); the rootfs is Linux-written by forge ubiprog (first-boot) so it
+# survives cold reboots. See bringup/nand-rootfs/RW-WRITE-FIX-powergood-wpen.md.
+0006-spi-rockchip-sfc-RK3506-power-good-gate-WPEN-DT-50MH.patch

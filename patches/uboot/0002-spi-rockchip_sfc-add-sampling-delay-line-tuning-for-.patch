@@ -1,7 +1,7 @@
 From d9ff0328c6f8329deb3a5d9094857dec1e5d5750 Mon Sep 17 00:00:00 2001
 From: CharlieChen114514 <725610365@qq.com>
 Date: Mon, 15 Jun 2026 23:45:18 +0800
-Subject: [PATCH 1/2] spi: rockchip_sfc: add sampling delay-line tuning for
+Subject: [PATCH 2/4] spi: rockchip_sfc: add sampling delay-line tuning for
  SFC_VER_4+
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -264,6 +264,3 @@ index 60e74117..0db01567 100644
  	rockchip_sfc_adjust_op_work((struct spi_mem_op *)op);
  	rockchip_sfc_xfer_setup(sfc, mem, op, len);
  	if (len) {
--- 
-2.43.0
-

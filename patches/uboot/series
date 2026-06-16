@@ -1,18 +1,19 @@
 # patches/uboot/series — quilt-style ordered apply list.
 # One filename per line (relative to this dir). '#' = comment, blank lines OK.
-# Applied by scripts/apply-series.sh via `git am` (run from third_party/<uboot tree>).
+# Applied by scripts/apply-series.sh via `git am` (run from the uboot tree).
 #
 # U-Boot RK3506 SoC support is ALREADY upstream (Jonas Karlman v2 merged into
-# 2026.07-rc4), so this series holds ONLY the board/DT/defconfig delta. Verified
-# 2026-06-15: applying this single patch to a clean 2026.07-rc4 (5ca1a73c) tree and
-# rebuilding reproduces the booting U-Boot (binary differs from reference only in
-# the embedded build-timestamp string — 29 bytes; binman-fake/ confirmed unneeded).
+# 2026.07-rc4), so this series holds ONLY the board/DT/defconfig + SFC delta.
+# Regenerated 2026-06-16 from explore/uboot (base 5ca1a73c) via git format-patch.
 
 0001-rockchip-rk3506-add-AES-RK3506B-board-support-DT-def.patch
-# SFC sampling delay-line tuning — same root fix as the linux side. Without this
-# U-Boot cannot read the kernel FIT from NAND at 80 MHz (corrupt reads). Ports
-# vendor rockchip_sfc_delay_lines_tuning() into the mainline U-Boot driver.
-0002-spi-rockchip-sfc-add-delay-line-tuning.patch
-# Raise SFC to 80 MHz + rockchip,max-dll=<0x17F>. Depends on 0002; mirror of the
-# linux 0005 so U-Boot and Linux run the same tuned rate.
-0003-arm-dts-rk3506-raise-SFC-to-80MHz.patch
+# SFC sampling delay-line tuning — mirror of linux 0003. Without it U-Boot
+# cannot read the kernel FIT from NAND (corrupt reads). U-Boot SFC runs at
+# 100MHz real (rk3506_clk_set_rate ENOENT) but DLL-tuned reads are reliable.
+0002-spi-rockchip_sfc-add-sampling-delay-line-tuning-for-.patch
+# SFC 80MHz + rockchip,max-dll (mirror of linux 0005; board runs 50MHz in
+# practice via the linux side, U-Boot only reads the kernel FIT).
+0003-arm-dts-rk3506-raise-SFC-to-80-MHz-add-rockchip-max-.patch
+# WPEN per transfer (BIT29) — vendor parity, mirror of linux 0006. U-Boot only
+# reads the kernel FIT (reliable w/ DLL tuning) so this is belt-and-suspenders.
+0004-spi-rockchip_sfc-set-WPEN-per-transfer-vendor-parity.patch
