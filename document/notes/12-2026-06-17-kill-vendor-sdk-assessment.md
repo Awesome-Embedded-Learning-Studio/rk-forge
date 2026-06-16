@@ -48,6 +48,22 @@ sdk-diff(document/sdk-diff.md)列的差距:**主线驱动都在,差 DT 节点 + 
 
 ## 分期路线(下一轮冲刺候选)
 
+- **P0(先做,整理)**:收敛仓库文档 + 出**多份 markdown 的完整《踩坑日记》**(不是单文件)。当前文档散(document/notes/05-12、sdk-diff、bringup/nand-rootfs/{README,PROGRESS,HANDOFF-LOADER-MARGINAL-WRITE,SFC-WRITE-CORRUPTION-POSTMORTEM,RW-WRITE-FIX-powergood-wpen,BOARD-VALIDATION}、notes/nand-ecc-debug-handoff),有重叠 + 已被推翻的(HANDOFF/POSTMORTEM 是 saga 旧错结论、RW-WRITE-FIX 是早期 powergood-only 误判 —— 都已被 [[sfc-dll-saga]] 顶部 RW-SOLVED 段取代)。**收敛** = 去重 + 标记 superseded/归档错结论 + 保留 canonical。**踩坑日记** = 以现有 notes/logs 的**现场**(`third_party/logs/boot-sdl-*.txt` 实测日志 + 各过程笔记)为素材,**还原真实完整的时间线** —— 含走过的弯路(如 saga"rkbin 通病不可解"误判)+ 被推翻的结论 + 每步板上证据(log 行),如实叙事;按阶段或每坑分篇,引对应 log 佐证。
+
+  **踩坑日记骨架 / scope**(供执行 AI,逐条核实后分篇落成 `document/pitfalls/` 系列):
+  1. **chip tag = RK350F**(从 loader offset 21 读 4B 反转),非硬编 RK3506 → 否则 RKDevTool「校验芯片失败」。
+  2. **tee 必 v2.10**(vendor SPL verified-boot 验 optee hash),非 v2.40 → 否则 optee Bad hash。
+  3. **uboot FIT 必 vendor mkimage 2017.09**(`-E` external-data 布局),非主线 mkimage → 否则 vendor SPL 读 optee 错位。
+  4. **inittab 只一行 `ttyS0::respawn:/bin/sh`**(console=ttyS0 下两行抢同一 tty 劈字符)。
+  5. **SFC**:DLL 调谐(写 SFC_DLL_CTRL0)+ **50MHz 非 80MHz**(80 下 DLL 窗口仅 ~70 cell)+ powergood 门(GRF_PMU+0x100)+ WPEN(BIT29)—— 读侧+写侧都要。
+  6. **loader 写我们 rootfs 弱**(PEB 3/4)→ 绕过:ubiprog 首启用 Linux 重写 + 页级恢复;根因未明(见"未解之谜")。
+  7. **bootm**:FIT 暂存 `0x04000000`(避 kernel load 0x02080000 撞);`mtd read boot` 长度要覆盖 FIT(7MB 内核 → `0x800000`,别用旧的 `0x600000` 截断)。
+  8. **内核 XZ 压缩**(multi_v7→7.1MB)避出厂坏块(boot-relative 0x920000=9.125MB);不砍代码,只换压缩。
+  9. **syncconfig 报错 = CROSS_COMPILE 用了相对路径**(kconfig 找不到 gcc → 挡增量重编)。**必绝对路径**。
+  10. **验 PROBE 去留用未压缩 `.o`**(`strings` zImage 看不到内核文本,zImage 是 XZ 压缩)。
+  11. **initramfs switch_root 前挂 `devtmpfs` 到 `/mnt/dev`**(CONFIG_DEVTMPFS_MOUNT 只盖 initramfs 的 /dev),否则 busybox init `can't open /dev/ttyS0`。
+  12. **ubiprog**:全块读不可纠 = **页级恢复**(保 PEB 头部 master 节点页 + 不可纠尾页填 0xFF → 擦+Linux 重写),非"跳过+判败"。
+
 - **P1(快、低风险)**:rkbin→公开仓 submodule + toolchain→bootlin + busybox→upstream → **源码层零 vendor_sdk**(只剩打包工具)。
 - **P2**:buildroot 接入(toolchain+rootfs 一次清)+ afptool/rkImageMaker → rkdeveloptool(先板验 SPI-NAND 写)或干净重写。
 - **P3(你说的对齐)**:外设 DT 移植(MMC/ETH/USB/DISPLAY/CAN 从 vendor DT 进 forge DT)+ 逐个板验。
