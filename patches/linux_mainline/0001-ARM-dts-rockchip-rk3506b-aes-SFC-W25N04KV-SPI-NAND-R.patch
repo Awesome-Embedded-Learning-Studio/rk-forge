@@ -1,26 +1,25 @@
-From 346c849dbaabd1aaddcf6da88548877a373ea8ce Mon Sep 17 00:00:00 2001
-From: charliechen <charliechen@rk-forge>
-Date: Mon, 15 Jun 2026 11:44:01 +0800
-Subject: [PATCH 1/6] ARM: dts: rockchip: add rk3506 SoC + AES RK3506B board DT
+From bdae7602ee2840f7ef45ebf42aa524b0617e10bf Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Wed, 17 Jun 2026 00:03:21 +0800
+Subject: [PATCH 1/2] =?UTF-8?q?ARM:=20dts:=20rockchip:=20rk3506b-aes=20?=
+ =?UTF-8?q?=E2=80=94=20SFC=20+=20W25N04KV=20SPI-NAND=20+=20RW=20rootfs?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-Minimal rk3506 SoC DT (pinctrl+clk already upstream) + board DT for
-ATK RK3506B (board id 'aes').
-
-- rk3506.dtsi: minimal SoC nodes (cru/cpus/psci/timer/gic/grf+ioc syscons/
-  uart0@ff0a0000/otp/pinctrl+5 gpio banks); earlycon console at 0xff0a0000
-- rk3506b-aes.dts: board (model 'AES RK3506B Board', memory 512M, &uart0 okay,
-  chosen stdout-path serial0:1500000n8 + earlycon)
-- Makefile: build rk3506b-aes.dtb
-
-Boots mainline Linux 7.0.12 to userspace handoff on real RK3506B
-(vendor SPL/DDR/TEE + mainline U-Boot loading zImage+dtb from SPI NAND).
-
-Signed-off-by: charliechen <charliechen@rk-forge>
+AES RK3506B board DT on top of mainline rk3506 SoC support:
+- rk3506.dtsi sfc node: compatible = "rockchip,rk3506-fspi", "rockchip,sfc"
+  + rockchip,grf = <&grf_pmu> (the per-transfer power-good gate the SFC
+  driver needs for reliable writes).
+- rk3506b-aes.dts: enable SFC + W25N04KV SPI-NAND (JEDEC ef aa 23) + MTD
+  partitions; spi-max-frequency = <50000000> + rockchip,max-dll = <0x17F>
+  (50MHz: board DLL window is 230 cells vs ~70 at 80MHz); persistent-rootfs
+  bootargs (ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait rw).
 ---
  arch/arm/boot/dts/rockchip/Makefile        |   3 +-
- arch/arm/boot/dts/rockchip/rk3506.dtsi     | 280 +++++++++++++++++++++
- arch/arm/boot/dts/rockchip/rk3506b-aes.dts |  28 +++
- 3 files changed, 310 insertions(+), 1 deletion(-)
+ arch/arm/boot/dts/rockchip/rk3506.dtsi     | 299 +++++++++++++++++++++
+ arch/arm/boot/dts/rockchip/rk3506b-aes.dts |  92 +++++++
+ 3 files changed, 393 insertions(+), 1 deletion(-)
  create mode 100644 arch/arm/boot/dts/rockchip/rk3506.dtsi
  create mode 100644 arch/arm/boot/dts/rockchip/rk3506b-aes.dts
 
@@ -37,20 +36,25 @@ index d0154fd7f..028f361d6 100644
 +	rk3506b-aes.dtb
 diff --git a/arch/arm/boot/dts/rockchip/rk3506.dtsi b/arch/arm/boot/dts/rockchip/rk3506.dtsi
 new file mode 100644
-index 000000000..64a1bd026
+index 000000000..8d4108c66
 --- /dev/null
 +++ b/arch/arm/boot/dts/rockchip/rk3506.dtsi
-@@ -0,0 +1,280 @@
+@@ -0,0 +1,299 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * (C) Copyright 2023 Rockchip Electronics Co., Ltd.
 + *
-+ * Minimal RK3506 SoC dtsi for mainline Linux bring-up (earlycon/console milestone).
-+ * Ported/reduced from the ATK vendor SDK rk3502.dtsi. Only the nodes needed to
-+ * reach the early UART console are included: clocks, cru, grf, ioc syscons,
-+ * gic, arch timer, psci, cpus, pinctrl (all 5 gpio banks) + uart0.
-+ * All other peripherals (i2c/spi/pwm/sai/mmc/usb/display/...) deferred —
-+ * they are not required for earlycon. Add them in later iterations.
++ * Minimal RK3506 SoC dtsi for mainline Linux bring-up.
++ * Ported/reduced from the ATK vendor SDK rk3502.dtsi. Nodes needed to boot +
++ * reach the early UART console: clocks, cru, grf, ioc syscons, gic, arch timer,
++ * psci, cpus, pinctrl (all 5 gpio banks) + uart0.
++ * + sfc (SPI flash controller) — drives the W25N04KV SPI-NAND, needed for a
++ *   persistent rootfs on NAND. Uses the mainline `rockchip,sfc` binding (the
++ *   same node proven on the U-Boot side); vendor BSP instead uses a private
++ *   `fspi` driver — we stay mainline. The mainline rockchip_sfc.c now ports
++ *   the vendor delay-line tuning, so the SFC runs at full speed. See notes/10
++ *   + BLOBS.md.
++ * Other peripherals (i2c/spi/pwm/sai/mmc/usb/display/io-domains) still deferred.
 + */
 +
 +#include <dt-bindings/clock/rockchip,rk3506-cru.h>
@@ -157,6 +161,20 @@ index 000000000..64a1bd026
 +		clock-names = "baudclk", "apb_pclk";
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&uart0_xfer_pins>;
++		status = "disabled";
++	};
++
++	sfc: spi@ff488000 {
++		compatible = "rockchip,rk3506-fspi", "rockchip,sfc";
++		reg = <0xff488000 0x4000>;
++		interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru SCLK_FSPI>, <&cru HCLK_FSPI>;
++		clock-names = "clk_sfc", "hclk_sfc";
++		rockchip,grf = <&grf_pmu>;	/* power-good gate (GRF_PMU+0x100 bit0); needed for reliable writes */
++		rockchip,sfc-no-dma;	/* DMA reads corrupt on this board; force PIO (notes/10) */
++		rockchip,max-dll = <0x17F>;	/* RK3506 SFC is VER_5; cap DLL cell scan (vendor value) */
++		#address-cells = <1>;
++		#size-cells = <0>;
 +		status = "disabled";
 +	};
 +
@@ -323,10 +341,10 @@ index 000000000..64a1bd026
 +};
 diff --git a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
 new file mode 100644
-index 000000000..0d45ae455
+index 000000000..e8bb7f8d0
 --- /dev/null
 +++ b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
-@@ -0,0 +1,28 @@
+@@ -0,0 +1,92 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Board device tree for the AES RK3506B board (RK3506B SoC, arm32 Cortex-A7).
@@ -343,7 +361,13 @@ index 000000000..0d45ae455
 +
 +	chosen {
 +		stdout-path = "serial0:1500000n8";
-+		bootargs = "earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0";
++		/* Mount the NAND rootfs (UBI volume "rootfs" on mtd5 — the 6th fixed
++		 * partition in the SFC node below) as root; rootwait lets UBI attach
++		 * first. `rw` mounts it read-write so writes persist (without it the
++		 * kernel mounts the initial root read-only). Harmless for the
++		 * initramfs-shell boot variant: if the boot FIT also bundles an
++		 * initramfs with /init, the kernel runs that /init and ignores root=. */
++		bootargs = "earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait rw";
 +	};
 +
 +	memory@0 {
@@ -354,4 +378,62 @@ index 000000000..0d45ae455
 +
 +&uart0 {
 +	status = "okay";
++};
++
++/*
++ * SPI-NAND (Winbond W25N04KV, 4Gb) on the SFC. Lets Linux see the NAND as MTD
++ * + attach UBI for persistent rootfs (see notes/10). Partition layout mirrors
++ * third_party/bringup/parameter-nand-aes.txt (512B-sector units → bytes, 128KB
++ * erase-block aligned); the 0x0–0x400000 (0–4MB) loader/idblock area is left
++ * unpartitioned. 50 MHz + DLL. Reads are reliable (230-cell window; ro reboot
++ * loop clean). RW writes corrupted the page at ALL speeds (24/50/80 MHz) —
++ * root cause was the SFC TX-FIFO level mask being 5-bit instead of RK3506's
++ * 6-bit (GENMASK(13,8)), so write_fifo miscomputed free slots. Fixed in the
++ * driver; this DT is back to the target 50 MHz.
++ */
++&sfc {
++	status = "okay";
++
++	flash@0 {
++		compatible = "spi-nand";	/* W25N04KV; mainline winbond.c id (0xaa,0x23) */
++		reg = <0>;
++		spi-max-frequency = <50000000>;
++		spi-rx-bus-width = <4>;
++		spi-tx-bus-width = <1>;
++
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@400000 {
++				label = "uboot";
++				reg = <0x400000 0x400000>;
++			};
++			partition@800000 {
++				label = "misc";
++				reg = <0x800000 0x100000>;
++			};
++			partition@900000 {
++				label = "vnvm";
++				reg = <0x900000 0x40000>;
++			};
++			partition@940000 {
++				label = "recovery";
++				reg = <0x940000 0xe00000>;
++			};
++			partition@1740000 {
++				label = "boot";
++				reg = <0x1740000 0x1000000>;
++			};
++			partition@2740000 {
++				label = "rootfs";
++				reg = <0x2740000 0xae00000>;
++			};
++			partition@d540000 {
++				label = "userdata";
++				reg = <0xd540000 0x12ac0000>;
++			};
++		};
++	};
 +};

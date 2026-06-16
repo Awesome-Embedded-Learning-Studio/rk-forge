@@ -1,35 +1,17 @@
-From e290f9ccb033e2101bef72a729b20fc7c9f1f1bc Mon Sep 17 00:00:00 2001
-From: charliechen <charliechen@rk-forge>
-Date: Mon, 15 Jun 2026 11:42:46 +0800
-Subject: [PATCH 1/4] rockchip: rk3506: add AES RK3506B board support (DT +
+From 153ef4e54d946dd2c13d66ff57de4e3e26edf0ba Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Wed, 17 Jun 2026 00:04:04 +0800
+Subject: [PATCH 1/2] rockchip: rk3506: add AES RK3506B board support (DT +
  defconfig)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
 
-Board-level DT + defconfig for the ATK RK3506B (board id 'aes', not 'atk').
-Builds on the already-upstream rk3506 SoC support.
-
-- rk3506.dtsi: minimal SoC DT (cru/cpus/psci/timer/gic/grf+4 ioc syscons/
-  uart0/otp@ff4f0000/sfc/pinctrl+5 gpio banks)
-- rk3506-u-boot.dtsi: u-boot overlay (sfc flash@0 spi-nand, spi-max-frequency
-  capped at 50MHz — mainline rockchip_sfc.c has no DLL tuning, 80MHz corrupts;
-  otp bootph-some-ram)
-- rk3506-evb.dts: board DT (model 'AES RK3506B Board', &uart0/&sfc okay)
-- evb-rk3506_defconfig: board defconfig
-
-Boots mainline Linux 7.0.12 to userspace handoff via SPI NAND
-(vendor SPL/DDR/TEE + mainline U-Boot proper, no core.c hacks).
-
-Signed-off-by: charliechen <charliechen@rk-forge>
+Board support on top of mainline rk3506 U-Boot (2026.07-rc4, Jonas Karlman
+SoC support already merged): AES RK3506B defconfig + board DT entry.
 ---
- arch/arm/dts/rk3506-evb.dts     |  23 +++
- arch/arm/dts/rk3506-u-boot.dtsi |  98 +++++++++++++
- arch/arm/dts/rk3506.dtsi        | 245 ++++++++++++++++++++++++++++++++
- configs/evb-rk3506_defconfig    |  52 +++++++
- 4 files changed, 418 insertions(+)
+ arch/arm/dts/rk3506-evb.dts  |  23 ++++
+ arch/arm/dts/rk3506.dtsi     | 246 +++++++++++++++++++++++++++++++++++
+ configs/evb-rk3506_defconfig |  52 ++++++++
+ 3 files changed, 321 insertions(+)
  create mode 100644 arch/arm/dts/rk3506-evb.dts
- create mode 100644 arch/arm/dts/rk3506-u-boot.dtsi
  create mode 100644 arch/arm/dts/rk3506.dtsi
  create mode 100644 configs/evb-rk3506_defconfig
 
@@ -62,116 +44,12 @@ index 00000000..48cdded1
 +		stdout-path = &uart0;
 +	};
 +};
-diff --git a/arch/arm/dts/rk3506-u-boot.dtsi b/arch/arm/dts/rk3506-u-boot.dtsi
-new file mode 100644
-index 00000000..3e57c91f
---- /dev/null
-+++ b/arch/arm/dts/rk3506-u-boot.dtsi
-@@ -0,0 +1,98 @@
-+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
-+/*
-+ * RK3506 U-Boot overlay. Pulls in the shared binman template
-+ * (rockchip-u-boot.dtsi) so `make` emits idbloader.img + u-boot.itb,
-+ * binds the dmc (sdram size read-back) node, and tags the SPL-needed
-+ * nodes with bootph phases. Modeled on rk3528-u-boot.dtsi.
-+ */
-+
-+#include "rockchip-u-boot.dtsi"
-+
-+/ {
-+	chosen {
-+		u-boot,spl-boot-order = "same-as-spl";
-+	};
-+
-+	dmc {
-+		compatible = "rockchip,rk3506-dmc";
-+		bootph-all;
-+	};
-+};
-+
-+&cru {
-+	bootph-all;
-+};
-+
-+&grf {
-+	bootph-all;
-+};
-+
-+&sfc {
-+	bootph-all;
-+	status = "okay";
-+
-+	flash@0 {
-+		compatible = "spi-nand";
-+		reg = <0>;
-+		/* XXX: rk-forge bring-up — cap at vendor's SFC_DLL_THRESHOLD_RATE
-+		 * (50MHz). Mainline rockchip_sfc.c has NO sampling delay-line (DLL)
-+		 * tuning, unlike vendor's driver (rockchip_sfc_delay_lines_tuning).
-+		 * At 80MHz untuned, SFC read sampling is marginal → non-deterministic
-+		 * bit errors (FIT magic fe→de→dc) and eventual latch-up (all 0xee).
-+		 * ≤50MHz is safe without DLL. If still flaky, drop to 24MHz. */
-+		spi-max-frequency = <50000000>;
-+		spi-rx-bus-width = <4>;
-+		spi-tx-bus-width = <1>;
-+		bootph-all;
-+	};
-+};
-+
-+&grf_pmu {
-+	bootph-all;
-+};
-+
-+&ioc_grf {
-+	bootph-all;
-+};
-+
-+&ioc1 {
-+	bootph-all;
-+};
-+
-+&ioc_pmu {
-+	bootph-all;
-+};
-+
-+&pinctrl {
-+	bootph-all;
-+};
-+
-+&otp {
-+	bootph-some-ram;
-+};
-+
-+&gpio0 {
-+	bootph-all;
-+};
-+
-+&pcfg_pull_none {
-+	bootph-all;
-+};
-+
-+&pcfg_pull_up {
-+	bootph-all;
-+};
-+
-+&uart0 {
-+	bootph-all;
-+	clock-frequency = <24000000>;
-+};
-+
-+&uart0_xfer_pins {
-+	bootph-pre-sram;
-+	bootph-pre-ram;
-+};
-+
-+&xin24m {
-+	bootph-all;
-+};
 diff --git a/arch/arm/dts/rk3506.dtsi b/arch/arm/dts/rk3506.dtsi
 new file mode 100644
-index 00000000..b44db90a
+index 00000000..735f805d
 --- /dev/null
 +++ b/arch/arm/dts/rk3506.dtsi
-@@ -0,0 +1,245 @@
+@@ -0,0 +1,246 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * (C) Copyright 2023 Rockchip Electronics Co., Ltd.
@@ -268,6 +146,7 @@ index 00000000..b44db90a
 +		clocks = <&cru SCLK_FSPI>, <&cru HCLK_FSPI>;
 +		clock-names = "clk_sfc", "hclk_sfc";
 +		rockchip,sfc-no-dma;	/* XXX: rk-forge debug — SFC DMA corrupts reads (printf breaks DMA state), try PIO */
++		rockchip,max-dll = <0x17F>;	/* RK3506 SFC is VER_5; cap DLL cell scan (vendor value) */
 +		#address-cells = <1>;
 +		#size-cells = <0>;
 +		status = "disabled";

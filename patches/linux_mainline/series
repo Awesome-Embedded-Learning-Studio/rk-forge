@@ -3,26 +3,18 @@
 # Applied by scripts/apply-series.sh via `git am` (run from the linux tree).
 #
 # RK3506 pinctrl+clk are already mainline; this series is the board/DT/driver
-# delta on top of SoC support. Regenerated 2026-06-16 from explore/linux
-# (base v7.1 = 8cd9520d3) via `git format-patch`; reproduces the board-verified
-# boot (RW UBIFS rootfs, cold-reboot persistent, 3-cycle stress passed).
+# delta on top of SoC support. Consolidated 2026-06-17 into 2 logical patches
+# (DT + SFC driver) from explore/linux (base v7.1 = 8cd9520d3); reproduces the
+# board-verified RW UBIFS rootfs (cold-reboot persistent, 3-cycle stress passed,
+# PEB 3/4 page-recovered). Earlier 6-patch additive series squashed (it had a
+# dead 80MHz patch immediately reversed to 50MHz + tuning split across patches).
 
-0001-ARM-dts-rockchip-add-rk3506-SoC-AES-RK3506B-board-DT.patch
-0002-ARM-dts-rockchip-rk3506b-aes-enable-SFC-W25N04KV-SPI.patch
-# SFC sampling delay-line tuning — fixes high-speed read ECC errors by writing
-# SFC_DLL_CTRL0 (vendor rockchip_sfc_delay_lines_tuning ported). Widest-window
-# scan + dev_info diagnostics; THRESHOLD 24MHz so 50MHz still trains.
-0003-spi-rockchip-sfc-add-sampling-delay-line-tuning-for-.patch
-# Persistent-rootfs bootargs (ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rw).
-0004-ARM-dts-rockchip-rk3506b-aes-add-persistent-rootfs-b.patch
-# SFC 80MHz + rockchip,max-dll (intermediate state; 0006 lowers to 50MHz where
-# the DLL window is 230 cells vs ~70 at 80MHz on this board).
-0005-ARM-dts-rockchip-rk3506b-aes-raise-SFC-to-80-MHz-add.patch
-# RW rootfs root-cause fix (board-verified 2026-06-16): port the vendor fspi
-# write-reliability mechanisms the mainline driver lacked — SFC_CTRL_WPEN
-# (BIT29, WP#/IO2 driving) per op + a per-transfer power-good gate polling
-# GRF_PMU+0x100 bit0 (compatible rockchip,rk3506-fspi, rockchip,grf=<&grf_pmu>).
-# Also lowers SFC to 50MHz. With these, Linux SFC writes are reliable (vendor
-# parity); the rootfs is Linux-written by forge ubiprog (first-boot) so it
-# survives cold reboots. See bringup/nand-rootfs/RW-WRITE-FIX-powergood-wpen.md.
-0006-spi-rockchip-sfc-RK3506-power-good-gate-WPEN-DT-50MH.patch
+# Board DT: rk3506.dtsi sfc node (compatible rk3506-fspi + grf phandle) +
+# rk3506b-aes.dts (SFC enable + W25N04KV SPI-NAND + MTD partitions + 50MHz +
+# max-dll + persistent-rootfs bootargs) + Makefile entry.
+0001-ARM-dts-rockchip-rk3506b-aes-SFC-W25N04KV-SPI-NAND-R.patch
+# SFC driver: DLL sampling tuning (vendor port) + SFC_CTRL_WPEN per op +
+# per-transfer power-good gate (GRF_PMU+0x100 bit0). The RW-rootfs root-cause
+# fix — makes Linux SFC reads/writes reliable (vendor fspi parity). Rootfs is
+# then Linux-written by forge ubiprog so it survives cold reboots.
+0002-spi-rockchip-sfc-DLL-tuning-RK3506-power-good-gate-W.patch
