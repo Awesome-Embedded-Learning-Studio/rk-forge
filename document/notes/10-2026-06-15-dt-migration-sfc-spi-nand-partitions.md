@@ -2,7 +2,7 @@
 
 > 承 [09](09-2026-06-15-vendor-nand-packaging-forensics.md)(NAND 打包)+ 计划 `twinkling-kindling-marble.md`。
 > 目标:把"内核 + U-Boot 设备树"对齐 vendor_sdk,让主线 Linux boot 后能看见 W25N04KV SPI-NAND + MTD 分区(持久 rootfs 的头号前提)。
-> **板无关 + 板门验证均通过(2026-06-15)**:Linux boot 到 `~ #`,W25N04KV 被探测、7 MTD 分区全见。证据 log `third_party/logs/boot-sdl-2026-06151834.txt`。
+> **板无关 + 板门验证均通过(2026-06-15)**:Linux boot 到 `~ #`,W25N04KV 被探测、7 MTD 分区全见。证据 log `document/logs/boot-sdl-2026-06151834.txt`。
 
 ## 关键发现(反直觉但省事):vendor DT 对这块板很稀疏
 

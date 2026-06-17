@@ -1,5 +1,11 @@
 # SFC 写损坏调查 Postmortem(RK3506B + W25N04KV SPI-NAND)
 
+> ⚠️ **SUPERSEDED — 部分对、关键结论被推翻(2026-06-16)。**
+> 本文"坏数据是 loader 写的存量"(**对**)+ "换 vendor loader 4762d6 就稳"(**错**,被 A/B 实验推翻:同 4762d6 写 vendor rootfs 稳、写我们 rootfs 炸)。
+> Canonical 真相:是 loader 对我们这份 rootfs 的写,非 loader 版本问题。解法 = rootfs 由 Linux 落盘。
+> 见:记忆 `sfc-dll-saga-and-writepath`(顶部 RW-SOLVED 段)+ 《踩坑日记》[SFC/NAND saga 篇](../pitfalls/04-sfc-nand-saga.md)。
+> 本文保留作 saga 段二(探针定位 loader 存量)的调查历程存档。
+
 > 结论先行:**根因是 RK vendor loader 的 SPI-NAND 写例程不可靠(写侧无 DLL 调谐,某些块写下去位不牢)。
 > 不是物理坏块、不是 Linux 代码、不是 ECC 配置、不是 reboot/掉电。** Linux 写路径全程可靠。
 > 修法:rootfs 由 Linux 落盘(不让 loader 写)。

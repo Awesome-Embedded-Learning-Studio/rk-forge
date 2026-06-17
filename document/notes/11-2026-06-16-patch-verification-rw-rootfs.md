@@ -94,4 +94,4 @@ uboot 同流程(`--component uboot`,base `5ca1a73c`)。
 ## 相关
 
 - patches 主仓提交:`1b74109`(patches: regen) / `2d09be7`(bringup: ubiprog+init) / `6c924af`(logs)。
-- 根因与修复全程:记忆 `sfc-dll-saga-and-writepath`(顶部 RW-SOLVED 段)、`bringup/nand-rootfs/RW-WRITE-FIX-powergood-wpen.md` + `BOARD-VALIDATION.md`。
+- 根因与修复全程:记忆 `sfc-dll-saga-and-writepath`(顶部 RW-SOLVED 段)、`document/archive/RW-WRITE-FIX-powergood-wpen.md` + `BOARD-VALIDATION.md`。

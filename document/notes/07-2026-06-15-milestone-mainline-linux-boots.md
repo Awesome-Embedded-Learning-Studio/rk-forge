@@ -2,7 +2,7 @@
 
 > **进入仓库/接手时先读这篇。** 自包含,记录"主线 Linux 7.0.12 在 ATK RK3506B 跑起来"的完整成功态 + 最小复现路径。
 > 承接 [02](02-2026-06-14-mainline-bringup-handoff.md)(U-Boot 移植)→ [04](04-2026-06-14-mainline-uboot-via-vendor-spl.md)(方案 B prompt)→ [05](05-2026-06-15-nand-boot-bbm-ecc-debug.md)/[06](06-2026-06-15-nand-recovery-vendor-sfc-bbt.md)(NAND corrupt 排查,**已解决,见下**)。
-> 定型成功日志:`third_party/logs/boot-sdl-stage-end-of-kernel-uboot-202606151100.txt`。
+> 定型成功日志:`document/logs/boot-sdl-stage-end-of-kernel-uboot-202606151100.txt`。
 
 ## TL;DR
 
@@ -80,5 +80,5 @@ cp third_party/bringup/fit/rk3506-mainline.itb /mnt/d/DownloadFromInternet/rk350
 
 - patches: `patches/uboot/0001-...patch`、`patches/linux_mainline/0001-...patch`(均含 series)
 - FIT 打包配方: `third_party/bringup/fit/rk3506-mainline.its`、`rk3506-kernel.its`
-- 定型日志: `third_party/logs/boot-sdl-stage-end-of-kernel-uboot-202606151100.txt`
+- 定型日志: `document/logs/boot-sdl-stage-end-of-kernel-uboot-202606151100.txt`
 - memory: `kernel-port-state`、`sfc-read-corruption-rootcause`、`mainline-uboot-bringup-state`、`uboot-build-flash-commands`

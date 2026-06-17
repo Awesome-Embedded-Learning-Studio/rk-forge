@@ -1,5 +1,12 @@
 # 交接:RK3506B SPI-NAND 写损坏 saga(loader/rkbin 边际写)
 
+> ⚠️ **SUPERSEDED — saga 最严重的判死结论,已被推翻(2026-06-16)。**
+> 本文核心结论"loader 写不可靠是 rkbin 通病,与版本无关,不可解"**是错的**。
+> 盲点:① 全程只换 rkbin 黑盒 loader,从没让 vendor 内核 fspi 驱动上板对比;② "我们的栈写可靠"全是同会话当场回读,从未跨重启验证。
+> Canonical 真相:同一颗 loader(4762d6)写 vendor rootfs 稳、写我们 rootfs 炸 —— 是 loader 对**我们这份小 rootfs** 的写,不是通病。解法 = rootfs 由 Linux 落盘。
+> 见:记忆 `sfc-dll-saga-and-writepath`(顶部 RW-SOLVED 段)+ 《踩坑日记》[SFC/NAND saga 篇](../pitfalls/04-sfc-nand-saga.md)。
+> 本文保留作"曾经走过的错路"存档(2026-06-16 段三阶段产物)。
+
 > 本文档为交接件,记录从"rw 写必崩"到定位 **rkbin loader 边际写** 的完整结论、证据、已试方案、产物,以及下一步"拆 SDK/rkbin"的方向。
 > 配套:`SFC-WRITE-CORRUPTION-POSTMORTEM.md`(历程)、记忆 `sfc-dll-saga-and-writepath`。
 
@@ -110,4 +117,4 @@ cd $FORGE && scripts/pack-fit.sh && scripts/assemble-update.sh --nand --loader t
 
 - 记忆:`sfc-dll-saga-and-writepath`(全程)、`MEMORY.md` 索引。
 - POSTMORTEM:`SFC-WRITE-CORRUPTION-POSTMORTEM.md`(调查历程 + 坑)。
-- 日志:`third_party/logs/boot-sdl-*.txt`(各轮)。
+- 日志:`document/logs/boot-sdl-*.txt`(各轮)。

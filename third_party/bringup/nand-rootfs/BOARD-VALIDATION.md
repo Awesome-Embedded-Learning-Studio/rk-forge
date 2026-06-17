@@ -2,7 +2,7 @@
 
 > **用途**:RK3506B「aes」板每次烧录/改驱动后,按此从烧录 → 各启动阶段现象 → RW 持久化,逐项核对。
 > 本文是"每次验证"的标准清单。当前验证目标:**主线 SFC 驱动移植 powergood + WPEN 后,RW UBIFS 能否跨冷重启持久**(详见 [RW-WRITE-FIX-powergood-wpen.md](RW-WRITE-FIX-powergood-wpen.md))。
-> 抓到的 boot 日志存到 `third_party/logs/boot-sdl-<YYYYMMDDHHMM>.txt` 再发我判读。
+> 抓到的 boot 日志存到 `document/logs/boot-sdl-<YYYYMMDDHHMM>.txt` 再发我判读。
 
 ---
 
@@ -181,7 +181,7 @@ dmesg | grep -iE "ecc|ebadmsg|ubi_io_read|powergood|bad magic|recovery"
 ---
 
 ## 5. 抓日志约定(给我判读用)
-- 串口全程抓到 `third_party/logs/boot-sdl-<YYYYMMDDHHMM>.txt`(从上电 SPL 到 `~#`)。
+- 串口全程抓到 `document/logs/boot-sdl-<YYYYMMDDHHMM>.txt`(从上电 SPL 到 `~#`)。
 - RW 测试轮的 `cat /persist.log` + 那条 `dmesg|grep` 单独贴。
 - 文件名带时间,别覆盖旧 log。
 

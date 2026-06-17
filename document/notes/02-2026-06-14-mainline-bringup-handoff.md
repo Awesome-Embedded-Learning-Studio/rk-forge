@@ -171,4 +171,4 @@ sed -i 's|^FlashBoot=.*|FlashBoot=bin/rk35/rk3506_mainline_spl.bin|' /tmp/m.ini
 - `01-2026-06-14-vendor-uboot-build-flow.md`(同目录):vendor 编 uboot 全流程 + 主线映射 + 各 Stage 实证(更细)。
 - `../../PLAN.md`:项目方向(8 周首迭代,mainline-first)。
 - memory(下个会话自动加载):[[vendor-sdk-atk-bsp]]、[[rk3506-mainline-premises]]、[[vendor-build-pipeline-for-forge]]、+ 本次新增的 bring-up 状态。
-- 日志:`third_party/logs/build-uboot.log`(vendor)、`build-rk3506-stage2.log`(主线 Stage2)、`boot-sdl-*.log/.txt`(上板 UART 抓取)。
+- 日志:`document/logs/build-uboot.log`(vendor)、`build-rk3506-stage2.log`(主线 Stage2)、`boot-sdl-*.log/.txt`(上板 UART 抓取)。

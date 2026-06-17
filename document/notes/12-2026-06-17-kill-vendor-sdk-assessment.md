@@ -48,7 +48,7 @@ sdk-diff(document/sdk-diff.md)列的差距:**主线驱动都在,差 DT 节点 + 
 
 ## 分期路线(下一轮冲刺候选)
 
-- **P0(先做,整理)**:收敛仓库文档 + 出**多份 markdown 的完整《踩坑日记》**(不是单文件)。当前文档散(document/notes/05-12、sdk-diff、bringup/nand-rootfs/{README,PROGRESS,HANDOFF-LOADER-MARGINAL-WRITE,SFC-WRITE-CORRUPTION-POSTMORTEM,RW-WRITE-FIX-powergood-wpen,BOARD-VALIDATION}、notes/nand-ecc-debug-handoff),有重叠 + 已被推翻的(HANDOFF/POSTMORTEM 是 saga 旧错结论、RW-WRITE-FIX 是早期 powergood-only 误判 —— 都已被 [[sfc-dll-saga]] 顶部 RW-SOLVED 段取代)。**收敛** = 去重 + 标记 superseded/归档错结论 + 保留 canonical。**踩坑日记** = 以现有 notes/logs 的**现场**(`third_party/logs/boot-sdl-*.txt` 实测日志 + 各过程笔记)为素材,**还原真实完整的时间线** —— 含走过的弯路(如 saga"rkbin 通病不可解"误判)+ 被推翻的结论 + 每步板上证据(log 行),如实叙事;按阶段或每坑分篇,引对应 log 佐证。
+- **P0(先做,整理)**:收敛仓库文档 + 出**多份 markdown 的完整《踩坑日记》**(不是单文件)。当前文档散(document/notes/05-12、sdk-diff、bringup/nand-rootfs/{README,PROGRESS,HANDOFF-LOADER-MARGINAL-WRITE,SFC-WRITE-CORRUPTION-POSTMORTEM,RW-WRITE-FIX-powergood-wpen,BOARD-VALIDATION}、notes/nand-ecc-debug-handoff),有重叠 + 已被推翻的(HANDOFF/POSTMORTEM 是 saga 旧错结论、RW-WRITE-FIX 是早期 powergood-only 误判 —— 都已被 [[sfc-dll-saga]] 顶部 RW-SOLVED 段取代)。**收敛** = 去重 + 标记 superseded/归档错结论 + 保留 canonical。**踩坑日记** = 以现有 notes/logs 的**现场**(`document/logs/boot-sdl-*.txt` 实测日志 + 各过程笔记)为素材,**还原真实完整的时间线** —— 含走过的弯路(如 saga"rkbin 通病不可解"误判)+ 被推翻的结论 + 每步板上证据(log 行),如实叙事;按阶段或每坑分篇,引对应 log 佐证。
 
   **踩坑日记骨架 / scope**(供执行 AI,逐条核实后分篇落成 `document/pitfalls/` 系列):
   1. **chip tag = RK350F**(从 loader offset 21 读 4B 反转),非硬编 RK3506 → 否则 RKDevTool「校验芯片失败」。
@@ -76,4 +76,4 @@ sdk-diff(document/sdk-diff.md)列的差距:**主线驱动都在,差 DT 节点 + 
 
 ## 相关
 - sdk-diff:`document/sdk-diff.md`;记忆 `vendor-build-pipeline-for-forge`(io-domains 是真贡献点)、`vendor-sdk-atk-bsp`、`next-phase-nand-packaging-and-buildroot`。
-- loader 弱写 saga:记忆 `sfc-dll-saga-and-writepath`(顶部 RW-SOLVED 段)、`bringup/nand-rootfs/RW-WRITE-FIX-powergood-wpen.md`。
+- loader 弱写 saga:记忆 `sfc-dll-saga-and-writepath`(顶部 RW-SOLVED 段)、`document/archive/RW-WRITE-FIX-powergood-wpen.md`。

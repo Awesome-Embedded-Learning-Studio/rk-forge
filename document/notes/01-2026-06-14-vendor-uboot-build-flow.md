@@ -2,7 +2,7 @@
 
 > **活账本**。这份笔记记录 ATK-DLRK3506 vendor SDK 怎么把 U-Boot 编出来,**作为主线迁移的参照基准**。迁移过程中一旦发现现实与本文不符,先改这里,再改动作。
 > 来源:`./build.sh lunch`(选 #19)+ `./build.sh uboot` 的实跑 + 脚本精读。
-> 配套日志:`third_party/logs/build-uboot.log`、`third_party/logs/lunch.txt`。
+> 配套日志:`document/logs/build-uboot.log`、`document/logs/lunch.txt`。
 
 ---
 

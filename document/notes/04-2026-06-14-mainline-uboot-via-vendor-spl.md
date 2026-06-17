@@ -123,7 +123,7 @@ optee 的 hash 与 vendor **逐字节相同**,证明用的就是 vendor 那颗 t
 ### 烧板
 RKDevTool "下载镜像"模式:Loader=`rk3506-vendor-loader.bin`(vendor 原装,恢复 vendor DDR+SPL 到 boot 区)+ 只勾 `uboot` 分区=`rk3506-uboot-mainline-vendor-fit.itb`,写到 NAND sector 0x2000。
 
-### UART 关键行(third_party/logs/boot-sdl-202606142037.txt)
+### UART 关键行(document/logs/boot-sdl-202606142037.txt)
 ```
 Trying fit image at 0x2000 sector
 ## Checking optee 0x00001000 ... sha256(93603ca22c...) + OK
@@ -235,7 +235,7 @@ make ARCH=arm CROSS_COMPILE=$TC -j$(nproc) ROCKCHIP_TPL=... TEE=...
 
 ## 阶段 7:第二次上板——进提示符,里程碑达成
 
-### UART 关键行(third_party/logs/boot-sdl-202606142052.txt)
+### UART 关键行(document/logs/boot-sdl-202606142052.txt)
 ```
 U-Boot 2026.07-rc4-g5ca1a73c7d30 (Jun 14 2026 - 20:47:09 +0800)
 Model: Rockchip RK3506 Evaluation Board (ATK RK3506B)
@@ -284,8 +284,8 @@ Scanning for bootflows in all bootdevs
 | `parameter-nand.txt` | NAND 分区表(uboot @ sector 0x2000) |
 
 ### 日志
-- `third_party/logs/boot-sdl-202606142037.txt` —— 第一次上板(banner + hang)
-- `third_party/logs/boot-sdl-202606142052.txt` —— 第二次上板(进提示符,里程碑)
+- `document/logs/boot-sdl-202606142037.txt` —— 第一次上板(banner + hang)
+- `document/logs/boot-sdl-202606142052.txt` —— 第二次上板(进提示符,里程碑)
 
 ---
 

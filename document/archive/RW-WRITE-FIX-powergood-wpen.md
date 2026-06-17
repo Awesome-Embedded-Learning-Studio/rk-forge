@@ -1,5 +1,11 @@
 # RW 写损坏 — 根因修正 + 修复(powergood + WPEN)
 
+> ⚠️ **SUPERSEDED — 中间阶段结论,被增补/收尾(2026-06-16)。**
+> 本文推翻了 HANDOFF 的"通病判死"(方向对),提出 powergood + WPEN 是 vendor 写侧我们缺的两项(也对)。但板上验证 powergood+WPEN **仍不够**(PEB 3/4/30/32 炸)—— 它们是 **Linux 自己写可靠**的前提,救不了 loader 已写的存量。
+> Canonical 收尾:rootfs 由 Linux 落盘(ubiprog 首启重写 + 页级恢复 PEB 3/4)。
+> 见:记忆 `sfc-dll-saga-and-writepath`(顶部 RW-SOLVED 段)+ 《踩坑日记》[SFC/NAND saga 篇](../pitfalls/04-sfc-nand-saga.md)。
+> 本文保留作 saga 段四(推翻 HANDOFF)存档。
+
 > 本文**推翻** [HANDOFF-LOADER-MARGINAL-WRITE.md](HANDOFF-LOADER-MARGINAL-WRITE.md) 的"rkbin loader 边际写、换版本无效、不可解"结论。
 > 真正根因:**我们主线 SFC 驱动缺 vendor 的写侧两项配置(powergood 门 + WPEN 位)**,导致读写都不够稳。RW 完全可达。
 > 配套:[SFC-WRITE-CORRUPTION-POSTMORTEM.md](SFC-WRITE-CORRUPTION-POSTMORTEM.md)、记忆 `sfc-dll-saga-and-writepath`。

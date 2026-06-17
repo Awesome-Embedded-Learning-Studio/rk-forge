@@ -94,4 +94,4 @@ cp third_party/bringup/fit/rk3506-mainline.itb /mnt/d/DownloadFromInternet/rk350
 - W25N04KV 配置: `third_party/explore/uboot/drivers/mtd/nand/spi/winbond.c:483`
 - 内核 FIT: `third_party/bringup/fit/rk3506-kernel.itb`(+ `.its`)
 - U-Boot FIT(方案 B): `third_party/bringup/fit/rk3506-mainline.itb`
-- 上板日志: `third_party/logs/boot-sdl-202606150723.txt`(mtd read corrupt)、`uboot-debug.txt`(dump)
+- 上板日志: `document/logs/boot-sdl-202606150723.txt`(mtd read corrupt)、`uboot-debug.txt`(dump)
