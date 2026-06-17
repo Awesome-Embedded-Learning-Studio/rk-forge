@@ -1,24 +1,35 @@
 #!/usr/bin/env bash
 # pack-loader.sh — reproduce the RK3506B NAND loader (MiniLoaderAll.bin / idblock)
-# from pinned rkbin blobs via Rockchip's boot_merger.
+# from rkbin blobs via Rockchip's boot_merger.
 #
 # Loader stage of forge's NAND packaging (notes/09 §二①). The loader = DDR init +
-# usbplug + vendor SPL blobs, wrapped in RK idblock format by boot_merger. The
-# blobs are a HARD closed dependency (BLOBS.md); boot_merger is a deterministic
-# Rockchip packer (not a blob).
+# usbplug + SPL blobs, wrapped in RK idblock format by boot_merger. The blobs are a
+# HARD closed dependency (BLOBS.md); boot_merger is a deterministic Rockchip packer.
+#
+# Blob source — the P1 conquest: defaults to the PUBLIC rockchip-linux/rkbin
+# submodule (third_party/rkbin), giving a fully-public, internally-consistent
+# loader (DDR v1.06 + usbplug v1.03 + SPL v1.12) that needs ZERO vendor-sdk. The
+# SPL↔tee hash pair must stay consistent: the public SPL v1.12 pairs with tee v2.40
+# (pack-fit.sh resolves tee from the same source). The sfc-dll-saga "tee v2.40 =
+# Bad hash" was a MIXING artifact (ATK SPL v1.11 checking public tee v2.40); a
+# fully-public chain verifies against its own hash. Board-test is the confirmation.
+#
+# ATK fallback: override FORGE_RKBIN_DIR (or --rkbin) to third_party/rkbin-atk
+# (gitignored, populated by scripts/fetch-deps.sh atk-blobs) to rebuild the
+# ATK-verified loader (v1.06 / v1.02 / v1.11 + tee v2.10) — the regression baseline
+# kept until the public loader is board-verified. Do NOT mix blob sources between
+# pack-loader.sh and pack-fit.sh (inconsistent SPL↔tee hash → "optee Bad hash").
 #
 # HONEST EDGE: the loader here is a structurally-valid idblock but is NOT
 # byte-identical to the ATK-shipped verified-good loader (rk3506-vendor-loader.bin,
-# 270784 B): boot_merger embeds a build timestamp, and the pinned rkbin's
-# boot_merger 1.35 emits a slightly different (~6KB) idblock layout than whatever
-# built the shipped one. Same blob family (v1.06 / v1.02 / v1.11); bootability is
-# board-test pending (notes/09 §五④).
+# 270784 B): boot_merger embeds a build timestamp + emits a slightly different
+# (~6KB) idblock layout than whatever built the shipped one. Bootability is
+# board-test pending (notes/09 §五④, BLOBS.md) for BOTH the public and ATK variants.
 #
 # Usage:
 #   scripts/pack-loader.sh [--rkbin <dir>] [--out <dir>]
-#     --rkbin <dir>   rkbin tree with bin/rk35/* + tools/boot_merger
-#                     (default: third_party/vendor-sdk/rkbin — has the ATK-verified
-#                      v1.02/v1.11 blobs; explore/rkbin has newer v1.03/v1.12)
+#     --rkbin <dir>   blob source with bin/rk35/* (default: third_party/rkbin
+#                     public submodule; pass third_party/rkbin-atk for ATK fallback)
 #     --out <dir>     output dir (default: third_party/bringup/out)
 #
 # Seam: bash-first; arg parsing leaves a Python seam (config-driven) for later.
@@ -28,23 +39,24 @@ _PROJECT_ROOT=$(cd "${_SCRIPT_DIR}/.." && pwd)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 
-RKBIN_DIR="${_PROJECT_ROOT}/third_party/vendor-sdk/rkbin"
+RKBIN_PUBLIC="${_PROJECT_ROOT}/third_party/rkbin"            # public submodule — the conquest default
+FORGE_RKBIN_DIR="${FORGE_RKBIN_DIR:-$RKBIN_PUBLIC}"          # override → rkbin-atk for ATK fallback
 OUT_DIR="${_PROJECT_ROOT}/third_party/bringup/out"
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --rkbin) RKBIN_DIR="$2"; shift 2;;
+    --rkbin) FORGE_RKBIN_DIR="$2"; shift 2;;
     --out)   OUT_DIR="$2"; shift 2;;
     -h|--help) sed -n '2,28p' "$0"; exit 0;;
     *) die "unknown arg: $1";;
   esac
 done
 
-BLOB_DIR="${RKBIN_DIR}/bin/rk35"
-BOOT_MERGER="${RKBIN_DIR}/tools/boot_merger"
+BLOB_DIR="${FORGE_RKBIN_DIR}/bin/rk35"
+BOOT_MERGER="${RKBIN_PUBLIC}/tools/boot_merger"              # packer is version-tolerant; always public
 INI_TPL="${_PROJECT_ROOT}/third_party/bringup/RKBOOT-RK3506B-aes.ini"
 
-[[ -d "$BLOB_DIR" ]]   || die "rkbin blob dir not found: $BLOB_DIR"
-[[ -x "$BOOT_MERGER" ]]|| die "boot_merger not found/executable: $BOOT_MERGER"
+[[ -d "$BLOB_DIR" ]]   || die "rkbin blob dir not found: $BLOB_DIR (init submodule? scripts/fetch-deps.sh atk-blobs?)"
+[[ -x "$BOOT_MERGER" ]]|| die "boot_merger not found/executable: $BOOT_MERGER (init third_party/rkbin submodule)"
 [[ -f "$INI_TPL" ]]    || die "loader ini template not found: $INI_TPL"
 
 # Resolve blob versions by glob — version-agnostic across rkbin trees. Picks the
@@ -58,7 +70,7 @@ resolve_blob() {  # <glob-suffix-pattern> <label>
 DDR_BIN=$(resolve_blob  'rk3506b_ddr_750MHz_v1.*.bin' 'DDR')      # skips the _rt_ variant
 USBPLUG_BIN=$(resolve_blob 'rk3506_usbplug_v1.*.bin' 'usbplug')
 SPL_BIN=$(resolve_blob    'rk3506_spl_v1.*.bin'       'SPL')
-log_info "loader blobs: ddr=$DDR_BIN  usbplug=$USBPLUG_BIN  spl=$SPL_BIN  (from $RKBIN_DIR)"
+log_info "loader blobs: ddr=$DDR_BIN  usbplug=$USBPLUG_BIN  spl=$SPL_BIN  (from $FORGE_RKBIN_DIR)"
 
 mkdir -p "$OUT_DIR"
 WORK=$(mktemp -d)

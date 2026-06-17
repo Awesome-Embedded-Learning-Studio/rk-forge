@@ -52,15 +52,20 @@ KERN_DTB="${EXPLORE}/linux/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
 INITRAMFS="${BRINGUP}/fit/initramfs.cpio.gz"
 need "$UBOOT_BIN"; need "$UBOOT_DTB"; need "$ZIMAGE"; need "$KERN_DTB"; need "$INITRAMFS"
 
-# tee blob: prefer forge explore/rkbin, fall back to vendor-sdk/rkbin.
-# tee MUST be vendor v2.10 (rk3506_tee_v2.10.bin, 125904 B). vendor SPL's verified
-# boot checks the optee hash and v2.10 is what it expects (方案 B, proven on board).
-# explore/rkbin v2.40 has a different hash → SPL rejects the FIT ("optee Bad hash")
-# → falls back to a residual vendor uboot → vendor uboot can't boot mainline kernel
-# → hang. uboot is a loadable (not hash-locked), so the ONLY thing that must match
-# the SPL is this tee. Do NOT "upgrade" to v2.40.
-TEE="${_PROJECT_ROOT}/third_party/vendor-sdk/rkbin/bin/rk35/rk3506_tee_v2.10.bin"
-[[ -f "$TEE" ]] || die "missing vendor tee (rk3506_tee_v2.10.bin, 125904 B) — required by vendor SPL verified boot"
+# tee blob: resolved from the SAME rkbin source as the loader (FORGE_RKBIN_DIR, default
+# the public submodule) so the SPL↔tee verified-boot hash pair stays CONSISTENT.
+#   public submodule → tee v2.40 (pairs with public SPL v1.12 in pack-loader.sh)
+#   rkbin-atk fallback → tee v2.10 (pairs with ATK SPL v1.11; sha256 93603ca22c…)
+# The sfc-dll-saga "tee v2.40 = Bad hash" was a MIXING artifact: ATK SPL v1.11 (which
+# checks v2.10's hash) reading public tee v2.40. A fully-public chain — public SPL v1.12
+# checking public tee v2.40, both from the same rkbin release — is internally consistent
+# and should verify. Board-test is the confirmation. uboot is a loadable (not hash-locked),
+# so tee is the ONLY thing whose hash must match the SPL. Do NOT mix blob sources between
+# pack-loader.sh and pack-fit.sh.
+FORGE_RKBIN_DIR="${FORGE_RKBIN_DIR:-${_PROJECT_ROOT}/third_party/rkbin}"
+TEE=$(ls "$FORGE_RKBIN_DIR"/bin/rk35/rk3506_tee_v*.bin 2>/dev/null | grep -v _ta_ | sort -V | tail -1)
+[[ -n "$TEE" && -f "$TEE" ]] || die "missing tee blob under $FORGE_RKBIN_DIR/bin/rk35 (need rk3506_tee_v*.bin; init submodule or run scripts/fetch-deps.sh atk-blobs)"
+log_info "tee blob: $(basename "$TEE") (from $FORGE_RKBIN_DIR) — must pair with the SPL variant in pack-loader.sh"
 
 mkdir -p "$OUT_DIR"
 W1=$(mktemp -d); W2=$(mktemp -d)
@@ -73,11 +78,13 @@ cp "$TEE"       "$W1/tee.bin"
 cp "${BRINGUP}/fit/rk3506-mainline.its" "$W1/"
 # uboot FIT MUST use vendor mkimage (2017.09) -E: vendor SPL only parses the
 # external-data layout vendor mkimage emits. mainline mkimage's -E puts optee data
-# at a different offset → SPL reads mis-aligned bytes → "optee Bad hash" (e.g.
-# 7b78fe4e instead of the expected 93603ca22c = vendor tee v2.10's sha256) → SPL
-# rejects the FIT → falls back to a residual vendor uboot → can't boot mainline
-# kernel → hang. (方案 B, board-proven.) Kernel FIT below is loaded by mainline
-# U-Boot (which accepts mainline mkimage FITs), so it stays on mainline mkimage.
+# at a different offset → SPL reads mis-aligned bytes → "optee Bad hash" (a sha256
+# that doesn't match the tee the SPL expects — e.g. observed 7b78fe4e vs the paired
+# tee's hash, 93603ca22c… for ATK v2.10) → SPL rejects the FIT → falls back to a
+# residual vendor uboot → can't boot mainline kernel → hang. (方案 B, board-proven
+# for the ATK chain.) The tee variant is resolved above from FORGE_RKBIN_DIR. Kernel
+# FIT below is loaded by mainline U-Boot (accepts mainline mkimage FITs), so it stays
+# on mainline mkimage.
 log_info "packing uboot.img (vendor mkimage -E, vendor-SPL-compatible layout)…"
 ( cd "$W1" && "$VENDOR_MKIMAGE" -f rk3506-mainline.its -E uboot.img >/dev/null )
 cp "$W1/uboot.img" "$OUT_DIR/uboot.img"
