@@ -19,8 +19,13 @@
 #                 rootfs write (PEBs 3/4…) across reboots → THE STANDARD.
 #                 Boot args at the => prompt: `console=ttyS0,1500000` ONLY (no
 #                 root=/ubi.mtd=, or the kernel mounts root itself and /init never
-#                 runs). boot.img is ~8.1 MB → `mtd read` MUST use 0x900000 (9 MB),
-#                 not 0x800000 (truncates the ramdisk → /init/ubiprog lost).
+#                 runs). `mtd read` size MUST be ≥ boot.img AND < 0x920000 — there's a
+#                 factory-bad erase block at boot-relative 0x920000 (9.125 MiB); reading
+#                 past it → ECC -74 abort. The gcc15-trim+XZ boot.img ≈ 8.3 MiB → use
+#                 `mtd read boot 0x04000000 0 0x900000` (covers 8.3 MiB, stops 128 KiB
+#                 before the bad block). 0x800000 truncates the ramdisk tail → bootm
+#                 sha256 error; 0x1000000 (whole 16 MiB partition) hits the bad block.
+#                 Size tracks boot.img — re-check after any kernel rebuild.
 #  --nand       — direct mount: boot=boot-nand.img (no ramdisk) + rootfs. Kernel
 #                 mounts UBIFS itself (bootargs ubi.mtd=5 root=ubi0:rootfs). SKIPS
 #                 ubiprog → loader-written-weak rootfs → ECC on the 2nd boot. Keep

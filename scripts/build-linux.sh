@@ -2,11 +2,15 @@
 # build-linux.sh — configure + build the mainline Linux kernel + rk3506b-aes.dtb
 # for the RK3506B board.
 #
-# Merges boards/rk3506-evb/kernel.config onto multi_v7_defconfig (ARCH=arm), then
-# builds zImage + the board DT. The cross toolchain comes from env-setup.sh
-# (vendor gcc 10.3, arm-none-linux-gnueabihf). DT patches must already be applied
-# to the tree — run `scripts/apply-series.sh --component linux_mainline` once on a
-# clean checkout (or pass --apply-patches).
+# Merges multi_v7_defconfig + boards/rk3506-evb/{kernel.config,kernel-trim.config,
+# kernel-compress.config}, then builds zImage + the board DT. The trim + XZ fragments
+# shrink the kernel so boot.img fits before the factory-bad erase block at
+# boot-relative 0x920000 (9.125 MiB). Keep them; do NOT swap in a hand-rolled trim
+# that cuts CONFIG_NET — that data-aborts the decompressor (head.S __setup_mmu).
+# Cross toolchain from env-setup.sh (Arm GNU gcc 15.2, arm-none-linux-gnueabihf, /opt).
+# DT patches must already be applied to the tree — run
+# `scripts/apply-series.sh --component linux_mainline` once on a clean checkout
+# (or pass --apply-patches).
 #
 # Usage:
 #   scripts/build-linux.sh [--apply-patches] [--tree <dir>] [--just-dtb]
@@ -38,8 +42,17 @@ done
 
 check_toolchain || die "toolchain not on PATH. Run: source scripts/env-setup.sh && ./scripts/doctor.sh"
 [[ -d "$LINUX_DIR" ]] || die "linux tree not found: $LINUX_DIR"
-CFG="${_PROJECT_ROOT}/boards/rk3506-evb/kernel.config"
-[[ -f "$CFG" ]] || die "kernel.config not found: $CFG"
+BOARD_CFG="${_PROJECT_ROOT}/boards/rk3506-evb"
+# Base RK3506 essentials + safe trim (KEEP NET core; cuts DRM/USB/SOUND bloat) +
+# XZ compression. Together these shrink boot.img before the 0x920000 bad block.
+KERNEL_FRAGMENTS=(
+  "${BOARD_CFG}/kernel.config"
+  "${BOARD_CFG}/kernel-trim.config"
+  "${BOARD_CFG}/kernel-compress.config"
+)
+for _f in "${KERNEL_FRAGMENTS[@]}"; do
+  [[ -f "$_f" ]] || die "kernel config fragment not found: $_f"
+done
 
 cd "$LINUX_DIR"
 
@@ -48,9 +61,9 @@ if [[ "$APPLY" == 1 ]]; then
   "${_SCRIPT_DIR}/apply-series.sh" --component linux_mainline
 fi
 
-log_info "merge_config: multi_v7_defconfig + kernel.config …"
+log_info "merge_config: multi_v7_defconfig + kernel.config + kernel-trim + kernel-compress(XZ) …"
 scripts/kconfig/merge_config.sh -m -O . \
-  arch/arm/configs/multi_v7_defconfig "$CFG"
+  arch/arm/configs/multi_v7_defconfig "${KERNEL_FRAGMENTS[@]}"
 
 log_info "olddefconfig …"
 make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" olddefconfig

@@ -5,7 +5,7 @@
 [[ -n "${TOOLCHAIN_LIB_LOADED:-}" ]] && return 0   # already sourced
 TOOLCHAIN_LIB_LOADED=1
 
-_TC_LIB_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+_TC_LIB_DIR=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
 PROJECT_ROOT=$(cd "${_TC_LIB_DIR}/../.." && pwd)
 export PROJECT_ROOT
 

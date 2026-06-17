@@ -22,6 +22,10 @@ _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 _PROJECT_ROOT=$(cd "${_SCRIPT_DIR}/.." && pwd)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
+# Resolve the cross toolchain via config/toolchain.conf (exports CROSS_COMPILE,
+# ARCH, PATH) so mtdrawdump/mtdbb track the active toolchain — no hardcoded path.
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/toolchain.sh"
 
 BRINGUP="${_PROJECT_ROOT}/third_party/bringup"
 OUT_DIR="${BRINGUP}/out"
@@ -78,8 +82,8 @@ log_ok "applet symlinks: $(find "$ROOT/bin" "$ROOT/sbin" -type l | wc -l) links"
 # block whose bits flipped past ECC strength. Source lives alongside the rootfs
 # config so the tool is rebuilt with the tree, not shipped as a binary blob.
 MRD_SRC="${BRINGUP}/rootfs/mtdrawdump.c"
-TC_GCC="${_PROJECT_ROOT}/third_party/vendor-sdk/prebuilts/gcc/linux-x86/arm/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-gcc"
-if [[ -f "$MRD_SRC" && -x "$TC_GCC" ]]; then
+TC_GCC="$(command -v "${CROSS_COMPILE}gcc" || true)"
+if [[ -f "$MRD_SRC" && -n "$TC_GCC" ]]; then
   "$TC_GCC" -O2 -static -s -o "$ROOT/bin/mtdrawdump" "$MRD_SRC" \
     || die "mtdrawdump compile failed"
   chmod 0755 "$ROOT/bin/mtdrawdump"
