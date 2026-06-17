@@ -19,13 +19,16 @@
 #                 rootfs write (PEBs 3/4…) across reboots → THE STANDARD.
 #                 Boot args at the => prompt: `console=ttyS0,1500000` ONLY (no
 #                 root=/ubi.mtd=, or the kernel mounts root itself and /init never
-#                 runs). `mtd read` size MUST be ≥ boot.img AND < 0x920000 — there's a
-#                 factory-bad erase block at boot-relative 0x920000 (9.125 MiB); reading
-#                 past it → ECC -74 abort. The gcc15-trim+XZ boot.img ≈ 8.3 MiB → use
-#                 `mtd read boot 0x04000000 0 0x900000` (covers 8.3 MiB, stops 128 KiB
-#                 before the bad block). 0x800000 truncates the ramdisk tail → bootm
-#                 sha256 error; 0x1000000 (whole 16 MiB partition) hits the bad block.
-#                 Size tracks boot.img — re-check after any kernel rebuild.
+#                 runs). Read the WHOLE boot partition:
+#                   `mtd read boot 0x04000000 0 0x1000000; bootm 0x04000000`
+#                 The old "<0x920000 factory-bad block / kernel must be <9.125 MiB"
+#                 story was a MISDIAGNOSIS (see document/logs/boot-sdl-202606180034.txt):
+#                 0x920000 is a good block, the loader writes it clean, and the ECC -74
+#                 was factory garbage in a region the image never reached. The only real
+#                 constraint is kernel < boot partition (16 MiB). This script pads
+#                 boot.img to fill the partition (see below) so the loader erases+writes
+#                 the whole partition — no factory-garbage gap on a fresh chip — making
+#                 the full-partition read always clean on every board.
 #  --nand       — direct mount: boot=boot-nand.img (no ramdisk) + rootfs. Kernel
 #                 mounts UBIFS itself (bootargs ubi.mtd=5 root=ubi0:rootfs). SKIPS
 #                 ubiprog → loader-written-weak rootfs → ECC on the 2nd boot. Keep
@@ -100,8 +103,30 @@ for f in "$AFPTOOL" "$RKIMGMAKER" "$LOADER" "$UBOOT" "$BOOT" "$PARAMETER" "$PKGF
   [[ -r "$f" ]] || die "missing: $f (run pack-loader.sh + pack-fit.sh first; for --nand also mk-rootfs.sh + pack-ubifs.sh)"
 done
 
+# Pad boot.img to fill the boot partition. The loader only erases+writes the
+# blocks the image spans, so an unpadded image leaves [image, partition-end] at
+# factory state. On a fresh chip that region holds factory garbage — which is
+# what the old "0x920000 ECC -74" actually was (an image that didn't reach
+# 0x920000, so 0x920000's factory garbage got read → ECC abort; NOT a bad block,
+# NOT a loader weak write — see document/logs/boot-sdl-202606180034.txt). Padding
+# forces the loader to erase+write the whole partition, so reading the full
+# partition is clean on every chip. bootm reads the FIT at offset 0 and ignores
+# the 0x00 tail. (Padding is 0x00, not 0xff, so the loader can't skip it as
+# "empty" — it erases+programs every block.)
+BOOT_PART_HEX=$(sed -nE 's/.*0x([0-9a-fA-F]+)@0x[0-9a-fA-F]+\(boot\).*/\1/p' "$PARAMETER")
+[[ -n "$BOOT_PART_HEX" ]] || die "couldn't parse boot partition size from $PARAMETER"
+BOOT_PART_SIZE=$(( 0x$BOOT_PART_HEX * 512 ))
+BOOT_SZ=$(stat -c%s "$BOOT")
+(( BOOT_SZ <= BOOT_PART_SIZE )) \
+  || die "boot.img ($BOOT_SZ B) > boot partition ($BOOT_PART_SIZE B); kernel won't fit"
+PADDED_BOOT=$(mktemp)
+cp "$BOOT" "$PADDED_BOOT"
+truncate -s "$BOOT_PART_SIZE" "$PADDED_BOOT"   # extend with 0x00 to the partition size
+log_info "boot.img padded $BOOT_SZ -> $BOOT_PART_SIZE B (fills boot partition; loader erases it whole)"
+BOOT="$PADDED_BOOT"
+
 ROCKDEV=$(mktemp -d); VFY=""
-trap 'rm -rf "$ROCKDEV" "$VFY"' EXIT
+trap 'rm -rf "$ROCKDEV" "$VFY" "$PADDED_BOOT"' EXIT
 mkdir -p "$ROCKDEV/Image"
 cp "$PKGFILE"   "$ROCKDEV/package-file"
 cp "$LOADER"    "$ROCKDEV/Image/MiniLoaderAll.bin"
