@@ -30,6 +30,12 @@ verdor-sdk.gz
 # NOT yet formalized as submodules — see PLAN.md). Local plain clones, fully ignored:
 /third_party/explore/
 
+# rkbin-atk: LOCAL-only ATK-private boot blobs (usbplug v1.02 / SPL v1.11 / tee v2.10) +
+# its README — the loader fallback for the public-loader conquest. NOT in public rkbin,
+# redistribution-unverified → whole dir ignored (never committed/pushed). Blobs also
+# preserved on local branch `local/rkbin-atk` (was 25f486b). See pack-loader.sh + BLOBS.md.
+/third_party/rkbin-atk/
+
 # (imx-forge template moved out of this repo to ~/imx-forge; no longer present to ignore)
 
 # --- editor / tooling ---
