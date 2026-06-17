@@ -36,6 +36,7 @@ most useful part.
 | 10 | [10-…-dt-migration-sfc-spi-nand-partitions](10-2026-06-15-dt-migration-sfc-spi-nand-partitions.md) | DT 迁移:SFC + SPI-NAND 分区,板门验证通过 |
 | 11 | [11-…-patch-verification-rw-rootfs](11-2026-06-16-patch-verification-rw-rootfs.md) | patch 验证:RW rootfs patch 在干净上游逐字节相同 |
 | 12 | [12-…-kill-vendor-sdk-assessment](12-2026-06-17-kill-vendor-sdk-assessment.md) | 彻底干掉 vendor_sdk:评估 + P0–P5 路线图(本 P0 的源头) |
+| 13 | [13-…-p1-rkbin-public-loader-conquest](13-2026-06-17-p1-rkbin-public-loader-conquest.md) | P1 第一刀 rkbin:全公开 loader 攻克 + 纠正"公开仓有 v2.10"前提(toolchain/busybox deferred) |
 
 另有 [nand-ecc-debug-handoff.md](nand-ecc-debug-handoff.md)(早期 NAND ECC 调试交接,部分结论已被后续 saga 取代,以 [pitfalls/04](../pitfalls/04-sfc-nand-saga.md) 为准)。
 
