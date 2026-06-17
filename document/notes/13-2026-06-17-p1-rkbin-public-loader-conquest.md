@@ -61,8 +61,10 @@ submodule 的(packer 版本无关)。**build 验证**:默认全公开 loader 一
 
 ## 还没验 / 残留
 
-- **公开 loader 板启未验** —— 这是征服的终极确认,留到上板(不着急)。万一不过,`FORGE_RKBIN_DIR=rkbin-atk`
-  立刻回到已知能起的状态排查,不慌。`pack-loader.sh` 的 honest-edge 警告保留。
+- **✅ 公开 loader 板上通过(2026-06-17)** —— log `document/logs/boot-sdl-202606171200.txt`:
+  公开 SPL v1.12 + tee v2.40,optee `sha256(e2a712a533...) + OK` 两轮冷重启稳定;ubiprog 首启抓到
+  PEB 3/4 `full-read uncorrectable`(loader 弱写实证)并页级恢复,`cat /persist.log`=`c1 44` 跨冷重启存活。
+  → 征服终极确认 + ubiprog 解法对公开 loader 同样成立(loader 版本无关)。详见 [[sfc-dll-saga-and-writepath]]。
 - **rkbin 这刀的 build 路径已零 vendor-sdk**(grep 确认:pack-loader/pack-fit 里除 P4 vendor mkimage 外无 vendor-sdk rkbin 引用)。
 - **P1 另两刀 deferred**(用户指示):toolchain 后续拉**更高版本编译器**再做(现在 vendor gcc 10.3 能编出能跑的,白下 10.3 没意义);busybox 随 toolchain 一起换 upstream。
 - **残留 vendor-sdk build 依赖**(预期,各属后续阶段):P4 vendor mkimage(pack-fit.sh:35)、
