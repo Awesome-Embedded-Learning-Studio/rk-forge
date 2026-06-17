@@ -9,22 +9,31 @@
 # Both are deterministic packers (like boot_merger); for a non-secure build the
 # output is unsigned and reproducible.
 #
-# Two variants, selected by the manifest (package-file-aes.txt vs -nand.txt):
-#  default      — loader + parameter + uboot + boot(initramfs). rootfs/recovery/
-#                 oem/userdata OMITTED; we boot from initramfs in boot.img, so
-#                 flashing writes only uboot+boot and leaves NAND rootfs untouched.
-#                 (Same selective flash the Windows RKDevTool flow did by checking
-#                 only those rows.) Rescue-shell variant.
-#  --nand       — boot becomes the no-ramdisk FIT (kernel mounts UBIFS root) and
-#                 rootfs=rootfs.ubi.img is added, so flashing writes uboot + boot
-#                 + rootfs in one go — the persistent-NAND-rootfs boot path.
+# Three variants. DEFAULT (--provision) is the saga-proven RW path:
+#  default (--provision) — ubiprog first-boot: boot=boot.img (initramfs with the
+#                 provisioning /init + ubiprog) + rootfs=rootfs.ubi.img. On first
+#                 boot the initramfs /init rewrites the rootfs partition through
+#                 the kernel's reliable write path (ubiprog), stamping a marker so
+#                 later boots skip the rewrite and switch_root to the busybox UBIFS
+#                 rootfs. This is the ONLY variant that survives the loader's weak
+#                 rootfs write (PEBs 3/4…) across reboots → THE STANDARD.
+#                 Boot args at the => prompt: `console=ttyS0,1500000` ONLY (no
+#                 root=/ubi.mtd=, or the kernel mounts root itself and /init never
+#                 runs). boot.img is ~8.1 MB → `mtd read` MUST use 0x900000 (9 MB),
+#                 not 0x800000 (truncates the ramdisk → /init/ubiprog lost).
+#  --nand       — direct mount: boot=boot-nand.img (no ramdisk) + rootfs. Kernel
+#                 mounts UBIFS itself (bootargs ubi.mtd=5 root=ubi0:rootfs). SKIPS
+#                 ubiprog → loader-written-weak rootfs → ECC on the 2nd boot. Keep
+#                 only for loader/debug comparison (board-verified to 炸 ECC).
+#  --rescue     — boot.img initramfs shell, rootfs OMITTED. Recovery shell without
+#                 touching rootfs.
 #
 # Board-independent proof: after packing, the script unpacks its OWN output
 # (rkImageMaker -unpack + afptool -unpack) and verifies the expected partitions
 # are present with matching sizes. No board needed to trust the pipeline.
 #
 # Usage:
-#   scripts/assemble-update.sh [--out <dir>] [--nand] [--no-verify]
+#   scripts/assemble-update.sh [--out <dir>] [--provision|--nand|--rescue] [--no-verify]
 # Prereq: pack-loader.sh + pack-fit.sh have populated $OUT_DIR
 #        (for --nand: also scripts/mk-rootfs.sh + scripts/pack-ubifs.sh).
 set -euo pipefail
@@ -37,11 +46,13 @@ BRINGUP="${_PROJECT_ROOT}/third_party/bringup"
 OUT_DIR="${BRINGUP}/out"
 PACK="${_PROJECT_ROOT}/third_party/vendor-sdk/tools/linux/Linux_Pack_Firmware/rockdev"
 VERIFY=1
-NAND=0
+VMODE=provision                       # default: ubiprog first-boot (saga-proven RW path)
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --out) OUT_DIR="$2"; shift 2;;
-    --nand) NAND=1; shift;;
+    --provision) VMODE=provision; shift;;
+    --nand) VMODE=nand; shift;;
+    --rescue) VMODE=rescue; shift;;
     --loader) LOADER="$2"; shift 2;;
     --no-verify) VERIFY=0; shift;;
     -h|--help) sed -n '2,32p' "$0"; exit 0;;
@@ -55,21 +66,31 @@ LOADER="${LOADER:-${OUT_DIR}/MiniLoaderAll.bin}"  # --loader overrides (e.g. ATK
 UBOOT="${OUT_DIR}/uboot.img"
 PARAMETER="${BRINGUP}/parameter-nand-aes.txt"
 ROOTFS=""
-if [[ "$NAND" == 1 ]]; then
-  # NAND-rootfs variant: boot FIT without ramdisk (kernel mounts UBIFS root) +
-  # the UBI image for the rootfs partition. Manifest adds the rootfs row.
-  BOOT="${OUT_DIR}/boot-nand.img"
-  PKGFILE="${BRINGUP}/package-file-nand.txt"
-  ROOTFS="${OUT_DIR}/rootfs.ubi.img"
-  UPDATE_OUT="${OUT_DIR}/update-nand.img"
-  VARIANT="NAND-UBIFS"
-else
-  # Default: boot FIT with initramfs (rescue shell), rootfs partition untouched.
-  BOOT="${OUT_DIR}/boot.img"
-  PKGFILE="${BRINGUP}/package-file-aes.txt"
-  UPDATE_OUT="${OUT_DIR}/update.img"
-  VARIANT="initramfs"
-fi
+case "$VMODE" in
+  provision)
+    # THE STANDARD: boot.img (initramfs + provisioning /init + ubiprog) + rootfs.
+    # First boot: /init rewrites rootfs via ubiprog (reliable kernel write), stamps
+    # a marker, switch_root. Survives the loader's weak rootfs write across reboots.
+    BOOT="${OUT_DIR}/boot.img"
+    PKGFILE="${BRINGUP}/package-file-nand.txt"   # lists boot + rootfs
+    ROOTFS="${OUT_DIR}/rootfs.ubi.img"
+    UPDATE_OUT="${OUT_DIR}/update.img"
+    VARIANT="PROVISION-UBIPROG" ;;
+  nand)
+    # Direct mount (no ramdisk): kernel mounts UBIFS itself. SKIPS ubiprog → ECC 炸
+    # on 2nd boot (loader-written-weak rootfs). Loader/debug comparison only.
+    BOOT="${OUT_DIR}/boot-nand.img"
+    PKGFILE="${BRINGUP}/package-file-nand.txt"
+    ROOTFS="${OUT_DIR}/rootfs.ubi.img"
+    UPDATE_OUT="${OUT_DIR}/update-nand.img"
+    VARIANT="NAND-DIRECT" ;;
+  rescue)
+    # boot.img initramfs shell, rootfs OMITTED. Recovery shell, no provisioning.
+    BOOT="${OUT_DIR}/boot.img"
+    PKGFILE="${BRINGUP}/package-file-aes.txt"
+    UPDATE_OUT="${OUT_DIR}/update-rescue.img"
+    VARIANT="RESCUE-SHELL" ;;
+esac
 for f in "$AFPTOOL" "$RKIMGMAKER" "$LOADER" "$UBOOT" "$BOOT" "$PARAMETER" "$PKGFILE" ${ROOTFS:+"$ROOTFS"}; do
   [[ -r "$f" ]] || die "missing: $f (run pack-loader.sh + pack-fit.sh first; for --nand also mk-rootfs.sh + pack-ubifs.sh)"
 done
