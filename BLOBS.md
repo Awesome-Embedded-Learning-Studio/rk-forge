@@ -50,15 +50,18 @@ verify. Board-test confirms. Never mix blob sources between `pack-loader.sh` and
 
 ## NAND packaging: closed binaries (not blobs, but not open)
 
-The "source → flashable update.img" pipeline (notes/09) still calls three
-stripped Rockchip x86-64 ELF tools with no source. They are **deterministic
-packagers** (like `mkimage`), not firmware blobs — but they are closed:
+The "source → flashable update.img" pipeline (notes/09) now calls **one**
+stripped Rockchip ELF (`boot_merger`, for the loader idblock). The other two —
+`afptool` + `rkImageMaker` — were **replaced 2026-06-18** by the forge Python
+packer `scripts/rkfw-pack.py` (RKAF+RKFW format reverse-engineered from vendor
+output + community FORMAT.md / afptool-rs; verified by vendor unpack of the
+Python output). What remains:
 
 | Tool | Path | Role | Replaceable? |
 |---|---|---|---|
 | `boot_merger` | `vendor-sdk/rkbin/tools/boot_merger` (ver 1.35) | wraps DDR+usbplug+SPL blobs into the RK idblock (loader) | Partial — the *blobs* are the hard dep; the packer has open reimplementations in some rkbin trees but not a clean drop-in |
-| `afptool` | `vendor-sdk/tools/linux/Linux_Pack_Firmware/rockdev/afptool` (v2.29) | packs the RKAF container (manifest + partition images) inside update.img | No clean open source — community reimplementations exist (rkflashtool family), yak-shave |
-| `rkImageMaker` | same dir (v2.29) | wraps RKAF with the RKFW header + loader → final update.img | Same as afptool |
+| ~~`afptool`~~ | ~~vendor-sdk/.../afptool (v2.29)~~ | ~~packs the RKAF container (manifest + partition images) inside update.img~~ | **Replaced** (2026-06-18) by `scripts/rkfw-pack.py` — forge Python packer, format reverse-engineered from vendor output + community FORMAT.md/afptool-rs. |
+| ~~`rkImageMaker`~~ | ~~same dir (v2.29)~~ | ~~wraps RKAF with the RKFW header + loader → final update.img~~ | **Replaced** — `rkfw-pack.py` does RKAF + RKFW in one tool (same conquest). |
 
 `mkimage` (the FIT packer) is **open** and mainline — forge uses
 `third_party/explore/uboot/tools/mkimage` (2026.07-rc4), not the vendor 2017.09
