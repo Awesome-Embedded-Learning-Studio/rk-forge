@@ -48,3 +48,8 @@ BR2_INIT_BUSYBOX=y
 # Output: cpio (for initramfs) + tar (for ubifs staging)
 BR2_TARGET_ROOTFS_CPIO=y
 BR2_TARGET_ROOTFS_TAR=y
+
+# Post-build: compile mtdrawdump + mtdbb (SFC/NAND forensics) into the rootfs.
+# buildroot's minimal rootfs doesn't ship them (the handcraft mk-rootfs.sh does);
+# the hook rebuilds them with TARGET_CC + -static, same flags as mk-rootfs.sh.
+BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_rkforge_PATH)/board/rk3506_aes/post-build.sh"

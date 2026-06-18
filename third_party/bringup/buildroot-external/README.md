@@ -9,9 +9,11 @@ pattern as `third_party/explore/`).
 ## Layout
 - `configs/rk3506_aes_defconfig` — the board defconfig (minimal rootfs: busybox + sysv
   init, cpio+tar output, external `/opt` Arm GNU 15.2 toolchain).
-- `external.desc` / `external.mk` / `Config.in` — required BR2_EXTERNAL scaffolding
-  (no custom packages yet; add per-board packages/overlays/post-build hooks here as the
-  line grows).
+- `external.desc` / `external.mk` / `Config.in` — required BR2_EXTERNAL scaffolding.
+- `board/rk3506_aes/post-build.sh` — post-build hook: compiles the SFC/NAND forensics
+  tools (mtdrawdump + mtdbb) into the target with the buildroot host gcc wrapper
+  (`-O2 -static`, same as `scripts/mk-rootfs.sh`). Wired via
+  `BR2_ROOTFS_POST_BUILD_SCRIPT` in the defconfig.
 
 ## One-time: checkout upstream buildroot
 ```bash
