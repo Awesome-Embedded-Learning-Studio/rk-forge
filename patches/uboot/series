@@ -14,3 +14,6 @@
 # dts SFC node (80MHz + max-dll). U-Boot only READS the kernel FIT (reliable
 # with DLL tuning); WPEN is belt-and-suspenders.
 0002-spi-rockchip_sfc-DLL-tuning-WPEN-dts-SFC-node.patch
+# Autoboot: env=nowhere → compiled-default bootcmd (mtd read + bootm) runs every
+# boot, no hand-typed 3 lines. Board-verified boot-sdl-202606182124.
+0003-uboot-autoboot-mtd-bootm.patch
