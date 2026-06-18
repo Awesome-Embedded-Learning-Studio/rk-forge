@@ -37,6 +37,12 @@ most useful part.
 | 11 | [11-…-patch-verification-rw-rootfs](11-2026-06-16-patch-verification-rw-rootfs.md) | patch 验证:RW rootfs patch 在干净上游逐字节相同 |
 | 12 | [12-…-kill-vendor-sdk-assessment](12-2026-06-17-kill-vendor-sdk-assessment.md) | 彻底干掉 vendor_sdk:评估 + P0–P5 路线图(本 P0 的源头) |
 | 13 | [13-…-p1-rkbin-public-loader-conquest](13-2026-06-17-p1-rkbin-public-loader-conquest.md) | P1 第一刀 rkbin:全公开 loader 攻克 + 纠正"公开仓有 v2.10"前提(toolchain/busybox deferred) |
+| 14 | [14-…-rootfs-peb34-readpath-bug](14-2026-06-18-rootfs-peb34-readpath-bug.md) | rootfs PEB3/4 弱写读路径排查(最终定 loader 弱写) |
+| 15 | [15-…-sfc-nand-saga-finale-memo](15-2026-06-18-sfc-nand-saga-finale-memo.md) | SFC/NAND saga 终章备忘(rootfs loader 弱写确认 + 80MHz 定型) |
+| 16 | [16-…-spinand-ecc-diagnosis-playbook](16-2026-06-18-spinand-ecc-diagnosis-playbook.md) | SPI-NAND ECC 诊断 playbook |
+| 17 | [17-…-patch-solidification-sop](17-2026-06-18-patch-solidification-sop.md) | patch 固化 SOP |
+| 18 | [18-…-board-verification-playbook](18-2026-06-18-board-verification-playbook.md) | 上板验证 playbook |
+| 19 | [19-…-buildroot-minimal-rootfs-first-build](19-2026-06-18-buildroot-minimal-rootfs-first-build.md) | buildroot 最小 rootfs 首次构建成功(/opt Arm GNU 15.2 外部工具链,3 连坑:PATH/语言 check/RPC) |
 
 另有 [nand-ecc-debug-handoff.md](nand-ecc-debug-handoff.md)(早期 NAND ECC 调试交接,部分结论已被后续 saga 取代,以 [pitfalls/04](../pitfalls/04-sfc-nand-saga.md) 为准)。
 

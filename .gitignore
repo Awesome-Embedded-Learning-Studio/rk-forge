@@ -30,6 +30,12 @@ verdor-sdk.gz
 # NOT yet formalized as submodules — see PLAN.md). Local plain clones, fully ignored:
 /third_party/explore/
 
+# buildroot: upstream clone (local plain clone, fully ignored). forge's board
+# customization (defconfig + any package/overlay) lives OUTSIDE this tree, version-
+# controlled via BR2_EXTERNAL at third_party/bringup/buildroot-external/ (see its
+# README for the checkout + build invocation). Same pattern as explore/vendor-sdk.
+/third_party/buildroot/
+
 # rkbin-atk: LOCAL-only ATK-private boot blobs (usbplug v1.02 / SPL v1.11 / tee v2.10) +
 # its README — the loader fallback for the public-loader conquest. NOT in public rkbin,
 # redistribution-unverified → whole dir ignored (never committed/pushed). Blobs also

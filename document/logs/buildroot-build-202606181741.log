@@ -1,0 +1,8 @@
+started Thu Jun 18 17:41:40 CST 2026
+/usr/bin/make -j1  O=/home/charliechen/rk-forge/third_party/buildroot/output HOSTCC="/usr/bin/gcc" HOSTCXX="/usr/bin/g++" syncconfig
+make[1]: Entering directory '/home/charliechen/rk-forge/third_party/buildroot'
+make[1]: Leaving directory '/home/charliechen/rk-forge/third_party/buildroot'
+[7m>>> toolchain-external-custom  Configuring[27m
+RPC support not available in C library, please disable BR2_TOOLCHAIN_EXTERNAL_INET_RPC
+make: *** [package/pkg-generic.mk:263: /home/charliechen/rk-forge/third_party/buildroot/output/build/toolchain-external-custom/.stamp_configured] Error 1
+BUILD EXIT=2

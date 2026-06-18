@@ -1,0 +1,8 @@
+started at Thu Jun 18 17:24:00 CST 2026
+/usr/bin/make -j1  O=/home/charliechen/rk-forge/third_party/buildroot/output HOSTCC="/usr/bin/gcc" HOSTCXX="/usr/bin/g++" syncconfig
+make[1]: Entering directory '/home/charliechen/rk-forge/third_party/buildroot'
+make[1]: Leaving directory '/home/charliechen/rk-forge/third_party/buildroot'
+
+Your PATH contains spaces, TABs, and/or newline (\n) characters.
+This doesn't work. Fix your PATH environment variable.
+make: *** [support/dependencies/dependencies.mk:27: dependencies] Error 1
