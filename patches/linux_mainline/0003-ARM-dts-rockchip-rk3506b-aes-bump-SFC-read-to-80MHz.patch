@@ -1,0 +1,35 @@
+From 3afac7bb4a18145b5b1a1628243d6d84d2a5681a Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Thu, 18 Jun 2026 15:28:03 +0800
+Subject: [PATCH 3/3] ARM: dts: rockchip: rk3506b-aes: bump SFC read to 80MHz
+
+Vendor EVB speed (rk3506-evb2-v10); ATK ships at 50MHz.
+80MHz -> 75MHz PLL tap, DLL ok cell 130 window [90,170], reads stable.
+100MHz unusable: clk_set_rate(100M) hits 98MHz PLL tap, DLL finds no window.
+Loader weak write on rootfs PEB3/4 is covered by ubiprog first-boot rewrite.
++50% NAND read speed.
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
+---
+ arch/arm/boot/dts/rockchip/rk3506b-aes.dts | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+index e8bb7f8d0..8cd960ca4 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
++++ b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+@@ -50,7 +50,10 @@ &sfc {
+ 	flash@0 {
+ 		compatible = "spi-nand";	/* W25N04KV; mainline winbond.c id (0xaa,0x23) */
+ 		reg = <0>;
+-		spi-max-frequency = <50000000>;
++		spi-max-frequency = <80000000>;	/* vendor EVB speed (rk3506-evb2-v10). ATK ships at 50M.
++						 * 100M unusable: clk_set_rate(100M) lands on 98M PLL tap, DLL finds no window.
++						 * 80M -> 75M PLL tap, DLL ok (cell 130, window [90,170]).
++						 * Loader weak write on rootfs PEB3/4 is covered by ubiprog first-boot rewrite. */
+ 		spi-rx-bus-width = <4>;
+ 		spi-tx-bus-width = <1>;
+ 
+-- 
+2.43.0
+

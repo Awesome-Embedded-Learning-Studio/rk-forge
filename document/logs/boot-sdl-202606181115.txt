@@ -1,0 +1,586 @@
+SoftReset, 13849586 us
+
+DDR 0ac6b06a19 typ 24/11/13-17:22:47,fwver: v1.04
+tREFI:4x, sr_idle:93, pd_idle:13
+SRX
+get rd_skew=0x2e, wr_skew=0x1f
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xd-0x1-0x2, 0x2-0x1-0x2,status:a007
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g0e48f04 #alientek (Apr 22 2025 - 18:52:07)
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 13
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+NAND read from offset 0 failed -74
+NAND read from offset 0 failed -74
+Trying fit image at 0x4000 sector
+Not fit magic
+Trying fit image at 0x5000 sector
+Not fit magic
+SPL: failed to boot from all boot devices
+### ERROR ### Please RESET the board ###
+ɄDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xd-0x1-0x2, 0x3-0x1-0x2,status:a007
+rdtrn:0x15-0x2e-0x47(0x32)
+wrtrn:0x0-0x1f-0x3e(0x3e)
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+Boot1 Release Time: Mar 11 2025 10:34:23, version: 1.03 NO FTL
+rom_version: 0x30303156
+chip_id:524b350600,0
+ChipType = 33
+sfc nor id: ff ef aa
+sfc_nand id: ef aa 23
+sfc_nand_density 100000
+sfc_nand_density ffc00
+UsbBoot ...4024
+powerOn 658458
+sfc_nand_check_bad_block page= 40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 100 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 0 ret= ffffffff spare= ffff
+prog gpt: ffbdf 21
+sfc_nand_check_bad_block page= 800 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 840 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 880 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 8c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 900 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 2e80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 2ec0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 2f00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 2f40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 2f80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 2fc0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3000 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3040 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 30c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3100 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3140 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3180 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 31c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3200 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3240 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3280 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 32c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3300 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3340 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3380 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 33c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3400 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3440 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3480 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 34c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3540 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3580 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 35c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3600 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3640 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3680 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 36c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3700 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3740 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3780 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 37c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3800 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3840 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3880 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 38c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3900 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3940 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3980 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 39c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3a00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3a40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3a80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3ac0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3b00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3b40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3b80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3bc0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3c00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3c40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3c80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3cc0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3d00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3d40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3d80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3dc0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3e00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3e40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3e80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3ec0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3f00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3f40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3f80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 3fc0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4000 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4040 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4080 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 40c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4100 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4140 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4180 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 41c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4200 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4240 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4280 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 42c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4300 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4340 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4380 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 43c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4400 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4440 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4480 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 44c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4500 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4540 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4580 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 45c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4600 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4640 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4680 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 46c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4700 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4740 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4780 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 47c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4800 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4840 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4880 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 48c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4900 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4940 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4980 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 49c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4a00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4a40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4a80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4ac0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4b00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4b40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4b80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4bc0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4c00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4c40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4c80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4cc0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4d00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4d40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4d80 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4dc0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4e00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4e40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4f00 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 4f40 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5040 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5080 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5100 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5140 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5200 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5280 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5300 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5340 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5380 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 53c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5480 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5500 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 55c0 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5600 ret= ffffffff spare= ffff
+sfc_nand_check_bad_block page= 5640 ret= ffffffff spare= ffff
+SoftReset, 14105943 us
+
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+SRX
+get rd_skew=0x2e, wr_skew=0x1f
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xd-0x1-0x2, 0x2-0x1-0x2,status:a007
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g80d18cf0259-250930 #lxh (Oct 22 2025 - 15:21:58), fwver: v1.12
+Ram size: 20000000
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 12
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+SPL: A/B-slot: _a, successful: 0, tries-remain: 7
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(e2a712a533...) + OK
+## Checking uboot 0x00800000 ... sha256(cf1e1f1e83...) + OK
+## Checking fdt 0x00874408 ... sha256(8e3f2ac7ab...) + OK
+Jumping to U-Boot(0x00800000) via OP-TEE(0x00001000)
+Total: 64.944/106.984 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-1038-gb204648dc #derrick.huang (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 2025年 12月 11日 星期四 11:51:18 CST arm, fwver: v2.40 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00800000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2026.07-rc4-g2f87d69f737f (Jun 17 2026 - 15:48:03 +0800)
+
+Model: Rockchip RK3506 Evaluation Board (ATK RK3506B)
+SoC:   RK3506B
+DRAM:  512 MiB
+Core:  35 devices, 17 uclasses, devicetree: separate
+MMC:   
+Loading Environment from nowhere... OK
+In:    serial@ff0a0000
+Out:   serial@ff0a0000
+Err:   serial@ff0a0000
+Hit any key to stop autoboot: 0
+Scanning for bootflows in all bootdevs
+Seq  Method       State   Uclass    Part  Name                      Filename
+---  -----------  ------  --------  ----  ------------------------  ----------------
+Scanning global bootmeth 'efi_mgr':
+Cannot persist EFI variables without system partition
+Missing RNG device for EFI_RNG_PROTOCOL
+No bootdevs for 'mmc0'
+Unknown uclass 'nvme' in label
+Unknown uclass 'scsi' in label
+Unknown uclass 'usb' in label
+Unknown uclass 'pxe' in label
+Unknown uclass 'dhcp' in label
+No more bootdevs
+---  -----------  ------  --------  ----  ------------------------  ----------------
+(0 bootflows, 0 valid)
+=> setenv bootargs 'console=ttyS0,1500000'
+=> mtd read boot 0x04000000 0 0x1000000
+rockchip_sfc: dll tuning target=50000000Hz real=100000000Hz cell_max=383 step=10 cs=0
+rockchip_sfc:   dll window [0, 230] (230 cells)
+rockchip_sfc:   dll window [280, 373] (93 cells)
+rockchip_sfc: dll ok best=[0,230] -> cell 92 (real 100000000Hz)
+Reading 16777216 byte(s) (8192 page(s)) at offset 0x00000000
+=> bootm 0x04000000
+## Loading kernel (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel (zImage, self-decompressing)
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x04000800
+     Data Size:    7496192 Bytes = 7.1 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x02080000
+     Entry Point:  0x02080000
+     Hash algo:    sha256
+     Hash value:   93ebed06dbe0bafb1682fac1975164b5bd395ba43e968e55903cae3f1aeda9ff
+   Verifying Hash Integrity ... sha256+ OK
+## Loading ramdisk (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'ramdisk' ramdisk subimage
+     Description:  Minimal initramfs (static busybox shell)
+     Type:         RAMDisk Image
+     Compression:  gzip compressed
+     Data Start:   0x04728144
+     Data Size:    1209379 Bytes = 1.2 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x08000000
+     Entry Point:  unavailable
+     Hash algo:    sha256
+     Hash value:   35e1277474ab5ed36e5b537932e2875f9c19f6a52cbddde504a1c951552e5f9a
+   Verifying Hash Integrity ... sha256+ OK
+   Loading ramdisk from 0x04728144 to 0x08000000
+WARNING: 'compression' nodes for ramdisks are deprecated, please fix your .its file!
+## Loading fdt (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'fdt' fdt subimage
+     Description:  RK3506B AES board flat DT
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x04726a00
+     Data Size:    5956 Bytes = 5.8 KiB
+     Architecture: ARM
+     Load Address: 0x01e00000
+     Hash algo:    sha256
+     Hash value:   3789d457ece68aae8006ad139800dc66be799ced91a4be925c6e48cbe88d7fd2
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x04726a00 to 0x01e00000
+   Booting using the fdt blob at 0x1e00000
+Working FDT set to 1e00000
+   Loading Kernel Image to 2080000
+   Loading Ramdisk to 1ce0f000, end 1cf36423 ... OK
+   Loading Device Tree to 1ce0a000, end 1ce0e743 ... OK
+Working FDT set to 1ce0a000
+No RNG device
+
+Starting kernel ...
+
+I/TC: Secondary CPU 1 initializing
+I/TC: Secondary CPU 1 switching to normal world boot
+I/TC: Secondary CPU 2 initializing
+I/TC: Secondary CPU 2 switching to normal world boot
+[    0.000000] Booting Linux on physical CPU 0xf00
+[    0.000000] Linux version 7.1.0-00002-gfe9e7c50ea5d (charliechen@Charliechen) (arm-none-linux-gnueabihf-gcc (Arm GNU Toolchain 15.2.Rel1 (Build arm-15.86)) 15.2.1 20251203, GNU ld (Arm GNU Toolchain 15.2.Rel1 (Build arm-15.86)) 2.45.1.20251203) #8 SMP Wed Jun 17 22:25:56 CST 2026
+[    0.000000] CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=10c5387d
+[    0.000000] CPU: div instructions available: patching division code
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    0.000000] OF: fdt: Machine model: AES RK3506B Board
+[    0.000000] Memory policy: Data cache writealloc
+[    0.000000] efi: UEFI not found.
+[    0.000000] OF: reserved mem: Reserved memory: No reserved-memory node in the DT
+[    0.000000] psci: probing for conduit method from DT.
+[    0.000000] psci: PSCIv1.0 detected in firmware.
+[    0.000000] psci: Using standard PSCI v0.2 function IDs
+[    0.000000] psci: MIGRATE_INFO_TYPE not supported.
+[    0.000000] psci: SMC Calling Convention v1.1
+[    0.000000] Zone ranges:
+[    0.000000]   DMA      [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000]   Normal   empty
+[    0.000000]   HighMem  empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] percpu: Embedded 18 pages/cpu s41292 r8192 d24244 u73728
+[    0.000000] Kernel command line: console=ttyS0,1500000
+[    0.000000] printk: log buffer data + meta data: 131072 + 409600 = 540672 bytes
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 131072
+[    0.000000] mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=3, Nodes=1
+[    0.000000] rcu: Hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=16 to nr_cpu_ids=3.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=3
+[    0.000000] NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] arch_timer: cp15 timer running at 24.00MHz (virt).
+[    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.000002] sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+[    0.000013] Switching to timer-based delay loop, resolution 41ns
+[    0.000704] Console: colour dummy device 80x30
+[    0.000789] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=240000)
+[    0.000809] CPU: Testing write buffer coherency: ok
+[    0.000873] pid_max: default: 32768 minimum: 301
+[    0.001144] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.001170] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.001619] VFS: Finished mounting rootfs on nullfs
+[    0.002518] /cpus/cpu@f00 missing clock-frequency property
+[    0.002563] /cpus/cpu@f01 missing clock-frequency property
+[    0.002581] /cpus/cpu@f02 missing clock-frequency property
+[    0.002592] CPU0: thread -1, cpu 0, socket 15, mpidr 80000f00
+[    0.002627] cacheinfo: Unable to detect cache hierarchy for CPU 0
+[    0.004948] Setting up static identity map for 0x300000 - 0x3000ac
+[    0.005543] rcu: Hierarchical SRCU implementation.
+[    0.005559] rcu: 	Max phase no-delay instances is 1000.
+[    0.006136] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.006869] EFI services will not be available.
+[    0.007322] smp: Bringing up secondary CPUs ...
+[    0.009270] CPU1: thread -1, cpu 1, socket 15, mpidr 80000f01
+[    0.011834] CPU2: thread -1, cpu 2, socket 15, mpidr 80000f02
+[    0.012183] smp: Brought up 1 node, 3 CPUs
+[    0.012208] SMP: Total of 3 processors activated (144.00 BogoMIPS).
+[    0.012217] CPU: All CPU(s) started in SVC mode.
+[    0.012519] Memory: 487196K/524288K available (16384K kernel code, 2515K rwdata, 6604K rodata, 2048K init, 395K bss, 34460K reserved, 0K cma-reserved, 0K highmem)
+[    0.013383] devtmpfs: initialized
+[    0.016168] VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+[    0.016473] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.016539] posixtimers hash table entries: 2048 (order: 2, 16384 bytes, linear)
+[    0.016657] futex hash table entries: 1024 (65536 bytes on 1 NUMA nodes, total 64 KiB, linear).
+[    0.018961] DMI: not present or invalid.
+[    0.019917] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.020357] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.022584] thermal_sys: Registered thermal governor 'step_wise'
+[    0.022731] cpuidle: using governor menu
+[    0.023079] No ATAGs?
+[    0.023260] hw-breakpoint: found 5 (+1 reserved) breakpoint and 4 watchpoint registers.
+[    0.023281] hw-breakpoint: maximum watchpoint size is 8 bytes.
+[    0.025308] Serial: AMBA PL011 UART driver
+[    0.034550] rockchip-gpio ff940000.gpio: probed /pinctrl/gpio@ff940000
+[    0.035713] rockchip-gpio ff870000.gpio: probed /pinctrl/gpio@ff870000
+[    0.036915] rockchip-gpio ff1c0000.gpio: probed /pinctrl/gpio@ff1c0000
+[    0.038069] rockchip-gpio ff1d0000.gpio: probed /pinctrl/gpio@ff1d0000
+[    0.039171] rockchip-gpio ff1e0000.gpio: probed /pinctrl/gpio@ff1e0000
+[    0.045729] iommu: Default domain type: Translated
+[    0.045748] iommu: DMA domain TLB invalidation policy: strict mode
+[    0.046984] SCSI subsystem initialized
+[    0.048351] pps_core: LinuxPPS API ver. 1 registered
+[    0.048367] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.048390] PTP clock support registered
+[    0.048535] EDAC MC: Ver: 3.0.0
+[    0.049262] scmi_core: SCMI protocol bus registered
+[    0.052428] vgaarb: loaded
+[    0.053326] clocksource: Switched to clocksource arch_sys_counter
+[    0.066989] NET: Registered PF_INET protocol family
+[    0.067289] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.068482] tcp_listen_portaddr_hash hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.068524] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.068541] TCP established hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    0.068578] TCP bind hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.068700] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.068827] UDP hash table entries: 256 (order: 2, 14336 bytes, linear)
+[    0.069090] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.070111] RPC: Registered named UNIX socket transport module.
+[    0.070134] RPC: Registered udp transport module.
+[    0.070138] RPC: Registered tcp transport module.
+[    0.070141] RPC: Registered tcp-with-tls transport module.
+[    0.070144] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.070161] PCI: CLS 0 bytes, default 64
+[    0.071600] Initialise system trusted keyrings
+[    0.072298] Trying to unpack rootfs image as initramfs...
+[    0.073798] workingset: timestamp_bits=30 (anon: 26) max_order=17 bucket_order=0 (anon: 0)
+[    0.074571] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.075531] NFS: Registering the id_resolver key type
+[    0.075595] Key type id_resolver registered
+[    0.075603] Key type id_legacy registered
+[    0.075664] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    0.075675] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    0.076495] Key type asymmetric registered
+[    0.076520] Asymmetric key parser 'x509' registered
+[    0.076712] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 246)
+[    0.076729] io scheduler mq-deadline registered
+[    0.076737] io scheduler kyber registered
+[    0.076802] io scheduler bfq registered
+[    0.095601] ledtrig-cpu: registered to indicate activity on CPUs
+[    0.122717] Freeing initrd memory: 1184K
+[    0.204774] Serial: 8250/16550 driver, 5 ports, IRQ sharing enabled
+[    0.210347] printk: legacy console [ttyS0] disabled
+[    0.210933] ff0a0000.serial: ttyS0 at MMIO 0xff0a0000 (irq = 34, base_baud = 1500000) is a 16550A
+[    0.211061] printk: legacy console [ttyS0] enabled
+[    0.283482] msm_serial: driver initialized
+[    0.284453] SuperH (H)SCI(F) driver initialized
+[    0.285085] STMicroelectronics ASC driver initialized
+[    0.285940] STM32 USART driver initialized
+[    0.311937] brd: module loaded
+[    0.320919] loop: module loaded
+[    0.331315] rockchip-sfc ff488000.spi: dll tuning: target=100000000Hz real=98000000Hz cell_max=383 step=10 cs=0
+[    0.332331] rockchip-sfc ff488000.spi: dll FAIL: widest=[0,0] (0 cells < 80) @ real 98000000Hz, fall back to 24000000Hz
+[    0.333456] spi-nand spi0.0: Winbond SPI NAND was found.
+[    0.333954] spi-nand spi0.0: 512 MiB, block size: 128 KiB, page size: 2048, OOB size: 128
+[    0.334861] 7 fixed-partitions partitions found on MTD device spi0.0
+[    0.335448] Creating 7 MTD partitions on "spi0.0":
+[    0.335881] 0x000000400000-0x000000800000 : "uboot"
+[    0.340245] 0x000000800000-0x000000900000 : "misc"
+[    0.343610] 0x000000900000-0x000000940000 : "vnvm"
+[    0.346488] 0x000000940000-0x000001740000 : "recovery"
+[    0.355037] 0x000001740000-0x000002740000 : "boot"
+[    0.364270] 0x000002740000-0x00000d540000 : "rootfs"
+[    0.435973] 0x00000d540000-0x000020000000 : "userdata"
+[    0.563058] CAN device driver interface
+[    0.564605] bgmac_bcma: Broadcom 47xx GBit MAC driver loaded
+[    0.566251] e1000e: Intel(R) PRO/1000 Network Driver
+[    0.566717] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[    0.567320] igb: Intel(R) Gigabit Ethernet Network Driver
+[    0.567806] igb: Copyright (c) 2007-2014 Intel Corporation.
+[    0.578882] i2c_dev: i2c /dev entries driver
+[    0.615820] NET: Registered PF_INET6 protocol family
+[    0.618158] Segment Routing with IPv6
+[    0.618597] In-situ OAM (IOAM) with IPv6
+[    0.619048] NET: Registered PF_PACKET protocol family
+[    0.619513] can: controller area network core
+[    0.619960] NET: Registered PF_CAN protocol family
+[    0.620397] can: raw protocol
+[    0.620671] can: broadcast manager protocol
+[    0.621052] can: netlink gateway - max_hops=1
+[    0.621940] Key type dns_resolver registered
+[    0.622533] ThumbEE CPU extension supported.
+[    0.622950] Registering SWP/SWPB emulation handler
+[    0.633607] Loading compiled-in X.509 certificates
+[    1.034352] clk: Disabling unused clocks
+[    1.035036] PM: genpd: Disabling unused power domains
+[    1.036003] dw-apb-uart ff0a0000.serial: forbid DMA for kernel console
+[    1.038664] Freeing unused kernel image (initmem) memory: 2048K
+[    1.039503] Run /init as init process
+
+===== rk-forge provisioning initramfs =====
+[    1.071839] ubi0: attaching mtd5
+[    1.276693] ubi0: scanning is finished
+[    1.307931] ubi0: volume 0 ("rootfs") re-sized from 31 to 1308 LEBs
+[    1.309455] ubi0: attached mtd5 (name "rootfs", size 174 MiB)
+[    1.310007] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    1.310619] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    1.311219] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    1.311834] ubi0: good PEBs: 1392, bad PEBs: 0, corrupted PEBs: 0
+[    1.312375] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    1.313013] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 1358782820
+[    1.313876] ubi0: available PEBs: 0, total reserved PEBs: 1392, PEBs reserved for bad PEB handling: 80
+[    1.314769] ubi0: background thread "ubi_bgt0d" started, PID 59
+[    1.322102] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[    1.323005] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 61
+[    1.407488] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[    1.408185] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    1.409070] UBIFS (ubi0:0): FS size: 164687872 bytes (157 MiB, 1297 LEBs), max 1400 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    1.410132] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[    1.410654] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID A8A290F1-4DBF-4524-8718-99D75D2BD462, small LPT model
+[init] rootfs mounts but has no marker → will provision
+[    1.451802] UBIFS (ubi0:0): un-mount UBI device 0
+[    1.452316] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" stops
+[    1.464439] ubi0: detaching mtd5
+[    1.467510] ubi0: mtd5 is detached
+[init] FIRST BOOT: ubiprog rewriting /dev/mtd5 (data blocks only)…
+ubiprog: /dev/mtd5  size=182452224  erasesize=131072  PEBs=1392  writesize=2048
+  peb=3 full-read uncorrectable → page recovery (3/64 pages unreadable → 0xFF, rest kept)
+  peb=4 full-read uncorrectable → page recovery (3/64 pages unreadable → 0xFF, rest kept)
+  ... 8 blocks written
+  ... 16 blocks written
+[    2.483385] random: crng init done
+  ... 24 blocks written
+  ... 32 blocks written
+  ... 40 blocks written
+  ... 48 blocks written
+  ... 56 blocks written
+  ... 64 blocks written
+ubiprog done: rewrote=65 recovered(page-level)=2 skipped(erased)=1325 failed=0 (of 1392 PEBs)
+[   17.219808] ubi0: attaching mtd5
+[   17.436502] ubi0: scanning is finished
+[   17.442722] ubi0: attached mtd5 (name "rootfs", size 174 MiB)
+[   17.443275] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[   17.443953] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[   17.444570] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[   17.445187] ubi0: good PEBs: 1392, bad PEBs: 0, corrupted PEBs: 0
+[   17.445726] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[   17.446363] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 1358782820
+[   17.447169] ubi0: available PEBs: 0, total reserved PEBs: 1392, PEBs reserved for bad PEB handling: 80
+[   17.448051] ubi0: background thread "ubi_bgt0d" started, PID 66
+[   17.455522] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[   17.456374] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 68
+[   17.551897] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[   17.552595] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[   17.553550] UBIFS (ubi0:0): FS size: 164687872 bytes (157 MiB, 1297 LEBs), max 1400 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[   17.554632] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[   17.555161] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID A8A290F1-4DBF-4524-8718-99D75D2BD462, small LPT model
+[init] provisioning complete → switch_root
+mount: mounting none on /tmp failed: Invalid argument
+mount: mounting none on /run failed: Invalid argument
+~ # 
+

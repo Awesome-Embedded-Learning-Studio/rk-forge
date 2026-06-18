@@ -18,3 +18,7 @@
 # fix — makes Linux SFC reads/writes reliable (vendor fspi parity). Rootfs is
 # then Linux-written by forge ubiprog so it survives cold reboots.
 0002-spi-rockchip-sfc-DLL-tuning-RK3506-power-good-gate-W.patch
+
+# DT 80MHz read speed (vendor EVB speed; +50% read, 100MHz unusable: 98MHz PLL tap no DLL window).
+# Loader weak write on rootfs PEB3/4 covered by ubiprog first-boot rewrite.
+0003-ARM-dts-rockchip-rk3506b-aes-bump-SFC-read-to-80MHz.patch

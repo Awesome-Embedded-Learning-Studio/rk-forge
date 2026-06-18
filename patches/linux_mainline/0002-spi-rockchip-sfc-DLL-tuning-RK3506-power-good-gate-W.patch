@@ -1,7 +1,7 @@
 From fe9e7c50ea5d96897bfa3aba7147aa63184e7924 Mon Sep 17 00:00:00 2001
 From: CharlieChen114514 <725610365@qq.com>
 Date: Wed, 17 Jun 2026 00:03:21 +0800
-Subject: [PATCH 2/2] spi: rockchip-sfc: DLL tuning + RK3506 power-good gate +
+Subject: [PATCH 2/3] spi: rockchip-sfc: DLL tuning + RK3506 power-good gate +
  WPEN
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -19,6 +19,8 @@ driver lacked (board-verified RW-rootfs root-cause fix):
   for bring-up (flip to -EIO once the bit is confirmed asserting on board).
 With these, Linux SFC reads/writes are reliable (vendor fspi parity); the
 rootfs is then Linux-written by forge ubiprog so it survives cold reboots.
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
 ---
  drivers/spi/spi-rockchip-sfc.c | 266 ++++++++++++++++++++++++++++++++-
  1 file changed, 263 insertions(+), 3 deletions(-)
@@ -400,3 +402,6 @@ index 174995042..105550526 100644
  	{ .compatible = "rockchip,sfc"},
  	{ /* sentinel */ }
  };
+-- 
+2.43.0
+
