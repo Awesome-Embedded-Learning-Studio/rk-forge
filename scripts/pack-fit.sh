@@ -1,24 +1,25 @@
 #!/usr/bin/env bash
-# pack-fit.sh — build the uboot + boot FIT images.
+# pack-fit.sh — build all FIT images (uboot + boot + boot-nand) with fit-pack.py.
 #
-# uboot.img is packed by scripts/fit-pack.py (a pure-Python reproduction of the
-# vendor mkimage 2017.09 -E external-data layout the rkbin SPL accepts — see
-# notes/20, the mkimage saga). boot.img / boot-nand.img are packed by mainline
-# U-Boot's own tools/mkimage (2026.07-rc4), which mainline U-Boot accepts. Neither
-# path depends on the ATK vendor-sdk mkimage — that dependency (P4) is closed.
+# ALL three FITs are now packed by scripts/fit-pack.py — one pure-Python packing
+# tool, no mkimage dependency for packing (decoupled from the mainline U-Boot
+# build). The ATK vendor-sdk mkimage dependency (P4) is closed; mainline mkimage
+# is retained only for the `mkimage -l` parse check below. See notes/20 (saga).
 #
-# Two FITs, matching the vendor package-file names:
-#   uboot.img ← rk3506-mainline.its  (u-boot-nodtb + tee + u-boot.dtb)   scripts/fit-pack.py
-#       (vendor SPL parses only the external-data layout vendor mkimage 2017.09 emits;
-#        the ATK fork that produces it is non-public, so fit-pack.py reproduces that
-#        layout in pure Python — byte-compatible FDT + 0x200-aligned external data +
-#        per-image sha256. `fit-pack.py selftest` proves SPL-equivalence to vendor.)
-#   boot.img  ← rk3506-kernel.its    (zImage + dtb + initramfs)          mainline mkimage -E -p 0x800
-#       (loaded by mainline U-Boot, which accepts mainline mkimage FITs)
+# Three FITs, matching the vendor package-file names:
+#   uboot.img      ← rk3506-mainline.its    (u-boot-nodtb + tee + u-boot.dtb)
+#       fit-pack.py Mode A — consumed by vendor SPL: data-offset (relative),
+#       0x200-aligned external, root version+totalsize+timestamp.
+#   boot.img       ← rk3506-kernel.its      (zImage + dtb + initramfs)
+#   boot-nand.img  ← rk3506-kernel-nand.its (zImage + dtb, no ramdisk → UBIFS root)
+#       fit-pack.py Mode B (--external-offset 0x800, = mkimage -p 0x800) — consumed
+#       by mainline U-Boot bootm: data-position (absolute), contiguous external at
+#       0x800, root /timestamp only.
 #
-# HONEST EDGE: fit-pack.py's output is structurally + hash-identical to vendor's
-# (selftest-proven) but not raw byte-identical — mkimage leaves a residual gap and
-# host timestamp/totalsize that SPL never reads. Board-boot is the final confirmation.
+# HONEST EDGE: fit-pack.py's output is structurally + hash-identical to the mkimage
+# originals (selftest-proven per image) but not raw byte-identical — mkimage leaves
+# a residual pre-fdt_pack gap and host timestamp/totalsize (+trailing pad in Mode B)
+# that the consumers never read. Board-boot is the final confirmation.
 #
 # Usage:
 #   scripts/pack-fit.sh [--out <dir>]
@@ -97,8 +98,14 @@ cp "$ZIMAGE"    "$W2/zImage"
 cp "$KERN_DTB"  "$W2/rk3506b-aes.dtb"
 cp "$INITRAMFS" "$W2/initramfs.cpio.gz"
 cp "${BRINGUP}/fit/rk3506-kernel.its" "$W2/"
-log_info "packing boot.img (mainline mkimage -E -p 0x800)…"
-( cd "$W2" && "$MKIMAGE" -f rk3506-kernel.its -E -p 0x800 boot.img >/dev/null )
+# boot.img / boot-nand.img are packed by fit-pack.py too (Phase 2 — single packing
+# tool for all FITs, decoupling pack-fit from the mainline U-Boot mkimage build).
+# These are consumed by MAINLINE U-Boot (bootm), so they use Mode B: -E -p 0x800 →
+# data-position (absolute), contiguous external data at 0x800, root /timestamp only
+# (no version/totalsize — those are ATK-specific). `fit-pack.py selftest --vendor
+# <img> --its <its>` proves structure+blob+hash parity with the mainline-mkimage output.
+log_info "packing boot.img (fit-pack.py Mode B, --external-offset 0x800)…"
+python3 "$FIT_PACK" pack --external-offset 0x800 "$W2/rk3506-kernel.its" "$W2/boot.img"
 cp "$W2/boot.img" "$OUT_DIR/boot.img"
 "$MKIMAGE" -l "$OUT_DIR/boot.img" >/dev/null || die "boot.img failed FIT parse"
 log_ok "boot.img → $OUT_DIR/boot.img ($(stat -c%s "$OUT_DIR/boot.img") B, with initramfs)"
@@ -113,10 +120,10 @@ W3=$(mktemp -d)
 cp "$ZIMAGE"   "$W3/zImage"
 cp "$KERN_DTB" "$W3/rk3506b-aes.dtb"
 cp "${BRINGUP}/fit/rk3506-kernel-nand.its" "$W3/"
-log_info "packing boot-nand.img (mkimage -E -p 0x800, no ramdisk)…"
-( cd "$W3" && "$MKIMAGE" -f rk3506-kernel-nand.its -E -p 0x800 boot-nand.img >/dev/null )
+log_info "packing boot-nand.img (fit-pack.py Mode B --external-offset 0x800, no ramdisk)…"
+python3 "$FIT_PACK" pack --external-offset 0x800 "$W3/rk3506-kernel-nand.its" "$W3/boot-nand.img"
 cp "$W3/boot-nand.img" "$OUT_DIR/boot-nand.img"
 "$MKIMAGE" -l "$OUT_DIR/boot-nand.img" >/dev/null || die "boot-nand.img failed FIT parse"
 log_ok "boot-nand.img → $OUT_DIR/boot-nand.img ($(stat -c%s "$OUT_DIR/boot-nand.img") B, no ramdisk → UBIFS root)"
 
-log_warn "mainline-mkimage FITs + UBIFS rootfs: board-boot pending (this step)."
+log_warn "all FITs now forge-packed (fit-pack.py); board-boot of these is the confirmation."

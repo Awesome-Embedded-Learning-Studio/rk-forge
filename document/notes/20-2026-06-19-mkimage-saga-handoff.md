@@ -1,9 +1,10 @@
 # 20 — mkimage saga：去 vendor mkimage 的探索 + 交接（2026-06-19）
 
 > **✅ SOLVED（2026-06-19，方向 b 落地）**：`scripts/fit-pack.py` 纯 Python 手搓 FIT `-E`
-> packer，**字节级复现 vendor mkimage 2017.09 的 SPL 兼容布局**，绕开 mkimage/dtc/U-Boot
-> build 整套（D 模式，同 `rkfw-pack.py` 替 afptool/rkImageMaker）。`pack-fit.sh` 的 uboot.img
-> 段已切到 `fit-pack.py pack`，**vendor-sdk mkimage 依赖彻底去掉，P4 收官**。
+> packer，**复现 vendor mkimage 2017.09（uboot，Mode A）+ 主线 mkimage -p 0x800（kernel，Mode B）
+> 的两种外部布局**，绕开 mkimage/dtc/U-Boot build 整套（D 模式，同 `rkfw-pack.py` 替
+> afptool/rkImageMaker）。`pack-fit.sh` **三个 FIT 全切 fit-pack.py**（uboot Mode A + boot/boot-nand
+> Mode B），打包器统一，**vendor-sdk mkimage 依赖彻底去掉（P4 收官）+ 主线 mkimage 打包耦合也去（Phase 2）**。
 >
 > **逆向出的格式契约**（写进 fit-pack.py，是 SPL 兼容的硬约束）：
 > - 文件 = FDT blob（`fdt_totalsize`=1220）+ `[1220, 0x600)` 残留 gap + external data @`FIT_ALIGN(fdt_totalsize)`=0x600 + 末尾。
@@ -11,11 +12,18 @@
 > - **根 `/totalsize` prop** = mkimage 的 host 簿记值（inline-FIT 大小，`fit_image.c:103` `fit_set_totalsize(ptr,0,sbuf.st_size)`）；**Rockchip SPL 用它算加载量** `ceil(/totalsize/bl_len)*bl_len`（`spl_boot_image.c:293` `spl_load_fit`）→ 必须 ≥ 文件让全量加载。fit-pack.py 设 `/totalsize`=file_size（任何 bl_len 都加载全文件）。
 > - `/timestamp`、`/totalsize` 值 + `[0x4c4,0x600)` 残留 gap（fdt_pack 前 FDT 残骸，`ftruncate` 不清零）= **SPL 不读的 host 产物**。
 >
-> **验证**（离线，不需板）：① `fit-pack.py selftest` 对比 vendor out/uboot.img——FDT 树（除 `/timestamp`+`/totalsize` 值）+ external blobs（同 offset 同 sha256）全等 → **PASS**；raw diff 仅 128B，全在 SPL-irrelevant 区。② `mkimage -l` 解析通过。③ 三 blob hash 与 vendor 逐字一致（uboot `54d12cbf…`、optee `e2a712a5…`、fdt `8e3f2ac7…`），且 public rkbin tee v2.40=124360B == vendor optee blob（公开链自洽）。**板验=最终确认**（用户物理步骤）。
+> **验证**（离线，不需板）：① `fit-pack.py selftest` 对比 vendor out/uboot.img——FDT 树（除 `/timestamp`+`/totalsize` 值）+ external blobs（同 offset 同 sha256）全等 → **PASS**；raw diff 仅 128B，全在 SPL-irrelevant 区。② `mkimage -l` 解析通过。③ 三 blob hash 与 vendor 逐字一致（uboot `54d12cbf…`、optee `e2a712a5…`、fdt `8e3f2ac7…`），且 public rkbin tee v2.40=124360B == vendor optee blob（公开链自洽）。**✅板上通过（2026-06-19）**：烧 update-p4-fitpack.img，fit-pack.py Mode A uboot.img 过 SPL 启动到 kernel。
 >
 > **非 byte-identical 的诚实说明**：vendor 的残留 gap + host 时间戳/totalsize 无法在不模拟 libfdt `fdt_pack` 的前提下复现；但这些 SPL 都不读，零功能影响。fit-pack.py 输出**结构+哈希全等**、布局语义全等。
 >
-> **Phase 2 待办（本次不做）**：boot.img/boot-nand.img 也迁到 fit-pack.py（统一），需逆向主线 mkimage `-p 0x800` 对 kernel FIT external 布局的影响。uboot 板验通过后再做。
+> **Phase 2 ✅（2026-06-19，板上 uboot 通过后即做）**：boot.img/boot-nand.img 也迁到 fit-pack.py。
+> 逆向主线 mkimage `-p 0x800`（= `external_offset`，`fit_image.c:735`）→ **Mode B**：`data-position`
+> （绝对）+ 连续 blob（`buf_ptr += len`，无 FIT_ALIGN）+ external @ 绝对 `external_offset`(0x800) +
+> root 仅 `/timestamp`（version/totalsize 是 ATK 私有，主线不加）。fit-pack.py 加 `--external-offset`
+> 形参分支；selftest 对两 kernel FIT 全等 PASS（raw diff 仅 timestamp+trailing pad，mainline U-Boot
+> bootm 不读）。pack-fit.sh 三 FIT 全归 fit-pack.py，主线 mkimage 仅留 `mkimage -l` 解析校验。
+> **✅板上通过（2026-06-19）**：烧 `update-p2-unified-fitpack.img`，fit-pack.py Mode B 的 boot.img
+> 过主线 U-Boot bootm，kernel 顺利启动。**Phase 2 闭环；fit-pack.py 全 FIT 唯一打包器，离线+板上双证。**
 
 ---
 
