@@ -61,6 +61,18 @@ if ubiattach -m 5 /dev/ubi_ctrl 2>/dev/null; then
 			switch_to_rootfs
 		fi
 		echo "[init] rootfs mounts but has no marker → will provision"
+		# Force UBIFS to commit a clean master/journal/LPT via the kernel's
+		# reliable write BEFORE ubiprog reads the partition raw. Without this the
+		# rw mount above only read the marker (nothing dirtied), so umount commits
+		# nothing and a metadata PEB the loader wrote weakly stays weak — ubiprog's
+		# raw MEMREAD then trusts its on-die-ECC "correction" of that weak metadata
+		# and rewrites it, and UBIFS master recovery later fails. Dirtying the FS
+		# makes umount commit, so the kernel rewrites that metadata cleanly; ubiprog
+		# then reads it back at 0 flips and preserves it verbatim. (P5 hardening.)
+		echo x > /mnt/.ubiprog_trigger 2>/dev/null
+		sync
+		rm -f /mnt/.ubiprog_trigger 2>/dev/null
+		sync
 		umount /mnt 2>/dev/null
 	else
 		echo "[init] rootfs won't mount yet (loader-written-weak/blank) → will provision"

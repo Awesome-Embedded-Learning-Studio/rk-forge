@@ -89,6 +89,10 @@ struct mtd_write_req {
 
 #define MTD_OPS_PLACE_OOB 0   /* ECC on (data-only; chip generates ECC) */
 
+#ifndef EUCLEAN
+#define EUCLEAN 117   /* "Structure needs cleaning": correctable bit flips, data is valid */
+#endif
+
 /* Read one erase block with on-die ECC into buf. Returns 0 ok, <0 error.
  * Fills ecc_stats. On -EBADMSG (uncorrectable) buf holds best-effort data. */
 static int memread_peb(int fd, uint64_t off, uint32_t len, uint8_t *buf,
@@ -168,8 +172,13 @@ int main(int argc, char **argv)
 		uint64_t off = (uint64_t)peb * es;
 		struct mtd_read_req_ecc_stats ecc;
 		int r = memread_peb(fd, off, es, buf, &ecc);
-		if (r < 0 && ecc.uncorrectable_errors == 0) {
-			/* read error that isn't ECC — bail, something's wrong */
+		if (r < 0 && errno != EUCLEAN && ecc.uncorrectable_errors == 0) {
+			/* read error that isn't ECC — bail, something's wrong.
+			 * (-EUCLEAN is NOT an error: it means on-die ECC corrected ≤N bit
+			 * flips — the data in buf is valid, just had wear. The rkbin loader's
+			 * weak rootfs write is jittery, so a PEB can read back with correctable
+			 * flips on one flash and uncorrectable on another; treat correctable as
+			 * good data and let the kernel rewrite it, instead of aborting.) */
 			fprintf(stderr, "  peb=%d read error: %s\n", peb, strerror(errno));
 			failed++;
 			continue;

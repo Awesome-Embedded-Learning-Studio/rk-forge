@@ -60,6 +60,7 @@ while [[ $# -gt 0 ]]; do
     --nand) VMODE=nand; shift;;
     --rescue) VMODE=rescue; shift;;
     --loader) LOADER="$2"; shift 2;;
+    --parameter) PARAMETER_OVERRIDE="$2"; shift 2;;
     --no-verify) VERIFY=0; shift;;
     -h|--help) sed -n '2,32p' "$0"; exit 0;;
     *) die "unknown arg: $1";;
@@ -68,7 +69,7 @@ done
 
 LOADER="${LOADER:-${OUT_DIR}/MiniLoaderAll.bin}"  # --loader overrides (e.g. ATK release rk3506_spl_loader_v1.06.111.bin)
 UBOOT="${OUT_DIR}/uboot.img"
-PARAMETER="${BRINGUP}/parameter-nand-aes.txt"
+PARAMETER="${PARAMETER_OVERRIDE:-${BRINGUP}/parameter-nand-aes.txt}"
 ROOTFS=""
 case "$VMODE" in
   provision)
