@@ -9,7 +9,9 @@
 ::sysinit:/bin/mount -t sysfs   none /sys
 ::sysinit:/bin/mkdir -p /dev/pts
 ::sysinit:/bin/mount -t devpts  none /dev/pts
+::sysinit:/bin/mkdir -p /tmp
 ::sysinit:/bin/mount -t tmpfs   none /tmp
+::sysinit:/bin/mkdir -p /run
 ::sysinit:/bin/mount -t tmpfs   none /run
 ::sysinit:/bin/hostname -F /etc/hostname
 

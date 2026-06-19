@@ -53,3 +53,18 @@ BR2_TARGET_ROOTFS_TAR=y
 # buildroot's minimal rootfs doesn't ship them (the handcraft mk-rootfs.sh does);
 # the hook rebuilds them with TARGET_CC + -static, same flags as mk-rootfs.sh.
 BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_rkforge_PATH)/board/rk3506_aes/post-build.sh"
+
+# Overlay: tmpfs /var/log so syslogd writes RAM, not the UBIFS NAND (write churn
+# there trips bit-flips → CRC corruption across reboots; RW saga). See
+# overlay/etc/fstab.
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_rkforge_PATH)/overlay"
+
+# Audio test tooling (Phase E): aplay/alsamixer (alsa-utils) + mpg123 to play
+# the test mp3 (assets/sample-3s.mp3) over the ES8388/sai1 sound card. alsa-lib
+# is auto-selected. buildroot builds these (dynamic, glibc) into the rootfs.
+BR2_PACKAGE_ALSA_LIB=y
+BR2_PACKAGE_ALSA_UTILS=y
+BR2_PACKAGE_ALSA_UTILS_APLAY=y
+BR2_PACKAGE_ALSA_UTILS_AMIXER=y
+BR2_PACKAGE_ALSA_UTILS_SPEAKER_TEST=y
+BR2_PACKAGE_MPG123=y

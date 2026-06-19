@@ -110,6 +110,28 @@ fi
 # --- /etc config source ------------------------------------------------------
 cp -a "$ETC_SRC"/. "$ROOT/etc/"
 
+# --- audio test tooling (Phase E) -------------------------------------------
+# Pull the dynamic aplay/mpg123 binaries + their glibc runtime out of buildroot
+# output/target (built with alsa-utils + mpg123) into the otherwise
+# static-busybox handcraft rootfs, so the ES8388/sai1 sound card can be
+# exercised (aplay -l / speaker-test / mpg123 the bundled mp3). busybox stays
+# static; these shared libs only serve the dynamic audio tools.
+BR_TARGET="${_PROJECT_ROOT}/third_party/buildroot/output/target"
+ASSETS="${_PROJECT_ROOT}/assets"
+if [[ -d "$BR_TARGET" && -x "$BR_TARGET/usr/bin/aplay" ]]; then
+	mkdir -p "$ROOT/usr/bin" "$ROOT/lib" "$ROOT/usr/lib"
+	for b in aplay arecord amixer speaker-test mpg123; do
+		[[ -x "$BR_TARGET/usr/bin/$b" ]] && cp "$BR_TARGET/usr/bin/$b" "$ROOT/usr/bin/"
+	done
+	# glibc runtime (ld-linux + libc/libm/…) + alsa-lib + libmpg123 shared libs.
+	cp -a "$BR_TARGET"/lib/* "$ROOT/lib/" 2>/dev/null || true
+	cp -a "$BR_TARGET"/usr/lib/libasound.so* "$BR_TARGET"/usr/lib/libmpg123.so* "$ROOT/usr/lib/" 2>/dev/null || true
+	log_ok "audio tooling → $(ls "$ROOT/usr/bin/" 2>/dev/null | tr '\n' ' ')"
+else
+	log_info "skipping audio tooling (no buildroot aplay — run the buildroot build first)"
+fi
+[[ -f "$ASSETS/sample-3s.mp3" ]] && { cp "$ASSETS/sample-3s.mp3" "$ROOT/root/sample-3s.mp3"; log_ok "sample-3s.mp3 → root/"; }
+
 # --- perms: sticky tmp dirs --------------------------------------------------
 chmod 1777 "$ROOT/tmp"
 log_ok "etc config + mount points ready"

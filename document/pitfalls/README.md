@@ -15,6 +15,7 @@
 | [02-busybox-init-devtmpfs.md](02-busybox-init-devtmpfs.md) | init 控制台 + devtmpfs 时序 | #4 #11 | ✅ |
 | [03-build-verification.md](03-build-verification.md) | 构建验证方法论(增量重编 / 产物取证层级) | #9 #10 | ✅ |
 | [04-sfc-nand-saga.md](04-sfc-nand-saga.md) | SPI-NAND / SFC 读写 + loader 弱写 saga(**最重一篇**) | #5 #6 #7 #8 #12 | ✅ |
+| [05-secure-mem-reservation-imprecise-abort.md](05-secure-mem-reservation-imprecise-abort.md) | DT 内存映射:OP-TEE/trust reserved-memory 漏 → secure 物理页分给用户态 → external abort(藏 04 saga 里两轮没识破) | #13 | ✅ |
 
 ## 一句话主线
 

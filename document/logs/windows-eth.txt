@@ -1,0 +1,380 @@
+➜  ipconfig /all
+
+Windows IP Configuration
+
+   Host Name . . . . . . . . . . . . : Charliechen
+   Primary Dns Suffix  . . . . . . . :
+   Node Type . . . . . . . . . . . . : Hybrid
+   IP Routing Enabled. . . . . . . . : No
+   WINS Proxy Enabled. . . . . . . . : No
+
+Unknown adapter 本地连接:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Wintun Userspace Tunnel
+   Physical Address. . . . . . . . . :
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+
+Wireless LAN adapter 本地连接* 1:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Microsoft Wi-Fi Direct Virtual Adapter
+   Physical Address. . . . . . . . . : E2-0A-F6-8A-D5-A5
+   DHCP Enabled. . . . . . . . . . . : Yes
+   Autoconfiguration Enabled . . . . : Yes
+
+Wireless LAN adapter 本地连接* 2:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Microsoft Wi-Fi Direct Virtual Adapter #2
+   Physical Address. . . . . . . . . : F2-0A-F6-8A-D5-A5
+   DHCP Enabled. . . . . . . . . . . : Yes
+   Autoconfiguration Enabled . . . . : Yes
+
+Ethernet adapter VMware Network Adapter VMnet1:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : VMware Virtual Ethernet Adapter for VMnet1
+   Physical Address. . . . . . . . . : 00-50-56-C0-00-01
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::2c60:ec0b:2585:d682%15(Preferred)
+   IPv4 Address. . . . . . . . . . . : 192.168.220.1(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . :
+   DHCPv6 IAID . . . . . . . . . . . : 402673750
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2A-19-24-F9-6C-24-08-70-DB-44
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter 以太网 2:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : NGNClient Adapter
+   Physical Address. . . . . . . . . : 00-FF-F8-83-F9-2C
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+
+Ethernet adapter ZeroTier One [565799d8f60882c1]:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : ZeroTier Virtual Port
+   Physical Address. . . . . . . . . : C2-27-56-BF-A3-64
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+
+Ethernet adapter ZeroTier One [e3918db483749905]:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : ZeroTier Virtual Port #3
+   Physical Address. . . . . . . . . : 06-E4-94-A1-B6-75
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::dc34:44ac:e6b2:65f8%22(Preferred)
+   IPv4 Address. . . . . . . . . . . : 10.144.163.101(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.0.0
+   Default Gateway . . . . . . . . . : 25.255.255.254
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter ZeroTier One [fada62b015f5e780]:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : ZeroTier Virtual Port #4
+   Physical Address. . . . . . . . . : 82-9A-15-37-B2-9A
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   IPv6 Address. . . . . . . . . . . : fdfa:da62:b015:f5e7:8099:937d:e022:2f8(Preferred)
+   Link-local IPv6 Address . . . . . : fe80::6a95:1a24:6239:8bd3%29(Preferred)
+   IPv4 Address. . . . . . . . . . . : 10.241.163.101(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.0.0
+   Default Gateway . . . . . . . . . : 25.255.255.254
+   DHCPv6 IAID . . . . . . . . . . . : 1149409813
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2A-19-24-F9-6C-24-08-70-DB-44
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter ZeroTier One [9bee8941b5706ef3]:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : ZeroTier Virtual Port #5
+   Physical Address. . . . . . . . . : F2-13-90-97-43-71
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::a477:cd1d:9f64:9d4d%27(Preferred)
+   IPv4 Address. . . . . . . . . . . : 10.147.20.31(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . : 25.255.255.254
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter ZeroTier One [9e1948db635436cc]:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : ZeroTier Virtual Port #6
+   Physical Address. . . . . . . . . : CE-4B-B4-41-D9-B0
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::5786:95fc:5ace:5f24%26(Preferred)
+   IPv4 Address. . . . . . . . . . . : 10.147.19.31(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . : 25.255.255.254
+   DHCPv6 IAID . . . . . . . . . . . : 1322142644
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2A-19-24-F9-6C-24-08-70-DB-44
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter 网桥:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Microsoft Network Adapter Multiplexor Driver
+   Physical Address. . . . . . . . . : 00-50-56-C0-00-08
+   DHCP Enabled. . . . . . . . . . . : Yes
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::869b:bdc9:d833:aad7%23(Preferred)
+   IPv4 Address. . . . . . . . . . . : 192.168.60.1(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Lease Obtained. . . . . . . . . . : 2026年6月19日 8:37:56
+   Lease Expires . . . . . . . . . . : 2026年6月19日 17:07:56
+   Default Gateway . . . . . . . . . :
+   DHCP Server . . . . . . . . . . . : 192.168.60.254
+   DHCPv6 IAID . . . . . . . . . . . : 1241534550
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2A-19-24-F9-6C-24-08-70-DB-44
+   Primary WINS Server . . . . . . . : 192.168.60.2
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter ZeroTier One [35c192ce9b30f03b]:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : ZeroTier Virtual Port #7
+   Physical Address. . . . . . . . . : 3A-8D-D0-B9-CC-6A
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::b6e1:a7b4:e15:f979%18(Preferred)
+   IPv4 Address. . . . . . . . . . . : 172.29.163.101(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.0.0
+   Default Gateway . . . . . . . . . : 25.255.255.254
+   DHCPv6 IAID . . . . . . . . . . . : 1413123536
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2A-19-24-F9-6C-24-08-70-DB-44
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Wireless LAN adapter WLAN:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Realtek RTL8852AE WiFi 6 802.11ax PCIe Adapter
+   Physical Address. . . . . . . . . : E0-0A-F6-8A-D5-A5
+   DHCP Enabled. . . . . . . . . . . : Yes
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::58e9:5f48:1cbe:65b%12(Preferred)
+   IPv4 Address. . . . . . . . . . . : 10.66.164.67(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.0.0
+   Lease Obtained. . . . . . . . . . : 2026年6月19日 8:37:53
+   Lease Expires . . . . . . . . . . : 2026年6月19日 18:37:50
+   Default Gateway . . . . . . . . . : 10.66.254.254
+   DHCP Server . . . . . . . . . . . : 10.100.62.192
+   DHCPv6 IAID . . . . . . . . . . . : 148900598
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2A-19-24-F9-6C-24-08-70-DB-44
+   DNS Servers . . . . . . . . . . . : 10.10.10.10
+                                       10.10.10.11
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter 蓝牙网络连接:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Bluetooth Device (Personal Area Network)
+   Physical Address. . . . . . . . . : E0-0A-F6-8A-D5-A6
+   DHCP Enabled. . . . . . . . . . . : Yes
+   Autoconfiguration Enabled . . . . : Yes
+
+# After Insert
+➜  ipconfig /all
+
+Windows IP Configuration
+
+   Host Name . . . . . . . . . . . . : Charliechen
+   Primary Dns Suffix  . . . . . . . :
+   Node Type . . . . . . . . . . . . : Hybrid
+   IP Routing Enabled. . . . . . . . : No
+   WINS Proxy Enabled. . . . . . . . : No
+
+Unknown adapter 本地连接:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Wintun Userspace Tunnel
+   Physical Address. . . . . . . . . :
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+
+Ethernet adapter 网桥:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Microsoft Network Adapter Multiplexor Driver
+   Physical Address. . . . . . . . . : 00-50-56-C0-00-08
+   DHCP Enabled. . . . . . . . . . . : Yes
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::869b:bdc9:d833:aad7%23(Preferred)
+   IPv4 Address. . . . . . . . . . . : 192.168.60.1(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Lease Obtained. . . . . . . . . . : 2026年6月19日 8:37:56
+   Lease Expires . . . . . . . . . . : 2026年6月19日 17:07:55
+   Default Gateway . . . . . . . . . :
+   DHCP Server . . . . . . . . . . . : 192.168.60.254
+   DHCPv6 IAID . . . . . . . . . . . : 1241534550
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2A-19-24-F9-6C-24-08-70-DB-44
+   Primary WINS Server . . . . . . . : 192.168.60.2
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Wireless LAN adapter 本地连接* 1:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Microsoft Wi-Fi Direct Virtual Adapter
+   Physical Address. . . . . . . . . : E2-0A-F6-8A-D5-A5
+   DHCP Enabled. . . . . . . . . . . : Yes
+   Autoconfiguration Enabled . . . . : Yes
+
+Wireless LAN adapter 本地连接* 2:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Microsoft Wi-Fi Direct Virtual Adapter #2
+   Physical Address. . . . . . . . . : F2-0A-F6-8A-D5-A5
+   DHCP Enabled. . . . . . . . . . . : Yes
+   Autoconfiguration Enabled . . . . : Yes
+
+Ethernet adapter VMware Network Adapter VMnet1:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : VMware Virtual Ethernet Adapter for VMnet1
+   Physical Address. . . . . . . . . : 00-50-56-C0-00-01
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::2c60:ec0b:2585:d682%15(Preferred)
+   IPv4 Address. . . . . . . . . . . : 192.168.220.1(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . :
+   DHCPv6 IAID . . . . . . . . . . . : 402673750
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2A-19-24-F9-6C-24-08-70-DB-44
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter 以太网 2:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : NGNClient Adapter
+   Physical Address. . . . . . . . . : 00-FF-F8-83-F9-2C
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+
+Ethernet adapter ZeroTier One [565799d8f60882c1]:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : ZeroTier Virtual Port
+   Physical Address. . . . . . . . . : C2-27-56-BF-A3-64
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+
+Ethernet adapter ZeroTier One [e3918db483749905]:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : ZeroTier Virtual Port #3
+   Physical Address. . . . . . . . . : 06-E4-94-A1-B6-75
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::dc34:44ac:e6b2:65f8%22(Preferred)
+   IPv4 Address. . . . . . . . . . . : 10.144.163.101(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.0.0
+   Default Gateway . . . . . . . . . : 25.255.255.254
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter ZeroTier One [fada62b015f5e780]:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : ZeroTier Virtual Port #4
+   Physical Address. . . . . . . . . : 82-9A-15-37-B2-9A
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   IPv6 Address. . . . . . . . . . . : fdfa:da62:b015:f5e7:8099:937d:e022:2f8(Preferred)
+   Link-local IPv6 Address . . . . . : fe80::6a95:1a24:6239:8bd3%29(Preferred)
+   IPv4 Address. . . . . . . . . . . : 10.241.163.101(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.0.0
+   Default Gateway . . . . . . . . . : 25.255.255.254
+   DHCPv6 IAID . . . . . . . . . . . : 1149409813
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2A-19-24-F9-6C-24-08-70-DB-44
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter ZeroTier One [9bee8941b5706ef3]:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : ZeroTier Virtual Port #5
+   Physical Address. . . . . . . . . : F2-13-90-97-43-71
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::a477:cd1d:9f64:9d4d%27(Preferred)
+   IPv4 Address. . . . . . . . . . . : 10.147.20.31(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . : 25.255.255.254
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter ZeroTier One [9e1948db635436cc]:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : ZeroTier Virtual Port #6
+   Physical Address. . . . . . . . . : CE-4B-B4-41-D9-B0
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::5786:95fc:5ace:5f24%26(Preferred)
+   IPv4 Address. . . . . . . . . . . : 10.147.19.31(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . : 25.255.255.254
+   DHCPv6 IAID . . . . . . . . . . . : 1322142644
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2A-19-24-F9-6C-24-08-70-DB-44
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter ZeroTier One [35c192ce9b30f03b]:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : ZeroTier Virtual Port #7
+   Physical Address. . . . . . . . . : 3A-8D-D0-B9-CC-6A
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::b6e1:a7b4:e15:f979%18(Preferred)
+   IPv4 Address. . . . . . . . . . . : 172.29.163.101(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.0.0
+   Default Gateway . . . . . . . . . : 25.255.255.254
+   DHCPv6 IAID . . . . . . . . . . . : 1413123536
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2A-19-24-F9-6C-24-08-70-DB-44
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Wireless LAN adapter WLAN:
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Realtek RTL8852AE WiFi 6 802.11ax PCIe Adapter
+   Physical Address. . . . . . . . . : E0-0A-F6-8A-D5-A5
+   DHCP Enabled. . . . . . . . . . . : Yes
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::58e9:5f48:1cbe:65b%12(Preferred)
+   IPv4 Address. . . . . . . . . . . : 10.66.164.67(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.0.0
+   Lease Obtained. . . . . . . . . . : 2026年6月19日 8:37:53
+   Lease Expires . . . . . . . . . . : 2026年6月19日 18:37:49
+   Default Gateway . . . . . . . . . : 10.66.254.254
+   DHCP Server . . . . . . . . . . . : 10.100.62.192
+   DHCPv6 IAID . . . . . . . . . . . : 148900598
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-2A-19-24-F9-6C-24-08-70-DB-44
+   DNS Servers . . . . . . . . . . . : 10.10.10.10
+                                       10.10.10.11
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+
+Ethernet adapter 蓝牙网络连接:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Bluetooth Device (Personal Area Network)
+   Physical Address. . . . . . . . . : E0-0A-F6-8A-D5-A6
+   DHCP Enabled. . . . . . . . . . . : Yes
+   Autoconfiguration Enabled . . . . : Yes

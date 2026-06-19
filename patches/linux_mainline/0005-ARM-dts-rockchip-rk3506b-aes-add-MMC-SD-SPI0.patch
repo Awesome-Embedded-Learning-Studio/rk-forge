@@ -1,0 +1,215 @@
+From f45489a7d844d631e66da97865f8109ca442d8b8 Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Fri, 19 Jun 2026 16:10:02 +0800
+Subject: [PATCH] ARM: dts: rockchip: rk3506b-aes: add MMC/SD + SPI0
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+MMC/SD (dw_mmc, the SD slot): mmc SoC node (rk3288-dw-mshc fallback) +
+sdmmc pinctrl (bank3 func1) into rk3506.dtsi; board override (cap-sd-highspeed,
+cd-gpios GPIO0_PA2, vmmc/vqmmc from always-on regulator-fixed) into rk3506b-aes.
+SPI0 (userspace spidev on CS0/CS1): spi0 SoC node (rk3066-spi fallback, PIO —
+the vendor 5-cell DMA encoding doesn't bind mainline pl330) + spi0 pinctrl
+(bank0 func2) + the pcfg_pull_none_drv_level_3 pinconf; board override with two
+spidev children using the whitelisted rohm,dh2228fv binding (mainline rejects
+rockchip,spidev). Combined (not one-per-peripheral) because the edits interleave
+in the same DT regions. ATK reference: vendor rk3506b-alientek.dtsi +
+rk3506-pinctrl.dtsi.
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
+---
+ arch/arm/boot/dts/rockchip/rk3506.dtsi     | 78 ++++++++++++++++++++++
+ arch/arm/boot/dts/rockchip/rk3506b-aes.dts | 74 ++++++++++++++++++++
+ 2 files changed, 152 insertions(+)
+
+diff --git a/arch/arm/boot/dts/rockchip/rk3506.dtsi b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+index 6fb2ae57a..25786aaf1 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506.dtsi
++++ b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+@@ -124,6 +124,34 @@ uart0: serial@ff0a0000 {
+ 		status = "disabled";
+ 	};
+ 
++	spi0: spi@ff120000 {
++		compatible = "rockchip,rk3506-spi", "rockchip,rk3066-spi";
++		reg = <0xff120000 0x1000>;
++		interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		clocks = <&cru CLK_SPI0>, <&cru PCLK_SPI0>;
++		clock-names = "spiclk", "apb_pclk";
++		num-cs = <2>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&spi0_csn0_pins &spi0_csn1_pins &spi0_clk_pins>;
++		status = "disabled";
++	};
++
++	mmc: mmc@ff480000 {
++		compatible = "rockchip,rk3506-dw-mshc", "rockchip,rk3288-dw-mshc";
++		reg = <0xff480000 0x4000>;
++		interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>;
++		max-frequency = <150000000>;
++		bus-width = <4>;
++		clocks = <&cru HCLK_SDMMC>, <&cru CCLK_SRC_SDMMC>;
++		clock-names = "biu", "ciu";
++		fifo-depth = <0x100>;
++		resets = <&cru SRST_H_SDMMC>;
++		reset-names = "reset";
++		status = "disabled";
++	};
++
+ 	sfc: spi@ff488000 {
+ 		compatible = "rockchip,rk3506-fspi", "rockchip,sfc";
+ 		reg = <0xff488000 0x4000>;
+@@ -263,6 +291,11 @@ pcfg_pull_none: pcfg-pull-none {
+ 			bias-disable;
+ 		};
+ 
++		pcfg_pull_none_drv_level_3: pcfg-pull-none-drv-level-3 {
++			bias-disable;
++			drive-strength = <3>;
++		};
++
+ 		gpio0: gpio@ff940000 {
+ 			compatible = "rockchip,gpio-bank";
+ 			reg = <0xff940000 0x200>;
+@@ -382,5 +415,50 @@ eth_rmii1_clk_pins: eth-rmii1-clk-pins {
+ 					/* eth_rmii1_clk */ <3 RK_PB0 2 &pcfg_pull_none>;
+ 			};
+ 		};
++
++		sdmmc {
++			/omit-if-no-ref/
++			sdmmc_bus4_pins: sdmmc-bus4-pins {
++				rockchip,pins =
++					/* sdmmc_d0 */ <3 RK_PA2 1 &pcfg_pull_up>,
++					/* sdmmc_d1 */ <3 RK_PA3 1 &pcfg_pull_up>,
++					/* sdmmc_d2 */ <3 RK_PA4 1 &pcfg_pull_up>,
++					/* sdmmc_d3 */ <3 RK_PA5 1 &pcfg_pull_up>;
++			};
++
++			/omit-if-no-ref/
++			sdmmc_clk_pins: sdmmc-clk-pins {
++				rockchip,pins =
++					/* sdmmc_clk */ <3 RK_PA0 1 &pcfg_pull_none>;
++			};
++
++			/omit-if-no-ref/
++			sdmmc_cmd_pins: sdmmc-cmd-pins {
++				rockchip,pins =
++					/* sdmmc_cmd */ <3 RK_PA1 1 &pcfg_pull_up>;
++			};
++		};
++
++		spi0 {
++			/omit-if-no-ref/
++			spi0_clk_pins: spi0-clk-pins {
++				rockchip,pins =
++					/* spi0_clk */ <0 RK_PC0 2 &pcfg_pull_none_drv_level_3>,
++					/* spi0_miso */ <0 RK_PC2 2 &pcfg_pull_none_drv_level_3>,
++					/* spi0_mosi */ <0 RK_PC1 2 &pcfg_pull_none_drv_level_3>;
++			};
++
++			/omit-if-no-ref/
++			spi0_csn0_pins: spi0-csn0-pins {
++				rockchip,pins =
++					/* spi0_csn0 */ <0 RK_PC3 2 &pcfg_pull_none_drv_level_3>;
++			};
++
++			/omit-if-no-ref/
++			spi0_csn1_pins: spi0-csn1-pins {
++				rockchip,pins =
++					/* spi0_csn1 */ <0 RK_PB7 2 &pcfg_pull_none_drv_level_3>;
++			};
++		};
+ 	};
+ };
+diff --git a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+index b378b0b77..7f3dccc39 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
++++ b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+@@ -64,6 +64,80 @@ rmii_phy1: phy@1 {
+ 	};
+ };
+ 
++/*
++ * MMC/SD (dw_mmc) — the SD card slot (ATK reference: rk3506b-alientek.dtsi).
++ * Mainline dw_mmc-rockchip probes via the rk3288-dw-mshc fallback compatible.
++ * Supplies are always-on fixed 3.3V rails (forge has no PMIC); card-detect on
++ * GPIO0_PA2.
++ */
++&mmc {
++	bus-width = <4>;
++	cap-sd-highspeed;
++	no-1-8-v;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&sdmmc_clk_pins &sdmmc_cmd_pins &sdmmc_bus4_pins &sdmmc_det>;
++
++	cd-gpios = <&gpio0 RK_PA2 GPIO_ACTIVE_LOW>;
++	vmmc-supply = <&vcc3v3_sd>;
++	vqmmc-supply = <&vccio_sd>;
++	status = "okay";
++};
++
++/*
++ * SPI0 — userspace spidev on CS0/CS1 (ATK reference: rk3506b-alientek.dtsi).
++ * Mainline spi-rockchip probes via the rk3066-spi fallback. PIO (no DMA — the
++ * vendor 5-cell DMA encoding doesn't bind mainline pl330). spidev children use
++ * the whitelisted "rohm,dh2228fv" binding (mainline rejects "rockchip,spidev").
++ */
++&spi0 {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&spi0_csn0_pins &spi0_csn1_pins &spi0_clk_pins>;
++
++	spidev@0 {
++		compatible = "rohm,dh2228fv";
++		spi-max-frequency = <50000000>;
++		reg = <0>;
++	};
++
++	spidev@1 {
++		compatible = "rohm,dh2228fv";
++		spi-max-frequency = <50000000>;
++		reg = <1>;
++	};
++};
++
++&pinctrl {
++	sdmmc {
++		/omit-if-no-ref/
++		sdmmc_det: sdmmc-det {
++			rockchip,pins =
++				/* sdmmc_det */ <0 RK_PA2 1 &pcfg_pull_up>;
++		};
++	};
++};
++
++/ {
++	vcc3v3_sd: vcc3v3-sd-regulator {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc3v3_sd";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++	};
++
++	vccio_sd: vccio-sd-regulator {
++		compatible = "regulator-fixed";
++		regulator-name = "vccio_sd";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++	};
++};
++
+ /*
+  * SPI-NAND (Winbond W25N04KV, 4Gb) on the SFC. Lets Linux see the NAND as MTD
+  * + attach UBI for persistent rootfs (see notes/10). Partition layout mirrors
+-- 
+2.43.0
+

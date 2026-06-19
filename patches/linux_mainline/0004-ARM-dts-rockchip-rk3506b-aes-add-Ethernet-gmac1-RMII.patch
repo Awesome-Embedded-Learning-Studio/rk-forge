@@ -1,0 +1,182 @@
+From be77da711877a0bc77c402020511791ef7849afe Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Fri, 19 Jun 2026 16:03:10 +0800
+Subject: [PATCH] ARM: dts: rockchip: rk3506b-aes: add Ethernet (gmac1, RMII)
+
+Port the live RJ45 to forge: gmac1 SoC node (ethernet@ff4d0000, compatible
+rockchip,rk3506-gmac + snps,dwmac-4.20a; mainline dwmac-rk has full rk3506
+RMII glue) + mdio1 sub-node + eth_rmii1 pinctrl groups (bank3, func2, no RMIO)
+into rk3506.dtsi, and the board override into rk3506b-aes.dts (phy-mode rmii,
+reset on GPIO0_PC4, phy-handle rmii_phy1, status okay; rmii_phy1 = generic C22
+phy@1). Adds the reset dt-binding include (first node here to use resets=).
+ATK reference: vendor rk3506b-alientek.dtsi.
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
+---
+ arch/arm/boot/dts/rockchip/rk3506.dtsi     | 87 ++++++++++++++++++++++
+ arch/arm/boot/dts/rockchip/rk3506b-aes.dts | 31 ++++++++
+ 2 files changed, 118 insertions(+)
+
+diff --git a/arch/arm/boot/dts/rockchip/rk3506.dtsi b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+index 8d4108c66..6fb2ae57a 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506.dtsi
++++ b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+@@ -16,6 +16,7 @@
+  */
+ 
+ #include <dt-bindings/clock/rockchip,rk3506-cru.h>
++#include <dt-bindings/reset/rockchip,rk3506-cru.h>
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/interrupt-controller/irq.h>
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
+@@ -36,6 +37,7 @@ aliases {
+ 		gpio3 = &gpio3;
+ 		gpio4 = &gpio4;
+ 		serial0 = &uart0;
++		ethernet1 = &gmac1;
+ 	};
+ 
+ 	clocks {
+@@ -136,6 +138,60 @@ sfc: spi@ff488000 {
+ 		status = "disabled";
+ 	};
+ 
++	gmac1: ethernet@ff4d0000 {
++		compatible = "rockchip,rk3506-gmac", "snps,dwmac-4.20a";
++		reg = <0xff4d0000 0x2000>;
++		interrupts = <GIC_SPI 70 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 73 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-names = "macirq", "eth_wake_irq";
++		rockchip,grf = <&grf>;
++		clocks = <&cru CLK_MAC1>, <&cru CLK_MAC1_PTP>,
++			 <&cru PCLK_MAC1>, <&cru ACLK_MAC1>;
++		clock-names = "stmmaceth", "ptp_ref",
++			      "pclk_mac", "aclk_mac";
++		resets = <&cru SRST_A_MAC1>;
++		reset-names = "stmmaceth";
++
++		assigned-clocks = <&cru CLK_MAC1_PTP>;
++		assigned-clock-rates = <62500000>;
++
++		snps,mixed-burst;
++		snps,tso;
++
++		snps,axi-config = <&gmac1_stmmac_axi_setup>;
++		snps,mtl-rx-config = <&gmac1_mtl_rx_setup>;
++		snps,mtl-tx-config = <&gmac1_mtl_tx_setup>;
++
++		phy-mode = "rmii";
++		status = "disabled";
++
++		mdio1: mdio {
++			compatible = "snps,dwmac-mdio";
++			#address-cells = <0x1>;
++			#size-cells = <0x0>;
++		};
++
++		gmac1_stmmac_axi_setup: stmmac-axi-config {
++			snps,wr_osr_lmt = <4>;
++			snps,rd_osr_lmt = <8>;
++			snps,blen = <0 0 0 0 16 8 4>;
++		};
++
++		gmac1_mtl_rx_setup: rx-queues-config {
++			snps,rx-queues-to-use = <1>;
++			queue0 {
++				status = "okay";
++			};
++		};
++
++		gmac1_mtl_tx_setup: tx-queues-config {
++			snps,tx-queues-to-use = <1>;
++			queue0 {
++				status = "okay";
++			};
++		};
++	};
++
+ 	grf: syscon@ff288000 {
+ 		compatible = "rockchip,rk3506-grf", "syscon", "simple-mfd";
+ 		reg = <0xff288000 0x4000>;
+@@ -295,5 +351,36 @@ uart0_xfer_pins: uart0-xfer-pins {
+ 					/* uart0_tx */ <0 RK_PC6 1 &pcfg_pull_up>;
+ 			};
+ 		};
++
++		eth_rmii1 {
++			/omit-if-no-ref/
++			eth_rmii1_miim_pins: eth-rmii1-miim-pins {
++				rockchip,pins =
++					/* eth_rmii1_mdc */ <3 RK_PB4 2 &pcfg_pull_none>,
++					/* eth_rmii1_mdio */ <3 RK_PB5 2 &pcfg_pull_none>;
++			};
++
++			/omit-if-no-ref/
++			eth_rmii1_rx_bus2_pins: eth-rmii1-rx-bus2-pins {
++				rockchip,pins =
++					/* eth_rmii1_rxd0 */ <3 RK_PA6 2 &pcfg_pull_none>,
++					/* eth_rmii1_rxd1 */ <3 RK_PA7 2 &pcfg_pull_none>,
++					/* eth_rmii1_rxdvcrs */ <3 RK_PB6 2 &pcfg_pull_none>;
++			};
++
++			/omit-if-no-ref/
++			eth_rmii1_tx_bus2_pins: eth-rmii1-tx-bus2-pins {
++				rockchip,pins =
++					/* eth_rmii1_txd0 */ <3 RK_PB1 2 &pcfg_pull_none>,
++					/* eth_rmii1_txd1 */ <3 RK_PB2 2 &pcfg_pull_none>,
++					/* eth_rmii1_txen */ <3 RK_PB3 2 &pcfg_pull_none>;
++			};
++
++			/omit-if-no-ref/
++			eth_rmii1_clk_pins: eth-rmii1-clk-pins {
++				rockchip,pins =
++					/* eth_rmii1_clk */ <3 RK_PB0 2 &pcfg_pull_none>;
++			};
++		};
+ 	};
+ };
+diff --git a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+index 8cd960ca4..b378b0b77 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
++++ b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+@@ -33,6 +33,37 @@ &uart0 {
+ 	status = "okay";
+ };
+ 
++/*
++ * Ethernet (gmac1, RMII) — the live RJ45 on the AES board (ATK reference:
++ * rk3506b-alientek.dtsi). Mainline dwmac-rk has full rk3506 glue (RMII mode +
++ * GRF clock regs); the SoC node + eth_rmii1 pinctrl are in rk3506.dtsi. PHY is
++ * a generic C22 device at mdio addr 1; reset on GPIO0_PC4 (active-low).
++ */
++&gmac1 {
++	phy-mode = "rmii";
++	clock_in_out = "output";
++
++	snps,reset-gpio = <&gpio0 RK_PC4 GPIO_ACTIVE_LOW>;
++	snps,reset-active-low;
++	snps,reset-delays-us = <0 20000 100000>;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&eth_rmii1_miim_pins
++		     &eth_rmii1_tx_bus2_pins
++		     &eth_rmii1_rx_bus2_pins
++		     &eth_rmii1_clk_pins>;
++
++	phy-handle = <&rmii_phy1>;
++	status = "okay";
++};
++
++&mdio1 {
++	rmii_phy1: phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <0x1>;
++	};
++};
++
+ /*
+  * SPI-NAND (Winbond W25N04KV, 4Gb) on the SFC. Lets Linux see the NAND as MTD
+  * + attach UBI for persistent rootfs (see notes/10). Partition layout mirrors
+-- 
+2.43.0
+

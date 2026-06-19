@@ -1,0 +1,183 @@
+From dc82e920209f4cb284949d791bb86647bcc63582 Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Fri, 19 Jun 2026 17:50:20 +0800
+Subject: [PATCH] ARM: dts: rockchip: rk3506b-aes: enable 2nd Ethernet (gmac0,
+ RMII)
+
+The ATK/AES board has TWO RJ45 ports (gmac0 ff4c8000 + gmac1 ff4d0000), each
+with a YT8512 PHY. 0004 only enabled gmac1; vendor image (boot-sdl-2026-06191732
++ vendor_sdk_ubifs) confirms BOTH ports probe and the user's cable is on gmac0,
+which is why forge's eth0(=gmac1) showed NO-CARRIER. Add gmac0: SoC node +
+mdio0 + eth_rmii0 pinctrl (bank2) into rk3506.dtsi, and the board override
+(reset GPIO0_PA0, phy-handle rmii_phy0, status okay) + rmii_phy0 into
+rk3506b-aes.dts. ethernet0 alias added. Both RJ45s now usable.
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
+---
+ arch/arm/boot/dts/rockchip/rk3506.dtsi     | 86 ++++++++++++++++++++++
+ arch/arm/boot/dts/rockchip/rk3506b-aes.dts | 38 +++++++++-
+ 2 files changed, 120 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/boot/dts/rockchip/rk3506.dtsi b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+index 25786aaf1..55d91e290 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506.dtsi
++++ b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+@@ -37,6 +37,7 @@ aliases {
+ 		gpio3 = &gpio3;
+ 		gpio4 = &gpio4;
+ 		serial0 = &uart0;
++		ethernet0 = &gmac0;
+ 		ethernet1 = &gmac1;
+ 	};
+ 
+@@ -166,6 +167,60 @@ sfc: spi@ff488000 {
+ 		status = "disabled";
+ 	};
+ 
++	gmac0: ethernet@ff4c8000 {
++		compatible = "rockchip,rk3506-gmac", "snps,dwmac-4.20a";
++		reg = <0xff4c8000 0x2000>;
++		interrupts = <GIC_SPI 66 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-names = "macirq", "eth_wake_irq";
++		rockchip,grf = <&grf>;
++		clocks = <&cru CLK_MAC0>, <&cru CLK_MAC0_PTP>,
++			 <&cru PCLK_MAC0>, <&cru ACLK_MAC0>;
++		clock-names = "stmmaceth", "ptp_ref",
++			      "pclk_mac", "aclk_mac";
++		resets = <&cru SRST_A_MAC0>;
++		reset-names = "stmmaceth";
++
++		assigned-clocks = <&cru CLK_MAC0_PTP>;
++		assigned-clock-rates = <62500000>;
++
++		snps,mixed-burst;
++		snps,tso;
++
++		snps,axi-config = <&gmac0_stmmac_axi_setup>;
++		snps,mtl-rx-config = <&gmac0_mtl_rx_setup>;
++		snps,mtl-tx-config = <&gmac0_mtl_tx_setup>;
++
++		phy-mode = "rmii";
++		status = "disabled";
++
++		mdio0: mdio {
++			compatible = "snps,dwmac-mdio";
++			#address-cells = <0x1>;
++			#size-cells = <0x0>;
++		};
++
++		gmac0_stmmac_axi_setup: stmmac-axi-config {
++			snps,wr_osr_lmt = <4>;
++			snps,rd_osr_lmt = <8>;
++			snps,blen = <0 0 0 0 16 8 4>;
++		};
++
++		gmac0_mtl_rx_setup: rx-queues-config {
++			snps,rx-queues-to-use = <1>;
++			queue0 {
++				status = "okay";
++			};
++		};
++
++		gmac0_mtl_tx_setup: tx-queues-config {
++			snps,tx-queues-to-use = <1>;
++			queue0 {
++				status = "okay";
++			};
++		};
++	};
++
+ 	gmac1: ethernet@ff4d0000 {
+ 		compatible = "rockchip,rk3506-gmac", "snps,dwmac-4.20a";
+ 		reg = <0xff4d0000 0x2000>;
+@@ -385,6 +440,37 @@ uart0_xfer_pins: uart0-xfer-pins {
+ 			};
+ 		};
+ 
++		eth_rmii0 {
++			/omit-if-no-ref/
++			eth_rmii0_miim_pins: eth-rmii0-miim-pins {
++				rockchip,pins =
++					/* eth_rmii0_mdc */ <2 RK_PB6 1 &pcfg_pull_none>,
++					/* eth_rmii0_mdio */ <2 RK_PB7 1 &pcfg_pull_none>;
++			};
++
++			/omit-if-no-ref/
++			eth_rmii0_rx_bus2_pins: eth-rmii0-rx-bus2-pins {
++				rockchip,pins =
++					/* eth_rmii0_rxd0 */ <2 RK_PB0 1 &pcfg_pull_none>,
++					/* eth_rmii0_rxd1 */ <2 RK_PB1 1 &pcfg_pull_none>,
++					/* eth_rmii0_rxdvcrs */ <2 RK_PC0 1 &pcfg_pull_none>;
++			};
++
++			/omit-if-no-ref/
++			eth_rmii0_tx_bus2_pins: eth-rmii0-tx-bus2-pins {
++				rockchip,pins =
++					/* eth_rmii0_txd0 */ <2 RK_PB3 1 &pcfg_pull_none>,
++					/* eth_rmii0_txd1 */ <2 RK_PB4 1 &pcfg_pull_none>,
++					/* eth_rmii0_txen */ <2 RK_PB5 1 &pcfg_pull_none>;
++			};
++
++			/omit-if-no-ref/
++			eth_rmii0_clk_pins: eth-rmii0-clk-pins {
++				rockchip,pins =
++					/* eth_rmii0_clk */ <2 RK_PB2 1 &pcfg_pull_none>;
++			};
++		};
++
+ 		eth_rmii1 {
+ 			/omit-if-no-ref/
+ 			eth_rmii1_miim_pins: eth-rmii1-miim-pins {
+diff --git a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+index 7f3dccc39..6017be15f 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
++++ b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+@@ -34,10 +34,40 @@ &uart0 {
+ };
+ 
+ /*
+- * Ethernet (gmac1, RMII) — the live RJ45 on the AES board (ATK reference:
+- * rk3506b-alientek.dtsi). Mainline dwmac-rk has full rk3506 glue (RMII mode +
+- * GRF clock regs); the SoC node + eth_rmii1 pinctrl are in rk3506.dtsi. PHY is
+- * a generic C22 device at mdio addr 1; reset on GPIO0_PC4 (active-low).
++ * Ethernet — DUAL RJ45 on the AES board (ATK has both gmac0 + gmac1, each with
++ * a YT8512 PHY). Mainline dwmac-rk has full rk3506 RMII glue. The board's two
++ * ports: gmac0 reset on GPIO0_PA0, gmac1 reset on GPIO0_PC4 (both active-low);
++ * each PHY is a generic C22 device at mdio addr 1. Enable both so either RJ45
++ * links (vendor image证实双口都在用).
++ */
++&gmac0 {
++	phy-mode = "rmii";
++	clock_in_out = "output";
++
++	snps,reset-gpio = <&gpio0 RK_PA0 GPIO_ACTIVE_LOW>;
++	snps,reset-active-low;
++	snps,reset-delays-us = <0 20000 100000>;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&eth_rmii0_miim_pins
++		     &eth_rmii0_tx_bus2_pins
++		     &eth_rmii0_rx_bus2_pins
++		     &eth_rmii0_clk_pins>;
++
++	phy-handle = <&rmii_phy0>;
++	status = "okay";
++};
++
++&mdio0 {
++	rmii_phy0: phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <0x1>;
++	};
++};
++
++/*
++ * gmac1 — second RJ45. SoC node + eth_rmii1 pinctrl in rk3506.dtsi; reset on
++ * GPIO0_PC4.
+  */
+ &gmac1 {
+ 	phy-mode = "rmii";
+-- 
+2.43.0
+

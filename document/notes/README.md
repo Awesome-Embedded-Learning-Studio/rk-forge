@@ -43,6 +43,14 @@ most useful part.
 | 17 | [17-…-patch-solidification-sop](17-2026-06-18-patch-solidification-sop.md) | patch 固化 SOP |
 | 18 | [18-…-board-verification-playbook](18-2026-06-18-board-verification-playbook.md) | 上板验证 playbook |
 | 19 | [19-…-buildroot-minimal-rootfs-first-build](19-2026-06-18-buildroot-minimal-rootfs-first-build.md) | buildroot 最小 rootfs 首次构建成功(/opt Arm GNU 15.2 外部工具链,3 连坑:PATH/语言 check/RPC) |
+| 20 | [20-…-mkimage-saga-handoff](20-2026-06-19-mkimage-saga-handoff.md) | mkimage saga:fit-pack.py 纯 Python FIT packer 替 vendor mkimage(P4 收官) |
+| 21 | [21-…-peripheral-bringup-a1-eth-mmc-spi](21-2026-06-19-peripheral-bringup-a1-eth-mmc-spi.md) | 外设 A1:Ethernet 双口 + SPI + MMC/SD 全板验跑通(Role 2 自足第一刀;方法论:vendor 同板 log 证硬件) |
+| 22 | [22-…-mmc-sd-error110-investigation](22-2026-06-19-mmc-sd-error110-investigation.md) | MMC -110 排查:两次误判(物理→驱动回归),真因卡接触;逐项排除 DT/clk/pinctrl 等价 vendor 的方法论 |
+| 23 | [23-…-peripheral-bringup-a2-rmio-i2c-uart2](23-2026-06-19-peripheral-bringup-a2-rmio-i2c-uart2.md) | 外设 A2:RMIO 交叉开关(0007)+ I2C×3 + UART2 + GT911 触摸,pinctrl-rockchip RMIO 移植 |
+| 24 | [24-…-sfc-abort-rootcause-reserved-memory-trust](24-2026-06-19-sfc-abort-rootcause-reserved-memory-trust.md) | **RW/abort saga 真根因**:DT 缺 reserved-memory → OP-TEE/trust 物理页分给用户态 → external abort;tmpfs 判别 + patch 0012 + 板验 50/50 过 |
+| 25 | [25-…-sfc-abort-misdiagnosis-ddr-sfc-pitfalls](25-2026-06-19-sfc-abort-misdiagnosis-ddr-sfc-pitfalls.md) | abort saga 两轮误诊复盘(DDR 头号嫌疑 / SFC PIO-DMA)+ 方法论(imprecise FAR 不可信、tmpfs 判别器、vendor 对齐) |
+| 26 | [26-…-ubiprog-loader-weakwrite-status-and-rkbin-lead](26-2026-06-19-ubiprog-loader-weakwrite-status-and-rkbin-lead.md) | ubiprog/loader 弱写现状(独立于 abort,recovery 非 cure)+ 下一步 rkbin 配置对齐线索 |
+| 27 | [27-…-loader-weakwrite-overturned-linux-sfc-read-bug-dma](27-2026-06-20-loader-weakwrite-overturned-linux-sfc-read-bug-dma.md) | **"loader 弱写"第三次翻案**:U-Boot/Linux 同 flash 对比坐实 Linux SFC 读 bug(B);DLL/频率否、PIO/DMA 头号;DMA 实验(update-rwfix-dma.img) |
 
 另有 [nand-ecc-debug-handoff.md](nand-ecc-debug-handoff.md)(早期 NAND ECC 调试交接,部分结论已被后续 saga 取代,以 [pitfalls/04](../pitfalls/04-sfc-nand-saga.md) 为准)。
 

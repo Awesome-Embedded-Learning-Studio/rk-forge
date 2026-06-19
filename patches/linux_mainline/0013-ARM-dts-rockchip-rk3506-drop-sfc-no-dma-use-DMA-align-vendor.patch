@@ -1,0 +1,42 @@
+From 4b5b71202baa4cbcf1bd4264a811825f0441d7b6 Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Sat, 20 Jun 2026 00:46:31 +0800
+Subject: [13/13] ARM: dts: rockchip: rk3506: drop rockchip,sfc-no-dma (use
+ DMA, align vendor)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The sfc node carried rockchip,sfc-no-dma, forcing PIO. It was a stale debug
+workaround from the read-corruption saga (nand-ecc-debug-handoff, "rule out
+DMA/cache"); the "DMA reads corrupt" premise was never proven. vendor rk3506
+fspi has no no-dma (uses DMA). Drop it to align vendor.
+
+NB: this does NOT fix the rootfs PEB-3/4 -74 — board-verified (notes/27) that
+that is loader marginal write (~8 bitflips, read-nondeterministic) handled by
+ubiprog, independent of PIO/DMA (fails at 24MHz+DMA too). DMA is kept purely
+for vendor parity.
+---
+ arch/arm/boot/dts/rockchip/rk3506.dtsi | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/rockchip/rk3506.dtsi b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+index 03d060a0d..8c3ac5c00 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506.dtsi
++++ b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+@@ -251,7 +251,11 @@ sfc: spi@ff488000 {
+ 		clocks = <&cru SCLK_FSPI>, <&cru HCLK_FSPI>;
+ 		clock-names = "clk_sfc", "hclk_sfc";
+ 		rockchip,grf = <&grf_pmu>;	/* power-good gate (GRF_PMU+0x100 bit0); needed for reliable writes */
+-		rockchip,sfc-no-dma;	/* DMA reads corrupt on this board; force PIO (notes/10) */
++		/* No rockchip,sfc-no-dma → use DMA (aligns vendor rk3506 fspi, which has no no-dma).
++		 * The earlier no-dma was a stale debug workaround (nand-ecc-debug-handoff, "rule out
++		 * DMA/cache"); "DMA reads corrupt" was never proven. NB: DMA does NOT fix the
++		 * rootfs PEB-3/4 -74 — that's loader marginal write (~8flips, read-nondeterministic),
++		 * handled by ubiprog (notes/27). DMA kept purely for vendor parity. */
+ 		rockchip,max-dll = <0x17F>;	/* RK3506 SFC is VER_5; cap DLL cell scan (vendor value) */
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+-- 
+2.43.0
+

@@ -22,3 +22,56 @@
 # DT 80MHz read speed (vendor EVB speed; +50% read, 100MHz unusable: 98MHz PLL tap no DLL window).
 # Loader weak write on rootfs PEB3/4 covered by ubiprog first-boot rewrite.
 0003-ARM-dts-rockchip-rk3506b-aes-bump-SFC-read-to-80MHz.patch
+0004-ARM-dts-rockchip-rk3506b-aes-add-Ethernet-gmac1-RMII.patch
+0005-ARM-dts-rockchip-rk3506b-aes-add-MMC-SD-SPI0.patch
+0006-ARM-dts-rockchip-rk3506b-aes-enable-2nd-Ethernet-gmac0.patch
+
+# Phase A2 (I2C×3 + UART2 via the RK3506 RMIO crossbar):
+# 0007 — pinctrl driver: port vendor rockchip_set_rmio() so mux values beyond the
+# iomux width route through the RMIO crossbar in grf_pmu (looked up via the
+# pinctrl node's rockchip,rmio phandle). Double-gated on RK3506; no-op on other
+# SoCs and on func<=width pins, so Ethernet/MMC/SPI (A1) are unaffected.
+0007-pinctrl-rockchip-rk3506-rmio-crossbar-mux.patch
+# 0008 — DT: i2c0/1/2 + uart2 SoC nodes (rk3399-i2c / dw-apb-uart fallbacks),
+# pinctrl gains rockchip,rmio=<&grf_pmu>, RMIO pad groups (rm_io13/14,24/25,4/5,
+# 26/27), board override enabling all four + GT911 touch on i2c2. Pair with
+# CONFIG_TOUCHSCREEN_GOODIX=y in boards/rk3506-evb/kernel.config.
+0008-ARM-dts-rockchip-rk3506b-aes-I2C-UART2-RMIO-GT911.patch
+
+# Phase E (Audio: ES8388 + SAI1 + DMA):
+# 0009 — sai of_match: add rockchip,rk3506-sai (driver has no per-SoC data, empty
+# .data like rk3576) + pl330 5-cell dmamux: extend of_dma_pl330_xlate to program
+# the RK3506 GRF DMA-request crossbar (dmas = <dmac chan mux_reg val …>) so sai1
+# DMA binds. Single-cell users (other SoCs) unaffected.
+0009-ASoC-dmaengine-rk3506-sai-pl330-dmamux.patch
+# 0010 — DT: sai1@ff310000 + dmac0/dmac1 (pl330 #dma-cells=5) + es8388@11 on i2c0
+# + simple-audio-card (vendor rockchip,multicodecs-card rewritten mainline). sai1
+# pinctrl sdo0-only (stereo) to avoid clashing i2c0 on PB5/6. Pair with SOUND=y +
+# SND_SOC_ES8328_I2C=y + SND_SIMPLE_CARD=y in kernel.config (re-enabled; trim no
+# longer cuts SOUND — the 9.2MiB badblock rationale was a misdiagnosis).
+0010-ARM-dts-rockchip-rk3506b-aes-ES8388-audio-sai1-dmac.patch
+
+# RW root-cause (production): the imprecise-external-abort / write-bit-flip saga.
+# 0011 — SFC write-reliability: gate every op on controller-idle. Mainline issued
+# each SFC_CMD/SFC_CTRL posted write with no idle check; a controller left BUSY
+# (prior op timed out/errored/FIFO undrained) rejected the next command → async
+# AXI SLVERR → imprecise external abort (0xc06) → half-written ECC-uncorrectable
+# page → ubiprog 0xFF → code corruption. Mirrors vendor rkflash/sfc.c sfc_request
+# (reset if !TXEMPTY/!RXEMPTY/BUSY) + clears sticky SFC_ICLR. The real fix behind
+# the saga's "powergood→fatal" todo (powergood was a no-op misadd; this is it).
+0011-spi-rockchip-sfc-op-idle-gate-fix-external-abort.patch
+
+# THE actual write-stress abort root cause (the 0xc06/0x008 saga). Not the SFC:
+# the DT had no reserved-memory, so the kernel handed OP-TEE's resident physical
+# pages (loader TOS @ 0x1000, ~0x60000) to user space; the secure world rejects
+# the access as an external abort — reproducible even on dd-to-tmpfs (no NAND).
+# The decoded abort phys (0x5000) lands inside OP-TEE; 'No reserved-memory node'
+# in the kernel log confirms the carve-out was missing. Mirrors vendor trust@0.
+# (0011 stays as harmless hardening, but this is the real fix.)
+0012-ARM-dts-rockchip-rk3506b-aes-reserve-OP-TEE-trust-memory.patch
+
+# Drop rockchip,sfc-no-dma → use DMA (align vendor rk3506 fspi, which has no no-dma).
+# The earlier no-dma was a stale debug workaround (nand-ecc-debug-handoff); "DMA reads
+# corrupt" was never proven. NB: DMA does NOT fix the PEB-3/4 -74 (that's loader marginal
+# write + read-nondeterminism, handled by ubiprog — notes/27); kept for vendor parity.
+0013-ARM-dts-rockchip-rk3506-drop-sfc-no-dma-use-DMA-align-vendor.patch
