@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
-# pack-fit.sh — build the uboot + boot FIT images with MAINLINE mkimage.
+# pack-fit.sh — build the uboot + boot FIT images.
 #
-# The headline mainline substitution in forge's NAND packaging (notes/09 §二②③):
-# vendor built both FITs with rkbin/tools/mkimage (2017.09); we use mainline
-# U-Boot's own tools/mkimage (2026.07-rc4). Format-level compatibility is proven
-# (mainline mkimage -l parses vendor FITs; -E and -p 0x800 are both supported).
+# uboot.img is packed by scripts/fit-pack.py (a pure-Python reproduction of the
+# vendor mkimage 2017.09 -E external-data layout the rkbin SPL accepts — see
+# notes/20, the mkimage saga). boot.img / boot-nand.img are packed by mainline
+# U-Boot's own tools/mkimage (2026.07-rc4), which mainline U-Boot accepts. Neither
+# path depends on the ATK vendor-sdk mkimage — that dependency (P4) is closed.
 #
 # Two FITs, matching the vendor package-file names:
-#   uboot.img ← rk3506-mainline.its  (u-boot-nodtb + tee + u-boot.dtb)   VENDOR mkimage -E
-#       (vendor SPL parses only vendor mkimage's -E external-data layout — using
-#        mainline mkimage here → SPL reads optee at wrong offset → "optee Bad hash"
-#        → falls back to residual vendor uboot → can't boot mainline kernel)
+#   uboot.img ← rk3506-mainline.its  (u-boot-nodtb + tee + u-boot.dtb)   scripts/fit-pack.py
+#       (vendor SPL parses only the external-data layout vendor mkimage 2017.09 emits;
+#        the ATK fork that produces it is non-public, so fit-pack.py reproduces that
+#        layout in pure Python — byte-compatible FDT + 0x200-aligned external data +
+#        per-image sha256. `fit-pack.py selftest` proves SPL-equivalence to vendor.)
 #   boot.img  ← rk3506-kernel.its    (zImage + dtb + initramfs)          mainline mkimage -E -p 0x800
 #       (loaded by mainline U-Boot, which accepts mainline mkimage FITs)
 #
-# HONEST EDGE: these mainline-mkimage FITs are standard FIT, but whether the
-# vendor SPL's FIT parser actually boots them is board-test pending — our
-# currently-booting .itb was built with vendor mkimage. Same ITS, same -E/-p; low risk.
+# HONEST EDGE: fit-pack.py's output is structurally + hash-identical to vendor's
+# (selftest-proven) but not raw byte-identical — mkimage leaves a residual gap and
+# host timestamp/totalsize that SPL never reads. Board-boot is the final confirmation.
 #
 # Usage:
 #   scripts/pack-fit.sh [--out <dir>]
@@ -32,7 +34,7 @@ EXPLORE="${_PROJECT_ROOT}/third_party/explore"
 BRINGUP="${_PROJECT_ROOT}/third_party/bringup"
 OUT_DIR="${BRINGUP}/out"
 MKIMAGE="${EXPLORE}/uboot/tools/mkimage"            # mainline 2026.07-rc4 — kernel FIT (loaded by mainline U-Boot)
-VENDOR_MKIMAGE="${_PROJECT_ROOT}/third_party/vendor-sdk/u-boot/tools/mkimage"  # vendor 2017.09 — uboot FIT (vendor-SPL -E layout)
+FIT_PACK="${_PROJECT_ROOT}/scripts/fit-pack.py"      # pure-Python vendor-layout FIT packer — uboot FIT (vendor-SPL -E)
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --out) OUT_DIR="$2"; shift 2;;
@@ -42,7 +44,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -x "$MKIMAGE" ]] || die "mainline mkimage not built: $MKIMAGE (build U-Boot first)"
-[[ -x "$VENDOR_MKIMAGE" ]] || die "vendor mkimage not found: $VENDOR_MKIMAGE (needed for uboot FIT — vendor SPL needs its -E external-data layout)"
+[[ -f "$FIT_PACK" ]] || die "fit-pack.py missing: $FIT_PACK"
 
 need() { [[ -f "$1" ]] || die "missing input: $1"; }
 UBOOT_BIN="${EXPLORE}/uboot/u-boot-nodtb.bin"
@@ -76,17 +78,16 @@ cp "$UBOOT_BIN" "$W1/uboot-nodtb.bin"
 cp "$UBOOT_DTB" "$W1/u-boot.dtb"
 cp "$TEE"       "$W1/tee.bin"
 cp "${BRINGUP}/fit/rk3506-mainline.its" "$W1/"
-# uboot FIT MUST use vendor mkimage (2017.09) -E: vendor SPL only parses the
-# external-data layout vendor mkimage emits. mainline mkimage's -E puts optee data
-# at a different offset → SPL reads mis-aligned bytes → "optee Bad hash" (a sha256
-# that doesn't match the tee the SPL expects — e.g. observed 7b78fe4e vs the paired
-# tee's hash, 93603ca22c… for ATK v2.10) → SPL rejects the FIT → falls back to a
-# residual vendor uboot → can't boot mainline kernel → hang. (方案 B, board-proven
-# for the ATK chain.) The tee variant is resolved above from FORGE_RKBIN_DIR. Kernel
-# FIT below is loaded by mainline U-Boot (accepts mainline mkimage FITs), so it stays
-# on mainline mkimage.
-log_info "packing uboot.img (vendor mkimage -E, vendor-SPL-compatible layout)…"
-( cd "$W1" && "$VENDOR_MKIMAGE" -f rk3506-mainline.its -E uboot.img >/dev/null )
+# uboot FIT is packed by fit-pack.py, NOT mkimage: vendor SPL only parses the
+# external-data layout vendor mkimage 2017.09 emits, and the ATK fork that produces
+# it is non-public. fit-pack.py reproduces that layout in pure Python (FDT +
+# 0x200-aligned external data + per-image sha256, /totalsize sized so Rockchip SPL
+# loads the whole image). `fit-pack.py selftest` proves it structurally +
+# hash-identical to vendor's output; board-boot is the final confirmation. The tee
+# variant is resolved above from FORGE_RKBIN_DIR. The kernel FITs below are loaded
+# by mainline U-Boot (accepts mainline mkimage FITs), so they stay on mainline mkimage.
+log_info "packing uboot.img (fit-pack.py, vendor-SPL-compatible -E layout)…"
+python3 "$FIT_PACK" pack "$W1/rk3506-mainline.its" "$W1/uboot.img"
 cp "$W1/uboot.img" "$OUT_DIR/uboot.img"
 "$MKIMAGE" -l "$OUT_DIR/uboot.img" >/dev/null || die "uboot.img failed FIT parse"
 log_ok "uboot.img → $OUT_DIR/uboot.img ($(stat -c%s "$OUT_DIR/uboot.img") B)"
