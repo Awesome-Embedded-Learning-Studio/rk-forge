@@ -1,0 +1,4 @@
+# pins/uboot — upstream U-Boot source (mainline 2026.07-rc4 era).
+# Format: <git-url> <ref>. ref = the BASE the patches/uboot/series applies
+# onto (3 board/SFC/autoboot patches). P3: explore/uboot → third_party/src/uboot.
+https://gitlab.denx.de/u-boot/u-boot.git 5ca1a73c
