@@ -156,9 +156,19 @@ stage_status() {
 # mrproper the linux/uboot trees and clean buildroot — the basis for a full
 # from-scratch rebuild (`forge all` afterwards recompiles kernel + U-Boot + rootfs).
 stage_clean() {
+  local full="${CLEAN_FULL:-0}"
+  # --full may appear AFTER the subcommand (`forge clean --full`); the main arg
+  # parser breaks on the subcommand, so re-parse it here. (`forge --full clean`
+  # also works via the global CLEAN_FULL the main parser sets.)
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --full) full=1; shift;;
+      *) shift;;
+    esac
+  done
   log_info "removing ${OUT_DIR} (pack artifacts + stage fingerprints)"
   rm -rf "$OUT_DIR"
-  if [[ "$CLEAN_FULL" == 1 ]]; then
+  if [[ "$full" == 1 ]]; then
     # toolchain needed for mrproper (ARCH/CROSS_COMPILE); build scripts source it
     # themselves, but clean --full drives make directly here.
     # shellcheck disable=SC1091
@@ -170,7 +180,7 @@ stage_clean() {
     make -C "$BUILDROOT"  clean
     log_ok "source trees cleaned (full-rebuild basis)"
   fi
-  log_ok "clean done (--full=$CLEAN_FULL)"
+  log_ok "clean done (--full=$full)"
 }
 
 case "$CMD" in
@@ -180,6 +190,6 @@ case "$CMD" in
   assemble) stage_assemble ;;
   all)      stage_setup; stage_build; stage_pack; ASSEMBLE_VARIANT="${ASSEMBLE_VARIANT}" stage_assemble
             log_ok "all done → ${OUT_DIR}/update.img" ;;
-  clean)    stage_clean ;;
+  clean)    stage_clean "$@" ;;
   status)   stage_status ;;
 esac

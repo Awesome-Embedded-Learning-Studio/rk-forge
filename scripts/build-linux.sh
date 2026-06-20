@@ -78,15 +78,19 @@ else
   log_ok "zImage → arch/arm/boot/zImage ; dtb → arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
 
   # rtl8733bu.ko (CONFIG_RTL8733BU=m, the WiFi module stage-rootfs ships into the
-  # rootfs). zImage/dtbs don't build modules. Targeted M= build — NOT a full
-  # `make modules`, which would compile all 656 =m modules inherited from
-  # multi_v7_defconfig (slow, and unrelated SoC drivers may not build cleanly under
-  # armhf+gcc15). Only (re)build when missing: a clean tree (post-mrproper) triggers
-  # it; incremental runs skip (the module is stable once built, and the patch series
-  # is fixed, so it can't go stale without a tree change). ~3 min when it runs.
+  # rootfs). zImage/dtbs don't build modules. 8733bu is an IN-TREE module (patch
+  # 0016), so build it with the in-tree module.ko target (make path/to/8733bu.ko),
+  # NOT `make M=` — M= is external-module style and hits a modfinal rule error on
+  # this in-tree module. The module.ko modpost needs the top-level Module.symvers:
+  # make zImage produces only vmlinux.symvers (vmlinux symbols), NOT Module.symvers
+  # (that needs `make modules`, which we avoid — 656 modules). 8733bu references
+  # only vmlinux symbols (core + CFG80211=y built-in), so seed Module.symvers from
+  # vmlinux.symvers (standard trick for a vmlinux-only tree). Only build when
+  # missing; incremental runs skip. ~3 min when it runs.
   if [[ ! -f drivers/net/wireless/realtek/rtl8733bu/8733bu.ko ]]; then
-    log_info "building rtl8733bu.ko (M= targeted; missing — full-rebuild case)"
-    make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" M=drivers/net/wireless/realtek/rtl8733bu modules
+    [[ -f Module.symvers ]] || cp vmlinux.symvers Module.symvers
+    log_info "building rtl8733bu.ko (in-tree module.ko target; missing — full-rebuild case)"
+    make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" drivers/net/wireless/realtek/rtl8733bu/8733bu.ko
     log_ok "rtl8733bu.ko → drivers/net/wireless/realtek/rtl8733bu/8733bu.ko"
   else
     log_info "rtl8733bu.ko present (skip module build)"
