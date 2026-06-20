@@ -54,9 +54,19 @@ fi
 log_info "make evb-rk3506_defconfig (the aes board config from patches/uboot/0001)"
 make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" evb-rk3506_defconfig
 
-log_info "make -j$(nproc) (binman combined-image failure tolerated; pack-fit uses the separate pieces)"
-make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" \
-  || log_warn "make returned non-zero (binman combined image needs rkbin blobs) — continuing if the separate pieces built"
+log_info "make -j$(nproc) (binman output filtered — its combined image is unused)"
+# `make all` builds the separate pieces pack-fit needs (u-boot-nodtb.bin,
+# u-boot.dtb, tools/mkimage) AND runs binman for the combined image (u-boot.itb),
+# which needs the rkbin rockchip-tpl blob → "Error 103 / missing external blobs".
+# We never use that combined image (pack-loader builds the loader from rkbin
+# blobs; pack-fit packs uboot.img from the separate pieces), so filter binman's
+# noise from the log and tolerate its non-zero exit. The verify below is the real
+# success criterion. (Building only the separate-piece targets was tried but
+# `make tools/mkimage` hits a path-resolution error standalone; make all + filter
+# is the robust path.)
+make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" 2>&1 \
+  | grep -vE "BINMAN |simple-bin|rockchip-tpl|external blob|external TPL|faked external|images are invalid|Error 103|binman_stamp|/binman/|rockchip-linux/rkbin" \
+  || true
 
 # verify the artifacts pack-fit needs
 for f in u-boot-nodtb.bin u-boot.dtb tools/mkimage; do
