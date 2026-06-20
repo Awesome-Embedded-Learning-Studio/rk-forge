@@ -50,14 +50,12 @@ if [[ -f "$ASSETS/sample-3s.mp3" ]]; then
   log_ok "sample-3s.mp3 → root/ ($(stat -c%s "$ROOT/root/sample-3s.mp3") B)"
 fi
 
-# Phase WiFi: stage the out-of-tree RTL8733BU driver + firmware into the rootfs.
-# The .ko is built in the kernel tree (CONFIG_RTL8733BU=m); firmware comes from
-# the ATK overlay (rtl8733bu_fw + rtl8733bu_config — canonical chip names). The
-# S99wifi init script (overlay/etc/init.d) insmods it after switch_root, when
-# /lib/firmware is readable for request_firmware(). See document/notes/29.
+# Phase WiFi: stage the RTL8733BU driver module into the rootfs.
+# The .ko is built in-tree (CONFIG_RTL8733BU=m; the drop is materialized by
+# scripts/fetch-rtl8733bu-driver.sh + wired by quilt patch 0016). The S99wifi
+# init script (overlay/etc/init.d) insmods it after switch_root. See notes/29.
 LINUX="${_PROJECT_ROOT}/third_party/explore/linux"
 KO="${LINUX}/drivers/net/wireless/realtek/rtl8733bu/8733bu.ko"
-ATK_FW="${_PROJECT_ROOT}/third_party/vendor-sdk/buildroot/board/alientek/atk-dlrk3506/fs-overlay/usr/lib/firmware"
 if [[ -f "$KO" ]]; then
   mkdir -p "$ROOT/lib/modules"
   cp "$KO" "$ROOT/lib/modules/8733bu.ko"
@@ -65,16 +63,23 @@ if [[ -f "$KO" ]]; then
 else
   log_info "note: 8733bu.ko not built yet — run kernel module build first (WiFi will be absent)"
 fi
+
+# Firmware: best-effort from the forge-local firmware/rtl8733bu/ dir. UNUSED at
+# runtime — the driver loads firmware from a built-in C array (log
+# boot-sdl-202606201050 L613), so /lib/firmware files are a belt-and-suspenders
+# fallback only. Sourcing here (NOT the ATK vendor-sdk path) decouples this
+# script from third_party/vendor-sdk so it can be deleted (kill-vendor-sdk).
+# See firmware/rtl8733bu/README.md.
 mkdir -p "$ROOT/lib/firmware"
+FW_DIR="${RTL8733BU_FW_DIR:-${_PROJECT_ROOT}/firmware/rtl8733bu}"
 for fw in rtl8733bu_fw rtl8733bu_config; do
-  if [[ -f "${ATK_FW}/${fw}" ]]; then
-    cp "${ATK_FW}/${fw}" "$ROOT/lib/firmware/${fw}"
-  else
-    log_info "note: missing firmware ${fw} (ATK overlay moved?)"
-  fi
+  [[ -f "${FW_DIR}/${fw}" ]] && cp "${FW_DIR}/${fw}" "$ROOT/lib/firmware/${fw}"
 done
-[[ -f "$ROOT/lib/firmware/rtl8733bu_fw" ]] \
-  && log_ok "firmware rtl8733bu_fw + rtl8733bu_config → lib/firmware/"
+if [[ -f "$ROOT/lib/firmware/rtl8733bu_fw" ]]; then
+  log_ok "firmware rtl8733bu_fw + rtl8733bu_config → lib/firmware/ (unused-at-runtime fallback)"
+else
+  log_info "note: no firmware/rtl8733bu/ blobs — harmless (driver loads FW from built-in array)"
+fi
 
 log_info "tree size: $(du -sh "$ROOT" | cut -f1)"
 log_info "next: scripts/pack-ubifs.sh  →  $OUT_DIR/rootfs.ubi.img"

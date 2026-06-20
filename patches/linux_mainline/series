@@ -88,3 +88,14 @@
 # aes board enables both ports as dr_mode="host". dwc2 binds on the fallback, so
 # no dwc2 driver patch. Pairs with USB_SUPPORT (un-trimmed) + USB_DWC2_HOST=y.
 0015-ARM-dts-rockchip-rk3506b-aes-add-USB2PHY-DWC2.patch
+
+# Phase WiFi (RTL8733BU onboard, USB 0bda:b733 behind the CH334R hub):
+# 0016 — ONLY the 2-line realtek registration (source Kconfig + obj-$ line).
+# The driver drop itself (221 upstream source files) is NOT a patch — it's
+# materialized by scripts/fetch-rtl8733bu-driver.sh from wirenboard@pin + the
+# forge overlay under drivers/rtl8733bu/ (Kbuild Makefile + Kconfig + the
+# cfg80211 wdev-wrapper patch for 6.14+ ops drift). The drop is gitignored in
+# the kernel clone. Pair with CONFIG_CFG80211=y / WLAN_VENDOR_REALTEK=y /
+# RTL8733BU=m in kernel.config (re-enable WLAN in kernel-trim). Run the fetch
+# script BEFORE apply-series so rtl8733bu/Kconfig exists when 0016 sources it.
+0016-wifi-rtl8733bu-wire-realtek.patch

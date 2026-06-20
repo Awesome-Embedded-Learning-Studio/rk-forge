@@ -140,9 +140,19 @@ cp third_party/bringup/out/update.img /mnt/d/DownloadFromInternet/update-wifi-rt
 - 还原了被 `make O=.` 污染成 7 行 wrapper 的内核顶层 `Makefile`(`git checkout -- Makefile`)。
 
 ## 待办
-- **patch-化**(生产级可复现,板测已确认可做):`realtek` 接线 2 行→小 patch 进
-  `patches/linux_mainline/`;rtl8733bu/ vendor drop→写 `scripts/fetch-rtl8733bu-driver.sh`
-  (clone wirenboard + 拷 tracked 的 Kbuild Makefile + apply wdev wrapper patch + 清 .o 产物),
-  不进 git 当 blob。pitfalls/07 末尾有详细方案。
+- **✅ patch-化 DONE(2026-06-20,P1)+ fork 收口**:生产级可复现。**驱动真相源 = forge fork**
+  `Awesome-Embedded-Learning-Studio/rtl8733bu-linux-driver`(branch `linux-7.1-port`,**GPL-2.0-only**):
+  Realtek → wirenboard `v5.15.12-264_for6.18` → 7.1 移植(静态 Kbuild + USB&&CFG80211 Kconfig +
+  cfg80211 wdev-ops wrapper)全 bake 进 fork,fork 即 ready-to-build 驱动。rk-forge 这边:
+  - `patches/linux_mainline/0016-wifi-rtl8733bu-wire-realtek.patch` = realtek 接线 2 行(quilt,跟 0001-0015 同工艺)。
+  - `scripts/fetch-rtl8733bu-driver.sh` = **简化版**:clone fork @ pin → strip .git → 清产物 → `.git/info/exclude` 忽略(无 overlay 步骤,移植已在 fork 里)。
+  - `pins/rtl8733bu` = `<fork-url> linux-7.1-port`(tracked pin;SHA/tag 可锁发布)。
+  - `drivers/rtl8733bu/` overlay **已从 rk-forge 删除**(搬进 fork,避免双源真相)。
+  - **验证**:fetch 从 fork 逐字重现板上树(source identical)+ 幂等(SHA marker)+ 干净 v7.1 全 16-patch series apply + 8733bu.ko 从 fetched 树零错编出(4163516 B)。
+  - **固件脱钩**:`stage-rootfs.sh` 不再硬依赖 ATK vendor-sdk 路径(原 line 60)→ forge-local
+    `firmware/rtl8733bu/`(gitignored blobs,blob 同 rkbin-atk 立场)。kill-vendor-sdk WiFi 段闭环。
+    固件运行时不用(驱动走内建 array),best-effort 暂存。
+  - **许可**:fork GPL-2.0-only(Realtek 头 + fork 根 LICENSE);rk-forge 仓 MIT,fetch 引用不感染(类 Nixpkgs/Yocto)。不 relicense。
+  - 详见 pitfalls/07 §patch-化方案 + fork 仓 README。
 - **补 `regulatory.db`**(可选)。
-- commit 整批改动。
+- commit 整批改动(P1)。

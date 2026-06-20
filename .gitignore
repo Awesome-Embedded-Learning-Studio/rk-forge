@@ -42,6 +42,14 @@ verdor-sdk.gz
 # preserved on local branch `local/rkbin-atk` (was 25f486b). See pack-loader.sh + BLOBS.md.
 /third_party/rkbin-atk/
 
+# WiFi RTL8733BU firmware: LOCAL-only Realtek blobs (UNUSED at runtime — the
+# driver loads firmware from a built-in array; see firmware/rtl8733bu/README.md).
+# Gitignored like rkbin-atk (redistribution unverified). stage-rootfs.sh stages
+# them best-effort; absence is harmless. Decouples it from the ATK vendor-sdk path.
+/firmware/rtl8733bu/*
+!/firmware/rtl8733bu/README.md
+!/firmware/rtl8733bu/.gitkeep
+
 # (imx-forge template moved out of this repo to ~/imx-forge; no longer present to ignore)
 
 # --- editor / tooling ---
