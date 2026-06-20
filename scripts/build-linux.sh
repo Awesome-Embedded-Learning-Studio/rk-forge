@@ -76,4 +76,19 @@ else
   make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" zImage dtbs
   make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" rockchip/rk3506b-aes.dtb
   log_ok "zImage → arch/arm/boot/zImage ; dtb → arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
+
+  # rtl8733bu.ko (CONFIG_RTL8733BU=m, the WiFi module stage-rootfs ships into the
+  # rootfs). zImage/dtbs don't build modules. Targeted M= build — NOT a full
+  # `make modules`, which would compile all 656 =m modules inherited from
+  # multi_v7_defconfig (slow, and unrelated SoC drivers may not build cleanly under
+  # armhf+gcc15). Only (re)build when missing: a clean tree (post-mrproper) triggers
+  # it; incremental runs skip (the module is stable once built, and the patch series
+  # is fixed, so it can't go stale without a tree change). ~3 min when it runs.
+  if [[ ! -f drivers/net/wireless/realtek/rtl8733bu/8733bu.ko ]]; then
+    log_info "building rtl8733bu.ko (M= targeted; missing — full-rebuild case)"
+    make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" M=drivers/net/wireless/realtek/rtl8733bu modules
+    log_ok "rtl8733bu.ko → drivers/net/wireless/realtek/rtl8733bu/8733bu.ko"
+  else
+    log_info "rtl8733bu.ko present (skip module build)"
+  fi
 fi

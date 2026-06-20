@@ -13,7 +13,8 @@
 #   scripts/forge.sh pack       pack loader + FITs + stage/ubifs rootfs
 #   scripts/forge.sh assemble [--provision|--nand|--rescue]   assemble update.img
 #   scripts/forge.sh all        setup -> build -> pack -> assemble (--provision)
-#   scripts/forge.sh clean      rm -rf out/ (+ stage state)
+#   scripts/forge.sh clean [--full]  rm -rf out/ (+ stage state); --full also
+#                                  mrproper linux/uboot + clean buildroot (full rebuild)
 #   scripts/forge.sh status     show which stages are up-to-date
 #
 #   --force   re-run stages even if inputs are unchanged (skip the skip).
@@ -34,13 +35,14 @@ source "${_SCRIPT_DIR}/lib/stage.sh"   # stage_up_to_date / stage_mark_done
 source "${_SCRIPT_DIR}/lib/host.sh"    # forge_warn_windows_path (WSL PATH detection)
 
 STATE_DIR="${OUT_DIR}/.forge-stage"
-FORCE=0; NO_SKIP=0; CMD=""
+FORCE=0; NO_SKIP=0; CLEAN_FULL=0; CMD=""
 
 # --- argument parse (flags + one subcommand + its passthrough) ---------------
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --force)   FORCE=1; shift;;
     --no-skip) NO_SKIP=1; shift;;
+    --full)    CLEAN_FULL=1; shift;;
     setup|build|pack|assemble|all|clean|status) CMD="$1"; shift; break;;
     -h|--help) sed -n '2,20p' "$0"; exit 0;;
     *) die "unknown arg: $1 (want a subcommand: setup|build|pack|assemble|all|clean|status)";;
@@ -144,6 +146,27 @@ stage_status() {
   done
 }
 
+# clean: remove out/ (pack artifacts + stage fingerprints). With --full, also
+# mrproper the linux/uboot trees and clean buildroot — the basis for a full
+# from-scratch rebuild (`forge all` afterwards recompiles kernel + U-Boot + rootfs).
+stage_clean() {
+  log_info "removing ${OUT_DIR} (pack artifacts + stage fingerprints)"
+  rm -rf "$OUT_DIR"
+  if [[ "$CLEAN_FULL" == 1 ]]; then
+    # toolchain needed for mrproper (ARCH/CROSS_COMPILE); build scripts source it
+    # themselves, but clean --full drives make directly here.
+    # shellcheck disable=SC1091
+    source "${_SCRIPT_DIR}/lib/toolchain.sh"
+    check_toolchain || die "toolchain not on PATH (needed for mrproper). Run: source scripts/env-setup.sh"
+    log_info "[--full] make mrproper linux + uboot + make clean buildroot"
+    make -C "$LINUX_DIR"  ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" mrproper
+    make -C "$UBOOT_DIR"  ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" mrproper
+    make -C "$BUILDROOT"  clean
+    log_ok "source trees cleaned (full-rebuild basis)"
+  fi
+  log_ok "clean done (--full=$CLEAN_FULL)"
+}
+
 case "$CMD" in
   setup)    stage_setup ;;
   build)    stage_build ;;
@@ -151,6 +174,6 @@ case "$CMD" in
   assemble) stage_assemble ;;
   all)      stage_setup; stage_build; stage_pack; ASSEMBLE_VARIANT="${ASSEMBLE_VARIANT}" stage_assemble
             log_ok "all done → ${OUT_DIR}/update.img" ;;
-  clean)    log_info "removing ${OUT_DIR}"; rm -rf "$OUT_DIR"; log_ok "clean" ;;
+  clean)    stage_clean ;;
   status)   stage_status ;;
 esac
