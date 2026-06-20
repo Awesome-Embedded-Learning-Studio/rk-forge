@@ -39,6 +39,8 @@ _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + OUT_DIR + FORGE_RKBIN_DIR (config/forge.env)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/rkbin.sh"    # rkbin_load: resolve {ddr,usbplug,spl,tee} from FORGE_RKBIN_DIR
 
 # boot_merger is version-tolerant → always from the PUBLIC rkbin, independent of
 # which blob source FORGE_RKBIN_DIR points at (public vs rkbin-atk).
@@ -52,25 +54,16 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-BLOB_DIR="${FORGE_RKBIN_DIR}/bin/rk35"
 BOOT_MERGER="${RKBIN_PUBLIC}/tools/boot_merger"              # packer is version-tolerant; always public
-INI_TPL="${_PROJECT_ROOT}/third_party/bringup/RKBOOT-RK3506B-aes.ini"
+INI_TPL="${BRINGUP}/RKBOOT-RK3506B-aes.ini"
 
-[[ -d "$BLOB_DIR" ]]   || die "rkbin blob dir not found: $BLOB_DIR (init submodule? scripts/fetch-deps.sh atk-blobs?)"
 [[ -x "$BOOT_MERGER" ]]|| die "boot_merger not found/executable: $BOOT_MERGER (init third_party/rkbin submodule)"
 [[ -f "$INI_TPL" ]]    || die "loader ini template not found: $INI_TPL"
 
-# Resolve blob versions by glob — version-agnostic across rkbin trees. Picks the
-# highest version present (sort | tail -1).
-resolve_blob() {  # <glob-suffix-pattern> <label>
-  local pat="$1" label="$2" hit
-  hit=$(ls "$BLOB_DIR"/$pat 2>/dev/null | sort | tail -1)
-  [[ -n "$hit" ]] || die "$label blob not found under $BLOB_DIR (pattern: $pat)"
-  basename "$hit"
-}
-DDR_BIN=$(resolve_blob  'rk3506b_ddr_750MHz_v1.*.bin' 'DDR')      # skips the _rt_ variant
-USBPLUG_BIN=$(resolve_blob 'rk3506_usbplug_v1.*.bin' 'usbplug')
-SPL_BIN=$(resolve_blob    'rk3506_spl_v1.*.bin'       'SPL')
+# Resolve the blob tuple from FORGE_RKBIN_DIR via lib/rkbin.sh (shared with
+# pack-fit.sh → SPL<->tee hash pair stays consistent by construction).
+rkbin_load
+BLOB_DIR="$RKBIN_BLOB_DIR"; DDR_BIN="$RKBIN_DDR"; USBPLUG_BIN="$RKBIN_USBPLUG"; SPL_BIN="$RKBIN_SPL"
 log_info "loader blobs: ddr=$DDR_BIN  usbplug=$USBPLUG_BIN  spl=$SPL_BIN  (from $FORGE_RKBIN_DIR)"
 
 mkdir -p "$OUT_DIR"

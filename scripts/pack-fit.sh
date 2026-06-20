@@ -31,6 +31,8 @@ _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + OUT_DIR/LINUX_DIR/UBOOT_DIR/BRINGUP (config/forge.env)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/rkbin.sh"    # rkbin_load: resolve tee (same resolver as pack-loader.sh)
 
 MKIMAGE="${UBOOT_DIR}/tools/mkimage"            # mainline 2026.07-rc4 — kernel FIT (loaded by mainline U-Boot)
 FIT_PACK="${_PROJECT_ROOT}/scripts/fit-pack.py"      # pure-Python vendor-layout FIT packer — uboot FIT (vendor-SPL -E)
@@ -53,20 +55,16 @@ KERN_DTB="${LINUX_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
 INITRAMFS="${BRINGUP}/fit/initramfs.cpio.gz"
 need "$UBOOT_BIN"; need "$UBOOT_DTB"; need "$ZIMAGE"; need "$KERN_DTB"; need "$INITRAMFS"
 
-# tee blob: resolved from the SAME rkbin source as the loader (FORGE_RKBIN_DIR, default
-# the public submodule) so the SPL↔tee verified-boot hash pair stays CONSISTENT.
-#   public submodule → tee v2.40 (pairs with public SPL v1.12 in pack-loader.sh)
-#   rkbin-atk fallback → tee v2.10 (pairs with ATK SPL v1.11; sha256 93603ca22c…)
-# The sfc-dll-saga "tee v2.40 = Bad hash" was a MIXING artifact: ATK SPL v1.11 (which
-# checks v2.10's hash) reading public tee v2.40. A fully-public chain — public SPL v1.12
-# checking public tee v2.40, both from the same rkbin release — is internally consistent
-# and should verify. Board-test is the confirmation. uboot is a loadable (not hash-locked),
-# so tee is the ONLY thing whose hash must match the SPL. Do NOT mix blob sources between
-# pack-loader.sh and pack-fit.sh.
-FORGE_RKBIN_DIR="${FORGE_RKBIN_DIR:-${_PROJECT_ROOT}/third_party/rkbin}"
-TEE=$(ls "$FORGE_RKBIN_DIR"/bin/rk35/rk3506_tee_v*.bin 2>/dev/null | grep -v _ta_ | sort -V | tail -1)
-[[ -n "$TEE" && -f "$TEE" ]] || die "missing tee blob under $FORGE_RKBIN_DIR/bin/rk35 (need rk3506_tee_v*.bin; init submodule or run scripts/fetch-deps.sh atk-blobs)"
-log_info "tee blob: $(basename "$TEE") (from $FORGE_RKBIN_DIR) — must pair with the SPL variant in pack-loader.sh"
+# tee blob: resolved via lib/rkbin.sh (rkbin_load) from FORGE_RKBIN_DIR — the SAME
+# resolver pack-loader.sh uses, so the SPL<->tee hash pair is consistent by
+# construction. The saga "tee v2.40 = Bad hash" was a MIXING artifact (ATK SPL
+# reading public tee); a fully-public chain (public SPL v1.12 + public tee v2.40
+# from the same rkbin) verifies. uboot is a loadable (not hash-locked), so tee is
+# the ONLY blob whose hash must match the SPL. Run pack-loader + pack-fit with the
+# SAME FORGE_RKBIN_DIR (default public; both --rkbin rkbin-atk for the fallback).
+rkbin_load
+TEE="${RKBIN_BLOB_DIR}/${RKBIN_TEE}"
+log_info "tee blob: $RKBIN_TEE (from $FORGE_RKBIN_DIR) — pairs with the SPL from the same source"
 
 mkdir -p "$OUT_DIR"
 W1=$(mktemp -d); W2=$(mktemp -d)
