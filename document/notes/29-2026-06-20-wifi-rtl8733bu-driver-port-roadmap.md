@@ -157,3 +157,34 @@ loaded via busybox `insmod` after switch_root, with ATK-provided firmware.
 ## Status when this was written
 B-USB ✅ done (USB host works, the chip enumerates as 0bda:b733). WiFi driver
 port NOT started — this roadmap is the entry point. No code written yet for WiFi.
+
+---
+
+## UPDATE 2026-06-20 (later) — Phase 1-4 DONE, Phase 5 board-test pending
+All 5 phases executed through Phase 4. **8733bu.ko compiles clean on 7.1** (zero
+errors, zero modpost errors; valid ARM module, `depends=` empty, claims
+`0bda:b733`). Board image staged at
+`/mnt/d/DownloadFromInternet/update-wifi-rtl8733bu.img` (md5 `513800ae`,
+PROVISION-UBIPROG, new zImage with CFG80211=y + rootfs with .ko/firmware/S99wifi/
+wpa_supplicant/iw). **Phase 5 = user flashes + insmod/scan/connect test.**
+
+Key porting decisions (full detail in memory `wifi-rtl8733bu-port-state`, NOT
+re-derived here):
+- Kbuild Makefile rewritten from the 2803-line upstream Makefile via
+  `make -p ... src=<dir> KERNELRELEASE=x CONFIG_RTL8733BU=m` extraction of the
+  fully-expanded 187-file `8733bu-y` list + ccflags. Stable kernel obj-$() path.
+- Path macros (`EFUSE_MAP_PATH`/`WIFIMAC_PATH`/`REALTEK_CONFIG_PATH`) MUST use
+  `\"`-escaped quotes in ccflags-y, else make→shell→gcc strips them →
+  `<command-line>` '/'-token errors + hal_com.c "too few arguments".
+- `CONFIG_BR_EXT` disabled (optional; rtw_br_ext.c hits a removed 7.x API).
+- cfg80211 wdev-ops conversion (add_key/.../dump_station changed to
+  `wireless_dev*` in 6.14+) handled via 9 `_wdev` forwarder wrappers in
+  ioctl_cfg80211.c (uses existing `wdev_to_ndev`), struct points at wrappers;
+  2 callers (cfg80211_new_sta/del_sta) pass `ndev->ieee80211_ptr`.
+- `# CONFIG_WLAN is not set` removed from kernel-trim.config (gates
+  WLAN_VENDOR_REALTEK). CFG80211=y built-in, MAC80211 left =m.
+- buildroot needs a clean PATH (WSL /mnt paths with spaces break it).
+
+Phase 5 first-boot commands: `ip link` (wlan0?) → `iw wlan0 scan` →
+wpa_supplicant. If firmware-not-found, check dmesg for the requested name and
+symlink/rename in /lib/firmware/ or pass `rtw_fw_file_path=` module param.

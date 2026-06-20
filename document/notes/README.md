@@ -51,6 +51,9 @@ most useful part.
 | 25 | [25-…-sfc-abort-misdiagnosis-ddr-sfc-pitfalls](25-2026-06-19-sfc-abort-misdiagnosis-ddr-sfc-pitfalls.md) | abort saga 两轮误诊复盘(DDR 头号嫌疑 / SFC PIO-DMA)+ 方法论(imprecise FAR 不可信、tmpfs 判别器、vendor 对齐) |
 | 26 | [26-…-ubiprog-loader-weakwrite-status-and-rkbin-lead](26-2026-06-19-ubiprog-loader-weakwrite-status-and-rkbin-lead.md) | ubiprog/loader 弱写现状(独立于 abort,recovery 非 cure)+ 下一步 rkbin 配置对齐线索 |
 | 27 | [27-…-loader-weakwrite-overturned-linux-sfc-read-bug-dma](27-2026-06-20-loader-weakwrite-overturned-linux-sfc-read-bug-dma.md) | **"loader 弱写"第三次翻案**:U-Boot/Linux 同 flash 对比坐实 Linux SFC 读 bug(B);DLL/频率否、PIO/DMA 头号;DMA 实验(update-rwfix-dma.img) |
+| 28 | [28-…-usb-bringup-usb2phy-dwc2](28-2026-06-20-usb-bringup-usb2phy-dwc2.md) | 外设 B-USB:USB2PHY(inno-usb2 RK3506 phy_base 调谐)+ DWC2 双口 host,USB hub/U 盘枚举(让板上 RTL8733BU 枚举为 0bda:b733) |
+| 29 | [29-…-wifi-rtl8733bu-driver-port-roadmap](29-2026-06-20-wifi-rtl8733bu-driver-port-roadmap.md) | WiFi RTL8733BU 移植 **roadmap**(研究结论 + 5 阶段计划;主线无驱动→out-of-tree 移植,mainline-only 为此松绑) |
+| 30 | [30-…-wifi-rtl8733bu-port-complete](30-2026-06-20-wifi-rtl8733bu-port-complete.md) | **WiFi 移植完成 + 板上联网验证**:Phase 1-5 全 done(187 文件 Kbuild 重写 + cfg80211 wdev wrapper),8733bu.ko 板上 insmod→probe→fw→wlan0→wpa 连网通 |
 
 另有 [nand-ecc-debug-handoff.md](nand-ecc-debug-handoff.md)(早期 NAND ECC 调试交接,部分结论已被后续 saga 取代,以 [pitfalls/04](../pitfalls/04-sfc-nand-saga.md) 为准)。
 

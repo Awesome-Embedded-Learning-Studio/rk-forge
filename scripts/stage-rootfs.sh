@@ -50,5 +50,31 @@ if [[ -f "$ASSETS/sample-3s.mp3" ]]; then
   log_ok "sample-3s.mp3 → root/ ($(stat -c%s "$ROOT/root/sample-3s.mp3") B)"
 fi
 
+# Phase WiFi: stage the out-of-tree RTL8733BU driver + firmware into the rootfs.
+# The .ko is built in the kernel tree (CONFIG_RTL8733BU=m); firmware comes from
+# the ATK overlay (rtl8733bu_fw + rtl8733bu_config — canonical chip names). The
+# S99wifi init script (overlay/etc/init.d) insmods it after switch_root, when
+# /lib/firmware is readable for request_firmware(). See document/notes/29.
+LINUX="${_PROJECT_ROOT}/third_party/explore/linux"
+KO="${LINUX}/drivers/net/wireless/realtek/rtl8733bu/8733bu.ko"
+ATK_FW="${_PROJECT_ROOT}/third_party/vendor-sdk/buildroot/board/alientek/atk-dlrk3506/fs-overlay/usr/lib/firmware"
+if [[ -f "$KO" ]]; then
+  mkdir -p "$ROOT/lib/modules"
+  cp "$KO" "$ROOT/lib/modules/8733bu.ko"
+  log_ok "8733bu.ko → lib/modules/ ($(stat -c%s "$ROOT/lib/modules/8733bu.ko") B)"
+else
+  log_info "note: 8733bu.ko not built yet — run kernel module build first (WiFi will be absent)"
+fi
+mkdir -p "$ROOT/lib/firmware"
+for fw in rtl8733bu_fw rtl8733bu_config; do
+  if [[ -f "${ATK_FW}/${fw}" ]]; then
+    cp "${ATK_FW}/${fw}" "$ROOT/lib/firmware/${fw}"
+  else
+    log_info "note: missing firmware ${fw} (ATK overlay moved?)"
+  fi
+done
+[[ -f "$ROOT/lib/firmware/rtl8733bu_fw" ]] \
+  && log_ok "firmware rtl8733bu_fw + rtl8733bu_config → lib/firmware/"
+
 log_info "tree size: $(du -sh "$ROOT" | cut -f1)"
 log_info "next: scripts/pack-ubifs.sh  →  $OUT_DIR/rootfs.ubi.img"

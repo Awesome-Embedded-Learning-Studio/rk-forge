@@ -68,3 +68,11 @@ BR2_PACKAGE_ALSA_UTILS_APLAY=y
 BR2_PACKAGE_ALSA_UTILS_AMIXER=y
 BR2_PACKAGE_ALSA_UTILS_SPEAKER_TEST=y
 BR2_PACKAGE_MPG123=y
+
+# WiFi (Phase WiFi): RTL8733BU is an out-of-tree =m driver loaded after
+# switch_root (see document/notes/29). Userspace needs nl80211 tooling for the
+# cfg80211 fullmac driver. libnl is auto-selected by iw/wpa_supplicant.
+BR2_PACKAGE_WPA_SUPPLICANT=y
+BR2_PACKAGE_WPA_SUPPLICANT_PASSPHRASE=y
+BR2_PACKAGE_IW=y
+BR2_PACKAGE_WIRELESS_TOOLS=y

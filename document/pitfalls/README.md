@@ -16,6 +16,8 @@
 | [03-build-verification.md](03-build-verification.md) | 构建验证方法论(增量重编 / 产物取证层级) | #9 #10 | ✅ |
 | [04-sfc-nand-saga.md](04-sfc-nand-saga.md) | SPI-NAND / SFC 读写 + loader 弱写 saga(**最重一篇**) | #5 #6 #7 #8 #12 | ✅ |
 | [05-secure-mem-reservation-imprecise-abort.md](05-secure-mem-reservation-imprecise-abort.md) | DT 内存映射:OP-TEE/trust reserved-memory 漏 → secure 物理页分给用户态 → external abort(藏 04 saga 里两轮没识破) | #13 | ✅ |
+| [06-usb-bringup-usb2phy-dwc2.md](06-usb-bringup-usb2phy-dwc2.md) | USB2PHY(phy_base 调谐)+ DWC2:kernel-trim 偷杀 USB_SUPPORT + 必 enable `&usb2phy` 父节点 | — | ✅ |
+| [07-wifi-out-of-tree-port.md](07-wifi-out-of-tree-port.md) | WiFi out-of-tree 移植(RTL8733BU→7.1):make -p 文件列表提取(KERNELRELEASE+src)/ccflags 路径宏引号/trim 偷 WLAN/cfg80211 wdev 漂移/buildroot PATH/板测时序 | #14–#19 | ✅ |
 
 ## 一句话主线
 

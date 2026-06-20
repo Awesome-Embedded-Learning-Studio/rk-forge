@@ -560,3 +560,11 @@ rk3506 login: root
 [   68.325593] scsi 0:0:0:0: Direct-Access     Mass     Storage Device   1.00 PQ: 0 ANSI: 0 CCS
 [   68.603842] sd 0:0:0:0: [sda] Media removed, stopped polling
 [   68.645087] sd 0:0:0:0: [sda] Attached SCSI removable disk
+
+# for d in /sys/bus/usb/devices/*; do [ -f $d/idVendor ] && echo "$(cat $d/idVen
+dor):$(cat $d/idProduct)  $(cat $d/product 2>/dev/null)"; done
+1a86:8091  USB HUB
+0bda:b733  802.11n  WLAN Adapter
+1d6b:0002  DWC OTG Controller
+1d6b:0002  DWC OTG Controller
+# 
