@@ -4,7 +4,7 @@
 # The STANDARD forge rootfs is buildroot (busybox+glibc+sysvinit, with the
 # post-build mtdrawdump/mtdbb + the overlay fstab that keeps syslog in RAM so
 # the UBIFS NAND doesn't get churned — see buildroot-external/overlay/etc/fstab
-# + the RW saga). mk-rootfs.sh is a separate static-busybox handcraft, NOT this.
+# + the RW saga).
 #
 # Flow: buildroot output/images/rootfs.tar  →  extract to out/rootfs  →
 #       scripts/pack-ubifs.sh  →  scripts/assemble-update.sh --provision
@@ -40,12 +40,9 @@ grep -q "/var/log.*tmpfs" "$ROOT/etc/fstab" 2>/dev/null \
   || log_info "note: /var/log tmpfs overlay not applied (rebuild buildroot with BR2_ROOTFS_OVERLAY)"
 log_ok "buildroot rootfs staged ($(du -sh "$ROOT" | cut -f1))"
 
-# drop the audio test mp3 (Phase E) for on-board playback (mpg123 /root/...).
-if [[ -f "$ASSETS/sample-3s.mp3" ]]; then
-  mkdir -p "$ROOT/root"
-  cp "$ASSETS/sample-3s.mp3" "$ROOT/root/sample-3s.mp3"
-  log_ok "sample-3s.mp3 → root/ ($(stat -c%s "$ROOT/root/sample-3s.mp3") B)"
-fi
+# audio test mp3 (Phase E, mpg123 /root/...): shipped via the buildroot overlay
+# (overlay/root/sample-3s.mp3) — buildroot auto-copies it into rootfs/root/, so
+# no manual cp here (was: cp from assets/).
 
 # Phase WiFi: stage the RTL8733BU driver module into the rootfs.
 # The .ko is built in-tree (CONFIG_RTL8733BU=m; the drop is materialized by

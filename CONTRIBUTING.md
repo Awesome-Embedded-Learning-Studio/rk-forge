@@ -9,7 +9,7 @@ rk-forge is mainline-first board-enablement for RK3506. Before contributing:
 
 ## Conventions
 - **Patches**: quilt-style ordered `patches/<component>/series`, one patch per commit,
-  generated with `scripts/patch-maker.sh` (`git format-patch`, with `From`/`Subject`/
+  generated with `git format-patch` (with `From`/`Subject`/
   `Signed-off-by`). Prefix `[mainline]` / `[uboot]`.
 - **Bash leaves must stay Python-wrap-able**: clean stdin/stdout/exit codes, **no**
   interactive `/dev/tty` prompts (that's why `doctor.sh` just prints the apt command,

@@ -45,7 +45,7 @@ reference/                   vendor-sdk(参照/萃取池,非构建依赖)
 scripts/
   lib/{log,toolchain,stage}.sh           共享库；stage.sh = 内容哈希增量跳过
   env-setup.sh · doctor.sh               环境（source 用 / 独立检查）
-  apply-series.sh · patch-maker.sh       ★ 补丁库（修 imx 的头号债）
+  apply-series.sh                   ★ 补丁库（修 imx 的头号债）
   build-uboot.sh · build-linux.sh · flash-sd.sh · sdk-diff.sh   （Week 3-8 逐步落地）
 BLOBS.md                     rkbin 闭源 blob 的诚实清单 + 消除路径
 document/tutorial/boot/      Ch0-3 教程（in-repo Markdown）
