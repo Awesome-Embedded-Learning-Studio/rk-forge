@@ -18,8 +18,12 @@
 #
 #   --force   re-run stages even if inputs are unchanged (skip the skip).
 #   --no-skip run every stage unconditionally (no content-hash skipping).
+# Guard: ensure bash. The shebang handles the normal case; this catches an
+# explicit `sh scripts/forge.sh` or any non-bash invocation (lib/*.sh rely on
+# bash arrays + BASH_SOURCE). Re-exec ourselves under bash, preserving args.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 set -euo pipefail
-_SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+_SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/env.sh"     # PROJECT_ROOT + all paths (config/forge.env)
 # shellcheck disable=SC1091

@@ -7,7 +7,11 @@
 #   ASSETS  FORGE_RKBIN_DIR(default)  BOARD  SOC  KERNEL_BASE  NAND_*
 # CLI flags (--out / --tree / --linux / --rkbin) parsed AFTER sourcing override
 # these defaults.
-_env_sh_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# ${BASH_SOURCE[0]:-$0}: bash sets BASH_SOURCE; under zsh (which lacks it when
+# sourced) fall back to $0. Matches scripts/env-setup.sh's idiom — keeps this
+# sourceable from zsh without PROJECT_ROOT mis-resolving (was: bare
+# ${BASH_SOURCE[0]} → empty under zsh → PROJECT_ROOT=/home → forge died).
+_env_sh_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
 export PROJECT_ROOT=$(cd "${_env_sh_dir}/../.." && pwd)
 export _PROJECT_ROOT="$PROJECT_ROOT"   # back-compat alias (existing scripts use _PROJECT_ROOT)
 
