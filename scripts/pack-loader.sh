@@ -35,13 +35,14 @@
 # Seam: bash-first; arg parsing leaves a Python seam (config-driven) for later.
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-_PROJECT_ROOT=$(cd "${_SCRIPT_DIR}/.." && pwd)
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + OUT_DIR + FORGE_RKBIN_DIR (config/forge.env)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 
-RKBIN_PUBLIC="${_PROJECT_ROOT}/third_party/rkbin"            # public submodule — the conquest default
-FORGE_RKBIN_DIR="${FORGE_RKBIN_DIR:-$RKBIN_PUBLIC}"          # override → rkbin-atk for ATK fallback
-OUT_DIR="${_PROJECT_ROOT}/third_party/bringup/out"
+# boot_merger is version-tolerant → always from the PUBLIC rkbin, independent of
+# which blob source FORGE_RKBIN_DIR points at (public vs rkbin-atk).
+RKBIN_PUBLIC="${_PROJECT_ROOT}/third_party/rkbin"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --rkbin) FORGE_RKBIN_DIR="$2"; shift 2;;

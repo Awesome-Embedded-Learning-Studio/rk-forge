@@ -22,13 +22,13 @@
 # steps as discrete, re-runnable units.
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-_PROJECT_ROOT=$(cd "${_SCRIPT_DIR}/.." && pwd)
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + LINUX_DIR/BOARD_CFG (config/forge.env)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/toolchain.sh"
 
-LINUX_DIR="${_PROJECT_ROOT}/third_party/explore/linux"
 APPLY=0; JUST_DTB=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -42,7 +42,6 @@ done
 
 check_toolchain || die "toolchain not on PATH. Run: source scripts/env-setup.sh && ./scripts/doctor.sh"
 [[ -d "$LINUX_DIR" ]] || die "linux tree not found: $LINUX_DIR"
-BOARD_CFG="${_PROJECT_ROOT}/boards/rk3506-evb"
 # Base RK3506 essentials + safe trim (KEEP NET core; cuts DRM/USB/SOUND bloat) +
 # XZ compression. Together these shrink boot.img before the 0x920000 bad block.
 KERNEL_FRAGMENTS=(

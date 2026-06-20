@@ -19,7 +19,8 @@
 #   scripts/mk-rootfs.sh [--out <dir>]
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-_PROJECT_ROOT=$(cd "${_SCRIPT_DIR}/.." && pwd)
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + BRINGUP/OUT_DIR/BUILDROOT/ASSETS (config/forge.env)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 # Resolve the cross toolchain via config/toolchain.conf (exports CROSS_COMPILE,
@@ -27,8 +28,6 @@ source "${_SCRIPT_DIR}/lib/log.sh"
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/toolchain.sh"
 
-BRINGUP="${_PROJECT_ROOT}/third_party/bringup"
-OUT_DIR="${BRINGUP}/out"
 INITRAMFS="${BRINGUP}/fit/initramfs.cpio.gz"
 ETC_SRC="${BRINGUP}/rootfs/etc"
 while [[ $# -gt 0 ]]; do
@@ -116,8 +115,7 @@ cp -a "$ETC_SRC"/. "$ROOT/etc/"
 # static-busybox handcraft rootfs, so the ES8388/sai1 sound card can be
 # exercised (aplay -l / speaker-test / mpg123 the bundled mp3). busybox stays
 # static; these shared libs only serve the dynamic audio tools.
-BR_TARGET="${_PROJECT_ROOT}/third_party/buildroot/output/target"
-ASSETS="${_PROJECT_ROOT}/assets"
+BR_TARGET="${BUILDROOT}/output/target"
 if [[ -d "$BR_TARGET" && -x "$BR_TARGET/usr/bin/aplay" ]]; then
 	mkdir -p "$ROOT/usr/bin" "$ROOT/lib" "$ROOT/usr/lib"
 	for b in aplay arecord amixer speaker-test mpg123; do

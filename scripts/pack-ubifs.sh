@@ -25,17 +25,12 @@
 # Prereq: scripts/mk-rootfs.sh has populated $OUT_DIR/rootfs.
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-_PROJECT_ROOT=$(cd "${_SCRIPT_DIR}/.." && pwd)
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + OUT_DIR + NAND_* geometry (config/forge.env)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 
-BRINGUP="${_PROJECT_ROOT}/third_party/bringup"
-OUT_DIR="${BRINGUP}/out"
 ROOT="${OUT_DIR}/rootfs"
-MIN_IO=2048
-PEB=128KiB
-LEB=124KiB
-MAX_LEB=1400
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --out) OUT_DIR="$2"; ROOT="${OUT_DIR}/rootfs"; shift 2;;
@@ -51,8 +46,8 @@ command -v ubinize    >/dev/null || die "ubinize missing (apt install mtd-utils)
 UBIFS="${OUT_DIR}/rootfs.ubifs"
 UBI="${OUT_DIR}/rootfs.ubi.img"
 
-log_info "mkfs.ubifs  (min_io=${MIN_IO} leb=${LEB} max_leb=${MAX_LEB}, tree=$(du -sh "$ROOT" | cut -f1))…"
-mkfs.ubifs -x none -m "$MIN_IO" -e "$LEB" -c "$MAX_LEB" -r "$ROOT" "$UBIFS" 2>&1 | sed 's/^/  /'
+log_info "mkfs.ubifs  (min_io=${NAND_MIN_IO} leb=${NAND_LEB} max_leb=${NAND_MAX_LEB}, tree=$(du -sh "$ROOT" | cut -f1))…"
+mkfs.ubifs -x none -m "$NAND_MIN_IO" -e "$NAND_LEB" -c "$NAND_MAX_LEB" -r "$ROOT" "$UBIFS" 2>&1 | sed 's/^/  /'
 
 CFG=$(mktemp --suffix=.cfg)
 trap 'rm -f "$CFG"' EXIT
@@ -67,8 +62,8 @@ vol_alignment=1
 vol_flags=autoresize
 image=${UBIFS}
 EOF
-log_info "ubinize  (peb=${PEB} → rootfs.ubi.img)…"
-ubinize -m "$MIN_IO" -p "$PEB" "$CFG" -o "$UBI" 2>&1 | sed 's/^/  /'
+log_info "ubinize  (peb=${NAND_PEB} → rootfs.ubi.img)…"
+ubinize -m "$NAND_MIN_IO" -p "$NAND_PEB" "$CFG" -o "$UBI" 2>&1 | sed 's/^/  /'
 [[ -f "$UBI" ]] || die "ubinize produced no image"
 log_ok "rootfs.ubi.img → $UBI ($(numfmt --to=iec $(stat -c%s "$UBI")))"
 log_info "flash this to the rootfs MTD partition (mtd5); see scripts output for board steps."

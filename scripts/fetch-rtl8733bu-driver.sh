@@ -21,11 +21,11 @@
 # sources it. See document/notes/29 + document/pitfalls/07.
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-_PROJECT_ROOT=$(cd "${_SCRIPT_DIR}/.." && pwd)
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + LINUX_DIR (config/forge.env)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 
-LINUX_DIR="${_PROJECT_ROOT}/third_party/explore/linux"   # P3: → third_party/src/linux
 PIN_FILE="${_PROJECT_ROOT}/pins/rtl8733bu"
 FORCE=0
 while [[ $# -gt 0 ]]; do

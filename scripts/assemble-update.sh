@@ -45,12 +45,11 @@
 #        (for --nand: also scripts/mk-rootfs.sh + scripts/pack-ubifs.sh).
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-_PROJECT_ROOT=$(cd "${_SCRIPT_DIR}/.." && pwd)
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + BRINGUP/OUT_DIR/... (config/forge.env)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 
-BRINGUP="${_PROJECT_ROOT}/third_party/bringup"
-OUT_DIR="${BRINGUP}/out"
 VERIFY=1
 VMODE=provision                       # default: ubiprog first-boot (saga-proven RW path)
 while [[ $# -gt 0 ]]; do

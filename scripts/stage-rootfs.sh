@@ -11,15 +11,12 @@
 # (see buildroot-external/README.md "Wire the rootfs into NAND packaging").
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-_PROJECT_ROOT=$(cd "${_SCRIPT_DIR}/.." && pwd)
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + BRINGUP/BUILDROOT/OUT_DIR/ASSETS (config/forge.env)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 
-BRINGUP="${_PROJECT_ROOT}/third_party/bringup"
-BUILDROOT="${_PROJECT_ROOT}/third_party/buildroot"
-OUT_DIR="${BRINGUP}/out"
 ROOTFS_TAR="${BUILDROOT}/output/images/rootfs.tar"
-ASSETS="${_PROJECT_ROOT}/assets"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -54,7 +51,7 @@ fi
 # The .ko is built in-tree (CONFIG_RTL8733BU=m; the drop is materialized by
 # scripts/fetch-rtl8733bu-driver.sh + wired by quilt patch 0016). The S99wifi
 # init script (overlay/etc/init.d) insmods it after switch_root. See notes/29.
-LINUX="${_PROJECT_ROOT}/third_party/explore/linux"
+LINUX="${LINUX_DIR}"
 KO="${LINUX}/drivers/net/wireless/realtek/rtl8733bu/8733bu.ko"
 if [[ -f "$KO" ]]; then
   mkdir -p "$ROOT/lib/modules"

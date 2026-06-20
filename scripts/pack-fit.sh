@@ -27,14 +27,12 @@
 # + the ITS/initramfs under third_party/bringup/. Rebuild those first if stale.
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-_PROJECT_ROOT=$(cd "${_SCRIPT_DIR}/.." && pwd)
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + OUT_DIR/LINUX_DIR/UBOOT_DIR/BRINGUP (config/forge.env)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 
-EXPLORE="${_PROJECT_ROOT}/third_party/explore"
-BRINGUP="${_PROJECT_ROOT}/third_party/bringup"
-OUT_DIR="${BRINGUP}/out"
-MKIMAGE="${EXPLORE}/uboot/tools/mkimage"            # mainline 2026.07-rc4 — kernel FIT (loaded by mainline U-Boot)
+MKIMAGE="${UBOOT_DIR}/tools/mkimage"            # mainline 2026.07-rc4 — kernel FIT (loaded by mainline U-Boot)
 FIT_PACK="${_PROJECT_ROOT}/scripts/fit-pack.py"      # pure-Python vendor-layout FIT packer — uboot FIT (vendor-SPL -E)
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -48,10 +46,10 @@ done
 [[ -f "$FIT_PACK" ]] || die "fit-pack.py missing: $FIT_PACK"
 
 need() { [[ -f "$1" ]] || die "missing input: $1"; }
-UBOOT_BIN="${EXPLORE}/uboot/u-boot-nodtb.bin"
-UBOOT_DTB="${EXPLORE}/uboot/u-boot.dtb"
-ZIMAGE="${EXPLORE}/linux/arch/arm/boot/zImage"
-KERN_DTB="${EXPLORE}/linux/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
+UBOOT_BIN="${UBOOT_DIR}/u-boot-nodtb.bin"
+UBOOT_DTB="${UBOOT_DIR}/u-boot.dtb"
+ZIMAGE="${LINUX_DIR}/arch/arm/boot/zImage"
+KERN_DTB="${LINUX_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
 INITRAMFS="${BRINGUP}/fit/initramfs.cpio.gz"
 need "$UBOOT_BIN"; need "$UBOOT_DTB"; need "$ZIMAGE"; need "$KERN_DTB"; need "$INITRAMFS"
 
