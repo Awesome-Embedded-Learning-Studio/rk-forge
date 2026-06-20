@@ -1,7 +1,6 @@
 # third_party/
 
-External source trees. Three are git **submodules** (build targets); one is a local
-**reference clone** (not a submodule).
+External source trees. Three are git **submodules** (build targets).
 
 ## Build targets (submodules — initialized in Week 3+)
 
@@ -16,17 +15,7 @@ Initialize (later):
 git submodule update --init --depth 1 third_party/<name>
 ```
 
-## Reference clone (NOT a submodule — gitignored)
-
-`vendor-sdk/` — a local clone of a **vendor SDK used only as a knowledge source**
-for `scripts/sdk-diff.sh` and board-DT extraction. It is **not** built; it is the
-"other end" of the mainline-vs-BSP comparison.
-
-```bash
-# example: pull a vendor SDK into the reference slot
-git clone <vendor-sdk-url> third_party/vendor-sdk
-```
-
-> **Confirm it targets RK3506** (and note its kernel version) on first pull. If the
-> vendor SDK is a BSP kernel (e.g. 5.10/6.1 + vendor patches), that's fine as a
-> *reference* — but our build target stays mainline. See ../PLAN.md.
+> The vendor SDK reference clone used to live here (`third_party/vendor-sdk/`). On
+> 2026-06-20 it moved to **[`reference/vendor-sdk/`](../reference/README.md)** — it is
+> reference material (an extraction pool for sdk-diff + board-DT/config), not a build
+> input, so it belongs under `reference/`, not alongside the build-target submodules.

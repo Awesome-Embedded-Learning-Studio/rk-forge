@@ -40,7 +40,8 @@ config/toolchain.conf        声明式工具链配置（未来 Python CLI 直接
 board.env                    板卡元信息（占位 rk3506-evb）
 boards/rk3506-evb/           ★ 板级 DT（rk-forge 的主要贡献，上游化目标）+ kernel.config
 patches/{linux_mainline,uboot}/series   有序补丁序列
-third_party/                 linux_mainline(7.0.x) · uboot · rkbin · vendor-sdk(参照)
+third_party/                 linux_mainline(7.0.x) · uboot · rkbin
+reference/                   vendor-sdk(参照/萃取池,非构建依赖)
 scripts/
   lib/{log,toolchain,stage}.sh           共享库；stage.sh = 内容哈希增量跳过
   env-setup.sh · doctor.sh               环境（source 用 / 独立检查）

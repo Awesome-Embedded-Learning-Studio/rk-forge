@@ -35,7 +35,7 @@ rk-forge = imx-forge（NXP i.MX6ULL）的同构兄弟，换到 Rockchip 平台�
 
 **最重要的结论（2026-06-13 已独立核实）**：RK3506 的 SoC 地基——pinctrl+clock（自 6.19）**和 U-Boot SoC 支持**（Jonas Karlman v2 已合并）——全在主线。所以**不是"从零拼补丁启动"，而是"在已合并的 SoC 支持上加板级 DT + 跑到用户空间 + 查清还差什么"**。rk-forge 的主要贡献 = **板级 `.dts`**（上游化目标）。比预想可行，难度低于 imx6ULL 那条路。
 
-> **2026-06-13 新增决策**：① "取代 RK-SDK" = 只取代它的 `build.sh`（不碰全貌），sdk-diff 作证明器；② 先 bash、二期迁 Python CLI，bash leaves 留 seam（干净 stdin/stdout/exit、doctor 无 `/dev/tty`、config 走声明式 conf）；③ vendor SDK（如正点原子）作**参照系**拉进 `third_party/vendor-sdk/`，构建目标仍是主线。详见仓库结构与 BLOBS.md。
+> **2026-06-13 新增决策**：① "取代 RK-SDK" = 只取代它的 `build.sh`（不碰全貌），sdk-diff 作证明器；② 先 bash、二期迁 Python CLI，bash leaves 留 seam（干净 stdin/stdout/exit、doctor 无 `/dev/tty`、config 走声明式 conf）；③ vendor SDK（如正点原子）作**参照系**拉进 `reference/vendor-sdk/`，构建目标仍是主线。详见仓库结构与 BLOBS.md。
 
 ---
 

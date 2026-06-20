@@ -22,10 +22,7 @@ u-boot.itb
 
 # --- third_party ---
 # linux_mainline/uboot/rkbin are git submodules (tracked as gitlinks, see .gitmodules);
-# their working-dir dirties are ignored via `ignore = dirty` there. The vendor-sdk
-# reference clone is a LOCAL clone (not a submodule) used only for sdk-diff — fully ignored:
-/third_party/vendor-sdk/
-verdor-sdk.gz
+# their working-dir dirties are ignored via `ignore = dirty` there.
 # mainline exploration trees (linux/uboot/rkbin read during premise verification;
 # NOT yet formalized as submodules — see PLAN.md). Local plain clones, fully ignored:
 /third_party/explore/
@@ -33,8 +30,17 @@ verdor-sdk.gz
 # buildroot: upstream clone (local plain clone, fully ignored). forge's board
 # customization (defconfig + any package/overlay) lives OUTSIDE this tree, version-
 # controlled via BR2_EXTERNAL at third_party/bringup/buildroot-external/ (see its
-# README for the checkout + build invocation). Same pattern as explore/vendor-sdk.
+# README for the checkout + build invocation). Same pattern as explore.
 /third_party/buildroot/
+
+# --- reference ---
+# Active reference / extraction pool — NOT a build dependency, NOT a submodule.
+# vendor-sdk = local clone of the ATK-DLRK3506 BSP (linux 6.1.118), kept as a
+# knowledge source for sdk-diff + board-DT/config extraction. LOCAL clone, not
+# redistributable → fully ignored. Moved here from third_party/ on 2026-06-20 to
+# reflect that it is reference material, not a build input. See reference/README.md.
+/reference/vendor-sdk/
+/reference/verdor-sdk.gz
 
 # rkbin-atk: LOCAL-only ATK-private boot blobs (usbplug v1.02 / SPL v1.11 / tee v2.10) +
 # its README — the loader fallback for the public-loader conquest. NOT in public rkbin,

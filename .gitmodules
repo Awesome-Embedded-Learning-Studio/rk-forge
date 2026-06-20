@@ -14,6 +14,7 @@
 	url = https://github.com/rockchip-linux/rkbin.git
 	ignore = dirty
 
-# NOTE: third_party/vendor-sdk/ is intentionally NOT a submodule. It's a local
+# NOTE: reference/vendor-sdk/ is intentionally NOT a submodule. It's a local
 # clone of a vendor SDK (e.g. 正点原子/ALIENTEK) used ONLY as a reference for
-# sdk-diff and board-DT extraction. See third_party/README.md.
+# sdk-diff + board-DT/config extraction (an active extraction pool, not a build
+# input). Moved from third_party/ on 2026-06-20. See reference/README.md.

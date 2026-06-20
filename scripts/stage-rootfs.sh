@@ -64,8 +64,8 @@ fi
 # Firmware: best-effort from the forge-local firmware/rtl8733bu/ dir. UNUSED at
 # runtime — the driver loads firmware from a built-in C array (log
 # boot-sdl-202606201050 L613), so /lib/firmware files are a belt-and-suspenders
-# fallback only. Sourcing here (NOT the ATK vendor-sdk path) decouples this
-# script from third_party/vendor-sdk so it can be deleted (kill-vendor-sdk).
+# fallback only. Sourcing here (NOT the ATK vendor-sdk path) keeps forge's rootfs
+# build self-contained — reference/vendor-sdk is the extraction pool, not a build input.
 # See firmware/rtl8733bu/README.md.
 mkdir -p "$ROOT/lib/firmware"
 FW_DIR="${RTL8733BU_FW_DIR:-${_PROJECT_ROOT}/firmware/rtl8733bu}"

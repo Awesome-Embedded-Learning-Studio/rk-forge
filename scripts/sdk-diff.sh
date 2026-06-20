@@ -2,7 +2,7 @@
 # sdk-diff.sh — STUB (Week 7-8). The honesty core of rk-forge.
 #
 # Compares a vendor BSP (e.g. the 正点原子/ALIENTEK SDK cloned into
-# third_party/vendor-sdk/) against our mainline port, per subsystem, and reports:
+# reference/vendor-sdk/) against our mainline port, per subsystem, and reports:
 #   - what the vendor BSP ships
 #   - whether mainline has it
 #   - the gap, and whether the board can still boot
@@ -12,5 +12,5 @@
 #
 # Planned: bash `git diff`/tree-walk leaves first; migrate to Python CLI (iter 2).
 set -euo pipefail
-echo "sdk-diff.sh: STUB (planned Week 7-8). Compare third_party/vendor-sdk/ vs our mainline port." >&2
+echo "sdk-diff.sh: STUB (planned Week 7-8). Compare reference/vendor-sdk/ vs our mainline port." >&2
 exit 1

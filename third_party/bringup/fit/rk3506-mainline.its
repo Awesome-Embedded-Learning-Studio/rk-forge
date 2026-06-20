@@ -1,6 +1,6 @@
 /*
  * 方案 B: vendor SPL + 我们主线 U-Boot 的 FIT
- * 结构 100% 复刻 vendor uboot.img(见 third_party/vendor-sdk/u-boot/uboot.img 的 dumpimage),
+ * 结构 100% 复刻 vendor uboot.img(见 reference/vendor-sdk/u-boot/uboot.img 的 dumpimage),
  * 唯一改动: uboot 节点的 data 换成主线 2026.07-rc4 的 u-boot-nodtb.bin,
  *           load 改成 0x00800000(主线 CONFIG_TEXT_BASE; vendor 原是 0x00200000)。
  * optee/fdt 节点 load/结构不动 — vendor SPL 已证明能跑这套布局。

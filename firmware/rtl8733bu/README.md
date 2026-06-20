@@ -19,14 +19,14 @@ harmlessly. WiFi works either way.
 ## Why this dir exists
 
 It decouples `stage-rootfs.sh` from the ATK vendor-sdk path (the kill-vendor-sdk
-blocker) — the hard `third_party/vendor-sdk/...` dependency is gone, so
-`third_party/vendor-sdk/` can be deleted. The blobs (if you want the unused
+blocker) — the hard `reference/vendor-sdk/...` dependency is gone, so
+`reference/vendor-sdk/` can be deleted. The blobs (if you want the unused
 fallback) live here, local-only.
 
 ## Populating (optional)
 
 ```bash
 # from the ATK reference clone, if you still have it:
-cp third_party/vendor-sdk/buildroot/board/alientek/atk-dlrk3506/fs-overlay/usr/lib/firmware/rtl8733bu_{fw,config} \
+cp reference/vendor-sdk/buildroot/board/alientek/atk-dlrk3506/fs-overlay/usr/lib/firmware/rtl8733bu_{fw,config} \
    firmware/rtl8733bu/
 ```

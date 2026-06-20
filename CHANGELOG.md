@@ -11,6 +11,6 @@
   content-hash incremental skipping (vs RK-SDK build.sh's full rebuilds).
 - Premise corrections (independently verified): target mainline **7.0.x** (6.19 is EOL);
   U-Boot RK3506 SoC support **already upstream**; rk-forge's contribution = **board DT**.
-- Added `BLOBS.md` (rkbin honesty), `third_party/vendor-sdk/` reference slot.
+- Added `BLOBS.md` (rkbin honesty), `reference/vendor-sdk/` reference slot.
 - Removed: `roadmap.md` (old RK3588-first / multi-SoC vision), `buildroot/`,
   `scripts/CI/`, `scripts/network/` placeholders.

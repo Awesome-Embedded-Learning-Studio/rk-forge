@@ -1,6 +1,6 @@
 # sdk-diff — RK3506B: vendor BSP vs 主线移植(诚实差距报告)
 
-> rk-forge 的"诚实证明器"。逐子系统对比 ATK vendor BSP(`third_party/vendor-sdk/`,linux 6.1.118)
+> rk-forge 的"诚实证明器"。逐子系统对比 ATK vendor BSP(`reference/vendor-sdk/`,linux 6.1.118)
 > 与我们主线移植(linux 7.1 + U-Boot 2026.07-rc4)的差距。**不美化、不隐藏**:说清 BSP 有什么、
 > 主线有没有、差什么、还能不能 boot。本文随 bringup 推进持续更新。
 >
@@ -78,5 +78,5 @@ vendor 东西:
 
 - 主线 boot 日志:[boot-sdl-stage-end-of-kernel-uboot-202606151100](logs/boot-sdl-stage-end-of-kernel-uboot-202606151100.txt)(SMP/pinctrl/uart 起,外设未 probe)
 - RW 达成日志:[boot-sdl-202606162254](logs/boot-sdl-202606162254.txt)(recovery ×2,`/persist.log` c1/c2/c3)、[boot-sdl-202606162310](logs/boot-sdl-202606162310.txt)(页级恢复)
-- vendor defconfig:`third_party/vendor-sdk/kernel-6.1/arch/arm/configs/rk3506_defconfig` + `rk3506-*.config` fragments
+- vendor defconfig:`reference/vendor-sdk/kernel-6.1/arch/arm/configs/rk3506_defconfig` + `rk3506-*.config` fragments
 - 主线 patch:`patches/linux_mainline/`、`patches/uboot/`(干净上游逐字节相同,见 [notes/11](notes/11-2026-06-16-patch-verification-rw-rootfs.md))
