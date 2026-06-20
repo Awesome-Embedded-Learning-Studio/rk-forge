@@ -75,3 +75,16 @@
 # corrupt" was never proven. NB: DMA does NOT fix the PEB-3/4 -74 (that's loader marginal
 # write + read-nondeterminism, handled by ubiprog — notes/27); kept for vendor parity.
 0013-ARM-dts-rockchip-rk3506-drop-sfc-no-dma-use-DMA-align-vendor.patch
+
+# Phase B (USB: USB2PHY + DWC2 host):
+# 0014 — phy: inno-usb2: add rk3506 of_match. Split reg space as vendor uses it:
+# detection/power via rphy->grf (no driver change), analog tuning via an optional
+# ioremap'd phy_base (PHY's own 0xff2b0000 window). clkout (480M) not modelled —
+# DWC2 takes CRU clocks. Drops OTG iddig-force + chg_mode (no mainline struct
+# member, not needed for host). Pairs with CONFIG_PHY_ROCKCHIP_INNO_USB2=y.
+0014-phy-rockchip-inno-usb2-add-RK3506-support.patch
+# 0015 — DT: usb2phy@ff2b0000 (rk3506-usb2phy, rockchip,usbgrf=<&grf>, no
+# #clock-cells) + u2phy_otg0/1 + usb@ff740000/ff780000 (dwc2 snps,dwc2 fallback).
+# aes board enables both ports as dr_mode="host". dwc2 binds on the fallback, so
+# no dwc2 driver patch. Pairs with USB_SUPPORT (un-trimmed) + USB_DWC2_HOST=y.
+0015-ARM-dts-rockchip-rk3506b-aes-add-USB2PHY-DWC2.patch

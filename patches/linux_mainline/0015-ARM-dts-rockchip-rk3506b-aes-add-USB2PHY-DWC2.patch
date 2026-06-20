@@ -1,0 +1,163 @@
+From b2e98a648b7e7232afe9541dbf527f1ab16edaa0 Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Sat, 20 Jun 2026 08:48:42 +0800
+Subject: [PATCH] ARM: dts: rockchip: rk3506b-aes: add USB2PHY + DWC2
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+SoC-level USB nodes (status disabled) + board enable, so DWC2 host probes
+and enumerates devices (the board's USB-A carries the WiFi dongle). This is
+the B-USB bring-up — pairs with the phy-rockchip-inno-usb2 rk3506 driver
+patch and CONFIG_PHY_ROCKCHIP_INNO_USB2=y / USB_DWC2_HOST=y.
+
+rk3506.dtsi:
+- usb2phy@ff2b0000 (rockchip,rk3506-usb2phy): reg is both the cfg-match
+  key (first cell 0xff2b0000) and the window the driver ioremap's into
+  phy_base for analog tuning. Detection regs are reached via
+  rockchip,usbgrf = <&grf>. Clocks CLK_REF_USBPHY_TOP (phyclk) +
+  PCLK_USBPHY (apb_pclk), both registered by clk-rk3506. No #clock-cells
+  (the DWC2 takes CRU clocks, not the PHY 480M). Two ports: u2phy_otg0
+  (otg-port, IRQs 75/76/77) and u2phy_otg1 (host-port, IRQs 80/81/82).
+- usb@ff740000 + usb@ff780000 (rockchip,rk3066-usb / snps,dwc2 fallback):
+  dwc2 binds on the generic fallback, so no dwc2 driver change is needed.
+  CRU clocks + phys = <&u2phy_otg0>/<&u2phy_otg1>.
+
+rk3506b-aes.dts: enable both PHY ports + both controllers as dr_mode="host"
+so whichever physical connector a peripheral lands on enumerates on the
+first flash; OTG/gadget is follow-up. No vbus regulator (the board's USB-A
+5V is always-on; revisit if power issues surface).
+
+Ported from vendor rk3502.dtsi (usb2phy @839, usb20_otg0/1 @1292/1309).
+---
+ arch/arm/boot/dts/rockchip/rk3506.dtsi     | 59 ++++++++++++++++++++++
+ arch/arm/boot/dts/rockchip/rk3506b-aes.dts | 36 +++++++++++++
+ 2 files changed, 95 insertions(+)
+
+diff --git a/arch/arm/boot/dts/rockchip/rk3506.dtsi b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+index 8c3ac5c00..94a881938 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506.dtsi
++++ b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+@@ -375,6 +375,33 @@ grf: syscon@ff288000 {
+ 		reg = <0xff288000 0x4000>;
+ 	};
+ 
++	usb2phy: usb2-phy@ff2b0000 {
++		compatible = "rockchip,rk3506-usb2phy";
++		reg = <0xff2b0000 0x8000>;
++		clocks = <&cru CLK_REF_USBPHY_TOP>, <&cru PCLK_USBPHY>;
++		clock-names = "phyclk", "apb_pclk";
++		rockchip,usbgrf = <&grf>;
++		status = "disabled";
++
++		u2phy_otg0: otg-port {
++			#phy-cells = <0>;
++			interrupts = <GIC_SPI 75 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 76 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 77 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-names = "otg-bvalid", "otg-id", "linestate";
++			status = "disabled";
++		};
++
++		u2phy_otg1: host-port {
++			#phy-cells = <0>;
++			interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 82 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-names = "otg-bvalid", "otg-id", "linestate";
++			status = "disabled";
++		};
++	};
++
+ 	ioc_grf: syscon@ff4d8000 {
+ 		compatible = "rockchip,rk3506-ioc-grf", "syscon";
+ 		reg = <0xff4d8000 0x8000>;
+@@ -397,6 +424,38 @@ ioc1: syscon@ff660000 {
+ 		reg = <0xff660000 0x10000>;
+ 	};
+ 
++	usb20_otg0: usb@ff740000 {
++		compatible = "rockchip,rk3066-usb", "snps,dwc2";
++		reg = <0xff740000 0x40000>;
++		interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru HCLK_USBOTG0>, <&cru HCLK_USBOTG0_PMU>,
++			 <&cru CLK_USBOTG0_ADP>;
++		clock-names = "otg", "pmu", "adp";
++		dr_mode = "otg";
++		phys = <&u2phy_otg0>;
++		phy-names = "usb2-phy";
++		g-np-tx-fifo-size = <16>;
++		g-rx-fifo-size = <280>;
++		g-tx-fifo-size = <256 128 128 64 32 16>;
++		status = "disabled";
++	};
++
++	usb20_otg1: usb@ff780000 {
++		compatible = "rockchip,rk3066-usb", "snps,dwc2";
++		reg = <0xff780000 0x40000>;
++		interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru HCLK_USBOTG1>, <&cru HCLK_USBOTG1_PMU>,
++			 <&cru CLK_USBOTG1_ADP>;
++		clock-names = "otg", "pmu", "adp";
++		dr_mode = "otg";
++		phys = <&u2phy_otg1>;
++		phy-names = "usb2-phy";
++		g-np-tx-fifo-size = <16>;
++		g-rx-fifo-size = <280>;
++		g-tx-fifo-size = <256 128 128 64 32 16>;
++		status = "disabled";
++	};
++
+ 	grf_pmu: syscon@ff910000 {
+ 		compatible = "rockchip,rk3506-grf-pmu", "syscon", "simple-mfd";
+ 		reg = <0xff910000 0x4000>;
+diff --git a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+index 57f4100b6..05d1b8022 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
++++ b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+@@ -211,6 +211,42 @@ &uart2 {
+ 	pinctrl-0 = <&rm_io26_uart2_tx &rm_io27_uart2_rx>;
+ };
+ 
++/*
++ * USB — both DWC2 controllers brought up as host (the board's USB-A carries the
++ * WiFi dongle and any USB peripheral; host enumeration is the bring-up goal).
++ * Mainline phy-rockchip-inno-usb2 drives the USB2PHY (analog tuning via its own
++ * 0xff2b0000 mmio window + bvalid/id/ls detection via the GRF); dwc2 binds on
++ * the snps,dwc2 fallback. Both ports enabled so whichever physical connector
++ * the dongle lands on enumerates on the first flash; OTG/gadget is follow-up.
++ *
++ * The phy PROVIDER driver binds to the usb2phy PARENT node (the one carrying the
++ * rk3506-usb2phy compatible); the otg-port/host-port children are the phys it
++ * publishes. So the parent must be status="okay" too — enabling only the child
++ * ports leaves the provider unprobed and dwc2 defers forever with "error
++ * getting phy" (caught on the first board test, boot-sdl-202606200858).
++ */
++&usb2phy {
++	status = "okay";
++};
++
++&u2phy_otg0 {
++	status = "okay";
++};
++
++&u2phy_otg1 {
++	status = "okay";
++};
++
++&usb20_otg0 {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&usb20_otg1 {
++	dr_mode = "host";
++	status = "okay";
++};
++
+ &sai1 {
+ 	status = "okay";
+ };
+-- 
+2.43.0
+
