@@ -42,7 +42,7 @@
 # Usage:
 #   scripts/assemble-update.sh [--out <dir>] [--provision|--nand|--rescue] [--no-verify]
 # Prereq: pack-loader.sh + pack-fit.sh have populated $OUT_DIR
-#        (for --nand: also scripts/mk-rootfs.sh + scripts/pack-ubifs.sh).
+#        (for --nand: also stage-rootfs.sh + pack-ubifs.sh in the forge DAG).
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck disable=SC1091
@@ -96,7 +96,7 @@ case "$VMODE" in
     VARIANT="RESCUE-SHELL" ;;
 esac
 for f in "$LOADER" "$UBOOT" "$BOOT" "$PARAMETER" "$PKGFILE" ${ROOTFS:+"$ROOTFS"}; do
-  [[ -r "$f" ]] || die "missing: $f (run pack-loader.sh + pack-fit.sh first; for --nand also mk-rootfs.sh + pack-ubifs.sh)"
+  [[ -r "$f" ]] || die "missing: $f (run \`forge pack\` first; for --nand the rootfs chain is stage-rootfs → pack-ubifs)"
 done
 
 # Pad boot.img to fill the boot partition. The loader only erases+writes the

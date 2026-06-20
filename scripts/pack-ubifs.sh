@@ -22,7 +22,9 @@
 #
 # Usage:
 #   scripts/pack-ubifs.sh [--out <dir>]
-# Prereq: scripts/mk-rootfs.sh has populated $OUT_DIR/rootfs.
+# Prereq: $OUT_DIR/rootfs populated — by stage-rootfs.sh in the forge DAG
+#        (buildroot rootfs.tar → out/rootfs); or scripts/mk-rootfs.sh for the
+#        legacy static-busybox handcraft.
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck disable=SC1091
@@ -41,7 +43,7 @@ done
 command -v mkfs.ubifs >/dev/null || die "mkfs.ubifs missing (apt install mtd-utils)"
 command -v ubinize    >/dev/null || die "ubinize missing (apt install mtd-utils)"
 [[ -d "$ROOT" && -f "$ROOT/bin/busybox" ]] \
-  || die "rootfs tree missing — run scripts/mk-rootfs.sh first"
+  || die "rootfs tree missing — run \`forge pack\` (stage-rootfs.sh builds it); or scripts/mk-rootfs.sh for the legacy handcraft"
 
 UBIFS="${OUT_DIR}/rootfs.ubifs"
 UBI="${OUT_DIR}/rootfs.ubi.img"

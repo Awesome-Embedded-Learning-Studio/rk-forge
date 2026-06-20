@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 # mk-rootfs.sh — assemble the UBIFS rootfs tree at out/rootfs/ from forge sources.
 #
+# STATUS (2026-06): LEGACY — NOT in the forge DAG. The orchestrator (scripts/
+# forge.sh → `forge pack`) builds the rootfs via stage-rootfs.sh (buildroot:
+# rootfs.tar → out/rootfs). THIS script is the older static-busybox handcraft,
+# kept for reference and as a standalone fallback path. Nothing in forge.sh calls
+# it. Its ideas live on: the mtdrawdump/mtdbb static-compile + audio-injection
+# below were ported into buildroot-external/.../post-build.sh (which cites this
+# file as the source of those tools). Run standalone only if you want the
+# static-busybox tree specifically.
+#
 # This is the rootfs that gets persisted to NAND's rootfs partition (DT
 # partition@2740000, 174 MiB) and mounted by the kernel via bootargs
 # root=ubi0:rootfs rootfstype=ubifs. Its /sbin/init is busybox's built-in init
