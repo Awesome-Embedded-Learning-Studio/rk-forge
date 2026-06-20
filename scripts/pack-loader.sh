@@ -30,7 +30,7 @@
 #   scripts/pack-loader.sh [--rkbin <dir>] [--out <dir>]
 #     --rkbin <dir>   blob source with bin/rk35/* (default: third_party/rkbin
 #                     public submodule; pass third_party/rkbin-atk for ATK fallback)
-#     --out <dir>     output dir (default: third_party/bringup/out)
+#     --out <dir>     output dir (default: board/aes/out)
 #
 # Seam: bash-first; arg parsing leaves a Python seam (config-driven) for later.
 set -euo pipefail

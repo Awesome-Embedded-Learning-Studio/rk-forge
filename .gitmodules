@@ -1,14 +1,8 @@
-# Build-target submodules. Declared here; NOT yet initialized (clone happens in
-# Week 3+ when we build). `ignore = dirty` keeps build artifacts under each tree
-# from polluting the superproject status.
-[submodule "third_party/linux_mainline"]
-	path = third_party/linux_mainline
-	url = https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-	ignore = dirty
-[submodule "third_party/uboot"]
-	path = third_party/uboot
-	url = https://gitlab.denx.de/u-boot/u-boot.git
-	ignore = dirty
+# Only rkbin is a real git submodule (closed DDR/TPL/SPL blobs — pinned at a
+# known-good commit). linux + uboot are fetched-clone trees under third_party/src/
+# (gitignored, managed by scripts/fetch-deps.sh against pins/), NOT submodules —
+# they carry our patch series, so a gitlink would drift. `ignore = dirty` keeps
+# rkbin build dirties from polluting the superproject status.
 [submodule "third_party/rkbin"]
 	path = third_party/rkbin
 	url = https://github.com/rockchip-linux/rkbin.git

@@ -25,12 +25,12 @@ u-boot.itb
 # their working-dir dirties are ignored via `ignore = dirty` there.
 # mainline exploration trees (linux/uboot/rkbin read during premise verification;
 # NOT yet formalized as submodules — see PLAN.md). Local plain clones, fully ignored:
-/third_party/explore/
+/third_party/src/
 
 # buildroot: upstream clone (local plain clone, fully ignored). forge's board
 # customization (defconfig + any package/overlay) lives OUTSIDE this tree, version-
-# controlled via BR2_EXTERNAL at third_party/bringup/buildroot-external/ (see its
-# README for the checkout + build invocation). Same pattern as explore.
+# controlled via BR2_EXTERNAL at board/aes/buildroot-external/ (see its
+# README for the checkout + build invocation). Same pattern as src.
 /third_party/buildroot/
 
 # --- reference ---
@@ -66,16 +66,16 @@ u-boot.itb
 .cache/
 compile_commands.json
 
-# --- bringup build outputs (reproducible via scripts/pack-*.sh + assemble-update.sh) ---
+# --- board/aes build outputs (reproducible via scripts/pack-*.sh + assemble-update.sh) ---
 # The .its are SOURCE (tracked); everything else under fit/ + all of out/ are
 # regenerated artifacts. tee.bin is a staged rkbin blob copy (pack-fit.sh re-stages it).
-/third_party/bringup/out/
-/third_party/bringup/out-gcc10-snapshot/
-/third_party/bringup/fit/*.itb
-/third_party/bringup/fit/*.bin
-/third_party/bringup/fit/zImage
-/third_party/bringup/fit/*.dtb
-/third_party/bringup/fit/initramfs.cpio.gz
+/board/aes/out/
+/board/aes/out-gcc10-snapshot/
+/board/aes/fit/*.itb
+/board/aes/fit/*.bin
+/board/aes/fit/zImage
+/board/aes/fit/*.dtb
+/board/aes/fit/initramfs.cpio.gz
 
 # keep placeholder files tracked
 !**/.gitkeep

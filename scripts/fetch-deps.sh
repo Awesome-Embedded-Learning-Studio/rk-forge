@@ -8,7 +8,7 @@
 # "git submodule update --init" model.
 #
 # After fetching, the trees still need their deltas applied:
-#   linux  → scripts/apply-series.sh --component linux_mainline  (patches 0001-0016)
+#   linux  → scripts/apply-series.sh --component linux  (patches 0001-0016)
 #          + scripts/fetch-rtl8733bu-driver.sh                    (WiFi driver drop)
 #   uboot  → scripts/apply-series.sh --component uboot            (3 board patches)
 #   buildroot → no patches (BR2_EXTERNAL at bringup/buildroot-external/)

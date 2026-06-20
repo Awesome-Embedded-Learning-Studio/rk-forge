@@ -38,9 +38,9 @@ source scripts/env-setup.sh               # 导出 ARCH=arm / CROSS_COMPILE=arm-
 ```
 config/toolchain.conf        声明式工具链配置（未来 Python CLI 直接读）
 board.env                    板卡元信息（占位 rk3506-evb）
-boards/rk3506-evb/           ★ 板级 DT（rk-forge 的主要贡献，上游化目标）+ kernel.config
-patches/{linux_mainline,uboot}/series   有序补丁序列
-third_party/                 linux_mainline(7.0.x) · uboot · rkbin
+board/                       aes/(构建工作区:fit/rootfs/buildroot-external) · rk3506-evb/(板 config)
+patches/{linux,uboot}/series   有序补丁序列
+third_party/                 src/(linux·uboot 源树) · buildroot · rkbin(submodule)
 reference/                   vendor-sdk(参照/萃取池,非构建依赖)
 scripts/
   lib/{log,toolchain,stage}.sh           共享库；stage.sh = 内容哈希增量跳过

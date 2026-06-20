@@ -2,20 +2,20 @@
 # build-linux.sh — configure + build the mainline Linux kernel + rk3506b-aes.dtb
 # for the RK3506B board.
 #
-# Merges multi_v7_defconfig + boards/rk3506-evb/{kernel.config,kernel-trim.config,
+# Merges multi_v7_defconfig + board/rk3506-evb/{kernel.config,kernel-trim.config,
 # kernel-compress.config}, then builds zImage + the board DT. The trim + XZ fragments
 # shrink the kernel so boot.img fits before the factory-bad erase block at
 # boot-relative 0x920000 (9.125 MiB). Keep them; do NOT swap in a hand-rolled trim
 # that cuts CONFIG_NET — that data-aborts the decompressor (head.S __setup_mmu).
 # Cross toolchain from env-setup.sh (Arm GNU gcc 15.2, arm-none-linux-gnueabihf, /opt).
 # DT patches must already be applied to the tree — run
-# `scripts/apply-series.sh --component linux_mainline` once on a clean checkout
+# `scripts/apply-series.sh --component linux` once on a clean checkout
 # (or pass --apply-patches).
 #
 # Usage:
 #   scripts/build-linux.sh [--apply-patches] [--tree <dir>] [--just-dtb]
 #     --apply-patches  run apply-series.sh first (clean-tree setup)
-#     --tree <dir>     linux worktree (default: third_party/explore/linux)
+#     --tree <dir>     linux worktree (default: third_party/src/linux)
 #     --just-dtb       build only rockchip/rk3506b-aes.dtb (fast DT sanity check)
 #
 # Seam: bash-first. A future Python CLI may drive this; keep the merge/build
@@ -57,7 +57,7 @@ cd "$LINUX_DIR"
 
 if [[ "$APPLY" == 1 ]]; then
   log_info "applying DT patches (apply-series.sh)…"
-  "${_SCRIPT_DIR}/apply-series.sh" --component linux_mainline
+  "${_SCRIPT_DIR}/apply-series.sh" --component linux
 fi
 
 log_info "merge_config: multi_v7_defconfig + kernel.config + kernel-trim + kernel-compress(XZ) …"

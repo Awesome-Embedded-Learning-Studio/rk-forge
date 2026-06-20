@@ -23,8 +23,8 @@
 #
 # Usage:
 #   scripts/pack-fit.sh [--out <dir>]
-# Inputs resolve from canonical build outputs (explore/uboot, explore/linux, rkbin)
-# + the ITS/initramfs under third_party/bringup/. Rebuild those first if stale.
+# Inputs resolve from canonical build outputs (src/uboot, src/linux, rkbin)
+# + the ITS/initramfs under board/aes/. Rebuild those first if stale.
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck disable=SC1091

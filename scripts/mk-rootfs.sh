@@ -16,9 +16,9 @@
 # (CONFIG_INIT=y in the defconfig build — the applet is present in the binary).
 #
 # Reuses the ALREADY-VERIFIED static busybox from the mainline initramfs
-# (third_party/bringup/fit/initramfs.cpio.gz): a defconfig build with the full
+# (board/aes/fit/initramfs.cpio.gz): a defconfig build with the full
 # applet set baked into one binary. We add applet symlinks + the /etc config
-# source (third_party/bringup/rootfs/etc) + empty mount points. No busybox
+# source (board/aes/rootfs/etc) + empty mount points. No busybox
 # recompile. devtmpfs is auto-mounted by the kernel (CONFIG_DEVTMPFS_MOUNT=y), so
 # /dev is already populated before init runs.
 #
@@ -46,7 +46,7 @@ while [[ $# -gt 0 ]]; do
     *) die "unknown arg: $1";;
   esac
 done
-[[ -f "$INITRAMFS" ]] || die "missing initramfs (build per bringup/initramfs/README.md): $INITRAMFS"
+[[ -f "$INITRAMFS" ]] || die "missing initramfs (build per board/aes/initramfs/README.md): $INITRAMFS"
 [[ -d "$ETC_SRC" ]]   || die "missing etc source: $ETC_SRC"
 
 ROOT="${OUT_DIR}/rootfs"
@@ -60,7 +60,7 @@ cp "$INITRAMFS" "$W/initramfs.cpio.gz"
 ( cd "$W" && gzip -d initramfs.cpio.gz && mkdir ext && cd ext && cpio -idm <../initramfs.cpio >/dev/null 2>&1 )
 [[ -f "$W/ext/bin/busybox" ]] || die "no busybox in initramfs"
 file "$W/ext/bin/busybox" | grep -qi 'statically linked' \
-  || die "busybox not static — rebuild per bringup/initramfs/README.md"
+  || die "busybox not static — rebuild per board/aes/initramfs/README.md"
 cp "$W/ext/bin/busybox" "$ROOT/bin/busybox"
 chmod 0755 "$ROOT/bin/busybox"
 rm -rf "$W"

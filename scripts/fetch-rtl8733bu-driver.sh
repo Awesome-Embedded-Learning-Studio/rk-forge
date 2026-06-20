@@ -11,7 +11,7 @@
 #   2. clean any stale build artifacts
 #   3. gitignore the drop via the kernel clone's .git/info/exclude (NOT a tracked
 #      .gitignore edit) so `git status` stays clean — the 2-line realtek
-#      registration is a separate quilt patch (patches/linux_mainline/0016), the
+#      registration is a separate quilt patch (patches/linux/0016), the
 #      only tracked delta.
 #
 # Idempotent: a .forge-fetched marker records the cloned commit SHA; re-run no-ops
@@ -75,4 +75,4 @@ grep -qxF 'drivers/net/wireless/realtek/rtl8733bu/' "$EXCLUDE" \
   || printf '\n# forge: fetched vendor driver drop (scripts/fetch-rtl8733bu-driver.sh)\ndrivers/net/wireless/realtek/rtl8733bu/\n' >> "$EXCLUDE"
 
 log_ok "RTL8733BU driver materialized @ $SHA (from $REPO $PIN_REF)"
-log_info "next: scripts/apply-series.sh --component linux_mainline (patch 0016 wires it), then build + make modules"
+log_info "next: scripts/apply-series.sh --component linux (patch 0016 wires it), then build + make modules"

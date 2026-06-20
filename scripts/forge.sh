@@ -74,8 +74,8 @@ stage_setup() {
   linux_base=$(awk '{print $2}' "${_PROJECT_ROOT}/pins/linux")
   uboot_base=$(awk '{print $2}' "${_PROJECT_ROOT}/pins/uboot")
   if [[ "$(git -C "$LINUX_DIR" rev-parse HEAD)" == "$(git -C "$LINUX_DIR" rev-parse "$linux_base")" ]]; then
-    log_info "[setup] applying linux_mainline patch series"
-    ( cd "$LINUX_DIR" && bash "${_SCRIPT_DIR}/apply-series.sh" --component linux_mainline )
+    log_info "[setup] applying linux patch series"
+    ( cd "$LINUX_DIR" && bash "${_SCRIPT_DIR}/apply-series.sh" --component linux )
   else
     log_info "[setup] linux tree already patched ($(git -C "$LINUX_DIR" describe --tags 2>/dev/null || git -C "$LINUX_DIR" rev-parse --short HEAD)) — skip apply"
   fi
