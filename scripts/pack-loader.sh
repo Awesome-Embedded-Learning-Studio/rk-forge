@@ -4,7 +4,7 @@
 #
 # Loader stage of forge's NAND packaging (notes/09 §二①). The loader = DDR init +
 # usbplug + SPL blobs, wrapped in RK idblock format by boot_merger. The blobs are a
-# HARD closed dependency (BLOBS.md); boot_merger is a deterministic Rockchip packer.
+# HARD closed dependency (document/blobs.md); boot_merger is a deterministic Rockchip packer.
 #
 # Blob source — the P1 conquest: the PUBLIC rockchip-linux/rkbin submodule
 # (third_party/rkbin) is the sole source, giving a fully-public, internally-
@@ -99,4 +99,4 @@ if [[ -f "$WORK/idblock.img" ]]; then
 else
   log_warn "boot_merger produced no standalone idblock.img (pack-sd.sh will carve it from MiniLoaderAll.bin)"
 fi
-log_warn "NOT byte-identical to ATK-shipped loader (boot_merger metadata + idblock layout); board-boot unverified (notes/09 §五④, BLOBS.md)."
+log_warn "NOT byte-identical to ATK-shipped loader (boot_merger metadata + idblock layout); board-boot unverified (notes/09 §五④, document/blobs.md)."

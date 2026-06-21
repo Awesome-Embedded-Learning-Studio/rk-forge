@@ -1,41 +1,56 @@
-# QUICK_START
+# 快速开始
 
-Fast path. For the full learning path see [document/tutorial/boot/](document/tutorial/boot/).
+最短路径：把 RK3506 主线系统从源码构建到可烧 `update.img`。完整学习路径见 [document/tutorial/](document/tutorial/)，在线文档见 <https://awesome-embedded-learning-studio.github.io/rk-forge/>。
 
-## 1. Check your host
+## 1. 检查 host
 
 ```bash
 ./scripts/doctor.sh
 ```
 
-It probes the cross toolchain (`arm-linux-gnueabihf`) and build deps, detects WSL2,
-and — if anything's missing — prints the exact `sudo apt install ...` line to stdout.
-**We never auto-install** (keeps the script Python-wrap-able).
+探测交叉工具链（`arm-linux-gnueabihf`）和构建依赖、检测 WSL2，缺什么就打印精确的 `sudo apt install ...`。**绝不自动安装**（保持脚本可被 Python 包裹）。
 
-On a fresh WSL2 box you'll typically need:
+全新 WSL2 环境通常需要：
+
 ```bash
 sudo apt install gcc-arm-linux-gnueabihf device-tree-compiler bison flex cpio \
-  qemu-system-arm u-boot-tools libssl-dev libncurses-dev python3-pyelftools
+  u-boot-tools libssl-dev libncurses-dev python3-pyelftools
 ```
 
-## 2. Export the toolchain env (per shell)
+> 本项目深度 WSL2 友好（Mirrored 网络模式可直通开发板，USB 设备直通用于烧录/串口）。
+
+## 2. 导出工具链环境（每个 shell）
 
 ```bash
-source scripts/env-setup.sh    # sets ARCH=arm, CROSS_COMPILE=arm-linux-gnueabihf-
+source scripts/env-setup.sh    # 设置 ARCH=arm, CROSS_COMPILE=arm-linux-gnueabihf-
 ```
 
-## 3. (Week 3+) Fetch sources & apply patches
+## 3. 一条命令构建
 
 ```bash
-git submodule update --init --depth 1 third_party/uboot
-cd third_party/uboot && ../../scripts/apply-series.sh --component uboot --check
+bash scripts/forge.sh all      # setup → build → pack → assemble（默认 NAND，带首启置备）
 ```
 
-`--check` is a true dry-run (applies then reverts), so it verifies the **whole
-ordered series** applies cleanly before you build.
+`forge` 是单一入口编排器，按 DAG 跑各 stage，输入没变的 stage 用内容哈希跳过。常用子命令：
 
-## 4. Build & flash — see the tutorial
+```bash
+bash scripts/forge.sh setup            # 拉源码树 + WiFi 驱动 + 应用补丁库（git am）
+bash scripts/forge.sh build            # 编 kernel（uboot / buildroot 单独触发，会打印命令）
+bash scripts/forge.sh pack             # 打 loader + FIT + stage/ubifs rootfs
+bash scripts/forge.sh pack-sd          # 打可启动 SD 卡镜像（复用 NAND pack 产物）
+bash scripts/forge.sh assemble --sd    # 组 RKFW SD 卡 update.img（本板 ROM 只认 RK-tool 卡）
+bash scripts/forge.sh assemble --nand  # 组 NAND update.img
+bash scripts/forge.sh status           # 哪些 stage 是最新
+bash scripts/forge.sh clean --full     # 干净重建
+```
 
-U-Boot → kernel → SD flash is walked step-by-step in
-`document/tutorial/boot/{02_uboot_rkbin,03_kernel_to_console}.md` (drafted as the
-board DT lands).
+> **zsh 用户**：始终用 `bash scripts/forge.sh ...` 调用——lib 脚本依赖 `BASH_SOURCE`，在 zsh 下为空。
+
+产物落在 `board/aes/out/update.img`。
+
+## 4. 烧录 & 上板
+
+- **SD 卡**：`forge assemble --sd` 出的镜像用 Rockchip SD 卡工具写入（本板 ROM 只从 RK-tool 卡启动，裸 `dd` 的 SD 不认）。
+- **NAND**：Windows 用 RKDevTool，或 Linux 用 `rkdeveloptool`（Maskrom 模式）。
+
+烧录、上电引导、UART 抓 log 的逐步操作见 [document/tutorial/boot/](document/tutorial/boot/) 与 [document/tutorial/sd-boot/](document/tutorial/sd-boot/)。

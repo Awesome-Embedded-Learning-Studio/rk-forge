@@ -23,7 +23,7 @@ overlay + post-build) lives in the BR2_EXTERNAL tree at
 
 ## rkbin/ — closed Rockchip blobs (submodule)
 
-github.com/rockchip-linux/rkbin — DDR/TPL/SPL/tee blobs (see ../BLOBS.md). The
+github.com/rockchip-linux/rkbin — DDR/TPL/SPL/tee blobs (see ../document/blobs.md). The
 only real submodule here; pinned at a known-good commit.
 
 > The vendor SDK reference clone used to live here (`third_party/vendor-sdk/`).

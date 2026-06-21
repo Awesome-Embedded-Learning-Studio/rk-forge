@@ -1,7 +1,7 @@
 # RK3506 主线 U-Boot 移植 — 交接 + 踩坑日志
 
 > **给下一个会话**:从这里接上下文。本文是"克隆分身",自包含。
-> 配套:`01-2026-06-14-vendor-uboot-build-flow.md`(vendor 构建链技术细节)、`../../PLAN.md`(项目方向)、memory(已核实前提)。
+> 配套:`01-2026-06-14-vendor-uboot-build-flow.md`(vendor 构建链技术细节)、`../../README.md`(项目方向)、memory(已核实前提)。
 > 最后更新:2026-06-14。
 
 ---
@@ -169,6 +169,6 @@ sed -i 's|^FlashBoot=.*|FlashBoot=bin/rk35/rk3506_mainline_spl.bin|' /tmp/m.ini
 ## 指针
 
 - `01-2026-06-14-vendor-uboot-build-flow.md`(同目录):vendor 编 uboot 全流程 + 主线映射 + 各 Stage 实证(更细)。
-- `../../PLAN.md`:项目方向(8 周首迭代,mainline-first)。
+- `../../README.md`:项目方向(主线优先,见 README + sdk-diff)。
 - memory(下个会话自动加载):[[vendor-sdk-atk-bsp]]、[[rk3506-mainline-premises]]、[[vendor-build-pipeline-for-forge]]、+ 本次新增的 bring-up 状态。
 - 日志:`document/logs/build-uboot.log`(vendor)、`build-rk3506-stage2.log`(主线 Stage2)、`boot-sdl-*.log/.txt`(上板 UART 抓取)。

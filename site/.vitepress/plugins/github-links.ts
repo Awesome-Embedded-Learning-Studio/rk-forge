@@ -5,7 +5,7 @@ import type MarkdownIt from 'markdown-it'
  *
  * rk-forge 的教程文档里大量使用相对链接指向 document/ srcDir **之外** 的仓库源文件:
  *   - 仓库根的补丁/脚本/板级文件:  ../../../patches/linux/0001-*.patch, ../../../scripts/forge.sh
- *   - 仓库根的说明:               ../../../BLOBS.md
+ *   - 仓库根的说明:               ../../../scripts/forge.sh
  *   - 非页面的取证资源:            ../../logs/boot-sdl-*.txt
  *
  * VitePress 只把 document/ 下的 .md 渲染成页面,这些链接在站点上会 404。本插件把这类

@@ -5,7 +5,7 @@
 # update.img stage of forge's NAND packaging (notes/09 §二⑥ + §三). The packer
 # builds the RKAF container (package-file manifest + partition images) and wraps it
 # in the RKFW header + loader — replacing vendor afptool + rkImageMaker (closed
-# ELFs, now eliminated: format reverse-engineered, see BLOBS.md + rkfw-pack.py).
+# ELFs, now eliminated: format reverse-engineered, see document/blobs.md + rkfw-pack.py).
 # Deterministic (build_time fixed → reproducible); non-secure, unsigned output.
 #
 # Three variants. DEFAULT (--provision) is the saga-proven RW path:

@@ -19,6 +19,8 @@ rk-forge is mainline-first board-enablement for RK3506. Before contributing:
 - **Commits**: conventional `type(scope): subject`, signed-off (`git commit -s`).
 - **C/C++ style**: `.clang-format` is authoritative.
 
-## Out of scope (v1)
-Distro images, multi-SoC, original kernel drivers, Docker/CI multi-track, GUI, VitePress
-site, Python CLI (iteration 2). See [PLAN.md](PLAN.md).
+## Scope
+
+rk-forge 是 RK3506 的主线优先板级使能（board enablement）+ 教程，**不是**发行版镜像。当前范围内：RK3506B（单 SoC）、主线 Linux + U-Boot、有序补丁整合（integrator，不写原创内核驱动）、SPI-NAND（UBIFS）与 SD 卡双启动、buildroot 最小 rootfs、VitePress 文档站。
+
+明确不做：发行版镜像、多 SoC、原创内核驱动、blob 纯洁主义（`rkbin` 先用、文档化、追踪消除，见 [document/blobs.md](document/blobs.md)）。完整定位与已验证能力见 [README.md](README.md)。
