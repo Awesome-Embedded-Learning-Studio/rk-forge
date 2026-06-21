@@ -11,7 +11,12 @@
 #   scripts/forge.sh setup      fetch source trees + WiFi driver + apply patch series
 #   scripts/forge.sh build      build the kernel (build-linux) + print uboot/buildroot cmds
 #   scripts/forge.sh pack       pack loader + FITs + stage/ubifs rootfs
-#   scripts/forge.sh assemble [--provision|--nand|--rescue]   assemble update.img
+#   scripts/forge.sh pack-sd    pack a bootable SD-card image (sd.img) — reuses the
+#                               NAND pack outputs (idblock/uboot.img/boot.img/rootfs)
+#                               then lays out GPT + ext4 rootfs. SD-1 manual boot.
+#   scripts/forge.sh assemble [--provision|--nand|--rescue|--sd]   assemble update.img
+#                                  (--sd = RKFW for the Rockchip SD tool; this board's
+#                                   ROM boots SD only from an RK-tool card)
 #   scripts/forge.sh all        setup -> build -> pack -> assemble (--provision)
 #   scripts/forge.sh clean [--full]  rm -rf out/ (+ stage state); --full also
 #                                  mrproper linux/uboot + clean buildroot (full rebuild)
@@ -43,9 +48,9 @@ while [[ $# -gt 0 ]]; do
     --force)   FORCE=1; shift;;
     --no-skip) NO_SKIP=1; shift;;
     --full)    CLEAN_FULL=1; shift;;
-    setup|build|pack|assemble|all|clean|status) CMD="$1"; shift; break;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0;;
-    *) die "unknown arg: $1 (want a subcommand: setup|build|pack|assemble|all|clean|status)";;
+    setup|build|pack|pack-sd|assemble|all|clean|status) CMD="$1"; shift; break;;
+    -h|--help) sed -n '2,22p' "$0"; exit 0;;
+    *) die "unknown arg: $1 (want a subcommand: setup|build|pack|pack-sd|assemble|all|clean|status)";;
   esac
 done
 [[ -n "$CMD" ]] || die "no subcommand (try: forge setup|build|pack|assemble|all|clean|status)"
@@ -134,7 +139,34 @@ stage_pack() {
     -- bash "${_SCRIPT_DIR}/pack-ubifs.sh"
 }
 
+# SD-card image (parallel to NAND — second boot media, dev/recovery). Reuses the
+# NAND pack outputs (idblock from pack-loader, uboot.img/boot.img from pack-fit,
+# rootfs tree from stage-rootfs) — only the LAYOUT differs (GPT + ext4 rootfs,
+# raw idblock/uboot/boot.img). Runs stage_pack first (each sub-stage skips if
+# unchanged) so `forge pack-sd` is self-contained. See scripts/pack-sd.sh.
+stage_pack_sd() {
+  stage_pack
+  mkdir -p "$OUT_DIR"
+  run_stage pack-sd \
+    "${OUT_DIR}/idblock.img" "${OUT_DIR}/uboot.img" "${OUT_DIR}/boot.img" \
+    "${OUT_DIR}/rootfs" "${_SCRIPT_DIR}/pack-sd.sh" "${_PROJECT_ROOT}/config/forge.env" \
+    -- bash "${_SCRIPT_DIR}/pack-sd.sh"
+}
+
 stage_assemble() {
+  # --sd variant: RKFW for the Rockchip SD tool (board boots SD only from an
+  # RK-tool card). Needs rootfs.ext4 from pack-sd → run the SD pack chain first,
+  # then assemble with the SD parameter + ext4 rootfs. Distinct stage name so its
+  # fingerprint doesn't collide with the NAND assemble.
+  if [[ "$ASSEMBLE_VARIANT" == "--sd" ]]; then
+    stage_pack_sd
+    run_stage assemble-sd \
+      "${OUT_DIR}/boot-sd.img" "${OUT_DIR}/rootfs.ext4" "${OUT_DIR}/uboot.img" \
+      "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/parameter-sd-aes.txt" \
+      "${BRINGUP}/package-file-sd.txt" "${_SCRIPT_DIR}/assemble-update.sh" \
+      -- bash "${_SCRIPT_DIR}/assemble-update.sh" --sd
+    return
+  fi
   run_stage assemble \
     "${OUT_DIR}/boot.img" "${OUT_DIR}/rootfs.ubi.img" "${OUT_DIR}/uboot.img" \
     "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/parameter-nand-aes.txt" \
@@ -143,7 +175,7 @@ stage_assemble() {
 }
 
 stage_status() {
-  for s in pack-loader pack-fit stage-rootfs pack-ubifs assemble; do
+  for s in pack-loader pack-fit stage-rootfs pack-ubifs pack-sd assemble assemble-sd; do
     if [[ -f "${STATE_DIR}/${s}.fingerprint" ]]; then
       log_ok "$s: recorded"
     else
@@ -187,6 +219,7 @@ case "$CMD" in
   setup)    stage_setup ;;
   build)    stage_build ;;
   pack)     stage_pack ;;
+  pack-sd)  stage_pack_sd ;;
   assemble) stage_assemble ;;
   all)      stage_setup; stage_build; stage_pack; ASSEMBLE_VARIANT="${ASSEMBLE_VARIANT}" stage_assemble
             log_ok "all done → ${OUT_DIR}/update.img" ;;

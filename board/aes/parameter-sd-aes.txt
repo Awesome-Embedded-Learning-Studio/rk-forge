@@ -1,0 +1,38 @@
+# parameter-sd-aes.txt — RKFW parameter for the SD-card boot variant (update-sd.img).
+#
+# SD boot is the SECOND boot media (parallel to SPI-NAND). This board's boot ROM
+# boots SD only from a card the Rockchip SD tool writes from an RKFW image (a raw
+# dd image is not recognized) — so the SD deliverable is an RKFW (update-sd.img),
+# NOT the raw sd.img. See document/notes/32.
+#
+# GPT layout (RK convention: the loader/idblock is written raw @ sector 0x40 by
+# the RK tool; the partitions below are GPT entries). uboot@0x2000 COINCIDES with
+# the SPL load point (CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR=0x2000) — the RK
+# tool writes uboot.img into that partition and the SPL reads it from the same
+# offset. boot@0x4000 holds the kernel FIT (read raw by U-Boot `mmc read`).
+# rootfs@0x10000 is the ext4 the kernel mounts.
+#
+# NB: three GPT partitions → rootfs = mmcblk0p3 (uboot=p1, boot=p2, rootfs=p3).
+#     The manual SD bootcmd uses root=/dev/mmcblk0p3 (NOT p1 like the raw image).
+#
+# Size units are 512 B sectors (RK parameter convention). boot=0xC000 (24 MiB)
+# gives headroom over the ~9.4 MiB kernel FIT (and assemble-update pads boot.img
+# to fill it). rootfs = FIXED 0x100000 (512 MiB), NOT grow:
+#   rkfw-pack.py's parse_parameter regex requires a `0x..` size; the `-` (grow)
+#   token doesn't match → rootfs's nand_addr ends up 0xFFFFFFFF → the RK tool
+#   builds the partition but writes NO image to it → kernel "no filesystem could
+#   mount root" panic (boot-sdl-202606211014). Vendor uses a fixed rootfs size
+#   too. 512 MiB > the default 256 MiB rootfs.ext4 (headroom; resize2fs to grow).
+FIRMWARE_VER:8.1
+MACHINE_MODEL:RK3506
+MACHINE_ID:007
+MANUFACTURER: RK3506
+MAGIC: 0x5041524B
+ATAG: 0x00200800
+MACHINE: 3506
+CHECK_MASK: 0x80
+PWR_HLD: 0,0,A,0,1
+TYPE: GPT
+GROW_ALIGN: 0
+CMDLINE:mtdparts=:0x00002000@0x00002000(uboot),0x0000C000@0x00004000(boot),0x00100000@0x00010000(rootfs)
+uuid:rootfs=614e0000-0000-4b53-8000-1d28000054a9

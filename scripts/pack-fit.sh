@@ -122,4 +122,23 @@ cp "$W3/boot-nand.img" "$OUT_DIR/boot-nand.img"
 "$MKIMAGE" -l "$OUT_DIR/boot-nand.img" >/dev/null || die "boot-nand.img failed FIT parse"
 log_ok "boot-nand.img → $OUT_DIR/boot-nand.img ($(stat -c%s "$OUT_DIR/boot-nand.img") B, no ramdisk → UBIFS root)"
 
+# --- boot FIT, SD-rootfs variant (no ramdisk → kernel mounts the SD ext4 root) ---
+# Sibling of boot-nand.img: same zImage+dtb, NO ramdisk node. boot.img (with the
+# provisioning initramfs) would hijack boot — its /init attaches NAND ubi0:rootfs
+# and switch_roots there, ignoring bootargs root= (see log
+# boot-sdl-202606210958: cmdline said mmcblk0p3 but /init mounted NAND UBIFS).
+# With NO initramfs, the kernel honors bootargs root=/dev/mmcblk0p3 and mounts
+# the SD card's GPT p3 (ext4) as root → true all-SD boot. Same FIT structure as
+# boot-nand.img (media-agnostic); only the bootargs differ (set by U-Boot).
+W4=$(mktemp -d)
+trap 'rm -rf "$W1" "$W2" "${W3:-}" "${W4:-}"' EXIT
+cp "$ZIMAGE"   "$W4/zImage"
+cp "$KERN_DTB" "$W4/rk3506b-aes.dtb"
+cp "${BRINGUP}/fit/rk3506-kernel-sd.its" "$W4/"
+log_info "packing boot-sd.img (fit-pack.py Mode B --external-offset 0x800, no ramdisk)…"
+python3 "$FIT_PACK" pack --external-offset 0x800 "$W4/rk3506-kernel-sd.its" "$W4/boot-sd.img"
+cp "$W4/boot-sd.img" "$OUT_DIR/boot-sd.img"
+"$MKIMAGE" -l "$OUT_DIR/boot-sd.img" >/dev/null || die "boot-sd.img failed FIT parse"
+log_ok "boot-sd.img → $OUT_DIR/boot-sd.img ($(stat -c%s "$OUT_DIR/boot-sd.img") B, no ramdisk → SD ext4 root)"
+
 log_warn "all FITs now forge-packed (fit-pack.py); board-boot of these is the confirmation."

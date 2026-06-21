@@ -17,3 +17,7 @@
 # Autoboot: env=nowhere → compiled-default bootcmd (mtd read + bootm) runs every
 # boot, no hand-typed 3 lines. Board-verified boot-sdl-202606182124.
 0003-uboot-autoboot-mtd-bootm.patch
+# MMC: enable the dwmmc SD controller (mmc@ff480000) so U-Boot proper can see
+# the SD card (SD-card boot via RKFW update-sd.img). Was deferred in 0001.
+# Board-test: mmc dev 0 enumerates the SD (was 'No MMC device available').
+0004-uboot-dts-mmc-sd-controller.patch
