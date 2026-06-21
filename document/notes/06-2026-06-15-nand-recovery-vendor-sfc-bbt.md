@@ -60,6 +60,6 @@ w: LBA=cd00 PBA=cd00 is bad block skip0                          ← vendor 判�
 
 - corrupt 问题完整现状: [nand-ecc-debug-handoff.md](nand-ecc-debug-handoff.md)
 - U-Boot spinand driver: `third_party/explore/uboot/drivers/mtd/nand/spi/core.c`
-- 当前稳定版 U-Boot FIT: `third_party/bringup/fit/rk3506-mainline.itb`(md5 5520bc46)
-- 内核 FIT: `third_party/bringup/fit/rk3506-kernel.itb`
+- 当前稳定版 U-Boot FIT: `board/aes/fit/rk3506-mainline.itb`(md5 5520bc46)
+- 内核 FIT: `board/aes/fit/rk3506-kernel.itb`
 - 上板日志(恢复后): 本篇上面的输出(含 vendor SFC bad block 扫描)

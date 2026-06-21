@@ -97,7 +97,7 @@ vendor 的 `tee.bin` 是 rkbin 预编译 blob,源码不在手,**无法事先确�
 - `fdt` 节点:`data` 指向我们的 `u-boot.dtb`(rk3506-evb)。
 - `optee` 节点:`data` 指向 vendor `tee.bin`,`load/entry = <0x00001000>` 不动。
 
-放新目录 `third_party/bringup/fit/`,三个 blob 汇聚进去(uboot-nodtb.bin / u-boot.dtb / tee.bin),ITS 用相对文件名自包含。
+放新目录 `board/aes/fit/`,三个 blob 汇聚进去(uboot-nodtb.bin / u-boot.dtb / tee.bin),ITS 用相对文件名自包含。
 
 ### mkimage 选型
 用 **vendor 的 `tools/mkimage`(2017.09)** 打包,而不是主线的。理由:与 vendor SPL 字节级兼容(同源工具),`-E` external data 模式是 RK SPL 的读取约定。
@@ -272,9 +272,9 @@ Scanning for bootflows in all bootdevs
 ### 新产出物
 | 路径 | 内容 |
 |---|---|
-| `third_party/bringup/fit/rk3506-mainline.its` | 手写的 vendor 格式 FIT 源(可复用模板) |
-| `third_party/bringup/fit/rk3506-mainline.itb` | 打包好的 vendor 格式 FIT(547 KB) |
-| `third_party/bringup/fit/{uboot-nodtb.bin,u-boot.dtb,tee.bin}` | 三方汇聚的 blob |
+| `board/aes/fit/rk3506-mainline.its` | 手写的 vendor 格式 FIT 源(可复用模板) |
+| `board/aes/fit/rk3506-mainline.itb` | 打包好的 vendor 格式 FIT(547 KB) |
+| `board/aes/fit/{uboot-nodtb.bin,u-boot.dtb,tee.bin}` | 三方汇聚的 blob |
 
 ### Windows 侧(给 RKDevTool 烧板用,`D:\DownloadFromInternet\`)
 | 文件 | 角色 |

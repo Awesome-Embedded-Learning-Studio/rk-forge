@@ -19,7 +19,7 @@
 TAG="RK$(dd if="$LOADER" bs=1 count=4 skip=21 status=none | rev)"
 ```
 
-这写法是照搬 vendor `mk-updateimg.sh` 的权威做法。loader 的真实名记在 [RKBOOT-RK3506B-aes.ini](../../third_party/bringup/RKBOOT-RK3506B-aes.ini) 里,第 13 行 `NAME=RK350F` 就是铁证;而 vendor 自己那个 `rockdev/rk3506-mkupdate.sh` 把 RK3506 写死,只是图省事的简化脚本,千万别拿它当参考。
+这写法是照搬 vendor `mk-updateimg.sh` 的权威做法。loader 的真实名记在 [RKBOOT-RK3506B-aes.ini](../../board/aes/RKBOOT-RK3506B-aes.ini) 里,第 13 行 `NAME=RK350F` 就是铁证;而 vendor 自己那个 `rockdev/rk3506-mkupdate.sh` 把 RK3506 写死,只是图省事的简化脚本,千万别拿它当参考。
 
 ⚠️ 这一步千万别偷懒硬编 `-RK3506`:chip tag 永远动态读,认准 `RK$(dd if=loader bs=1 count=4 skip=21 | rev)`。改好之后 RKDevTool 不光校验过了,连 idblock 也一并烧进了我们的 loader,分区这才齐活。
 
@@ -65,7 +65,7 @@ Bad hash value for 'hash' hash node in 'optee' image node
 ## Checking optee 0x00001000 ... sha256(93603ca22c...) + OK
 ```
 
-这个 `7b78fe4e` 我在 [pack-fit.sh:77](../../scripts/pack-fit.sh) 的注释里也原样记了下来,就是主线 mkimage 错位读到的值。最后正解是:uboot FIT **永远用 vendor-sdk 的 `u-boot/tools/mkimage`(2017.09) `-E` 打**,结构跟 vendor SPL 字节级对齐;[rk3506-mainline.its](../../third_party/bringup/fit/rk3506-mainline.its) 里 optee/fdt 节点的 load 和结构都照搬 vendor 已经跑通的布局,只把 uboot 的 load 改成主线的 `0x00800000`(TEXT_BASE)。打完上板,[boot-sdl-202606142037.txt](../logs/boot-sdl-202606142037.txt) 里三个节点(optee/uboot/fdt)全是 `+ OK`,FIT 这才被 SPL 放行。
+这个 `7b78fe4e` 我在 [pack-fit.sh:77](../../scripts/pack-fit.sh) 的注释里也原样记了下来,就是主线 mkimage 错位读到的值。最后正解是:uboot FIT **永远用 vendor-sdk 的 `u-boot/tools/mkimage`(2017.09) `-E` 打**,结构跟 vendor SPL 字节级对齐;[rk3506-mainline.its](../../board/aes/fit/rk3506-mainline.its) 里 optee/fdt 节点的 load 和结构都照搬 vendor 已经跑通的布局,只把 uboot 的 load 改成主线的 `0x00800000`(TEXT_BASE)。打完上板,[boot-sdl-202606142037.txt](../logs/boot-sdl-202606142037.txt) 里三个节点(optee/uboot/fdt)全是 `+ OK`,FIT 这才被 SPL 放行。
 
 ⚠️ uboot FIT 别用主线 mkimage,认准 vendor-sdk 那颗 2017.09 的;kernel FIT(boot.img)才是由主线 U-Boot 加载,主线 mkimage 随便用。这条本质是 rkbin SPL 收的隐性税,不是 FIT 标准的锅,所以中途 note08/note09 我一度以为"主线 mkimage 格式级兼容、能替代"——双向 `mkimage -l` 解析都 OK 嘛——结果一上板就翻车,格式兼容不等于 SPL 认。真要彻底摆脱,得换掉 rkbin SPL、用主线 U-Boot 自己的 SPL 再关掉 verified boot,那是后话了。
 

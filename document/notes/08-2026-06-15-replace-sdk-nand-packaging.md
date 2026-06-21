@@ -15,7 +15,7 @@
 
 | 块 | 当前怎么来 | 工具 | 性质 |
 |---|---|---|---|
-| **partition 表(parameter)** | `third_party/bringup/parameter-nand-aes.txt`(RK parameter 格式,mtdparts= uboot/misc/vnvm/recovery/boot/rootfs/userdata) | 手写 | 文本,需理解 RK 扇区单位约定 |
+| **partition 表(parameter)** | `board/aes/parameter-nand-aes.txt`(RK parameter 格式,mtdparts= uboot/misc/vnvm/recovery/boot/rootfs/userdata) | 手写 | 文本,需理解 RK 扇区单位约定 |
 | **idblock / loader** | `rk3506-vendor-loader.bin` = vendor DDR(rk3506b_ddr_750MHz_v1.06.bin)+ vendor SPL + usbplug | vendor `boot_merger` | **纯 vendor blob**,写 NAND boot 区(RKDevTool "Loader" 字段) |
 | **uboot 分区** | `rk3506-mainline.itb`(主线 u-boot-nodtb.bin + u-boot.dtb + vendor tee.bin) | **vendor mkimage 2017.09** `-E` | 内容是我们的,打包工具是 vendor 的 |
 | **boot 分区** | `rk3506-kernel.itb`(zImage + rk3506b-aes.dtb + initramfs.cpio.gz) | **vendor mkimage 2017.09** `-E -p 0x800` | 同上 |
@@ -35,7 +35,7 @@
 
 1. **用主线 mkimage/dtc 打 FIT**,不再借 vendor 2017 mkimage(主线 U-Boot 自带 tools/mkimage,验证字节兼容 vendor SPL 读取即可;若 vendor SPL 对 FIT 结构有特殊要求,记下来)。
 2. **Linux 侧组装完整可烧 NAND 镜像**:要么产 RK `update.img`(开源 rkdeveloptool/afptool),要么直接用 `rkdeveloptool`(Linux)写板,摆脱 Windows RKDevTool + 手动 cp。
-3. **脚本化、可复现**:纳入 `scripts/`(forge 已有 bash-first 约定,见 `config/toolchain.conf`、`scripts/apply-series.sh`),产物落 `third_party/bringup/out/`。
+3. **脚本化、可复现**:纳入 `scripts/`(forge 已有 bash-first 约定,见 `config/toolchain.conf`、`scripts/apply-series.sh`),产物落 `board/aes/out/`。
 4. **loader 近期仍借 vendor**(方案 A 自己的 SPL/DDR 是远期,见 sdk-diff "RK-SDK residue")——但**从 forge 脚本组装**(调 boot_merger 或预提取),不让人工干预。
 
 ## 之后:接入清爽 buildroot(产真 rootfs)
@@ -63,7 +63,7 @@ vendor 的 buildroot 臃肿且绑死其 SDK。目标:拉一个**最小 buildroot
 ## 关键文件 / 知识指针
 
 - 现状交接:[07](07-2026-06-15-milestone-mainline-linux-boots.md)、[sdk-diff](../sdk-diff.md)
-- 打包配方:`third_party/bringup/fit/{rk3506-mainline.its, rk3506-kernel.its}`、`third_party/bringup/parameter-nand-aes.txt`、`third_party/bringup/initramfs/README.md`
+- 打包配方:`board/aes/fit/{rk3506-mainline.its, rk3506-kernel.its}`、`board/aes/parameter-nand-aes.txt`、`board/aes/initramfs/README.md`
 - vendor 流程:[01](01-2026-06-14-vendor-uboot-build-flow.md)、[04](04-2026-06-14-mainline-uboot-via-vendor-spl.md)、`third_party/vendor-sdk/build.sh` + `mk-*.sh`、`tools/{mkimage,boot_merger}`
 - rkbin blob:`third_party/explore/rkbin/bin/rk35/`(DDR/TEE)
 - memory:`vendor-build-pipeline-for-forge`、`vendor-sdk-atk-bsp`、`uboot-build-flash-commands`、`kernel-port-state`、`sfc-read-corruption-rootcause`

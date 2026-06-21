@@ -6,7 +6,7 @@ rk-forge's identity is "report the gap truthfully").
 
 > 在 [document/](../) 四层结构里,这里是 **raw 过程笔记**层(取证源)。踩坑日记在
 > [pitfalls/](../pitfalls/)(回溯提炼的完整叙事 + canonical 结论),被推翻的旧结论在
-> [archive/](../archive/),板上日志在 [logs/](../logs/)。本目录不删、不去重 —— 它是按天的
+> `archive/`,板上日志在 [logs/](../logs/)。本目录不删、不去重 —— 它是按天的
 > 流水,和 pitfalls 重叠是正常的,一个记现场、一个讲结论。
 
 ## 命名约定
@@ -62,7 +62,7 @@ most useful part.
 
 ## 与 pitfalls 的关系
 
-本目录是按天记的 raw 现场(含失败、噪音、半成品、当时的错判);[pitfalls/](../pitfalls/) 是事后回溯、把 12 条坑按故障域重新组织成的完整叙事 + canonical 结论。要快速理解"踩了哪些坑、怎么解的",直接读 pitfalls;要还原某一天的原始折腾,翻这里。saga 那段被推翻的旧结论(HANDOFF/POSTMORTEM/RW-WRITE-FIX)已移入 [archive/](../archive/)。
+本目录是按天记的 raw 现场(含失败、噪音、半成品、当时的错判);[pitfalls/](../pitfalls/) 是事后回溯、把 12 条坑按故障域重新组织成的完整叙事 + canonical 结论。要快速理解"踩了哪些坑、怎么解的",直接读 pitfalls;要还原某一天的原始折腾,翻这里。saga 那段被推翻的旧结论(HANDOFF/POSTMORTEM/RW-WRITE-FIX)已移入 `archive/`。
 
 ## 待补
 

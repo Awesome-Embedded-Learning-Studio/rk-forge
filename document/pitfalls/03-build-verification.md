@@ -26,7 +26,7 @@
 
 这回我又看错层了。zImage 是 **XZ 压缩**的部署产物,内核文本早就被压成一坨不可读的字节流,`strings` 哪里扫得到 `PROBE`、`dev_info` 这种明文。要看探针在不在编译产物里,得查**没压缩的 `.o`**(或者 vmlinux)。
 
-正解是对着 instrumented 那棵树,跑 `strings drivers/mtd/nand/spi/winbond.o | grep PROBE`(命中)对比 `strings zImage | grep PROBE`(空),一比就坐实。note10 里我验增量构建也是看 `.o` 级产物——`spi-rockchip-sfc.o`、`winbond.o`、`spi-nand core.o` 编进、zImage 出(12059136 字节)——看的从来不是 zImage。而板上那些 PROBE 文本,全来自运行时 dmesg,跟 strings 一点关系没有(参见 [archive/HANDOFF-LOADER-MARGINAL-WRITE.md](../archive/HANDOFF-LOADER-MARGINAL-WRITE.md) 里 instrumented 探针那段)。
+正解是对着 instrumented 那棵树,跑 `strings drivers/mtd/nand/spi/winbond.o | grep PROBE`(命中)对比 `strings zImage | grep PROBE`(空),一比就坐实。note10 里我验增量构建也是看 `.o` 级产物——`spi-rockchip-sfc.o`、`winbond.o`、`spi-nand core.o` 编进、zImage 出(12059136 字节)——看的从来不是 zImage。而板上那些 PROBE 文本,全来自运行时 dmesg,跟 strings 一点关系没有(参见 `archive/HANDOFF-LOADER-MARGINAL-WRITE.md` 里 instrumented 探针那段)。
 
 ⚠️ 验探针/字符串/符号在不在编译产物里,查未压缩的 `.o` 或 vmlinux,别查 zImage(XZ 压缩,strings 根本看不见)。清探针要三重确认:`git diff` 干净 + `.o` 重编 + 板侧 dmesg 不再打 PROBE。
 

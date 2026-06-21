@@ -46,7 +46,7 @@ Line-by-lined the vendor 6.1 driver. RK3506's USB2PHY uses **two register spaces
     `usb@ff740000` + `usb@ff780000` (`rockchip,rk3066-usb`/`snps,dwc2` fallback —
     **no dwc2 driver patch**, dwc2 binds on the generic fallback).
   - rk3506b-aes.dts: both PHY ports + both controllers `dr_mode="host"`.
-- config: `boards/rk3506-evb/kernel.config` += `PHY_ROCKCHIP_INNO_USB2=y` +
+- config: `board/rk3506-evb/kernel.config` += `PHY_ROCKCHIP_INNO_USB2=y` +
   `USB_DWC2_HOST=y`; **`kernel-trim.config` dropped the `# CONFIG_USB_SUPPORT is
   not set` line** (it's applied AFTER kernel.config and was gating all USB off —
   the build first came up with DWC2/PHY absent until this was fixed).

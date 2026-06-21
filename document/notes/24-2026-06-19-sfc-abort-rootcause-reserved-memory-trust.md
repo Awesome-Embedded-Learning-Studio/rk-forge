@@ -127,7 +127,7 @@ TMPFS-DONE                                            ← 零 abort
 - **镜像**:`/mnt/d/DownloadFromInternet/update-rwfix-reservedmem.img`(md5 `35e1724e`,PROVISION-UBIPROG)。
 - **板上 log**:`document/logs/boot-sdl-202606192323.txt`(修前 boot1 + 修后 boot2 同文件)。
 
-## 教训(详见 [25](25-…-misdiagnosis) 提炼)
+## 教训(详见 笔记 25 提炼)
 
 1. **imprecise external abort 的 FAR 不可信**(异步,归到任意后续指令)。别按 FAR 地址
    找原因——0x0053d004 是 dd user buffer,真凶是并发 trust 页访问,跟那个地址无关。
@@ -141,5 +141,5 @@ TMPFS-DONE                                            ← 零 abort
    tmpfs 复现给出 precise 版,反而更好定位。
 
 相关:[[sfc-dll-saga-and-writepath]](待更新:abort 段改判 reserved-memory)
-[[handoff-rw-sfc-abort-open]](已作废,见记忆更正)、
-[pitfalls/05](../pitfalls/05-imprecise-abort-and-vendor-align-heuristic.md)。
+`handoff-rw-sfc-abort-open`（已作废,见记忆更正）、
+[pitfalls/05](../pitfalls/05-secure-mem-reservation-imprecise-abort.md)。

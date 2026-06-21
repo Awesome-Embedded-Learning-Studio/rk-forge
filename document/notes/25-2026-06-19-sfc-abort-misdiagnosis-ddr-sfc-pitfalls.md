@@ -2,7 +2,7 @@
 
 > 真根因见 [24](24-2026-06-19-sfc-abort-rootcause-reserved-memory-trust.md)。本条专门记**追错树**
 > 的两轮 detour,作为"别再犯"素材。提炼版见
-> [pitfalls/05](../pitfalls/05-imprecise-abort-and-vendor-align-heuristic.md)。
+> [pitfalls/05](../pitfalls/05-secure-mem-reservation-imprecise-abort.md)。
 
 ## saga 的时间线(三段,前两段错)
 

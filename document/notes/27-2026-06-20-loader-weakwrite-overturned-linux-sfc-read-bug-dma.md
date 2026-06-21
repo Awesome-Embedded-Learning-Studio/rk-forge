@@ -89,7 +89,7 @@ ubiprog done: recovered(page-level)=5
 ## 最终结论(二次修正)
 
 - **loader 边际写真、ubiprog 必要**(原 saga 对)。loader 偶发把 rootfs 某几页写到 ECC 阈值附近,读非确定 → 偶发 >8 → -74 → ubiprog 0xFF 兜底。
-- **本次 session 真·新收获 = abort 根因(reserved-memory,[24](24-…))+ 修 + 板验**。这才是生产级的关键修复。
+- **本次 session 真·新收获 = abort 根因(reserved-memory,笔记 24)+ 修 + 板验**。这才是生产级的关键修复。
 - **系统 work**:ubiprog failed=0 + flash_stress 50/50 过 + abort 修。**接受 ubiprog 当生产解**(loader 边际写是 rkbin blob 的固有抖动,动不了;ubiprog 兜得住,bounded)。
 - **no-dma 实验镜像** `update-rwfix-dma.img` 板上也能跑(stress 过),但**没修 -74**(不是 PIO/DMA)。可保留 DMA(对齐 vendor)或回 PIO(原状),二选一都行——不影响生产。
 
@@ -120,6 +120,6 @@ peb=124 full-read uncorrectable → page recovery (1/64)
 ## 相关
 - [[sfc-dll-saga-and-writepath]]:saga 主体。**其"loader 弱写/ubiprog 必要"段再次翻案**:loader 写干净,是 Linux 读 bug;ubiprog 兜的是 Linux 读。DMA 修了即可退役。
 - [[rootfs-weakwrite-reexam]]:之前用 SR trace(st=0x20)否回"翻案",现在看 SR trace 那次要么是真弱写抖动(偶发)、要么本身被 Linux 读 bug 污染——**主因是 Linux 读**。
-- [24](24-…-reserved-memory):abort 真根因(独立,已修)。
-- [25](25-…-misdiagnosis):DDR/SFC 两轮误诊(本条是第三轮,同方法论)。
+- 笔记 24:abort 真根因(独立,已修)。
+- 笔记 25:DDR/SFC 两轮误诊(本条是第三轮,同方法论)。
 - [pitfalls/05](../pitfalls/05-secure-mem-reservation-imprecise-abort.md):需补"双读者矩阵"这条。
