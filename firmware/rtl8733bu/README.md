@@ -2,7 +2,7 @@
 
 The two files in this dir (`rtl8733bu_fw` + `rtl8733bu_config`) are copied once
 from the ATK vendor-sdk overlay. They are **gitignored** (Realtek binary blobs,
-redistribution status unverified — same stance as `third_party/rkbin-atk/`).
+redistribution status unverified).
 
 ## These are UNUSED at runtime
 

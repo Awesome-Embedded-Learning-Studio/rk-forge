@@ -10,7 +10,7 @@ A local clone of the 正点原子/ALIENTEK RK3506 BSP (linux 6.1.118 + a vendor 
 fork), managed via the `repo` tool (it has a `.repo/`). It is **not built** and **not a
 git submodule** — it exists solely as a knowledge source:
 
-- **`scripts/sdk-diff.sh`** compares it subsystem-by-subsystem against the mainline port.
+- **[`document/sdk-diff.md`](../document/sdk-diff.md)** compares it subsystem-by-subsystem against the mainline port.
 - **Board-DT / defconfig / io-domain extraction**: forge's board tree is built by reading
   what the vendor did here and porting the relevant bits to mainline. It is an *active
   extraction pool*, not a frozen snapshot — as forge grows (more peripherals, more

@@ -11,8 +11,8 @@
 #
 # Cross-invocation note: pack-loader and pack-fit are separate processes — to
 # avoid the SPL/tee source mix, run BOTH with the same FORGE_RKBIN_DIR (the
-# default public rkbin, or both overridden to rkbin-atk). The forge orchestrator
-# enforces this; do not pass --rkbin to only one of them.
+# default public rkbin, the sole blob source). The forge orchestrator enforces
+# this; do not pass --rkbin to only one of them.
 
 # resolve the highest-version blob basename matching a pattern (version sort).
 # optional 3rd arg = a grep -v exclusion (e.g. '_ta_' for tee trust-anchor vars).

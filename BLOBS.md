@@ -28,14 +28,10 @@ Everything else — Linux kernel, U-Boot proper, the device tree — is **open a
   (`scripts/pack-fit.sh`) — giving a fully-public, internally-consistent loader
   (DDR v1.06 + usbplug v1.03 + SPL v1.12 + tee v2.40) that needs **zero**
   vendor-sdk. This is the P1 "fully-public loader" conquest.
-- **ATK fallback** (`third_party/rkbin-atk/`, see below): the public rkbin has
-  NEVER carried the ATK-snapshot blobs (usbplug v1.02 / SPL v1.11 / tee v2.10) —
-  only newer v1.03/v1.12/v2.40. Those are committed locally as a regression
-  baseline; `FORGE_RKBIN_DIR=third_party/rkbin-atk` rebuilds the known-good ATK
-  loader. Boot of the **public** loader is board-test pending (the conquest's
-  remaining verification step).
-- `scripts/sdk-diff.sh` reports `rkbin` as the residue when comparing a vendor BSP
-  vs our mainline port — i.e. *how much closed firmware remains*.
+- **Public rkbin is the sole blob source.** Board-test of the public loader has
+  confirmed it boots, so there is no longer an ATK-private fallback path.
+- [`document/sdk-diff.md`](document/sdk-diff.md) reports `rkbin` as the residue when comparing a
+  vendor BSP vs our mainline port — i.e. *how much closed firmware remains*.
 - Goal (future iteration): track / contribute to an open DDR-init effort so this
   table shrinks. Updates land here first.
 
@@ -64,30 +60,20 @@ Python output). What remains:
 | ~~`rkImageMaker`~~ | ~~same dir (v2.29)~~ | ~~wraps RKAF with the RKFW header + loader → final update.img~~ | **Replaced** — `rkfw-pack.py` does RKAF + RKFW in one tool (same conquest). |
 
 `mkimage` (the FIT packer) is **open** and mainline — forge uses
-`third_party/explore/uboot/tools/mkimage` (2026.07-rc4), not the vendor 2017.09
+`third_party/src/uboot/tools/mkimage` (2026.07-rc4), not the vendor 2017.09
 copy. See `scripts/pack-*.sh`.
 
 ### Loader byte-diff (honest edge)
 
-`scripts/pack-loader.sh` reproduces the loader via `boot_merger` (always from the
-public submodule). The **default** build uses the public blobs (DDR v1.06 + usbplug
-v1.03 + SPL v1.12, 281024 B); the **ATK fallback** (`FORGE_RKBIN_DIR=rkbin-atk`)
-uses v1.06 + v1.02 + v1.11. Neither is byte-identical to the ATK-shipped
+`scripts/pack-loader.sh` reproduces the loader via `boot_merger` from the public
+submodule. The build uses the public blobs (DDR v1.06 + usbplug v1.03 + SPL
+v1.12, 281024 B). It is NOT byte-identical to the ATK-shipped
 `rk3506-vendor-loader.bin` (270784 B): boot_merger embeds a build timestamp and
-emits a slightly different (~6 KB) idblock layout. **Board-boot of either
-forge-reproduced loader is unverified** — the conquest's remaining step. The ATK
-fallback (matching the shipped loader's blob family) is the safe baseline to fall
-back to if the public loader doesn't boot; the shipped loader remains the ultimate
-regression baseline until a board test confirms a forge-reproduced loader.
+emits a slightly different (~6 KB) idblock layout. Board-boot of the public
+forge-reproduced loader is confirmed; the shipped loader remains the regression
+baseline.
 
 ## Licensing
 
 `rkbin` contents are **not redistributable source** (proprietary Rockchip firmware).
 Do **not** copy blob files into this repo; reference them via the pinned submodule only.
-
-**One exception — `third_party/rkbin-atk/`:** three ATK-snapshot blobs (usbplug
-v1.02 / SPL v1.11 / tee v2.10) are **not in the public rkbin** (never have been) and
-are not fetchable from any URL. They are committed locally as a loader fallback
-(regression baseline), but their public-redistribution status is **unverified**.
-⛔ **Do not push `third_party/rkbin-atk/` to `origin`** — local working archive only.
-Delete it once the public loader is board-verified. See `third_party/rkbin-atk/README.md`.

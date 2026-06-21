@@ -16,7 +16,7 @@ rk-forge serves the **underserved RK3506**: bring up the latest mainline Linux, 
 It is **not** yet another Armbian / Yocto / vendor BSP image. It does three things:
 
 1. **Ordered patch library** — quilt-style `series`; `git am` lands real commits, bisectable, atomic rollback on failure (fixes the "only the last patch applies" disease).
-2. **Honest gap report** (`sdk-diff.sh`) — per subsystem: what the vendor BSP has / what mainline has / what's missing / whether it still boots.
+2. **Honest gap report** ([`document/sdk-diff.md`](document/sdk-diff.md)) — per subsystem: what the vendor BSP has / what mainline has / what's missing / whether it still boots.
 3. **0→1 tutorial** — a reproducible path from a blank machine to RK3506 mainline booting to UART.
 
 **Core thesis (verified):** RK3506's SoC foundation (pinctrl+clk since Linux 6.19; U-Boot SoC support merged via Jonas Karlman's v2 series) is **entirely in mainline**. So for "mainline boot", the whole RK-SDK collapses into two things: ① `rkbin` (closed DDR-init blob, unavoidable); ② **a board device tree** (not upstream — rk-forge writes it). rk-forge's main contribution is that `.dts` + an honest path.
@@ -48,7 +48,7 @@ scripts/
   lib/{log,toolchain,stage}.sh           shared libs; stage.sh = content-hash incremental skip
   env-setup.sh · doctor.sh               environment (source / standalone check)
   apply-series.sh                        ★ patch library (fixes imx-forge's #1 debt)
-  build-uboot.sh · build-linux.sh · flash-sd.sh · sdk-diff.sh
+  build-uboot.sh · build-linux.sh · flash-sd.sh
 BLOBS.md                     honest list of rkbin closed blobs + the path to eliminate them
 document/tutorial/boot/      Ch0-3 tutorial (in-repo Markdown)
 ```

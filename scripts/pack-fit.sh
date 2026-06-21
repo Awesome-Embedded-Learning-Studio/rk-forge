@@ -61,7 +61,7 @@ need "$UBOOT_BIN"; need "$UBOOT_DTB"; need "$ZIMAGE"; need "$KERN_DTB"; need "$I
 # reading public tee); a fully-public chain (public SPL v1.12 + public tee v2.40
 # from the same rkbin) verifies. uboot is a loadable (not hash-locked), so tee is
 # the ONLY blob whose hash must match the SPL. Run pack-loader + pack-fit with the
-# SAME FORGE_RKBIN_DIR (default public; both --rkbin rkbin-atk for the fallback).
+# SAME FORGE_RKBIN_DIR (the default public rkbin is the sole source).
 rkbin_load
 TEE="${RKBIN_BLOB_DIR}/${RKBIN_TEE}"
 log_info "tee blob: $RKBIN_TEE (from $FORGE_RKBIN_DIR) — pairs with the SPL from the same source"

@@ -82,7 +82,7 @@ rk-forge = imx-forge（NXP i.MX6ULL）的同构兄弟，换到 Rockchip 平台�
 | 1-2 | 仓库骨架 + `series` 文件（bash `apply-series.sh` + `git am`）+ `third_party/` 子模块 + `board.env` + `doctor` 脚本 + README | Bash + git submodule |
 | 3-4 | U-Boot 构建：Jonas Karlman v3 系列 + rkbin 隔离子模块 + `BLOBS.md` + SD 烧录。**验证：U-Boot banner 出现在 UART** | Bash + binman |
 | 5-6 | 内核构建：对 v6.19+（pinctrl+clk 已合并）+ 板卡 DT + defconfig。**验证：kernel 到 earlycon**。诚实 gap 报告 | Bash + merge_config.sh |
-| 7-8 | `sdk-diff.sh`（主线 vs 我们 的差异 + 启动能力清单）+ 教程 Ch0-3 写成 repo 内 Markdown | Bash + git diff |
+| 7-8 | `document/sdk-diff.md`（主线 vs 我们 的差异 + 启动能力清单）+ 教程 Ch0-3 写成 repo 内 Markdown | 手工维护的活文档 |
 
 **退出标准**：板子 boot 主线到 UART console + 诚实 sdk-diff 报告存在。**失败就停**——在投资 Python CLI/VitePress 之前知道 thesis 对不对。
 

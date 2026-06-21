@@ -42,16 +42,10 @@ u-boot.itb
 /reference/vendor-sdk/
 /reference/verdor-sdk.gz
 
-# rkbin-atk: LOCAL-only ATK-private boot blobs (usbplug v1.02 / SPL v1.11 / tee v2.10) +
-# its README — the loader fallback for the public-loader conquest. NOT in public rkbin,
-# redistribution-unverified → whole dir ignored (never committed/pushed). Blobs also
-# preserved on local branch `local/rkbin-atk` (was 25f486b). See pack-loader.sh + BLOBS.md.
-/third_party/rkbin-atk/
-
 # WiFi RTL8733BU firmware: LOCAL-only Realtek blobs (UNUSED at runtime — the
 # driver loads firmware from a built-in array; see firmware/rtl8733bu/README.md).
-# Gitignored like rkbin-atk (redistribution unverified). stage-rootfs.sh stages
-# them best-effort; absence is harmless. Decouples it from the ATK vendor-sdk path.
+# Gitignored (redistribution unverified). stage-rootfs.sh stages them best-effort;
+# absence is harmless. Decouples it from the ATK vendor-sdk path.
 /firmware/rtl8733bu/*
 !/firmware/rtl8733bu/README.md
 !/firmware/rtl8733bu/.gitkeep

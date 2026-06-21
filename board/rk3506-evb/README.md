@@ -22,5 +22,6 @@ the upstream-bound artifact this project exists to produce.
 ## Next step
 
 Once the real board is known, extract its pin/clock/peripheral truth from the
-vendor SDK (`reference/vendor-sdk/`) via `scripts/sdk-diff.sh`, and author
-`board.dts` on top of mainline's `arch/arm/boot/dts/rockchip/rk3506*.dtsi`.
+vendor SDK (`reference/vendor-sdk/`) — see `document/sdk-diff.md` for the
+subsystem-by-subsystem comparison — and author `board.dts` on top of mainline's
+`arch/arm/boot/dts/rockchip/rk3506*.dtsi`.
