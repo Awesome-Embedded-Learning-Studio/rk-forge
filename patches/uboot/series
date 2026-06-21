@@ -21,3 +21,9 @@
 # the SD card (SD-card boot via RKFW update-sd.img). Was deferred in 0001.
 # Board-test: mmc dev 0 enumerates the SD (was 'No MMC device available').
 0004-uboot-dts-mmc-sd-controller.patch
+# SD autoboot (SD-2): sibling defconfig evb-rk3506_sd_defconfig whose bootcmd
+# loads the SD kernel FIT via `mmc read` (vs NAND's `mtd read`) + root=mmcblk0p3
+# (SD GPT p3 ext4). Produces uboot-sd.img (build-uboot/pack-fit --variant sd,
+# out-of-tree O= so the NAND build artifacts are untouched); assemble --sd uses it.
+# NAND defconfig/uboot.img are UNCHANGED. Board-verified manual seq → autoboot.
+0005-uboot-sd-autoboot-mmc-defconfig.patch

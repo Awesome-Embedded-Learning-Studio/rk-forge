@@ -16,43 +16,95 @@
 # pieces (built before binman), so we tolerate the binman failure (the verified
 # manual build did too).
 #
+# Variants (the NAND and SD autoboot images are built from DIFFERENT defconfigs):
+#   --variant nand  (default) — evb-rk3506_defconfig, mtd-read bootcmd (NAND boot)
+#                   IN-TREE build in $UBOOT_DIR (pack-fit reads u-boot-nodtb.bin /
+#                   u-boot.dtb / tools/mkimage there for the NAND uboot.img).
+#   --variant sd              — evb-rk3506_sd_defconfig, mmc-read bootcmd (SD boot,
+#                   SD-2 autoboot). Built IN-TREE in a THROWAWAY git worktree (a
+#                   pristine working tree at the same HEAD — which already has the
+#                   sd defconfig from patch 0005) so the SD build NEVER touches the
+#                   NAND artifacts in $UBOOT_DIR. (An out-of-tree `make O=` was
+#                   tried first but Kbuild refuses it when the source tree already
+#                   has in-tree artifacts — "The source tree is not clean" — and we
+#                   won't mrproper the NAND tree.) Output u-boot-sd-nodtb.bin +
+#                   u-boot-sd.dtb are copied to $OUT_DIR for pack-fit --variant sd;
+#                   tools/mkimage is shared with the NAND build.
+#
 # Usage:
-#   scripts/build-uboot.sh [--clean] [--tree <dir>]
-#     --clean   make mrproper first (clean rebuild; default keeps the build tree)
+#   scripts/build-uboot.sh [--clean] [--tree <dir>] [--variant nand|sd]
+#     --clean   make mrproper first (nand); no-op for sd (the worktree is fresh)
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck disable=SC1091
-source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + UBOOT_DIR
+source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + UBOOT_DIR/OUT_DIR
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/toolchain.sh"
 
-UBOOT_DIR_LOCAL="$UBOOT_DIR"; CLEAN=0
+UBOOT_DIR_LOCAL="$UBOOT_DIR"; CLEAN=0; VARIANT="nand"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --clean) CLEAN=1; shift;;
     --tree) UBOOT_DIR_LOCAL="$2"; shift 2;;
-    -h|--help) sed -n '2,22p' "$0"; exit 0;;
+    --variant) VARIANT="$2"; shift 2;;
+    -h|--help) sed -n '2,34p' "$0"; exit 0;;
     *) die "unknown arg: $1";;
   esac
 done
+[[ "$VARIANT" == "nand" || "$VARIANT" == "sd" ]] \
+  || die "unknown variant: $VARIANT (want nand|sd)"
 check_toolchain || die "toolchain not on PATH. Run: source scripts/env-setup.sh"
 [[ -d "$UBOOT_DIR_LOCAL" ]] || die "U-Boot tree not found: $UBOOT_DIR_LOCAL"
 
-# Reproducibility: pin the build timestamp to the HEAD commit date.
+# Variant config: defconfig + build dir (in-tree vs worktree) + output paths.
+case "$VARIANT" in
+  nand)
+    DEFCONFIG="evb-rk3506_defconfig"
+    BUILD_DIR="$UBOOT_DIR_LOCAL"        # in-tree
+    MKIMAGE="$UBOOT_DIR_LOCAL/tools/mkimage"
+    ;;
+  sd)
+    DEFCONFIG="evb-rk3506_sd_defconfig"
+    MKIMAGE="$UBOOT_DIR_LOCAL/tools/mkimage"   # share the NAND-built host tool
+    [[ -x "$MKIMAGE" ]] \
+      || die "NAND tools/mkimage missing at $MKIMAGE — run build-uboot.sh (default nand) first"
+    ;;
+esac
+log_info "variant=$VARIANT  defconfig=$DEFCONFIG"
+
+# sd: create a throwaway git worktree at the same HEAD (has the sd defconfig from
+# 0005) and build in-tree there — the NAND artifacts in $UBOOT_DIR stay untouched.
+# WT is emptied for nand (the trap's worktree cleanup is a no-op then).
+WT=""
+if [[ "$VARIANT" == "sd" ]]; then
+  WT=$(mktemp -d -t uboot-sd-wt-XXXXXX)
+  BUILD_DIR="$WT"
+  log_info "git worktree (isolated SD in-tree build): $WT"
+  git -C "$UBOOT_DIR_LOCAL" worktree add --detach "$WT" HEAD
+fi
+BUILD_LOG="$(mktemp)"
+trap 'rm -f "$BUILD_LOG"; if [[ -n "$WT" ]]; then git -C "$UBOOT_DIR_LOCAL" worktree remove "$WT" --force 2>/dev/null || rm -rf "$WT"; fi' EXIT
+
+# Reproducibility: pin the build timestamp to the HEAD commit date (same HEAD for
+# both variants — switching defconfig doesn't move the tree's HEAD).
 SDE="$(git -C "$UBOOT_DIR_LOCAL" log -1 --format=%ct HEAD)"
 export SOURCE_DATE_EPOCH="$SDE"
 log_info "SOURCE_DATE_EPOCH=$SDE ($(git -C "$UBOOT_DIR_LOCAL" log -1 --format=%ci HEAD))"
 
-cd "$UBOOT_DIR_LOCAL"
+# clean: nand = make mrproper (in-tree); sd = no-op (worktree is pristine each run)
 if [[ "$CLEAN" == 1 ]]; then
-  log_info "make mrproper (clean rebuild)"
-  make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" mrproper
+  if [[ "$VARIANT" == "nand" ]]; then
+    log_info "make mrproper (clean NAND rebuild)"
+    ( cd "$UBOOT_DIR_LOCAL" && make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" mrproper )
+  else
+    log_info "--clean is a no-op for --variant sd (the worktree is fresh each run)"
+  fi
 fi
 
-log_info "make evb-rk3506_defconfig (the aes board config from patches/uboot/0001)"
-make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" evb-rk3506_defconfig
+log_info "make $DEFCONFIG (in $BUILD_DIR)"
+( cd "$BUILD_DIR" && make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" "$DEFCONFIG" )
 
 log_info "make -j$(nproc) (binman combined-image failure tolerated; real dts/compile/link errors are FATAL)"
 # `make all` builds the separate pieces pack-fit needs (u-boot-nodtb.bin,
@@ -60,20 +112,15 @@ log_info "make -j$(nproc) (binman combined-image failure tolerated; real dts/com
 # which needs the rkbin rockchip-tpl blob → "Error 103 / missing external blobs".
 # We never use that combined image (pack-loader builds the loader from rkbin
 # blobs; pack-fit packs uboot.img from the separate pieces), so binman's failure
-# is tolerated. (Building only the separate-piece targets was tried but
-# `make tools/mkimage` hits a path-resolution error standalone; make all is the
-# robust path.)
+# is tolerated.
 #
-# *** DO NOT MASK REAL ERRORS *** The old version piped make through grep with
-# `|| true` and then only checked `[[ -e u-boot.dtb ]]`. That PASSES on a STALE
-# artifact left by a prior build, so a dts parse error (e.g. an undefined
-# SRST_H_SDMMC reset symbol — reset header not included) was silently swallowed
-# and u-boot.dtb stayed stale while this script reported success. The fix below
-# captures the FULL make log and scans it for real error signatures (dtc/gcc/ld
-# errors), excluding the known binman noise — a real failure now dies hard.
+# *** DO NOT MASK REAL ERRORS *** capture the FULL make log and scan it for real
+# error signatures (dtc/gcc/ld), excluding the known binman noise — a real
+# failure dies hard. (The old version piped through grep + `|| true` + only
+# checked `[[ -e u-boot.dtb ]]`, which PASSED on a stale artifact — silently
+# swallowing a dts parse error. See git history.)
 BINMAN_NOISE='BINMAN |simple-bin|rockchip-tpl|external blob|external TPL|faked external|images are invalid|Error 103|binman_stamp|/binman/|rockchip-linux/rkbin'
-BUILD_LOG="$(mktemp)"
-make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" > "$BUILD_LOG" 2>&1 || true
+( cd "$BUILD_DIR" && make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" ) > "$BUILD_LOG" 2>&1 || true
 # show progress minus the tolerated binman noise (so the console isn't flooded)
 grep -vE "$BINMAN_NOISE" "$BUILD_LOG" || true
 
@@ -87,15 +134,31 @@ if [[ -n "$REAL_ERRS" ]]; then
   printf '%s\n' "$REAL_ERRS" >&2
   die "U-Boot build FAILED (real dts/compile/link error — NOT the tolerated binman failure). Full log: $BUILD_LOG"
 fi
-rm -f "$BUILD_LOG"
 
-# verify the artifacts pack-fit needs
-for f in u-boot-nodtb.bin u-boot.dtb tools/mkimage; do
+# verify the artifacts pack-fit needs (nand: in-tree; sd: in the worktree)
+ART_NODTB="$BUILD_DIR/u-boot-nodtb.bin"
+ART_DTB="$BUILD_DIR/u-boot.dtb"
+for f in "$ART_NODTB" "$ART_DTB" "$MKIMAGE"; do
   [[ -e "$f" ]] || die "expected artifact missing after build: $f"
 done
-log_ok "U-Boot built (SOURCE_DATE_EPOCH=$SDE):"
-log_ok "  u-boot-nodtb.bin → $(stat -c%s u-boot-nodtb.bin) B  sha256=$(sha256sum u-boot-nodtb.bin | cut -c1-16)"
-log_ok "  u-boot.dtb       → $(stat -c%s u-boot.dtb) B  sha256=$(sha256sum u-boot.dtb | cut -c1-16)"
-log_ok "  tools/mkimage    → $(stat -c%s tools/mkimage) B  sha256=$(sha256sum tools/mkimage | cut -c1-16)"
-log_info "version: $(strings u-boot-nodtb.bin | grep -m1 'U-Boot 2')"
-log_info "next: scripts/forge.sh pack (pack-fit picks these up)"
+
+# SD variant: copy the separate pieces to $OUT_DIR for pack-fit --variant sd.
+# (tools/mkimage is NOT copied — pack-fit uses the one in $UBOOT_DIR, shared with
+#  the NAND build; the SD defconfig differs from NAND only in bootcmd.)
+if [[ "$VARIANT" == "sd" ]]; then
+  mkdir -p "$OUT_DIR"
+  cp "$ART_NODTB" "$OUT_DIR/u-boot-sd-nodtb.bin"
+  cp "$ART_DTB"   "$OUT_DIR/u-boot-sd.dtb"
+  log_ok "U-Boot (SD) built → $OUT_DIR/u-boot-sd-nodtb.bin + u-boot-sd.dtb"
+  log_ok "  u-boot-sd-nodtb.bin → $(stat -c%s "$OUT_DIR/u-boot-sd-nodtb.bin") B  sha256=$(sha256sum "$OUT_DIR/u-boot-sd-nodtb.bin" | cut -c1-16)"
+  log_ok "  u-boot-sd.dtb       → $(stat -c%s "$OUT_DIR/u-boot-sd.dtb") B  sha256=$(sha256sum "$OUT_DIR/u-boot-sd.dtb" | cut -c1-16)"
+  log_info "version: $(strings "$OUT_DIR/u-boot-sd-nodtb.bin" | grep -m1 'U-Boot 2')"
+  log_info "next: scripts/forge.sh assemble --sd (pack-fit --variant sd picks these up)"
+else
+  log_ok "U-Boot built (SOURCE_DATE_EPOCH=$SDE):"
+  log_ok "  u-boot-nodtb.bin → $(stat -c%s "$ART_NODTB") B  sha256=$(sha256sum "$ART_NODTB" | cut -c1-16)"
+  log_ok "  u-boot.dtb       → $(stat -c%s "$ART_DTB") B  sha256=$(sha256sum "$ART_DTB" | cut -c1-16)"
+  log_ok "  tools/mkimage    → $(stat -c%s "$MKIMAGE") B  sha256=$(sha256sum "$MKIMAGE" | cut -c1-16)"
+  log_info "version: $(strings "$ART_NODTB" | grep -m1 'U-Boot 2')"
+  log_info "next: scripts/forge.sh pack (pack-fit picks these up)"
+fi

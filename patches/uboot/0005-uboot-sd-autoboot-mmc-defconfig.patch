@@ -1,0 +1,101 @@
+From 7e23760a56503062455c2b8ce8ee5583201f2133 Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Sun, 21 Jun 2026 10:50:05 +0800
+Subject: [PATCH] uboot: evb-rk3506 SD autoboot via CONFIG_BOOTCOMMAND (mmc
+ read + bootm)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Sibling of the NAND autoboot (0003): a separate defconfig that autoboots from
+the SD card instead of NAND. Identical to evb-rk3506_defconfig EXCEPT the
+compiled-default bootcmd loads the SD kernel FIT via `mmc read` (raw, sector
+0x4000) instead of `mtd read`, and bootargs set root=/dev/mmcblk0p3 (the SD GPT
+p3 ext4 — 3 partitions: uboot=p1, boot=p2, rootfs=p3) so the kernel mounts the
+SD ext4 root, not NAND UBIFS.
+
+env=nowhere runs the compiled-default bootcmd every boot, so the SD card boots
+to a shell with zero manual input (SD-2). SD-1 needed hand-typed mmc read at the
+=> prompt. Load offset 0x4000 + read length 0x5000 match the verified manual
+sequence (log boot-sdl-202606211028); the mmc@ff480000 DT node is from 0004.
+
+The NAND defconfig is UNCHANGED — the NAND update.img keeps its mtd-read bootcmd.
+The two defconfigs produce two uboot images (uboot.img / uboot-sd.img), selected
+by the build-uboot/pack-fit/assemble --variant sd chain (forge stage_pack_sd).
+---
+ configs/evb-rk3506_sd_defconfig | 63 +++++++++++++++++++++++++++++++++
+ 1 file changed, 63 insertions(+)
+ create mode 100644 configs/evb-rk3506_sd_defconfig
+
+diff --git a/configs/evb-rk3506_sd_defconfig b/configs/evb-rk3506_sd_defconfig
+new file mode 100644
+index 00000000..36eac90a
+--- /dev/null
++++ b/configs/evb-rk3506_sd_defconfig
+@@ -0,0 +1,63 @@
++CONFIG_ARM=y
++CONFIG_SKIP_LOWLEVEL_INIT=y
++CONFIG_COUNTER_FREQUENCY=24000000
++CONFIG_ARCH_ROCKCHIP=y
++CONFIG_DEFAULT_DEVICE_TREE="rk3506-evb"
++CONFIG_ROCKCHIP_RK3506=y
++CONFIG_SYS_LOAD_ADDR=0xc00800
++CONFIG_DEBUG_UART_BASE=0xff0a0000
++CONFIG_DEBUG_UART_CLOCK=24000000
++CONFIG_DEBUG_UART=y
++# CONFIG_BOOTMETH_VBE is not set
++CONFIG_DEFAULT_FDT_FILE="rockchip/rk3506-evb.dtb"
++# CONFIG_DISPLAY_CPUINFO is not set
++CONFIG_SPL_MAX_SIZE=0x40000
++# CONFIG_SPL_RAW_IMAGE_SUPPORT is not set
++CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR=0x2000
++CONFIG_CMD_MEMINFO=y
++CONFIG_CMD_MEMINFO_MAP=y
++CONFIG_CMD_GPIO=y
++CONFIG_CMD_GPT=y
++CONFIG_CMD_MISC=y
++CONFIG_CMD_MMC=y
++# CONFIG_CMD_SETEXPR is not set
++CONFIG_CMD_RNG=y
++# CONFIG_SPL_DOS_PARTITION is not set
++# CONFIG_OF_UPSTREAM is not set
++# CONFIG_TOOLS_MKEFICAPSULE is not set
++CONFIG_OF_SPL_REMOVE_PROPS="clock-names interrupt-parent assigned-clocks assigned-clock-rates assigned-clock-parents"
++CONFIG_NO_NET=y
++# CONFIG_ADC is not set
++CONFIG_ROCKCHIP_GPIO=y
++CONFIG_MMC_DW=y
++CONFIG_MMC_DW_ROCKCHIP=y
++CONFIG_BAUDRATE=1500000
++CONFIG_DEBUG_UART_SHIFT=2
++CONFIG_SYS_NS16550_MEM32=y
++CONFIG_ERRNO_STR=y
++
++# SPI SFC controller + SPI NAND (Winbond W25N04KV, 512MB) — kept for parity with
++# the NAND defconfig; the SD bootcmd below ignores NAND (SD boot doesn't touch it).
++CONFIG_DM_SPI=y
++CONFIG_ROCKCHIP_SFC=y
++CONFIG_MTD=y
++CONFIG_DM_MTD=y
++CONFIG_MTD_SPI_NAND=y
++CONFIG_CMD_MTD=y
++# kernel boot
++CONFIG_FIT=y
++CONFIG_CMD_BOOTM=y
++CONFIG_CMD_BOOTZ=y
++CONFIG_SYS_BOOTM_LEN=0x2000000
++# NAND partition: boot = 16MB @ sector 0xBA00 (= byte 0x1740000), holds kernel FIT
++CONFIG_MTDPARTS_DEFAULT="mtdparts=spi-nand0:16m@0x1740000(boot)"
++
++# autoboot (SD): env=nowhere → compiled-default bootcmd runs every boot. Loads the
++# SD kernel FIT (boot.img @ sector 0x4000) via `mmc read` (RAW, no fs: defconfig has
++# CMD_MMC but no ext4/FAT/load — same raw philosophy as NAND's mtd read), then
++# bootm. rootfs = the SD GPT p3 ext4 (root=/dev/mmcblk0p3 — 3 partitions: uboot=p1,
++# boot=p2, rootfs=p3; NOT p1 like the raw dd image). Board-verified manual sequence
++# (boot-sdl-202606211028); this bakes it into CONFIG_BOOTCOMMAND → SD-2 autoboot.
++# The NAND defconfig is UNCHANGED (its mtd-read bootcmd); this is a sibling image.
++CONFIG_USE_BOOTCOMMAND=y
++CONFIG_BOOTCOMMAND="setenv bootargs 'console=ttyS0,1500000 root=/dev/mmcblk0p3 rootwait rw'; mmc dev 0; mmc read 0x04000000 0x4000 0x5000; bootm 0x04000000"
+-- 
+2.43.0
+

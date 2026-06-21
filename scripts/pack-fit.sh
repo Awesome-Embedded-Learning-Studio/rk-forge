@@ -16,13 +16,24 @@
 #       by mainline U-Boot bootm: data-position (absolute), contiguous external at
 #       0x800, root /timestamp only.
 #
+# Variants (the NAND and SD uboot images are built from DIFFERENT defconfigs but
+# share the SAME FIT structure — rk3506-mainline.its, Mode A):
+#   default (nand) — packs uboot.img + boot.img + boot-nand.img + boot-sd.img
+#   --variant sd   — packs ONLY uboot-sd.img from $OUT_DIR/u-boot-sd-nodtb.bin +
+#                    u-boot-sd.dtb (the out-of-tree SD build, build-uboot.sh
+#                    --variant sd). The SD defconfig differs from NAND only in
+#                    bootcmd, so the FIT layout is identical — just a different
+#                    u-boot-nodtb.bin payload. boot*.img are NOT re-packed (they
+#                    were produced by the default NAND run; they don't depend on
+#                    the uboot defconfig).
+#
 # HONEST EDGE: fit-pack.py's output is structurally + hash-identical to the mkimage
 # originals (selftest-proven per image) but not raw byte-identical — mkimage leaves
 # a residual pre-fdt_pack gap and host timestamp/totalsize (+trailing pad in Mode B)
 # that the consumers never read. Board-boot is the final confirmation.
 #
 # Usage:
-#   scripts/pack-fit.sh [--out <dir>]
+#   scripts/pack-fit.sh [--out <dir>] [--variant nand|sd]
 # Inputs resolve from canonical build outputs (src/uboot, src/linux, rkbin)
 # + the ITS/initramfs under board/aes/. Rebuild those first if stale.
 set -euo pipefail
@@ -36,24 +47,40 @@ source "${_SCRIPT_DIR}/lib/rkbin.sh"    # rkbin_load: resolve tee (same resolver
 
 MKIMAGE="${UBOOT_DIR}/tools/mkimage"            # mainline 2026.07-rc4 — kernel FIT (loaded by mainline U-Boot)
 FIT_PACK="${_PROJECT_ROOT}/scripts/fit-pack.py"      # pure-Python vendor-layout FIT packer — uboot FIT (vendor-SPL -E)
+VARIANT="nand"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --out) OUT_DIR="$2"; shift 2;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0;;
+    --variant) VARIANT="$2"; shift 2;;
+    -h|--help) sed -n '2,28p' "$0"; exit 0;;
     *) die "unknown arg: $1";;
   esac
 done
+[[ "$VARIANT" == "nand" || "$VARIANT" == "sd" ]] \
+  || die "unknown variant: $VARIANT (want nand|sd)"
 
 [[ -x "$MKIMAGE" ]] || die "mainline mkimage not built: $MKIMAGE (build U-Boot first)"
 [[ -f "$FIT_PACK" ]] || die "fit-pack.py missing: $FIT_PACK"
 
 need() { [[ -f "$1" ]] || die "missing input: $1"; }
-UBOOT_BIN="${UBOOT_DIR}/u-boot-nodtb.bin"
-UBOOT_DTB="${UBOOT_DIR}/u-boot.dtb"
-ZIMAGE="${LINUX_DIR}/arch/arm/boot/zImage"
-KERN_DTB="${LINUX_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
-INITRAMFS="${BRINGUP}/fit/initramfs.cpio.gz"
-need "$UBOOT_BIN"; need "$UBOOT_DTB"; need "$ZIMAGE"; need "$KERN_DTB"; need "$INITRAMFS"
+if [[ "$VARIANT" == "sd" ]]; then
+  # SD uboot from the out-of-tree build (build-uboot.sh --variant sd). Only the
+  # uboot FIT is packed here — the SD defconfig differs from NAND only in bootcmd,
+  # so the FIT structure (rk3506-mainline.its, Mode A) is identical, just a
+  # different u-boot-nodtb.bin payload → uboot-sd.img. boot*.img are NOT touched.
+  UBOOT_BIN="${OUT_DIR}/u-boot-sd-nodtb.bin"
+  UBOOT_DTB="${OUT_DIR}/u-boot-sd.dtb"
+  UBOOT_FIT="uboot-sd.img"
+  need "$UBOOT_BIN"; need "$UBOOT_DTB"
+else
+  UBOOT_BIN="${UBOOT_DIR}/u-boot-nodtb.bin"
+  UBOOT_DTB="${UBOOT_DIR}/u-boot.dtb"
+  UBOOT_FIT="uboot.img"
+  ZIMAGE="${LINUX_DIR}/arch/arm/boot/zImage"
+  KERN_DTB="${LINUX_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
+  INITRAMFS="${BRINGUP}/fit/initramfs.cpio.gz"
+  need "$UBOOT_BIN"; need "$UBOOT_DTB"; need "$ZIMAGE"; need "$KERN_DTB"; need "$INITRAMFS"
+fi
 
 # tee blob: resolved via lib/rkbin.sh (rkbin_load) from FORGE_RKBIN_DIR — the SAME
 # resolver pack-loader.sh uses, so the SPL<->tee hash pair is consistent by
@@ -68,7 +95,7 @@ log_info "tee blob: $RKBIN_TEE (from $FORGE_RKBIN_DIR) — pairs with the SPL fr
 
 mkdir -p "$OUT_DIR"
 W1=$(mktemp -d); W2=$(mktemp -d)
-trap 'rm -rf "$W1" "$W2" "${W3:-}"' EXIT
+trap 'rm -rf "$W1" "$W2" "${W3:-}" "${W4:-}"' EXIT
 
 # --- uboot FIT (rk3506-mainline.its) ---------------------------------------
 cp "$UBOOT_BIN" "$W1/uboot-nodtb.bin"
@@ -83,11 +110,18 @@ cp "${BRINGUP}/fit/rk3506-mainline.its" "$W1/"
 # hash-identical to vendor's output; board-boot is the final confirmation. The tee
 # variant is resolved above from FORGE_RKBIN_DIR. The kernel FITs below are loaded
 # by mainline U-Boot (accepts mainline mkimage FITs), so they stay on mainline mkimage.
-log_info "packing uboot.img (fit-pack.py, vendor-SPL-compatible -E layout)…"
-python3 "$FIT_PACK" pack "$W1/rk3506-mainline.its" "$W1/uboot.img"
-cp "$W1/uboot.img" "$OUT_DIR/uboot.img"
-"$MKIMAGE" -l "$OUT_DIR/uboot.img" >/dev/null || die "uboot.img failed FIT parse"
-log_ok "uboot.img → $OUT_DIR/uboot.img ($(stat -c%s "$OUT_DIR/uboot.img") B)"
+log_info "packing $UBOOT_FIT (fit-pack.py, vendor-SPL-compatible -E layout)…"
+python3 "$FIT_PACK" pack "$W1/rk3506-mainline.its" "$W1/$UBOOT_FIT"
+cp "$W1/$UBOOT_FIT" "$OUT_DIR/$UBOOT_FIT"
+"$MKIMAGE" -l "$OUT_DIR/$UBOOT_FIT" >/dev/null || die "$UBOOT_FIT failed FIT parse"
+log_ok "$UBOOT_FIT → $OUT_DIR/$UBOOT_FIT ($(stat -c%s "$OUT_DIR/$UBOOT_FIT") B)"
+
+# --variant sd: the SD defconfig's ONLY FIT is uboot-sd.img (the boot*.img are
+# produced by the default NAND run and don't depend on the uboot defconfig). Done.
+if [[ "$VARIANT" == "sd" ]]; then
+  log_info "variant=sd: only $UBOOT_FIT packed (boot*.img unchanged from the default run)"
+  exit 0
+fi
 
 # --- boot FIT (rk3506-kernel.its) ------------------------------------------
 cp "$ZIMAGE"    "$W2/zImage"

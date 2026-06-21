@@ -54,6 +54,9 @@ most useful part.
 | 28 | [28-…-usb-bringup-usb2phy-dwc2](28-2026-06-20-usb-bringup-usb2phy-dwc2.md) | 外设 B-USB:USB2PHY(inno-usb2 RK3506 phy_base 调谐)+ DWC2 双口 host,USB hub/U 盘枚举(让板上 RTL8733BU 枚举为 0bda:b733) |
 | 29 | [29-…-wifi-rtl8733bu-driver-port-roadmap](29-2026-06-20-wifi-rtl8733bu-driver-port-roadmap.md) | WiFi RTL8733BU 移植 **roadmap**(研究结论 + 5 阶段计划;主线无驱动→out-of-tree 移植,mainline-only 为此松绑) |
 | 30 | [30-…-wifi-rtl8733bu-port-complete](30-2026-06-20-wifi-rtl8733bu-port-complete.md) | **WiFi 移植完成 + 板上联网验证**:Phase 1-5 全 done(187 文件 Kbuild 重写 + cfg80211 wdev wrapper),8733bu.ko 板上 insmod→probe→fw→wlan0→wpa 连网通 |
+| 31 | [31-…-mk-rootfs-patch-maker-removal](31-2026-06-20-mk-rootfs-patch-maker-removal.md) | mk-rootfs / patch-maker 残留清理(P2.5) |
+| 32 | [32-…-sd-card-image-sd1](32-2026-06-21-sd-card-image-sd1.md) | SD-1:RKFW SD-card boot 实装+板验(纯 ext4 root,boot-sdl-202606211028 收官) |
+| 33 | [33-…-sd-card-autoboot-sd2](33-2026-06-21-sd-card-autoboot-sd2.md) | **SD-2 autoboot**:第二份 uboot defconfig(mmc read bootcmd)+build/pack/assemble --variant sd,git worktree 隔离编译零触碰 nand。实装+host 验证 done,板验待做 |
 
 另有 [nand-ecc-debug-handoff.md](nand-ecc-debug-handoff.md)(早期 NAND ECC 调试交接,部分结论已被后续 saga 取代,以 [pitfalls/04](../pitfalls/04-sfc-nand-saga.md) 为准)。
 

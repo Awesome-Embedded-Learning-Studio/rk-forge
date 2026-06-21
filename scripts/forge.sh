@@ -147,6 +147,17 @@ stage_pack() {
 stage_pack_sd() {
   stage_pack
   mkdir -p "$OUT_DIR"
+  # SD-2 autoboot: build the SD defconfig's uboot OUT-OF-TREE (does NOT touch the
+  # NAND build artifacts in $UBOOT_DIR) and pack uboot-sd.img. The NAND uboot.img
+  # + boot*.img come from stage_pack above; only the SD uboot FIT is added here.
+  local sd_defcfg="${UBOOT_DIR}/configs/evb-rk3506_sd_defconfig"
+  run_stage build-uboot-sd \
+    "$sd_defcfg" "${_SCRIPT_DIR}/build-uboot.sh" \
+    -- bash "${_SCRIPT_DIR}/build-uboot.sh" --variant sd
+  run_stage pack-fit-sd \
+    "${OUT_DIR}/u-boot-sd-nodtb.bin" "${OUT_DIR}/u-boot-sd.dtb" \
+    "${BRINGUP}/fit/rk3506-mainline.its" "${_SCRIPT_DIR}/pack-fit.sh" \
+    -- bash "${_SCRIPT_DIR}/pack-fit.sh" --variant sd
   run_stage pack-sd \
     "${OUT_DIR}/idblock.img" "${OUT_DIR}/uboot.img" "${OUT_DIR}/boot.img" \
     "${OUT_DIR}/rootfs" "${_SCRIPT_DIR}/pack-sd.sh" "${_PROJECT_ROOT}/config/forge.env" \
@@ -161,7 +172,7 @@ stage_assemble() {
   if [[ "$ASSEMBLE_VARIANT" == "--sd" ]]; then
     stage_pack_sd
     run_stage assemble-sd \
-      "${OUT_DIR}/boot-sd.img" "${OUT_DIR}/rootfs.ext4" "${OUT_DIR}/uboot.img" \
+      "${OUT_DIR}/boot-sd.img" "${OUT_DIR}/rootfs.ext4" "${OUT_DIR}/uboot-sd.img" \
       "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/parameter-sd-aes.txt" \
       "${BRINGUP}/package-file-sd.txt" "${_SCRIPT_DIR}/assemble-update.sh" \
       -- bash "${_SCRIPT_DIR}/assemble-update.sh" --sd
@@ -175,7 +186,7 @@ stage_assemble() {
 }
 
 stage_status() {
-  for s in pack-loader pack-fit stage-rootfs pack-ubifs pack-sd assemble assemble-sd; do
+  for s in pack-loader pack-fit stage-rootfs pack-ubifs build-uboot-sd pack-fit-sd pack-sd assemble assemble-sd; do
     if [[ -f "${STATE_DIR}/${s}.fingerprint" ]]; then
       log_ok "$s: recorded"
     else

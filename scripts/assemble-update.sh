@@ -102,9 +102,12 @@ case "$VMODE" in
     # would hijack root= → mount NAND UBIFS instead of the SD ext4; see log
     # boot-sdl-202606210958). No initramfs → kernel honors root=/dev/mmcblk0p3
     # and mounts the SD ext4 rootfs (GPT p3). rootfs = ext4 (rootfs.ext4 from
-    # pack-sd.sh, NOT ubi). SD-1 manual boot (mmc read + setenv root=);
-    # autoboot is SD-2 (separate uboot defconfig). See notes/32.
+    # pack-sd.sh, NOT ubi). uboot = uboot-sd.img (the SD-2 autoboot defconfig,
+    # mmc-read bootcmd, built out-of-tree by build-uboot.sh --variant sd) → the SD
+    # card boots to a shell with ZERO manual input. SD-1 (hand-typed mmc read) is
+    # superseded. See notes/32.
     BOOT="${OUT_DIR}/boot-sd.img"
+    UBOOT="${OUT_DIR}/uboot-sd.img"   # SD-2 autoboot defconfig (mmc-read bootcmd)
     PKGFILE="${BRINGUP}/package-file-sd.txt"
     ROOTFS="${OUT_DIR}/rootfs.ext4"
     PARAMETER="${BRINGUP}/parameter-sd-aes.txt"
