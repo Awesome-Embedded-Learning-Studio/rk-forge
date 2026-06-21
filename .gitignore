@@ -76,3 +76,10 @@ compile_commands.json
 
 *.bin
 *.img
+
+# --- VitePress 文档站点 ---
+node_modules/
+site/.vitepress/dist/
+site/.vitepress/cache/
+site/.vitepress/.temp/
+*.tgz
