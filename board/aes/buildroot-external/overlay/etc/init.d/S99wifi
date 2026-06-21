@@ -1,0 +1,25 @@
+#!/bin/sh
+# S99wifi — load the out-of-tree RTL8733BU WiFi driver after switch_root.
+#
+# The driver is an =m module (8733bu.ko) because the boot flow mounts the UBIFS
+# rootfs (where firmware lives) only AFTER switch_root; loading it as built-in
+# (=y) during the initramfs stage would make request_firmware() fail. cfg80211
+# is built-in (=y) so insmod needs no other module first (modinfo shows depends=).
+#
+# Firmware (rtl8733bu_fw + rtl8733bu_config) and the .ko are injected by
+# scripts/stage-rootfs.sh. Non-fatal by design: a probe failure must not block
+# the boot — debug with `dmesg | grep -iE '8733|rtw'` and `lsmod | grep 8733`.
+case "$1" in
+	start)
+		echo "S99wifi: loading RTL8733BU driver…"
+		if insmod /lib/modules/8733bu.ko 2>/dev/null; then
+			echo "S99wifi: 8733bu.ko loaded"
+		else
+			echo "S99wifi: insmod failed — see 'dmesg | grep -iE \"8733|rtw\"'"
+		fi
+		;;
+	stop)
+		rmmod 8733bu 2>/dev/null
+		;;
+esac
+exit 0

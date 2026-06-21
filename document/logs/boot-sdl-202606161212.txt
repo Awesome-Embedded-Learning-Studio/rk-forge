@@ -1,0 +1,368 @@
+~ # mtdbb scan /dev/mtd5 2>/dev/null
+[   14.696023] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+BAD peb=3 off=0x60000 uncorr=1 corrected=0 maxflip=0 ret=-1(Bad message)
+[   14.707510] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+BAD peb=4 off=0x80000 uncorr=1 corrected=0 maxflip=0 ret=-1(Bad message)
+[   14.716776] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+BAD peb=5 off=0xa0000 uncorr=1 corrected=0 maxflip=0 ret=-1(Bad message)
+[   14.935831] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+BAD peb=30 off=0x3c0000 uncorr=1 corrected=0 maxflip=0 ret=-1(Bad message)
+[   20.147273] spi-nand: PROBE WRITE peb=344 page=8 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+~ # [   44.888158] spi-nand: PROBE WRITE peb=319 page=4 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   50.388164] spi-nand: PROBE WRITE peb=344 page=9 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   50.389590] spi-nand: PROBE WRITE peb=343 page=63 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+
+~ # mtdbb test /dev/mtd6 0x0
+mtdbb: /dev/mtd6 type=4 size=313262080 erasesize=131072 writesize=2048 oobsize=128
+[   54.758221] spi-nand: PROBE ERASE peb=1706 status=0x00 erase_fail=0 wait_ret=0
+[   54.759638] spi-nand: PROBE WRITE peb=1706 page=0 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.761033] spi-nand: PROBE WRITE peb=1706 page=1 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.762402] spi-nand: PROBE WRITE peb=1706 page=2 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.763794] spi-nand: PROBE WRITE peb=1706 page=3 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.765184] spi-nand: PROBE WRITE peb=1706 page=4 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.766573] spi-nand: PROBE WRITE peb=1706 page=5 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.768005] spi-nand: PROBE WRITE peb=1706 page=6 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.769339] spi-nand: PROBE WRITE peb=1706 page=7 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.770715] spi-nand: PROBE WRITE peb=1706 page=8 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.772098] spi-nand: PROBE WRITE peb=1706 page=9 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.773486] spi-nand: PROBE WRITE peb=1706 page=10 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.774868] spi-nand: PROBE WRITE peb=1706 page=11 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.776246] spi-nand: PROBE WRITE peb=1706 page=12 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.777631] spi-nand: PROBE WRITE peb=1706 page=13 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.779029] spi-nand: PROBE WRITE peb=1706 page=14 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.780422] spi-nand: PROBE WRITE peb=1706 page=15 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.781813] spi-nand: PROBE WRITE peb=1706 page=16 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.783127] spi-nand: PROBE WRITE peb=1706 page=17 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.784513] spi-nand: PROBE WRITE peb=1706 page=18 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.785892] spi-nand: PROBE WRITE peb=1706 page=19 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.787261] spi-nand: PROBE WRITE peb=1706 page=20 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.788705] spi-nand: PROBE WRITE peb=1706 page=21 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.790103] spi-nand: PROBE WRITE peb=1706 page=22 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.791432] spi-nand: PROBE WRITE peb=1706 page=23 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.792820] spi-nand: PROBE WRITE peb=1706 page=24 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.794210] spi-nand: PROBE WRITE peb=1706 page=25 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.795607] spi-nand: PROBE WRITE peb=1706 page=26 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.796984] spi-nand: PROBE WRITE peb=1706 page=27 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.798439] spi-nand: PROBE WRITE peb=1706 page=28 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.799835] spi-nand: PROBE WRITE peb=1706 page=29 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.801227] spi-nand: PROBE WRITE peb=1706 page=30 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.802613] spi-nand: PROBE WRITE peb=1706 page=31 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.803983] spi-nand: PROBE WRITE peb=1706 page=32 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.805313] spi-nand: PROBE WRITE peb=1706 page=33 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.806679] spi-nand: PROBE WRITE peb=1706 page=34 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.808048] spi-nand: PROBE WRITE peb=1706 page=35 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.809421] spi-nand: PROBE WRITE peb=1706 page=36 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.810736] spi-nand: PROBE WRITE peb=1706 page=37 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.812126] spi-nand: PROBE WRITE peb=1706 page=38 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.813450] spi-nand: PROBE WRITE peb=1706 page=39 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.814848] spi-nand: PROBE WRITE peb=1706 page=40 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.816244] spi-nand: PROBE WRITE peb=1706 page=41 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.817634] spi-nand: PROBE WRITE peb=1706 page=42 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.818970] spi-nand: PROBE WRITE peb=1706 page=43 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.820360] spi-nand: PROBE WRITE peb=1706 page=44 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.821749] spi-nand: PROBE WRITE peb=1706 page=45 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.823141] spi-nand: PROBE WRITE peb=1706 page=46 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.824487] spi-nand: PROBE WRITE peb=1706 page=47 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.825881] spi-nand: PROBE WRITE peb=1706 page=48 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.827196] spi-nand: PROBE WRITE peb=1706 page=49 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.828587] spi-nand: PROBE WRITE peb=1706 page=50 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.829924] spi-nand: PROBE WRITE peb=1706 page=51 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.831305] spi-nand: PROBE WRITE peb=1706 page=52 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.832641] spi-nand: PROBE WRITE peb=1706 page=53 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.834034] spi-nand: PROBE WRITE peb=1706 page=54 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.835358] spi-nand: PROBE WRITE peb=1706 page=55 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.836753] spi-nand: PROBE WRITE peb=1706 page=56 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.838115] spi-nand: PROBE WRITE peb=1706 page=57 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.839487] spi-nand: PROBE WRITE peb=1706 page=58 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.840793] spi-nand: PROBE WRITE peb=1706 page=59 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.842125] spi-nand: PROBE WRITE peb=1706 page=60 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.843460] spi-nand: PROBE WRITE peb=1706 page=61 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.844851] spi-nand: PROBE WRITE peb=1706 page=62 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   54.846241] spi-nand: PROBE WRITE peb=1706 page=63 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+TEST off=0x0 len=131072: readback CLEAN, mismatches=0 firstbad=0xffffffff ecc{uncorr=0 corrected=0 maxflip=0} read_ret=0(ok)
+  → block writes reliably (soft-bad recovered or was fine; no need to mark)
+~ # [   84.968141] spi-nand: PROBE WRITE peb=319 page=5 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   90.088054] spi-nand: PROBE WRITE peb=344 page=10 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[   90.089492] spi-nand: PROBE WRITE peb=330 page=63 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+
+~ # mtdbb test /dev/mtd5 0xa0000 
+mtdbb: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+[  361.937454] spi-nand: PROBE ERASE peb=319 status=0x00 erase_fail=0 wait_ret=0
+[  361.938934] spi-nand: PROBE WRITE peb=319 page=0 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.940328] spi-nand: PROBE WRITE peb=319 page=1 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.941690] spi-nand: PROBE WRITE peb=319 page=2 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.943072] spi-nand: PROBE WRITE peb=319 page=3 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.944422] spi-nand: PROBE WRITE peb=319 page=4 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.945772] spi-nand: PROBE WRITE peb=319 page=5 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.947148] spi-nand: PROBE WRITE peb=319 page=6 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.948579] spi-nand: PROBE WRITE peb=319 page=7 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.949940] spi-nand: PROBE WRITE peb=319 page=8 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.951324] spi-nand: PROBE WRITE peb=319 page=9 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.952706] spi-nand: PROBE WRITE peb=319 page=10 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.954067] spi-nand: PROBE WRITE peb=319 page=11 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.955455] spi-nand: PROBE WRITE peb=319 page=12 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.956812] spi-nand: PROBE WRITE peb=319 page=13 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.958226] spi-nand: PROBE WRITE peb=319 page=14 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.959621] spi-nand: PROBE WRITE peb=319 page=15 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.960983] spi-nand: PROBE WRITE peb=319 page=16 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.962311] spi-nand: PROBE WRITE peb=319 page=17 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.963700] spi-nand: PROBE WRITE peb=319 page=18 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.965088] spi-nand: PROBE WRITE peb=319 page=19 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.966476] spi-nand: PROBE WRITE peb=319 page=20 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.967881] spi-nand: PROBE WRITE peb=319 page=21 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.969244] spi-nand: PROBE WRITE peb=319 page=22 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.970600] spi-nand: PROBE WRITE peb=319 page=23 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.971961] spi-nand: PROBE WRITE peb=319 page=24 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.973325] spi-nand: PROBE WRITE peb=319 page=25 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.974681] spi-nand: PROBE WRITE peb=319 page=26 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.976069] spi-nand: PROBE WRITE peb=319 page=27 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.977437] spi-nand: PROBE WRITE peb=319 page=28 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.978813] spi-nand: PROBE WRITE peb=319 page=29 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.980177] spi-nand: PROBE WRITE peb=319 page=30 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.981565] spi-nand: PROBE WRITE peb=319 page=31 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.982937] spi-nand: PROBE WRITE peb=319 page=32 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.984299] spi-nand: PROBE WRITE peb=319 page=33 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.985658] spi-nand: PROBE WRITE peb=319 page=34 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.986980] spi-nand: PROBE WRITE peb=319 page=35 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.988401] spi-nand: PROBE WRITE peb=319 page=36 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.989706] spi-nand: PROBE WRITE peb=319 page=37 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.991095] spi-nand: PROBE WRITE peb=319 page=38 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.992454] spi-nand: PROBE WRITE peb=319 page=39 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.993814] spi-nand: PROBE WRITE peb=319 page=40 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.995109] spi-nand: PROBE WRITE peb=319 page=41 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.996499] spi-nand: PROBE WRITE peb=319 page=42 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.997900] spi-nand: PROBE WRITE peb=319 page=43 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  361.999267] spi-nand: PROBE WRITE peb=319 page=44 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.000625] spi-nand: PROBE WRITE peb=319 page=45 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.002011] spi-nand: PROBE WRITE peb=319 page=46 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.003334] spi-nand: PROBE WRITE peb=319 page=47 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.004655] spi-nand: PROBE WRITE peb=319 page=48 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.005978] spi-nand: PROBE WRITE peb=319 page=49 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.007303] spi-nand: PROBE WRITE peb=319 page=50 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.008650] spi-nand: PROBE WRITE peb=319 page=51 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.009977] spi-nand: PROBE WRITE peb=319 page=52 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.011300] spi-nand: PROBE WRITE peb=319 page=53 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.012622] spi-nand: PROBE WRITE peb=319 page=54 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.013941] spi-nand: PROBE WRITE peb=319 page=55 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.015261] spi-nand: PROBE WRITE peb=319 page=56 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.016555] spi-nand: PROBE WRITE peb=319 page=57 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.017895] spi-nand: PROBE WRITE peb=319 page=58 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.019263] spi-nand: PROBE WRITE peb=319 page=59 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.020560] spi-nand: PROBE WRITE peb=319 page=60 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.021882] spi-nand: PROBE WRITE peb=319 page=61 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.023271] spi-nand: PROBE WRITE peb=319 page=62 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  362.024655] spi-nand: PROBE WRITE peb=319 page=63 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+TEST off=0xa0000 len=131072: readback CLEAN, mismatches=0 firstbad=0xffffffff ecc{uncorr=0 corrected=0 maxflip=0} read_ret=0(ok)
+  → block writes reliably (soft-bad recovered or was fine; no need to mark)
+~ # mtdbb test /dev/mtd5 0x3c0000  
+mtdbb: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+[  385.299503] spi-nand: PROBE ERASE peb=344 status=0x00 erase_fail=0 wait_ret=0
+[  385.300927] spi-nand: PROBE WRITE peb=344 page=0 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.302318] spi-nand: PROBE WRITE peb=344 page=1 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.303684] spi-nand: PROBE WRITE peb=344 page=2 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.305043] spi-nand: PROBE WRITE peb=344 page=3 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.306397] spi-nand: PROBE WRITE peb=344 page=4 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.307829] spi-nand: PROBE WRITE peb=344 page=5 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.309203] spi-nand: PROBE WRITE peb=344 page=6 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.310562] spi-nand: PROBE WRITE peb=344 page=7 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.311945] spi-nand: PROBE WRITE peb=344 page=8 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.313327] spi-nand: PROBE WRITE peb=344 page=9 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.314709] spi-nand: PROBE WRITE peb=344 page=10 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.316069] spi-nand: PROBE WRITE peb=344 page=11 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.317438] spi-nand: PROBE WRITE peb=344 page=12 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.318829] spi-nand: PROBE WRITE peb=344 page=13 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.320194] spi-nand: PROBE WRITE peb=344 page=14 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.321555] spi-nand: PROBE WRITE peb=344 page=15 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.322910] spi-nand: PROBE WRITE peb=344 page=16 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.324267] spi-nand: PROBE WRITE peb=344 page=17 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.325624] spi-nand: PROBE WRITE peb=344 page=18 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.327013] spi-nand: PROBE WRITE peb=344 page=19 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.328453] spi-nand: PROBE WRITE peb=344 page=20 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.329823] spi-nand: PROBE WRITE peb=344 page=21 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.331188] spi-nand: PROBE WRITE peb=344 page=22 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.332485] spi-nand: PROBE WRITE peb=344 page=23 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.333847] spi-nand: PROBE WRITE peb=344 page=24 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.335232] spi-nand: PROBE WRITE peb=344 page=25 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.336594] spi-nand: PROBE WRITE peb=344 page=26 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.338013] spi-nand: PROBE WRITE peb=344 page=27 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.339377] spi-nand: PROBE WRITE peb=344 page=28 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.340703] spi-nand: PROBE WRITE peb=344 page=29 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.342086] spi-nand: PROBE WRITE peb=344 page=30 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.343470] spi-nand: PROBE WRITE peb=344 page=31 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.344859] spi-nand: PROBE WRITE peb=344 page=32 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.346216] spi-nand: PROBE WRITE peb=344 page=33 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.347591] spi-nand: PROBE WRITE peb=344 page=34 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.348891] spi-nand: PROBE WRITE peb=344 page=35 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.350277] spi-nand: PROBE WRITE peb=344 page=36 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.351599] spi-nand: PROBE WRITE peb=344 page=37 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.352958] spi-nand: PROBE WRITE peb=344 page=38 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.354281] spi-nand: PROBE WRITE peb=344 page=39 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.355667] spi-nand: PROBE WRITE peb=344 page=40 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.357024] spi-nand: PROBE WRITE peb=344 page=41 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.358438] spi-nand: PROBE WRITE peb=344 page=42 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.359743] spi-nand: PROBE WRITE peb=344 page=43 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.361104] spi-nand: PROBE WRITE peb=344 page=44 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.362464] spi-nand: PROBE WRITE peb=344 page=45 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.363819] spi-nand: PROBE WRITE peb=344 page=46 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.365139] spi-nand: PROBE WRITE peb=344 page=47 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.366461] spi-nand: PROBE WRITE peb=344 page=48 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.367810] spi-nand: PROBE WRITE peb=344 page=49 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.369117] spi-nand: PROBE WRITE peb=344 page=50 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.370416] spi-nand: PROBE WRITE peb=344 page=51 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.371739] spi-nand: PROBE WRITE peb=344 page=52 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.373062] spi-nand: PROBE WRITE peb=344 page=53 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.374386] spi-nand: PROBE WRITE peb=344 page=54 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.375710] spi-nand: PROBE WRITE peb=344 page=55 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.377069] spi-nand: PROBE WRITE peb=344 page=56 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.378485] spi-nand: PROBE WRITE peb=344 page=57 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.379854] spi-nand: PROBE WRITE peb=344 page=58 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.381177] spi-nand: PROBE WRITE peb=344 page=59 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.382498] spi-nand: PROBE WRITE peb=344 page=60 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.383886] spi-nand: PROBE WRITE peb=344 page=61 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.385274] spi-nand: PROBE WRITE peb=344 page=62 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  385.386663] spi-nand: PROBE WRITE peb=344 page=63 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+TEST off=0x3c0000 len=131072: readback CLEAN, mismatches=0 firstbad=0xffffffff ecc{uncorr=0 corrected=0 maxflip=0} read_ret=0(ok)
+  → block writes reliably (soft-bad recovered or was fine; no need to mark)
+~ # [  392.168208] spi-nand: PROBE WRITE peb=319 page=6 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  397.368049] spi-nand: PROBE WRITE peb=344 page=11 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  397.369481] spi-nand: PROBE WRITE peb=329 page=63 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+
+~ # mtdbb test /dev/mtd5 0x60000    # PEB 3
+mtdbb: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+[  799.434549] spi-nand: PROBE ERASE peb=317 status=0x00 erase_fail=0 wait_ret=0
+[  799.435976] spi-nand: PROBE WRITE peb=317 page=0 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.437421] spi-nand: PROBE WRITE peb=317 page=1 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.438826] spi-nand: PROBE WRITE peb=317 page=2 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.440194] spi-nand: PROBE WRITE peb=317 page=3 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.441576] spi-nand: PROBE WRITE peb=317 page=4 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.442929] spi-nand: PROBE WRITE peb=317 page=5 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.444308] spi-nand: PROBE WRITE peb=317 page=6 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.445687] spi-nand: PROBE WRITE peb=317 page=7 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.447036] spi-nand: PROBE WRITE peb=317 page=8 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.448444] spi-nand: PROBE WRITE peb=317 page=9 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.449805] spi-nand: PROBE WRITE peb=317 page=10 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.451193] spi-nand: PROBE WRITE peb=317 page=11 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.452573] spi-nand: PROBE WRITE peb=317 page=12 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.453961] spi-nand: PROBE WRITE peb=317 page=13 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.455350] spi-nand: PROBE WRITE peb=317 page=14 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.456712] spi-nand: PROBE WRITE peb=317 page=15 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.458121] spi-nand: PROBE WRITE peb=317 page=16 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.459419] spi-nand: PROBE WRITE peb=317 page=17 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.460775] spi-nand: PROBE WRITE peb=317 page=18 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.462134] spi-nand: PROBE WRITE peb=317 page=19 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.463521] spi-nand: PROBE WRITE peb=317 page=20 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.464877] spi-nand: PROBE WRITE peb=317 page=21 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.466232] spi-nand: PROBE WRITE peb=317 page=22 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.467612] spi-nand: PROBE WRITE peb=317 page=23 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.468979] spi-nand: PROBE WRITE peb=317 page=24 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.470339] spi-nand: PROBE WRITE peb=317 page=25 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.471727] spi-nand: PROBE WRITE peb=317 page=26 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.473117] spi-nand: PROBE WRITE peb=317 page=27 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.474481] spi-nand: PROBE WRITE peb=317 page=28 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.475867] spi-nand: PROBE WRITE peb=317 page=29 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.477229] spi-nand: PROBE WRITE peb=317 page=30 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.478661] spi-nand: PROBE WRITE peb=317 page=31 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.480025] spi-nand: PROBE WRITE peb=317 page=32 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.481386] spi-nand: PROBE WRITE peb=317 page=33 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.482742] spi-nand: PROBE WRITE peb=317 page=34 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.484039] spi-nand: PROBE WRITE peb=317 page=35 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.485428] spi-nand: PROBE WRITE peb=317 page=36 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.486750] spi-nand: PROBE WRITE peb=317 page=37 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.488163] spi-nand: PROBE WRITE peb=317 page=38 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.489532] spi-nand: PROBE WRITE peb=317 page=39 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.490921] spi-nand: PROBE WRITE peb=317 page=40 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.492278] spi-nand: PROBE WRITE peb=317 page=41 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.493637] spi-nand: PROBE WRITE peb=317 page=42 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.494936] spi-nand: PROBE WRITE peb=317 page=43 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.496325] spi-nand: PROBE WRITE peb=317 page=44 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.497649] spi-nand: PROBE WRITE peb=317 page=45 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.499020] spi-nand: PROBE WRITE peb=317 page=46 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.500347] spi-nand: PROBE WRITE peb=317 page=47 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.501641] spi-nand: PROBE WRITE peb=317 page=48 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.502937] spi-nand: PROBE WRITE peb=317 page=49 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.504299] spi-nand: PROBE WRITE peb=317 page=50 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.505625] spi-nand: PROBE WRITE peb=317 page=51 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.506949] spi-nand: PROBE WRITE peb=317 page=52 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.508289] spi-nand: PROBE WRITE peb=317 page=53 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.509651] spi-nand: PROBE WRITE peb=317 page=54 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.510976] spi-nand: PROBE WRITE peb=317 page=55 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.512299] spi-nand: PROBE WRITE peb=317 page=56 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.513624] spi-nand: PROBE WRITE peb=317 page=57 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.514948] spi-nand: PROBE WRITE peb=317 page=58 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.516272] spi-nand: PROBE WRITE peb=317 page=59 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.517646] spi-nand: PROBE WRITE peb=317 page=60 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.518952] spi-nand: PROBE WRITE peb=317 page=61 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.520345] spi-nand: PROBE WRITE peb=317 page=62 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  799.521733] spi-nand: PROBE WRITE peb=317 page=63 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+TEST off=0x60000 len=131072: readback CLEAN, mismatches=0 firstbad=0xffffffff ecc{uncorr=0 corrected=0 maxflip=0} read_ret=0(ok)
+  → block writes reliably (soft-bad recovered or was fine; no need to mark)
+~ # mtdbb test /dev/mtd5 0x80000    # PEB 3
+mtdbb: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+[  810.002679] spi-nand: PROBE ERASE peb=318 status=0x00 erase_fail=0 wait_ret=0
+[  810.004097] spi-nand: PROBE WRITE peb=318 page=0 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.005489] spi-nand: PROBE WRITE peb=318 page=1 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.006860] spi-nand: PROBE WRITE peb=318 page=2 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.008298] spi-nand: PROBE WRITE peb=318 page=3 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.009669] spi-nand: PROBE WRITE peb=318 page=4 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.011025] spi-nand: PROBE WRITE peb=318 page=5 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.012374] spi-nand: PROBE WRITE peb=318 page=6 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.013690] spi-nand: PROBE WRITE peb=318 page=7 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.015042] spi-nand: PROBE WRITE peb=318 page=8 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.016396] spi-nand: PROBE WRITE peb=318 page=9 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.017800] spi-nand: PROBE WRITE peb=318 page=10 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.019173] spi-nand: PROBE WRITE peb=318 page=11 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.020538] spi-nand: PROBE WRITE peb=318 page=12 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.021894] spi-nand: PROBE WRITE peb=318 page=13 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.023250] spi-nand: PROBE WRITE peb=318 page=14 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.024633] spi-nand: PROBE WRITE peb=318 page=15 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.026017] spi-nand: PROBE WRITE peb=318 page=16 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.027422] spi-nand: PROBE WRITE peb=318 page=17 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.028798] spi-nand: PROBE WRITE peb=318 page=18 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.030163] spi-nand: PROBE WRITE peb=318 page=19 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.031526] spi-nand: PROBE WRITE peb=318 page=20 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.032912] spi-nand: PROBE WRITE peb=318 page=21 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.034298] spi-nand: PROBE WRITE peb=318 page=22 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.035621] spi-nand: PROBE WRITE peb=318 page=23 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.036981] spi-nand: PROBE WRITE peb=318 page=24 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.038383] spi-nand: PROBE WRITE peb=318 page=25 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.039758] spi-nand: PROBE WRITE peb=318 page=26 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.041124] spi-nand: PROBE WRITE peb=318 page=27 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.042514] spi-nand: PROBE WRITE peb=318 page=28 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.043902] spi-nand: PROBE WRITE peb=318 page=29 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.045263] spi-nand: PROBE WRITE peb=318 page=30 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.046620] spi-nand: PROBE WRITE peb=318 page=31 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.048053] spi-nand: PROBE WRITE peb=318 page=32 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.049359] spi-nand: PROBE WRITE peb=318 page=33 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.050721] spi-nand: PROBE WRITE peb=318 page=34 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.052090] spi-nand: PROBE WRITE peb=318 page=35 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.053478] spi-nand: PROBE WRITE peb=318 page=36 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.054866] spi-nand: PROBE WRITE peb=318 page=37 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.056252] spi-nand: PROBE WRITE peb=318 page=38 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.057621] spi-nand: PROBE WRITE peb=318 page=39 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.058991] spi-nand: PROBE WRITE peb=318 page=40 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.060291] spi-nand: PROBE WRITE peb=318 page=41 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.061679] spi-nand: PROBE WRITE peb=318 page=42 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.063003] spi-nand: PROBE WRITE peb=318 page=43 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.064389] spi-nand: PROBE WRITE peb=318 page=44 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.065685] spi-nand: PROBE WRITE peb=318 page=45 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.067068] spi-nand: PROBE WRITE peb=318 page=46 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.068410] spi-nand: PROBE WRITE peb=318 page=47 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.069779] spi-nand: PROBE WRITE peb=318 page=48 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.071073] spi-nand: PROBE WRITE peb=318 page=49 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.072397] spi-nand: PROBE WRITE peb=318 page=50 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.073719] spi-nand: PROBE WRITE peb=318 page=51 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.075080] spi-nand: PROBE WRITE peb=318 page=52 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.076402] spi-nand: PROBE WRITE peb=318 page=53 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.077806] spi-nand: PROBE WRITE peb=318 page=54 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.079108] spi-nand: PROBE WRITE peb=318 page=55 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.080437] spi-nand: PROBE WRITE peb=318 page=56 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.081764] spi-nand: PROBE WRITE peb=318 page=57 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.083090] spi-nand: PROBE WRITE peb=318 page=58 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.084392] spi-nand: PROBE WRITE peb=318 page=59 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.085692] spi-nand: PROBE WRITE peb=318 page=60 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.087010] spi-nand: PROBE WRITE peb=318 page=61 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.088458] spi-nand: PROBE WRITE peb=318 page=62 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+[  810.089828] spi-nand: PROBE WRITE peb=318 page=63 ecc_en=1 cfg=0x18 status=0x00 prog_fail=0 wait_ret=0
+TEST off=0x80000 len=131072: readback CLEAN, mismatches=0 firstbad=0xffffffff ecc{uncorr=0 corrected=0 maxflip=0} read_ret=0(ok)
+  → block writes reliably (soft-bad recovered or was fine; no need to mark)
+~ # 

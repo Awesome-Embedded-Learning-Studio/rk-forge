@@ -1,0 +1,2 @@
+name: rkforge
+desc: rk-forge board support for Rockchip RK3506B (aes) — minimal buildroot rootfs via the external /opt Arm GNU 15.2 toolchain

@@ -1,32 +1,30 @@
 # third_party/
 
-External source trees. Three are git **submodules** (build targets); one is a local
-**reference clone** (not a submodule).
+External source trees. `rkbin/` is a git **submodule**; `src/` and `buildroot/`
+are local fetched clones (gitignored, managed by `scripts/fetch-deps.sh` against
+`pins/`).
 
-## Build targets (submodules — initialized in Week 3+)
+## src/ — kernel + U-Boot source trees (fetched-clone)
 
-| dir | url | role |
+| tree | source | role |
 |---|---|---|
-| `linux_mainline/` | git.kernel.org/.../torvalds/linux.git | build kernel from **v7.0.x** (RK3506 pinctrl+clk present; 6.19 is EOL) |
-| `uboot/` | gitlab.denx.de/u-boot/u-boot.git | build U-Boot — RK3506 SoC support already upstream |
-| `rkbin/` | github.com/rockchip-linux/rkbin.git | closed DDR/TPL/SPL blobs (see ../BLOBS.md) |
+| `src/linux/` | torvalds/linux @ v7.1 (pin: `pins/linux`) | build kernel; `patches/linux` series applied |
+| `src/uboot/` | denx/u-boot @ pinned commit (pin: `pins/uboot`) | build U-Boot; `patches/uboot` series applied |
 
-Initialize (later):
-```bash
-git submodule update --init --depth 1 third_party/<name>
-```
+These are NOT submodules — they carry our patch series (`git am`'d by
+`scripts/apply-series.sh`), so a gitlink would drift. `fetch-deps.sh` clones them
+gitignored; the patch series + board tree are what's actually version-controlled.
 
-## Reference clone (NOT a submodule — gitignored)
+## buildroot/ — rootfs build system (fetched-clone)
 
-`vendor-sdk/` — a local clone of a **vendor SDK used only as a knowledge source**
-for `scripts/sdk-diff.sh` and board-DT extraction. It is **not** built; it is the
-"other end" of the mainline-vs-BSP comparison.
+Upstream buildroot clone (gitignored). forge's board customization (defconfig +
+overlay + post-build) lives in the BR2_EXTERNAL tree at
+`board/aes/buildroot-external/`. See its README for the checkout + build invocation.
 
-```bash
-# example: pull a vendor SDK into the reference slot
-git clone <vendor-sdk-url> third_party/vendor-sdk
-```
+## rkbin/ — closed Rockchip blobs (submodule)
 
-> **Confirm it targets RK3506** (and note its kernel version) on first pull. If the
-> vendor SDK is a BSP kernel (e.g. 5.10/6.1 + vendor patches), that's fine as a
-> *reference* — but our build target stays mainline. See ../PLAN.md.
+github.com/rockchip-linux/rkbin — DDR/TPL/SPL/tee blobs (see ../BLOBS.md). The
+only real submodule here; pinned at a known-good commit.
+
+> The vendor SDK reference clone used to live here (`third_party/vendor-sdk/`).
+> On 2026-06-20 it moved to [`reference/vendor-sdk/`](../reference/README.md).

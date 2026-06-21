@@ -16,7 +16,7 @@ rk-forge 服务**没人服务的 RK3506**：把最新主线 Linux 跑起来，�
 它**不是**又一个 Armbian / Yocto / 厂商 BSP 镜像。它做三件事：
 
 1. **有序补丁库**——quilt 风格 `series`，`git am` 落真实 commit、可 bisect、失败原子回滚（修掉"只打最后一个补丁"的老毛病）。
-2. **诚实的差距报告**（`sdk-diff.sh`）——逐子系统告诉你：vendor BSP 有什么 / 主线有什么 / 差什么 / 还能不能 boot。
+2. **诚实的差距报告**（[`document/sdk-diff.md`](document/sdk-diff.md)）——逐子系统告诉你：vendor BSP 有什么 / 主线有什么 / 差什么 / 还能不能 boot。
 3. **0→1 教程**——从空机器到 RK3506 主线启动到 UART 的可复现路径。
 
 **核心命题（已核实）**：RK3506 的 SoC 地基（pinctrl+clk 自 Linux 6.19 起、U-Boot SoC 支持经 Jonas Karlman v2 已合并）**全在主线**。所以对"主线启动"这件事，RK-SDK 整个坍缩成两样东西：① `rkbin`（DDR 初始化闭源 blob，绕不开）；② **一块板级设备树**（上游没有，rk-forge 来写）。rk-forge 的主要贡献就是这块 `.dts` + 一条诚实的路径。
@@ -38,14 +38,15 @@ source scripts/env-setup.sh               # 导出 ARCH=arm / CROSS_COMPILE=arm-
 ```
 config/toolchain.conf        声明式工具链配置（未来 Python CLI 直接读）
 board.env                    板卡元信息（占位 rk3506-evb）
-boards/rk3506-evb/           ★ 板级 DT（rk-forge 的主要贡献，上游化目标）+ kernel.config
-patches/{linux_mainline,uboot}/series   有序补丁序列
-third_party/                 linux_mainline(7.0.x) · uboot · rkbin · vendor-sdk(参照)
+board/                       aes/(构建工作区:fit/rootfs/buildroot-external) · rk3506-evb/(板 config)
+patches/{linux,uboot}/series   有序补丁序列
+third_party/                 src/(linux·uboot 源树) · buildroot · rkbin(submodule)
+reference/                   vendor-sdk(参照/萃取池,非构建依赖)
 scripts/
   lib/{log,toolchain,stage}.sh           共享库；stage.sh = 内容哈希增量跳过
   env-setup.sh · doctor.sh               环境（source 用 / 独立检查）
-  apply-series.sh · patch-maker.sh       ★ 补丁库（修 imx 的头号债）
-  build-uboot.sh · build-linux.sh · flash-sd.sh · sdk-diff.sh   （Week 3-8 逐步落地）
+  apply-series.sh                   ★ 补丁库（修 imx 的头号债）
+  build-uboot.sh · build-linux.sh · flash-sd.sh   （Week 3-8 逐步落地）
 BLOBS.md                     rkbin 闭源 blob 的诚实清单 + 消除路径
 document/tutorial/boot/      Ch0-3 教程（in-repo Markdown）
 ```

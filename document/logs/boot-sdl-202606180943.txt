@@ -1,0 +1,120 @@
+SoftReset, 14092974 us
+
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+SRX
+get rd_skew=0x2e, wr_skew=0x20
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xe-0x1-0x2, 0x3f-0x0-0x2,status:a007
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g80d18cf0259-250930 #lxh (Oct 22 2025 - 15:21:58), fwver: v1.12
+Ram size: 20000000
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 12
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+SPL: A/B-slot: _a, successful: 0, tries-remain: 7
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(e2a712a533...) + OK
+## Checking uboot 0x00800000 ... sha256(cf1e1f1e83...) + OK
+## Checking fdt 0x00874408 ... sha256(8e3f2ac7ab...) + OK
+Jumping to U-Boot(0x00800000) via OP-TEE(0x00001000)
+Total: 64.953/107.0 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-1038-gb204648dc #derrick.huang (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 2025年 12月 11日 星期四 11:51:18 CST arm, fwver: v2.40 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00800000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2026.07-rc4-g2f87d69f737f (Jun 17 2026 - 15:48:03 +0800)
+
+Model: Rockchip RK3506 Evaluation Board (ATK RK3506B)
+SoC:   RK3506B
+DRAM:  512 MiB
+Core:  35 devices, 17 uclasses, devicetree: separate
+MMC:   
+Loading Environment from nowhere... OK
+In:    serial@ff0a0000
+Out:   serial@ff0a0000
+Err:   serial@ff0a0000
+Hit any key to stop autoboot: 0
+Scanning for bootflows in all bootdevs
+Seq  Method       State   Uclass    Part  Name                      Filename
+---  -----------  ------  --------  ----  ------------------------  ----------------
+Scanning global bootmeth 'efi_mgr':
+Cannot persist EFI variables without system partition
+Missing RNG device for EFI_RNG_PROTOCOL
+No bootdevs for 'mmc0'
+Unknown uclass 'nvme' in label
+Unknown uclass 'scsi' in label
+Unknown uclass 'usb' in label
+Unknown uclass 'pxe' in label
+Unknown uclass 'dhcp' in label
+No more bootdevs
+---  -----------  ------  --------  ----  ------------------------  ----------------
+(0 bootflows, 0 valid)
+=> mtd list
+rockchip_sfc: dll tuning target=50000000Hz real=100000000Hz cell_max=383 step=10 cs=0
+rockchip_sfc:   dll window [0, 230] (230 cells)
+rockchip_sfc:   dll window [270, 373] (103 cells)
+rockchip_sfc: dll ok best=[0,230] -> cell 92 (real 100000000Hz)
+List of MTD devices:
+* spi-nand0
+  - device: flash@0
+  - parent: spi@ff488000
+  - driver: spi_nand
+  - path: /spi@ff488000/flash@0
+  - type: NAND flash
+  - block size: 0x20000 bytes
+  - min I/O: 0x800 bytes
+  - OOB size: 128 bytes
+  - OOB available: 56 bytes
+  - ECC strength: 8 bits
+  - ECC step size: 512 bytes
+  - bitflip threshold: 6 bits
+  - 0x000000000000-0x000020000000 : "spi-nand0"
+	  - 0x000001740000-0x000002740000 : "boot"
+=> mtd read spi-nand0 0x04100000 0x27A0000 0x20000
+Reading 131072 byte(s) (64 page(s)) at offset 0x027a0000
+=> md.b 0x04100000 0x40
+04100000: 55 42 49 23 01 00 00 00 00 00 00 00 00 00 00 00  UBI#............
+04100010: 00 00 08 00 00 00 10 00 50 fd 61 64 00 00 00 00  ........P.ad....
+04100020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+04100030: 00 00 00 00 00 00 00 00 00 00 00 00 3e 2b ce e0  ............>+..
+=> mtd read.raw spi-nand0 0x04200000 0x27A0000 0x20000
+Reading 131072 byte(s) (64 page(s)) at offset 0x027a0000 [raw]
+=> md.b 0x04200000 0x40
+04200000: 55 42 49 23 01 00 00 00 00 00 00 00 00 00 00 00  UBI#............
+04200010: 00 00 08 00 00 00 10 00 50 fd 61 64 00 00 00 00  ........P.ad....
+04200020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+04200030: 00 00 00 00 00 00 00 00 00 00 00 00 3e 2b ce e0  ............>+..
+=> mtd read spi-nand0 0x04100000 0x27C0000 0x20000
+Reading 131072 byte(s) (64 page(s)) at offset 0x027c0000
+=> md.b 0x04100000 0x40
+04100000: 55 42 49 23 01 00 00 00 00 00 00 00 00 00 00 00  UBI#............
+04100010: 00 00 08 00 00 00 10 00 50 fd 61 64 00 00 00 00  ........P.ad....
+04100020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+04100030: 00 00 00 00 00 00 00 00 00 00 00 00 3e 2b ce e0  ............>+..
+=>  mtd read.raw spi-nand0 0x04200000 0x27C0000 0x20000
+Reading 131072 byte(s) (64 page(s)) at offset 0x027c0000 [raw]
+=>  md.b 0x04200000 0x40
+04200000: 55 42 49 23 01 00 00 00 00 00 00 00 00 00 00 00  UBI#............
+04200010: 00 00 08 00 00 00 10 00 50 fd 61 64 00 00 00 00  ........P.ad....
+04200020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+04200030: 00 00 00 00 00 00 00 00 00 00 00 00 3e 2b ce e0  ............>+..
+=> 

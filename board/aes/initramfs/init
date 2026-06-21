@@ -1,0 +1,105 @@
+#!/bin/busybox sh
+# rk-forge first-boot rootfs provisioning initramfs.
+#
+# Why this exists: the rkbin loader programs our SPI-NAND rootfs weakly on some
+# erase blocks (PEBs 3/4/30/32 …). The data reads fine on the first boot (on-die
+# ECC still corrects it) but degrades to ECC-uncorrectable after a power cycle,
+# so the 2nd boot can't mount UBIFS. Our mainline SFC driver (DLL + powergood +
+# WPEN) writes reliably; the loader is a black box we can't fix.
+#
+# So on the FIRST boot this initramfs rewrites the rootfs partition through the
+# kernel's own write path (ubiprog: read each data block → erase → re-program),
+# producing an identical but reliable (Linux-written) image. A marker file on
+# the rootfs makes every later boot skip the rewrite and just mount + switch_root
+# to the real busybox rootfs.
+#
+# Boot args must NOT carry root= or ubi.mtd= (so the kernel runs /init instead of
+# mounting root itself):  console=ttyS0,1500000
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+/bin/busybox mount -t proc none /proc 2>/dev/null
+/bin/busybox mount -t sysfs none /sys 2>/dev/null
+/bin/busybox mount -t devtmpfs none /dev 2>/dev/null || /bin/busybox mount -t tmpfs none /dev
+/bin/busybox --install -s 2>/dev/null
+
+echo
+echo "===== rk-forge provisioning initramfs ====="
+
+rescue() {
+	echo "[init] *** dropping to rescue shell ***"
+	exec /bin/busybox sh
+}
+
+switch_to_rootfs() {
+	# Populate /dev on the real rootfs. CONFIG_DEVTMPFS_MOUNT only auto-mounts
+	# devtmpfs on the initramfs /dev; after switch_root the new root's /dev is
+	# empty, so busybox init's `ttyS0::respawn:/bin/sh` can't open /dev/ttyS0.
+	# Mount devtmpfs on the new root's /dev before pivoting (it survives
+	# switch_root and stays as /dev).
+	mkdir -p /mnt/dev
+	mount -t devtmpfs none /mnt/dev 2>/dev/null
+	# Pivot into the real UBIFS rootfs. Prefer busybox init (inittab), fall back
+	# to a plain shell.
+	if [ -x /mnt/sbin/init ]; then
+		exec switch_root /mnt /sbin/init
+	elif [ -x /mnt/init ]; then
+		exec switch_root /mnt /init
+	else
+		exec switch_root /mnt /bin/busybox sh
+	fi
+}
+
+mkdir -p /mnt
+MARKER=/mnt/.rkforge_provisioned
+
+# Attach UBI to the rootfs partition (mtd5) and try to mount it to read the marker.
+NEED_PROVISION=1
+if ubiattach -m 5 /dev/ubi_ctrl 2>/dev/null; then
+	if mount -t ubifs ubi0:rootfs /mnt 2>/dev/null; then
+		if [ -f "$MARKER" ]; then
+			echo "[init] rootfs already provisioned → switch_root"
+			switch_to_rootfs
+		fi
+		echo "[init] rootfs mounts but has no marker → will provision"
+		# Force UBIFS to commit a clean master/journal/LPT via the kernel's
+		# reliable write BEFORE ubiprog reads the partition raw. Without this the
+		# rw mount above only read the marker (nothing dirtied), so umount commits
+		# nothing and a metadata PEB the loader wrote weakly stays weak — ubiprog's
+		# raw MEMREAD then trusts its on-die-ECC "correction" of that weak metadata
+		# and rewrites it, and UBIFS master recovery later fails. Dirtying the FS
+		# makes umount commit, so the kernel rewrites that metadata cleanly; ubiprog
+		# then reads it back at 0 flips and preserves it verbatim. (P5 hardening.)
+		echo x > /mnt/.ubiprog_trigger 2>/dev/null
+		sync
+		rm -f /mnt/.ubiprog_trigger 2>/dev/null
+		sync
+		umount /mnt 2>/dev/null
+	else
+		echo "[init] rootfs won't mount yet (loader-written-weak/blank) → will provision"
+	fi
+	ubidetach -d 0 /dev/ubi_ctrl 2>/dev/null
+else
+	echo "[init] ubiattach failed → will try provisioning anyway"
+fi
+
+# --- first boot: rewrite the rootfs through the reliable kernel write path ---
+echo "[init] FIRST BOOT: ubiprog rewriting /dev/mtd5 (data blocks only)…"
+if ! ubiprog /dev/mtd5; then
+	echo "[init] ubiprog FAILED (rc=$?)"
+	rescue
+fi
+
+# Re-attach, mount, stamp the marker so future boots skip the rewrite.
+if ! ubiattach -m 5 /dev/ubi_ctrl 2>/dev/null; then
+	echo "[init] re-attach after provisioning failed"
+	rescue
+fi
+if ! mount -t ubifs ubi0:rootfs /mnt; then
+	echo "[init] mount after provisioning failed"
+	rescue
+fi
+echo "provisioned by ubiprog at uptime=$(awk '{print $1}' /proc/uptime)" > "$MARKER"
+sync
+echo "[init] provisioning complete → switch_root"
+switch_to_rootfs
+rescue

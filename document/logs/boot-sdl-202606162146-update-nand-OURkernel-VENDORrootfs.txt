@@ -1,0 +1,1158 @@
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xf-0x1-0x2, 0x3-0x1-0x2,status:a007
+rdtrn:0x15-0x2e-0x47(0x32)
+wrtrn:0x0-0x1f-0x3d(0x3d)
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g26c8833 #alientek (Mar 26 2026 - 11:32:53)
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 13
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(93603ca22c...) + OK
+## Checking uboot 0x00800000 ... sha256(07d29ab030...) + OK
+## Checking fdt 0x00874e40 ... sha256(8e3f2ac7ab...) + OK
+Jumping to U-Boot(0x00800000) via OP-TEE(0x00001000)
+Total: 63.624/107.507 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-958-g46dcf51e88a #chenjh (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 Thu Mar  6 10:17:27 CST 2025 arm, fwver: v2.10 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00800000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2026.07-rc4-gff4b08b566a9-dirty (Jun 16 2026 - 09:43:00 +0800)
+
+Model: Rockchip RK3506 Evaluation Board (ATK RK3506B)
+SoC:   RK3506B
+DRAM:  512 MiB
+Core:  35 devices, 17 uclasses, devicetree: separate
+MMC:   
+Loading Environment from nowhere... OK
+In:    serial@ff0a0000
+Out:   serial@ff0a0000
+Err:   serial@ff0a0000
+Hit any key to stop autoboot: 0
+Scanning for bootflows in all bootdevs
+Seq  Method       State   Uclass    Part  Name                      Filename
+---  -----------  ------  --------  ----  ------------------------  ----------------
+Scanning global bootmeth 'efi_mgr':
+Cannot persist EFI variables without system partition
+Missing RNG device for EFI_RNG_PROTOCOL
+No bootdevs for 'mmc0'
+Unknown uclass 'nvme' in label
+Unknown uclass 'scsi' in label
+Unknown uclass 'usb' in label
+Unknown uclass 'pxe' in label
+Unknown uclass 'dhcp' in label
+No more bootdevs
+---  -----------  ------  --------  ----  ------------------------  ----------------
+(0 bootflows, 0 valid)
+=> setenv bootargs 'earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait rw'
+=> mtd read boot 0x04000000 0 0x800000
+rockchip_sfc: dll tuning target=50000000Hz real=100000000Hz cell_max=383 step=10 cs=0
+rockchip_sfc:   dll window [0, 230] (230 cells)
+rockchip_sfc:   dll window [280, 373] (93 cells)
+rockchip_sfc: dll ok best=[0,230] -> cell 92 (real 100000000Hz)
+Reading 8388608 byte(s) (4096 page(s)) at offset 0x00000000
+=> bootm 0x04000000
+## Loading kernel (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel (zImage, self-decompressing)
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x04000800
+     Data Size:    7356928 Bytes = 7 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x02080000
+     Entry Point:  0x02080000
+     Hash algo:    sha256
+     Hash value:   cbc723ee89be948f1566684d6528938015d0de1ea148155346bae3579196f427
+   Verifying Hash Integrity ... sha256+ OK
+## Loading fdt (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'fdt' fdt subimage
+     Description:  RK3506B AES board flat DT (bootargs: ubi.mtd=5 root=ubi0:rootfs)
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x04704a00
+     Data Size:    5956 Bytes = 5.8 KiB
+     Architecture: ARM
+     Load Address: 0x01e00000
+     Hash algo:    sha256
+     Hash value:   f7cb742c841fdeab5a7549550ec082e826348390e43f90d0b42d8bfe7734740c
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x04704a00 to 0x01e00000
+   Booting using the fdt blob at 0x1e00000
+Working FDT set to 1e00000
+   Loading Kernel Image to 2080000
+   Loading Device Tree to 1cf31000, end 1cf35743 ... OK
+Working FDT set to 1cf31000
+No RNG device
+
+Starting kernel ...
+
+[    0.000000] Booting Linux on physical CPU 0xf00
+[    0.000000] Linux version 7.1.0-00005-g453820219629-dirty (charliechen@Charliechen) (arm-none-linux-gnueabihf-gcc (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 10.3.1 20210621, GNU ld (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 2.36.1.20210621) #15 SMP Tue Jun 16 21:33:58 CST 2026
+[    0.000000] CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=10c5387d
+[    0.000000] CPU: div instructions available: patching division code
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    0.000000] OF: fdt: Machine model: AES RK3506B Board
+[    0.000000] earlycon: uart8250 at MMIO32 0xff0a0000 (options '')
+[    0.000000] printk: legacy bootconsole [uart8250] enabled
+[    0.000000] Memory policy: Data cache writealloc
+[    0.000000] efi: UEFI not found.
+[    0.000000] OF: reserved mem: Reserved memory: No reserved-memory node in the DT
+[    0.000000] psci: probing for conduit method from DT.
+[    0.000000] psci: PSCIv1.0 detected in firmware.
+[    0.000000] psci: Using standard PSCI v0.2 function IDs
+[    0.000000] psci: MIGRATE_INFO_TYPE not supported.
+[    0.000000] psci: SMC Calling Convention v1.1
+[    0.000000] Zone ranges:
+[    0.000000]   DMA      [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000]   Normal   empty
+[    0.000000]   HighMem  empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] percpu: Embedded 18 pages/cpu s41292 r8192 d24244 u73728
+[    0.000000] Kernel command line: earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait rw
+[    0.000000] printk: log buffer data + meta data: 131072 + 409600 = 540672 bytes
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 131072
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=3, Nodes=1
+[    0.000000] rcu: Hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=16 to nr_cpu_ids=3.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=3
+[    0.000000] NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] arch_timer: cp15 timer running at 24.00MHz (virt).
+[    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.000001] sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+[    0.000744] Switching to timer-based delay loop, resolution 41ns
+[    0.001963] Console: colour dummy device 80x30
+[    0.002459] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=240000)
+[    0.003423] CPU: Testing write buffer coherency: ok
+[    0.003933] pid_max: default: 32768 minimum: 301
+[    0.004636] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.005334] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.006484] VFS: Finished mounting rootfs on nullfs
+[    0.007833] /cpus/cpu@f00 missing clock-frequency property
+[    0.008393] /cpus/cpu@f01 missing clock-frequency property
+[    0.008973] /cpus/cpu@f02 missing clock-frequency property
+[    0.009493] CPU0: thread -1, cpu 0, socket 15, mpidr 80000f00
+[    0.010047] cacheinfo: Unable to detect cache hierarchy for CPU 0
+[    0.012820] Setting up static identity map for 0x300000 - 0x3000ac
+[    0.013936] rcu: Hierarchical SRCU implementation.
+[    0.014406] rcu: 	Max phase no-delay instances is 1000.
+[    0.015458] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.016894] EFI services will not be available.
+[    0.017755] smp: Bringing up secondary CPUs ...
+I/TC: Secondary CPU 1 initializing
+I/TC: Secondary CPU 1 switching to normal world boot
+I/TC: Secondary CPU 2 initializing
+I/TC: Secondary CPU 2 switching to normal world boot
+[    0.020293] CPU1: thread -1, cpu 1, socket 15, mpidr 80000f01
+[    0.022689] CPU2: thread -1, cpu 2, socket 15, mpidr 80000f02
+[    0.023034] smp: Brought up 1 node, 3 CPUs
+[    0.024490] SMP: Total of 3 processors activated (144.00 BogoMIPS).
+[    0.025071] CPU: All CPU(s) started in SVC mode.
+[    0.025800] Memory: 489404K/524288K available (15360K kernel code, 2515K rwdata, 6580K rodata, 2048K init, 395K bss, 32252K reserved, 0K cma-reserved, 0K highmem)
+[    0.027960] devtmpfs: initialized
+[    0.031243] VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+[    0.032243] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.033211] posixtimers hash table entries: 2048 (order: 2, 16384 bytes, linear)
+[    0.034008] futex hash table entries: 1024 (65536 bytes on 1 NUMA nodes, total 64 KiB, linear).
+[    0.036998] DMI: not present or invalid.
+[    0.038300] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.039326] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.042040] thermal_sys: Registered thermal governor 'step_wise'
+[    0.042210] cpuidle: using governor menu
+[    0.043508] No ATAGs?
+[    0.043908] hw-breakpoint: found 5 (+1 reserved) breakpoint and 4 watchpoint registers.
+[    0.044662] hw-breakpoint: maximum watchpoint size is 8 bytes.
+[    0.047138] Serial: AMBA PL011 UART driver
+[    0.056093] rockchip-gpio ff940000.gpio: probed /pinctrl/gpio@ff940000
+[    0.057837] rockchip-gpio ff870000.gpio: probed /pinctrl/gpio@ff870000
+[    0.059708] rockchip-gpio ff1c0000.gpio: probed /pinctrl/gpio@ff1c0000
+[    0.061438] rockchip-gpio ff1d0000.gpio: probed /pinctrl/gpio@ff1d0000
+[    0.063180] rockchip-gpio ff1e0000.gpio: probed /pinctrl/gpio@ff1e0000
+[    0.070139] iommu: Default domain type: Translated
+[    0.070612] iommu: DMA domain TLB invalidation policy: strict mode
+[    0.081690] SCSI subsystem initialized
+[    0.083415] pps_core: LinuxPPS API ver. 1 registered
+[    0.083897] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.084762] PTP clock support registered
+[    0.085280] EDAC MC: Ver: 3.0.0
+[    0.086266] scmi_core: SCMI protocol bus registered
+[    0.089546] vgaarb: loaded
+[    0.090613] clocksource: Switched to clocksource arch_sys_counter
+[    0.104391] NET: Registered PF_INET protocol family
+[    0.105108] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.107002] tcp_listen_portaddr_hash hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.107813] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.108543] TCP established hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    0.109286] TCP bind hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.110057] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.110873] UDP hash table entries: 256 (order: 2, 14336 bytes, linear)
+[    0.111748] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.113264] RPC: Registered named UNIX socket transport module.
+[    0.113842] RPC: Registered udp transport module.
+[    0.114282] RPC: Registered tcp transport module.
+[    0.114718] RPC: Registered tcp-with-tls transport module.
+[    0.115224] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.115827] PCI: CLS 0 bytes, default 64
+[    0.117864] Initialise system trusted keyrings
+[    0.118733] workingset: timestamp_bits=30 (anon: 26) max_order=17 bucket_order=0 (anon: 0)
+[    0.120183] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.121481] NFS: Registering the id_resolver key type
+[    0.122032] Key type id_resolver registered
+[    0.122428] Key type id_legacy registered
+[    0.122850] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    0.123481] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    0.124808] Key type asymmetric registered
+[    0.125221] Asymmetric key parser 'x509' registered
+[    0.125832] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 246)
+[    0.126533] io scheduler mq-deadline registered
+[    0.126958] io scheduler kyber registered
+[    0.127392] io scheduler bfq registered
+[    0.146916] ledtrig-cpu: registered to indicate activity on CPUs
+[    0.238911] Serial: 8250/16550 driver, 5 ports, IRQ sharing enabled
+[    0.245192] printk: legacy console [ttyS0] disabled
+[    0.246297] ff0a0000.serial: ttyS0 at MMIO 0xff0a0000 (irq = 34, base_baud = 1500000) is a 16550A
+[    0.247238] printk: legacy console [ttyS0] enabled
+[    0.247238] printk: legacy console [ttyS0] enabled
+[    0.248114] printk: legacy bootconsole [uart8250] disabled
+[    0.248114] printk: legacy bootconsole [uart8250] disabled
+[    0.253618] msm_serial: driver initialized
+[    0.254545] SuperH (H)SCI(F) driver initialized
+[    0.255161] STMicroelectronics ASC driver initialized
+[    0.255949] STM32 USART driver initialized
+[    0.280532] brd: module loaded
+[    0.289148] loop: module loaded
+[    0.298937] rockchip-sfc ff488000.spi: dll tuning: target=50000000Hz real=50000000Hz cell_max=383 step=10 cs=0
+[    0.299912] rockchip-sfc ff488000.spi:   dll window [0, 230] (230 cells)
+[    0.300546] rockchip-sfc ff488000.spi:   dll window [270, 373] (103 cells)
+[    0.301239] rockchip-sfc ff488000.spi: dll ok: best=[0,230] -> cell 92 (real 50000000Hz)
+[    0.302053] spi-nand spi0.0: Winbond SPI NAND was found.
+[    0.302535] spi-nand spi0.0: 512 MiB, block size: 128 KiB, page size: 2048, OOB size: 128
+[    0.303433] 7 fixed-partitions partitions found on MTD device spi0.0
+[    0.304016] Creating 7 MTD partitions on "spi0.0":
+[    0.304449] 0x000000400000-0x000000800000 : "uboot"
+[    0.308748] 0x000000800000-0x000000900000 : "misc"
+[    0.311916] 0x000000900000-0x000000940000 : "vnvm"
+[    0.314734] 0x000000940000-0x000001740000 : "recovery"
+[    0.322902] 0x000001740000-0x000002740000 : "boot"
+[    0.331799] 0x000002740000-0x00000d540000 : "rootfs"
+[    0.400498] 0x00000d540000-0x000020000000 : "userdata"
+[    0.522334] CAN device driver interface
+[    0.523651] bgmac_bcma: Broadcom 47xx GBit MAC driver loaded
+[    0.525321] e1000e: Intel(R) PRO/1000 Network Driver
+[    0.525783] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[    0.526390] igb: Intel(R) Gigabit Ethernet Network Driver
+[    0.526875] igb: Copyright (c) 2007-2014 Intel Corporation.
+[    0.537256] i2c_dev: i2c /dev entries driver
+[    0.571954] NET: Registered PF_INET6 protocol family
+[    0.574298] Segment Routing with IPv6
+[    0.574732] In-situ OAM (IOAM) with IPv6
+[    0.575180] NET: Registered PF_PACKET protocol family
+[    0.575639] can: controller area network core
+[    0.576110] NET: Registered PF_CAN protocol family
+[    0.576554] can: raw protocol
+[    0.576830] can: broadcast manager protocol
+[    0.577211] can: netlink gateway - max_hops=1
+[    0.578082] Key type dns_resolver registered
+[    0.578694] ThumbEE CPU extension supported.
+[    0.579110] Registering SWP/SWPB emulation handler
+[    0.589609] Loading compiled-in X.509 certificates
+[    0.610698] ubi0: attaching mtd5
+[    0.981833] ubi0: scanning is finished
+[    1.020406] ubi0: volume 0 ("rootfs") re-sized from 1257 to 1308 LEBs
+[    1.021947] ubi0: attached mtd5 (name "rootfs", size 174 MiB)
+[    1.022495] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    1.023108] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    1.023712] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    1.024327] ubi0: good PEBs: 1392, bad PEBs: 0, corrupted PEBs: 0
+[    1.024866] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    1.025502] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 1527011325
+[    1.026307] ubi0: available PEBs: 0, total reserved PEBs: 1392, PEBs reserved for bad PEB handling: 80
+[    1.027163] ubi0: background thread "ubi_bgt0d" started, PID 53
+[    1.035952] clk: Disabling unused clocks
+[    1.036649] PM: genpd: Disabling unused power domains
+[    1.037675] dw-apb-uart ff0a0000.serial: forbid DMA for kernel console
+[    1.039944] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[    1.040902] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 54
+[    1.069069] UBIFS (ubi0:0): start fixing up free space
+[    1.620686] random: crng init done
+[   12.026852] UBIFS (ubi0:0): free space fixup complete
+[   12.041905] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[   12.042601] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[   12.043484] UBIFS (ubi0:0): FS size: 164687872 bytes (157 MiB, 1297 LEBs), max 8456 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[   12.044546] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[   12.045069] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID 68E79E07-E055-4592-8F84-0D4E3FD20218, small LPT model
+[   12.047414] VFS: Mounted root (ubifs filesystem) on device 0:17.
+[   12.048594] devtmpfs: mounted
+[   12.049073] VFS: Pivoted into new rootfs
+[   12.051525] Freeing unused kernel image (initmem) memory: 2048K
+[   12.052369] Run /sbin/init as init process
+Starting lv_demo
+mkdir: can't create directory '/run/': Not a directory
+Start mounting all internal partitions in /etc/fstab
+Log saved to /var/log/mount-all.log
+tee: /var/log/mount-all.log: Not a directory
+Note: Create /.skip_fsck to skip fsck
+ - The check might take a while if didn't shutdown properly!
+[   12.692911] 8<--- cut here ---
+[   12.693237] Unhandled fault: imprecise external abort (0xc06) at 0xbeb1aad4
+[   12.693903] [beb1aad4] *pgd=0362c835, *pte=0000575f, *ppte=00005c7f
+[   12.696040] 8<--- cut here ---
+[   12.696365] Unhandled fault: imprecise external abort (0xc06) at 0x004fd1a8
+[   12.697011] [004fd1a8] *pgd=03634835, *pte=0000575f, *ppte=00005c7f
+[   12.701457] 8<--- cut here ---
+[   12.701786] Unhandled fault: external abort on non-linefetch (0x008) at 0x00534010
+[   12.702480] [00534010] *pgd=0363a835, *pte=0000575f, *ppte=00005c7f
+[   12.706670] 8<--- cut here ---
+[   12.707012] Unhandled fault: external abort on non-linefetch (0x008) at 0xb6ec2568
+[   12.707730] [b6ec2568] *pgd=03636835, *pte=0000675f, *ppte=00006c7f
+[   12.710145] 8<--- cut here ---
+[   12.710483] Unhandled fault: imprecise external abort (0xc06) at 0xbeb1b624
+[   12.711146] [beb1b624] *pgd=034e4835, *pte=0000675f, *ppte=00006c7f
+[   12.721577] 8<--- cut here ---
+[   12.721913] Unhandled fault: imprecise external abort (0xc06) at 0x004fcc28
+[   12.722578] [004fcc28] *pgd=03614835, *pte=0000675f, *ppte=00006c7f
+[   12.745659] mtdblock: MTD device 'userdata' is NAND, please consider using UBI block devices instead.
+[   12.746172] 8<--- cut here ---
+[   12.746810] Unhandled fault: imprecise external abort (0xc06) at 0x0052cfb8
+[   12.747456] [0052cfb8] *pgd=024e4835, *pte=019c97dd, *ppte=00000000
+[   12.748054] Internal error: : c06 [#1] SMP ARM
+[   12.748469] Modules linked in:
+[   12.748767] CPU: 0 UID: 0 PID: 93 Comm: mount-helper Not tainted 7.1.0-00005-g453820219629-dirty #15 VOLUNTARY 
+[   12.749671] Hardware name: Generic DT based system
+[   12.750107] PC is at kunmap_local_indexed+0x0/0x1b4
+[   12.750569] LR is at copy_page_to_iter+0xf4/0x16c
+[   12.751015] pc : [<c04d5b4c>]    lr : [<c07fe15c>]    psr: 400f0013
+[   12.751581] sp : e0b5de78  ip : 004e63e3  fp : c1d76718
+[   12.752060] r10: e0b5df10  r9 : dfc62700  r8 : 00000000
+[   12.752536] r7 : c3678000  r6 : 00000001  r5 : 00000001  r4 : 00000001
+[   12.753123] r3 : 00000000  r2 : 00000000  r1 : c3678001  r0 : c3678000
+[   12.753709] Flags: nZcv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment none
+[   12.754354] Control: 10c5387d  Table: 035c806a  DAC: 00000051
+[   12.754872] Register r0 information: non-slab/vmalloc memory
+[   12.755400] Register r1 information: non-slab/vmalloc memory
+[   12.755923] Register r2 information: NULL pointer
+[   12.756360] Register r3 information: NULL pointer
+[   12.756794] Register r4 information: non-paged memory
+[   12.757263] Register r5 information: non-paged memory
+[   12.757729] Register r6 information: non-paged memory
+[   12.758192] Register r7 information: non-slab/vmalloc memory
+[   12.758713] Register r8 information: NULL pointer
+[   12.759146] Register r9 information: non-slab/vmalloc memory
+[   12.759663] Register r10 information: 2-page vmalloc region starting at 0xe0b5c000 allocated at kernel_clone+0xac/0x404
+[   12.760647] Register r11 information: non-slab/vmalloc memory
+[   12.761186] Register r12 information: non-paged memory
+[   12.761666] Process mount-helper (pid: 93, stack limit = 0x7e3b7cc1)
+[   12.762252] Stack: (0xe0b5de78 to 0xe0b5e000)
+[   12.762660] de60:                                                       e0b5df10 c319ce00
+[   12.763392] de80: c30ee400 00000000 00000001 00000001 00000000 c319ce10 00000000 c0532470
+[   12.764128] dea0: 00001000 00000000 beb19bf4 00000000 00000001 e0b5df10 c2681480 e0b5df28
+[   12.764861] dec0: 00000001 c22a40c0 c03b4a60 e0b5decc e0b5decc 71ea3e40 c242da40 c2681480
+[   12.765594] dee0: 00000000 beb19c1c 00000001 c1211450 00004004 00001000 00000000 c052764c
+[   12.766328] df00: c35cafa8 1fa227df 00000000 dffe9c40 00000000 00000001 beb19c1c 00000fff
+[   12.767064] df20: 00000001 00000000 c2681480 00000000 00000000 00000000 00000000 00000000
+[   12.767798] df40: 00000000 00004004 00000000 00000000 00000051 71ea3e40 00000051 c2681480
+[   12.768535] df60: c2681480 beb19c1c 00001000 c0300324 c22a40c0 00000003 004e94c8 c0528020
+[   12.769271] df80: 00081a80 c032bb54 00000000 71ea3e40 beb1acf4 00000000 00000003 00001000
+[   12.770007] dfa0: 00000003 c03000c0 00000000 00000003 00000003 beb19c1c 00001000 00000001
+[   12.770742] dfc0: 00000000 00000003 00001000 00000003 004e94c8 00000004 00000000 004e94c8
+[   12.771499] dfe0: 004e9548 beb19ba0 004c6968 b6e4b144 20010010 00000003 00000000 00000000
+[   12.772240] Call trace: 
+[   12.772261]  kunmap_local_indexed from 0x0
+[   12.772897] Code: e5920000 e0631621 e0800281 e8bd8070 (e92d4070) 
+[   12.773454] ---[ end trace 0000000000000000 ]---
+[   12.773877] note: mount-helper[93] exited with irqs disabled
+[   12.788572] 8<--- cut here ---
+[   12.788895] Unhandled fault: external abort on non-linefetch (0x008) at 0x0052c12c
+[   12.789577] [0052c12c] *pgd=03661835, *pte=0000375f, *ppte=00003c7f
+[   12.814460] 8<--- cut here ---
+[   12.814796] Unhandled fault: imprecise external abort (0xc06) at 0xb6f82938
+[   12.815451] [b6f82938] *pgd=034ec835, *pte=1fb2375f, *ppte=1fb23c7f
+[   12.816066] Internal error: : c06 [#2] SMP ARM
+[   12.816486] Modules linked in:
+[   12.816808] CPU: 0 UID: 0 PID: 126 Comm: cut Tainted: G      D             7.1.0-00005-g453820219629-dirty #15 VOLUNTARY 
+[   12.817837] Tainted: [D]=DIE
+[   12.818135] Hardware name: Generic DT based system
+[   12.818590] PC is at load_elf_binary+0xe3c/0x13c0
+[   12.819050] LR is at load_elf_binary+0xe34/0x13c0
+[   12.819489] pc : [<c05978bc>]    lr : [<c05978b4>]    psr: 80010013
+[   12.820058] sp : e0bb5ea0  ip : fff60e83  fp : c2298940
+[   12.820529] r10: 000000b0  r9 : c242da40  r8 : 00000003
+[   12.821001] r7 : bef60e80  r6 : bef60e84  r5 : c316f600  r4 : c242db4c
+[   12.821589] r3 : 00000051  r2 : 00000003  r1 : beffffff  r0 : 00000000
+[   12.822177] Flags: Nzcv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment none
+[   12.822822] Control: 10c5387d  Table: 035c806a  DAC: 00000051
+[   12.823338] Register r0 information: NULL pointer
+[   12.823780] Register r1 information: non-paged memory
+[   12.824245] Register r2 information: non-paged memory
+[   12.824709] Register r3 information: non-paged memory
+[   12.825173] Register r4 information: slab mm_struct start c242da40 pointer offset 268 size 908
+[   12.825972] Register r5 information: slab kmalloc-512 start c316f600 pointer offset 0 size 512
+[   12.826767] Register r6 information: non-paged memory
+[   12.827234] Register r7 information: non-paged memory
+[   12.827698] Register r8 information: non-paged memory
+[   12.828161] Register r9 information: slab mm_struct start c242da40 pointer offset 0 size 908
+[   12.828938] Register r10 information: non-paged memory
+[   12.829411] Register r11 information: slab task_struct start c2298940 pointer offset 0 size 2368
+[   12.830220] Register r12 information: non-paged memory
+[   12.830698] Process cut (pid: 126, stack limit = 0xd6b7f4d2)
+[   12.831221] Stack: (0xe0bb5ea0 to 0xe0bb6000)
+[   12.831628] 5ea0: 00000012 00000000 00000008 000000b0 000dc6f4 000dc13d 00000000 c2298940
+[   12.832364] 5ec0: c242dbfc b6f718e8 000d9328 000da7c0 00429fc0 0041f000 c1b03f8c 00000001
+[   12.833098] 5ee0: 00000005 c316f600 00000034 00000000 00000100 888a66af 406ee854 0a64ddfe
+[   12.833832] 5f00: abf615de 71ea3e40 00000000 c2298940 c316f600 c1da8d04 c1bae288 fffffff8
+[   12.834565] 5f20: 00000006 c316f658 c1bb3040 c0530cd8 c1da8d04 00000000 0000007e 0000007e
+[   12.835296] 5f40: 00000100 00000000 ffffffff 71ea3e40 c2298940 00000000 c2298940 005349d8
+[   12.836030] 5f60: 004ff218 c316f600 c2298940 0000000b 004f343c c05311a0 c221ab40 005349d8
+[   12.836769] 5f80: 005348f8 0000000b c0300324 c0532144 00000000 71ea3e40 beb1aee4 005348f8
+[   12.837284] mtdblock: MTD device 'rootfs' is NAND, please consider using UBI block devices instead.
+[   12.837506] 5fa0: 004e94c8 c03000c0 005348f8 004e94c8 005348f8 005349d8 004ff218 00000000
+[   12.839024] 5fc0: 005348f8 004e94c8 005348f8 0000000b 005349d8 004ff218 00000020 004f343c
+[   12.839762] 5fe0: 004e978c beb1af7c 00446b14 b6e19e9c 60010010 005348f8 00000000 00000000
+[   12.840492] Call trace: 
+[   12.840509]  load_elf_binary from bprm_execve+0x1d0/0x55c
+[   12.841265]  bprm_execve from do_execveat_common+0x13c/0x17c
+[   12.841802]  do_execveat_common from sys_execve+0x38/0x50
+[   12.842316]  sys_execve from ret_fast_syscall+0x0/0x54
+[   12.842801] Exception stack(0xe0bb5fa8 to 0xe0bb5ff0)
+[   12.843266] 5fa0:                   005348f8 004e94c8 005348f8 005349d8 004ff218 00000000
+[   12.844001] 5fc0: 005348f8 004e94c8 005348f8 0000000b 005349d8 004ff218 00000020 004f343c
+[   12.844733] 5fe0: 004e978c beb1af7c 00446b14 b6e19e9c
+[   12.845200] Code: e1a02008 eb2fc45f ee033f10 f57ff06f (e3500000) 
+[   12.845753] ---[ end trace 0000000000000000 ]---
+[   12.846178] note: cut[126] exited with irqs disabled
+[   12.850350] 8<--- cut here ---
+[   12.850672] Unhandled fault: imprecise external abort (0xc06) at 0xb6f0e298
+[   12.851306] [b6f0e298] *pgd=03625835, *pte=00000000, *ppte=00000000
+[   12.851902] Internal error: : c06 [#3] SMP ARM
+[   12.852317] Modules linked in:
+[   12.852617] CPU: 1 UID: 0 PID: 101 Comm: head Tainted: G      D             7.1.0-00005-g453820219629-dirty #15 VOLUNTARY 
+[   12.853610] Tainted: [D]=DIE
+[   12.853877] Hardware name: Generic DT based system
+[   12.854309] PC is at lzo1x_decompress_safe+0xa8/0x5cc
+[   12.854786] LR is at 0xa07
+[   12.855045] pc : [<c082487c>]    lr : [<00000a07>]    psr: 80010013
+[   12.855611] sp : e0b75bb8  ip : 00000044  fp : c35a6030
+[   12.856083] r10: c2100c80  r9 : c0790f14  r8 : c35a6066
+[   12.856557] r7 : c35a6a38  r6 : c0003000  r5 : c0002000  r4 : c0002035
+[   12.857144] r3 : e0b75be8  r2 : e92d41f0  r1 : c35a6041  r0 : c0002010
+[   12.857733] Flags: Nzcv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment none
+[   12.858384] Control: 10c5387d  Table: 036c006a  DAC: 00000051
+[   12.858903] Register r0 information: non-slab/vmalloc memory
+[   12.859431] Register r1 information: slab kmalloc-8k start c35a6000 pointer offset 65 size 8192
+[   12.860239] Register r2 information: vmalloc memory
+[   12.860698] Register r3 information: 2-page vmalloc region starting at 0xe0b74000 allocated at kernel_clone+0xac/0x404
+[   12.861688] Register r4 information: non-slab/vmalloc memory
+[   12.862217] Register r5 information: non-slab/vmalloc memory
+[   12.862739] Register r6 information: non-slab/vmalloc memory
+[   12.863263] Register r7 information: slab kmalloc-8k start c35a6000 pointer offset 2616 size 8192
+[   12.864084] Register r8 information: slab kmalloc-8k start c35a6000 pointer offset 102 size 8192
+[   12.864896] Register r9 information: non-slab/vmalloc memory
+[   12.865420] Register r10 information: slab kmalloc-64 start c2100c80 pointer offset 0 size 64
+[   12.866208] Register r11 information: slab kmalloc-8k start c35a6000 pointer offset 48 size 8192
+[   12.867015] Register r12 information: non-paged memory
+[   12.867495] Process head (pid: 101, stack limit = 0x5bcb3067)
+[   12.868026] Stack: (0xe0b75bb8 to 0xe0b76000)
+[   12.868433] 5ba0:                                                       00000000 c0c07e54
+[   12.869168] 5bc0: e0b75bc8 e0b75c18 e0b75c80 c0002000 00000000 dfbe0cd8 c0790f14 c2100c80
+[   12.869902] 5be0: c35a6030 c0790f4c 00001000 71ea3e40 dfbf5840 c078ffcc e0b75c18 c22c4000
+[   12.870640] 5c00: 00000000 00000000 00000000 c0c60e54 00000a38 e0b75c30 00001000 71ea3e40
+[   12.871377] 5c20: c21424a0 e0b75c80 e0b75c5c 00000000 dfbf5840 00000a08 c1c07dc4 e0b75d9c
+[   12.872116] 5c40: e0b75cc4 c07530d4 00000000 c2142000 c31a8000 00001000 c35a6000 00000000
+[   12.872851] 5c60: 00000000 e0b75c64 e0b75c64 00000000 e0b75da8 00000000 c2142000 00007e20
+[   12.873585] 5c80: 00000000 c245fc00 c07858b0 e0b75c5c c2717e80 00000c02 c35a6030 e0b75cc4
+[   12.874321] 5ca0: 00000a08 00001000 00000000 c35a6000 c31a8000 00007e20 00000150 00000a38
+[   12.875053] 5cc0: 00007e20 dfbf5842 00000000 00001000 00000000 00000000 00000001 c31a8000
+[   12.875789] 5ce0: 00000150 c0743b1c 00000a38 00000001 c000007c c31a8000 e0b75da0 00000000
+[   12.876523] 5d00: 00000000 c35a6000 c31a8114 00000018 00000000 c07463a4 c1b04228 00000000
+[   12.877261] 5d20: 00000007 c27ac800 00000646 71ea3e40 00000000 00000000 00000069 dfbf5840
+[   12.878003] 5d40: 00000000 c2bc5310 c35a6000 00001000 c31a8000 c0753300 00000000 e0b75d9c
+[   12.878743] 5d60: 00000001 00000001 c31a8000 c0737b18 00000000 e0b75d9c 00000001 00000000
+[   12.879478] 5d80: dfbf5840 0000015f 00000000 00000000 c16d6b44 00000000 00000cc0 00001000
+[   12.880211] 5da0: 00000646 20000069 c2bc540c 71ea3e40 00290000 dfbf5840 c31a8000 00000069
+[   12.880946] 5dc0: 00000000 c2bc5310 000000b8 00080001 c2682280 c07383d4 dfbf5840 00000000
+[   12.881683] 5de0: 00000000 00100cca 00000069 c049c248 e0b75df8 00100cca 00000000 71ea3e40
+[   12.882417] 5e00: c1d655f2 dfbf5840 00000044 71ea3e40 c2bc5408 dfbf5840 e0b75ee4 c2682280
+[   12.883150] 5e20: 00000000 c2bc5408 00000069 00080001 c2682280 c049aba8 dfbf5840 e0b75ee4
+[   12.883883] 5e40: c2bc5310 c049e780 00000000 00000076 00000000 00000001 00000004 c2682280
+[   12.884618] 5e60: c3478000 c2682280 c2bc5408 c26822d8 00000069 00000000 00000000 00000000
+[   12.885352] 5e80: 00000000 71ea3e40 00370000 e0b75ee4 c361c580 e0b75ee4 00000000 e0b75fb0
+[   12.886088] 5ea0: c22a1bc0 c361c580 000001f2 c04d7188 00001254 b6df2464 e0b75ee4 00000000
+[   12.886823] 5ec0: e0b75fb0 c04df254 e0b75f14 c1550530 e0b75ecc b6df2464 00000200 00000001
+[   12.887559] 5ee0: 03622835 c361c580 00100cca 00000069 b6df2000 b6df2464 00001a54 c36c2db0
+[   12.888293] 5f00: c36c2db0 00000000 00000000 00000000 c36227fc dfc61c54 00000000 71ea3e40
+[   12.889028] 5f20: 00000000 e0b75fb0 b6df2464 80000007 c22a1bc0 00000254 c30e8780 00000004
+[   12.889765] 5f40: c361c580 c032b6a8 00000000 00000000 0058a000 71ea3e40 c24b3b0c c24abc80
+[   12.890504] 5f60: c24abc80 00000007 b6df2464 e0b75fb0 c1b09888 c1a73044 00000001 b6f54ce0
+[   12.891242] 5f80: 005877c4 c032bc00 0058a000 b6ee74d0 000000a8 b6ee68ec 00000003 b6df2464
+[   12.891980] 5fa0: 60070010 ffffffff c22a1bc0 c03010c0 0000002f ffffffff 00000000 0058a190
+[   12.892716] 5fc0: 00000001 00000000 b6ee74d0 beddae8c 00000000 00000001 b6f54ce0 005877c4
+[   12.893451] 5fe0: 00588f50 beddac98 0052c9e0 b6df2464 60070010 ffffffff 00000000 00000000
+[   12.894180] Call trace: 
+[   12.894196]  lzo1x_decompress_safe from lzo_sdecompress+0x38/0x70
+[   12.895007]  lzo_sdecompress from scomp_acomp_comp_decomp+0x140/0x43c
+[   12.895615]  scomp_acomp_comp_decomp from ubifs_decompress_common+0x1a8/0x328
+[   12.896279]  ubifs_decompress_common from ubifs_decompress_folio+0x2c/0x34
+[   12.896918]  ubifs_decompress_folio from do_readpage+0x1d8/0x49c
+[   12.897485]  do_readpage from ubifs_read_folio+0x4c/0x520
+[   12.897993]  ubifs_read_folio from filemap_read_folio+0x1c/0x9c
+[   12.898548]  filemap_read_folio from filemap_fault+0xa58/0xc94
+[   12.899095]  filemap_fault from __do_fault+0x38/0x178
+[   12.899575]  __do_fault from handle_mm_fault+0x72c/0xfb0
+[   12.900075]  handle_mm_fault from do_page_fault+0x1d0/0x4ac
+[   12.900604]  do_page_fault from do_PrefetchAbort+0x38/0x98
+[   12.901123]  do_PrefetchAbort from ret_from_exception+0x0/0x20
+[   12.901668] Exception stack(0xe0b75fb0 to 0xe0b75ff8)
+[   12.902133] 5fa0:                                     0000002f ffffffff 00000000 0058a190
+[   12.902870] 5fc0: 00000001 00000000 b6ee74d0 beddae8c 00000000 00000001 b6f54ce0 005877c4
+[   12.903605] 5fe0: 00588f50 beddac98 0052c9e0 b6df2464 60070010 ffffffff
+[   12.904210] Code: e15c0004 8a00006a e0818002 e0804002 (e5912000) 
+[   12.904767] ---[ end trace 0000000000000000 ]---
+[   12.905195] Kernel panic - not syncing: Fatal exception in interrupt
+[   12.905870] ---[ end Kernel panic - not syncing: Fatal exception in interrupt ]---
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xe-0x1-0x2, 0x3-0x1-0x2,status:a007
+rdtrn:0x15-0x2e-0x47(0x32)
+wrtrn:0x0-0x20-0x3f(0x3f)
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g26c8833 #alientek (Mar 26 2026 - 11:32:53)
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 12
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(93603ca22c...) + OK
+## Checking uboot 0x00800000 ... sha256(07d29ab030...) + OK
+## Checking fdt 0x00874e40 ... sha256(8e3f2ac7ab...) + OK
+Jumping to U-Boot(0x00800000) via OP-TEE(0x00001000)
+Total: 63.647/107.356 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-958-g46dcf51e88a #chenjh (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 Thu Mar  6 10:17:27 CST 2025 arm, fwver: v2.10 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00800000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2026.07-rc4-gff4b08b566a9-dirty (Jun 16 2026 - 09:43:00 +0800)
+
+Model: Rockchip RK3506 Evaluation Board (ATK RK3506B)
+SoC:   RK3506B
+DRAM:  512 MiB
+Core:  35 devices, 17 uclasses, devicetree: separate
+MMC:   
+Loading Environment from nowhere... OK
+In:    serial@ff0a0000
+Out:   serial@ff0a0000
+Err:   serial@ff0a0000
+Hit any key to stop autoboot: 0
+Scanning for bootflows in all bootdevs
+Seq  Method       State   Uclass    Part  Name                      Filename
+---  -----------  ------  --------  ----  ------------------------  ----------------
+Scanning global bootmeth 'efi_mgr':
+Cannot persist EFI variables without system partition
+Missing RNG device for EFI_RNG_PROTOCOL
+No bootdevs for 'mmc0'
+Unknown uclass 'nvme' in label
+Unknown uclass 'scsi' in label
+Unknown uclass 'usb' in label
+Unknown uclass 'pxe' in label
+Unknown uclass 'dhcp' in label
+No more bootdevs
+---  -----------  ------  --------  ----  ------------------------  ----------------
+(0 bootflows, 0 valid)
+=> setenv bootargs 'earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait rw'
+=> mtd read boot 0x04000000 0 0x800000
+rockchip_sfc: dll tuning target=50000000Hz real=100000000Hz cell_max=383 step=10 cs=0
+rockchip_sfc:   dll window [0, 230] (230 cells)
+rockchip_sfc:   dll window [280, 373] (93 cells)
+rockchip_sfc: dll ok best=[0,230] -> cell 92 (real 100000000Hz)
+Reading 8388608 byte(s) (4096 page(s)) at offset 0x00000000
+=> bootm 0x04000000
+## Loading kernel (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel (zImage, self-decompressing)
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x04000800
+     Data Size:    7356928 Bytes = 7 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x02080000
+     Entry Point:  0x02080000
+     Hash algo:    sha256
+     Hash value:   cbc723ee89be948f1566684d6528938015d0de1ea148155346bae3579196f427
+   Verifying Hash Integrity ... sha256+ OK
+## Loading fdt (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'fdt' fdt subimage
+     Description:  RK3506B AES board flat DT (bootargs: ubi.mtd=5 root=ubi0:rootfs)
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x04704a00
+     Data Size:    5956 Bytes = 5.8 KiB
+     Architecture: ARM
+     Load Address: 0x01e00000
+     Hash algo:    sha256
+     Hash value:   f7cb742c841fdeab5a7549550ec082e826348390e43f90d0b42d8bfe7734740c
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x04704a00 to 0x01e00000
+   Booting using the fdt blob at 0x1e00000
+Working FDT set to 1e00000
+   Loading Kernel Image to 2080000
+   Loading Device Tree to 1cf31000, end 1cf35743 ... OK
+Working FDT set to 1cf31000
+No RNG device
+
+Starting kernel ...
+
+[    0.000000] Booting Linux on physical CPU 0xf00
+[    0.000000] Linux version 7.1.0-00005-g453820219629-dirty (charliechen@Charliechen) (arm-none-linux-gnueabihf-gcc (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 10.3.1 20210621, GNU ld (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 2.36.1.20210621) #15 SMP Tue Jun 16 21:33:58 CST 2026
+[    0.000000] CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=10c5387d
+[    0.000000] CPU: div instructions available: patching division code
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    0.000000] OF: fdt: Machine model: AES RK3506B Board
+[    0.000000] earlycon: uart8250 at MMIO32 0xff0a0000 (options '')
+[    0.000000] printk: legacy bootconsole [uart8250] enabled
+[    0.000000] Memory policy: Data cache writealloc
+[    0.000000] efi: UEFI not found.
+[    0.000000] OF: reserved mem: Reserved memory: No reserved-memory node in the DT
+[    0.000000] psci: probing for conduit method from DT.
+[    0.000000] psci: PSCIv1.0 detected in firmware.
+[    0.000000] psci: Using standard PSCI v0.2 function IDs
+[    0.000000] psci: MIGRATE_INFO_TYPE not supported.
+[    0.000000] psci: SMC Calling Convention v1.1
+[    0.000000] Zone ranges:
+[    0.000000]   DMA      [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000]   Normal   empty
+[    0.000000]   HighMem  empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] percpu: Embedded 18 pages/cpu s41292 r8192 d24244 u73728
+[    0.000000] Kernel command line: earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait rw
+[    0.000000] printk: log buffer data + meta data: 131072 + 409600 = 540672 bytes
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 131072
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=3, Nodes=1
+[    0.000000] rcu: Hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=16 to nr_cpu_ids=3.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=3
+[    0.000000] NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] arch_timer: cp15 timer running at 24.00MHz (virt).
+[    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.000002] sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+[    0.000744] Switching to timer-based delay loop, resolution 41ns
+[    0.001959] Console: colour dummy device 80x30
+[    0.002457] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=240000)
+[    0.003421] CPU: Testing write buffer coherency: ok
+[    0.003932] pid_max: default: 32768 minimum: 301
+[    0.004636] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.005336] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.006487] VFS: Finished mounting rootfs on nullfs
+[    0.007828] /cpus/cpu@f00 missing clock-frequency property
+[    0.008390] /cpus/cpu@f01 missing clock-frequency property
+[    0.008970] /cpus/cpu@f02 missing clock-frequency property
+[    0.009491] CPU0: thread -1, cpu 0, socket 15, mpidr 80000f00
+[    0.010048] cacheinfo: Unable to detect cache hierarchy for CPU 0
+[    0.012840] Setting up static identity map for 0x300000 - 0x3000ac
+[    0.013960] rcu: Hierarchical SRCU implementation.
+[    0.014430] rcu: 	Max phase no-delay instances is 1000.
+[    0.015472] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.016912] EFI services will not be available.
+[    0.017777] smp: Bringing up secondary CPUs ...
+I/TC: Secondary CPU 1 initializing
+I/TC: Secondary CPU 1 switching to normal world boot
+I/TC: Secondary CPU 2 initializing
+I/TC: Secondary CPU 2 switching to normal world boot
+[    0.020292] CPU1: thread -1, cpu 1, socket 15, mpidr 80000f01
+[    0.022685] CPU2: thread -1, cpu 2, socket 15, mpidr 80000f02
+[    0.023030] smp: Brought up 1 node, 3 CPUs
+[    0.024488] SMP: Total of 3 processors activated (144.00 BogoMIPS).
+[    0.025067] CPU: All CPU(s) started in SVC mode.
+[    0.025796] Memory: 489404K/524288K available (15360K kernel code, 2515K rwdata, 6580K rodata, 2048K init, 395K bss, 32252K reserved, 0K cma-reserved, 0K highmem)
+[    0.027961] devtmpfs: initialized
+[    0.031212] VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+[    0.032217] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.033186] posixtimers hash table entries: 2048 (order: 2, 16384 bytes, linear)
+[    0.033980] futex hash table entries: 1024 (65536 bytes on 1 NUMA nodes, total 64 KiB, linear).
+[    0.036982] DMI: not present or invalid.
+[    0.038283] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.039309] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.042026] thermal_sys: Registered thermal governor 'step_wise'
+[    0.042194] cpuidle: using governor menu
+[    0.043496] No ATAGs?
+[    0.043901] hw-breakpoint: found 5 (+1 reserved) breakpoint and 4 watchpoint registers.
+[    0.044656] hw-breakpoint: maximum watchpoint size is 8 bytes.
+[    0.047109] Serial: AMBA PL011 UART driver
+[    0.056029] rockchip-gpio ff940000.gpio: probed /pinctrl/gpio@ff940000
+[    0.057772] rockchip-gpio ff870000.gpio: probed /pinctrl/gpio@ff870000
+[    0.059639] rockchip-gpio ff1c0000.gpio: probed /pinctrl/gpio@ff1c0000
+[    0.061372] rockchip-gpio ff1d0000.gpio: probed /pinctrl/gpio@ff1d0000
+[    0.063100] rockchip-gpio ff1e0000.gpio: probed /pinctrl/gpio@ff1e0000
+[    0.070057] iommu: Default domain type: Translated
+[    0.070527] iommu: DMA domain TLB invalidation policy: strict mode
+[    0.081570] SCSI subsystem initialized
+[    0.083313] pps_core: LinuxPPS API ver. 1 registered
+[    0.083795] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.084659] PTP clock support registered
+[    0.085174] EDAC MC: Ver: 3.0.0
+[    0.086150] scmi_core: SCMI protocol bus registered
+[    0.089469] vgaarb: loaded
+[    0.090423] clocksource: Switched to clocksource arch_sys_counter
+[    0.104601] NET: Registered PF_INET protocol family
+[    0.105402] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.107328] tcp_listen_portaddr_hash hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.108144] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.108872] TCP established hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    0.109615] TCP bind hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.110389] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.111226] UDP hash table entries: 256 (order: 2, 14336 bytes, linear)
+[    0.112102] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.113603] RPC: Registered named UNIX socket transport module.
+[    0.114182] RPC: Registered udp transport module.
+[    0.114620] RPC: Registered tcp transport module.
+[    0.115056] RPC: Registered tcp-with-tls transport module.
+[    0.115563] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.116166] PCI: CLS 0 bytes, default 64
+[    0.117996] Initialise system trusted keyrings
+[    0.119062] workingset: timestamp_bits=30 (anon: 26) max_order=17 bucket_order=0 (anon: 0)
+[    0.120621] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.121962] NFS: Registering the id_resolver key type
+[    0.122518] Key type id_resolver registered
+[    0.122913] Key type id_legacy registered
+[    0.123359] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    0.123988] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    0.125328] Key type asymmetric registered
+[    0.125740] Asymmetric key parser 'x509' registered
+[    0.126354] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 246)
+[    0.127056] io scheduler mq-deadline registered
+[    0.127482] io scheduler kyber registered
+[    0.127916] io scheduler bfq registered
+[    0.147201] ledtrig-cpu: registered to indicate activity on CPUs
+[    0.239420] Serial: 8250/16550 driver, 5 ports, IRQ sharing enabled
+[    0.245568] printk: legacy console [ttyS0] disabled
+[    0.246680] ff0a0000.serial: ttyS0 at MMIO 0xff0a0000 (irq = 34, base_baud = 1500000) is a 16550A
+[    0.247617] printk: legacy console [ttyS0] enabled
+[    0.247617] printk: legacy console [ttyS0] enabled
+[    0.248494] printk: legacy bootconsole [uart8250] disabled
+[    0.248494] printk: legacy bootconsole [uart8250] disabled
+[    0.253761] msm_serial: driver initialized
+[    0.254693] SuperH (H)SCI(F) driver initialized
+[    0.255312] STMicroelectronics ASC driver initialized
+[    0.256107] STM32 USART driver initialized
+[    0.281042] brd: module loaded
+[    0.289493] loop: module loaded
+[    0.299398] rockchip-sfc ff488000.spi: dll tuning: target=50000000Hz real=50000000Hz cell_max=383 step=10 cs=0
+[    0.300374] rockchip-sfc ff488000.spi:   dll window [0, 230] (230 cells)
+[    0.301094] rockchip-sfc ff488000.spi:   dll window [270, 373] (103 cells)
+[    0.301717] rockchip-sfc ff488000.spi: dll ok: best=[0,230] -> cell 92 (real 50000000Hz)
+[    0.302498] spi-nand spi0.0: Winbond SPI NAND was found.
+[    0.302976] spi-nand spi0.0: 512 MiB, block size: 128 KiB, page size: 2048, OOB size: 128
+[    0.303876] 7 fixed-partitions partitions found on MTD device spi0.0
+[    0.304459] Creating 7 MTD partitions on "spi0.0":
+[    0.304893] 0x000000400000-0x000000800000 : "uboot"
+[    0.309091] 0x000000800000-0x000000900000 : "misc"
+[    0.312270] 0x000000900000-0x000000940000 : "vnvm"
+[    0.315108] 0x000000940000-0x000001740000 : "recovery"
+[    0.323283] 0x000001740000-0x000002740000 : "boot"
+[    0.332079] 0x000002740000-0x00000d540000 : "rootfs"
+[    0.400623] 0x00000d540000-0x000020000000 : "userdata"
+[    0.521687] CAN device driver interface
+[    0.523039] bgmac_bcma: Broadcom 47xx GBit MAC driver loaded
+[    0.524665] e1000e: Intel(R) PRO/1000 Network Driver
+[    0.525127] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[    0.525730] igb: Intel(R) Gigabit Ethernet Network Driver
+[    0.526213] igb: Copyright (c) 2007-2014 Intel Corporation.
+[    0.536804] i2c_dev: i2c /dev entries driver
+[    0.571696] NET: Registered PF_INET6 protocol family
+[    0.573995] Segment Routing with IPv6
+[    0.574426] In-situ OAM (IOAM) with IPv6
+[    0.574877] NET: Registered PF_PACKET protocol family
+[    0.575338] can: controller area network core
+[    0.575781] NET: Registered PF_CAN protocol family
+[    0.576218] can: raw protocol
+[    0.576492] can: broadcast manager protocol
+[    0.576872] can: netlink gateway - max_hops=1
+[    0.577721] Key type dns_resolver registered
+[    0.578331] ThumbEE CPU extension supported.
+[    0.578743] Registering SWP/SWPB emulation handler
+[    0.589259] Loading compiled-in X.509 certificates
+[    0.610351] ubi0: attaching mtd5
+[    1.000955] ubi0: scanning is finished
+[    1.008941] ubi0: attached mtd5 (name "rootfs", size 174 MiB)
+[    1.009488] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    1.010102] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    1.010774] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    1.011405] ubi0: good PEBs: 1392, bad PEBs: 0, corrupted PEBs: 0
+[    1.011945] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    1.012583] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 1527011325
+[    1.013389] ubi0: available PEBs: 0, total reserved PEBs: 1392, PEBs reserved for bad PEB handling: 80
+[    1.014250] ubi0: background thread "ubi_bgt0d" started, PID 52
+[    1.035741] clk: Disabling unused clocks
+[    1.036408] PM: genpd: Disabling unused power domains
+[    1.037397] dw-apb-uart ff0a0000.serial: forbid DMA for kernel console
+[    1.039078] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[    1.039957] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 53
+[    1.057344] UBIFS (ubi0:0): recovery needed
+[    1.096460] UBIFS (ubi0:0): recovery completed
+[    1.096969] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[    1.097640] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    1.098517] UBIFS (ubi0:0): FS size: 164687872 bytes (157 MiB, 1297 LEBs), max 8456 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    1.099579] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[    1.100100] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID 68E79E07-E055-4592-8F84-0D4E3FD20218, small LPT model
+[    1.102500] VFS: Mounted root (ubifs filesystem) on device 0:17.
+[    1.103681] devtmpfs: mounted
+[    1.104163] VFS: Pivoted into new rootfs
+[    1.106569] Freeing unused kernel image (initmem) memory: 2048K
+[    1.107382] Run /sbin/init as init process
+Starting lv_demo
+mkdir: can't create directory '/run/': Not a directory
+Start mounting all internal partitions in /etc/fstab
+Log saved to /var/log/mount-all.log
+tee: /var/log/mount-all.log: Not a directory
+Note: Create /.skip_fsck to skip fsck
+ - The check might take a while if didn't shutdown properly!
+[    1.730658] 8<--- cut here ---
+[    1.731000] Unhandled fault: imprecise external abort (0xc06) at 0xb6fb2584
+[    1.731655] [b6fb2584] *pgd=036ab835, *pte=0000075f, *ppte=00000c7f
+[    1.735438] 8<--- cut here ---
+[    1.735779] Unhandled fault: imprecise external abort (0xc06) at 0x0052f134
+[    1.736430] [0052f134] *pgd=036b5835, *pte=0000175f, *ppte=00001c7f
+[    1.740649] 8<--- cut here ---
+[    1.740980] Unhandled fault: external abort on non-linefetch (0x008) at 0x005c322c
+[    1.741271] 8<--- cut here ---
+[    1.741677] [005c322c] *pgd=035ba835
+[    1.741967] Unhandled fault: imprecise external abort (0xc06) at 0x004f21fc
+[    1.741971] , *pte=0000175f
+[    1.741986] [004f21fc] *pgd=036c4835
+[    1.742305] , *ppte=00001c7f
+[    1.742929] , *pte=0001575f
+[    1.743191] 
+[    1.743520] , *ppte=00015c7f
+[    1.744605] 8<--- cut here ---
+[    1.744927] Unhandled fault: external abort on non-linefetch (0x008) at 0xb6d83508
+[    1.745615] [b6d83508] *pgd=036cc835, *pte=0001675f, *ppte=00016c7f
+[    1.746214] Internal error: : 8 [#1] SMP ARM
+[    1.746617] Modules linked in:
+[    1.746915] CPU: 2 UID: 0 PID: 113 Comm: mount-helper Not tainted 7.1.0-00005-g453820219629-dirty #15 VOLUNTARY 
+[    1.747830] Hardware name: Generic DT based system
+[    1.748273] PC is at __get_user_8+0x14/0x24
+[    1.748676] LR is at __rseq_handle_slowpath+0x160/0x374
+[    1.749163] pc : [<c1187878>]    lr : [<c0496ad4>]    psr: 80010113
+[    1.749744] sp : e0ba1f10  ip : f7d8351b  fp : c1b03f8c
+[    1.750238] r10: 5ac3c35a  r9 : fffffe30  r8 : 00000051
+[    1.750731] r7 : 00000002  r6 : 00000000  r5 : e0ba1fb0  r4 : c371a500
+[    1.751335] r3 : 00000055  r2 : f7d8350f  r1 : beffffff  r0 : b6d83508
+[    1.751936] Flags: Nzcv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment user
+[    1.752608] Control: 10c5387d  Table: 0373006a  DAC: 00000055
+[    1.753154] Register r0 information: non-paged memory
+[    1.753648] Register r1 information: non-paged memory
+[    1.754132] Register r2 information: vmalloc memory
+[    1.754616] Register r3 information: non-paged memory
+[    1.755101] Register r4 information: slab task_struct start c371a500 pointer offset 0 size 2368
+[    1.755935] Register r5 information: 2-page vmalloc region starting at 0xe0ba0000 allocated at kernel_clone+0xac/0x404
+[    1.756941] Register r6 information: NULL pointer
+[    1.757414] Register r7 information: non-paged memory
+[    1.757904] Register r8 information: non-paged memory
+[    1.758387] Register r9 information: non-paged memory
+[    1.758775] 8<--- cut here ---
+[    1.758862] Register r10 information:
+[    1.759143] Unhandled fault: external abort on non-linefetch (0x008) at 0xbea9d188
+[    1.759150]  non-paged memory
+[    1.759163] [bea9d188] *pgd=034b5835
+[    1.759495] Register r11 information:
+[    1.760170] , *pte=0000175f
+[    1.760442]  non-slab/vmalloc memory
+[    1.760758] , *ppte=00001c7f
+[    1.761092] Register r12 information:
+[    1.761355] 
+[    1.761689]  vmalloc memory
+[    1.762727] Process mount-helper (pid: 113, stack limit = 0x(ptrval))
+[    1.763348] Stack: (0xe0ba1f10 to 0xe0ba2000)
+[    1.763782] 1f00:                                     c371a500 00000000 e0ba1fac c371a500
+[    1.764546] 1f20: e0ba1fb0 00000000 00000000 c371abc4 fffffe30 c0322dfc c371abc4 5ac3c35a
+[    1.764967] 8<--- cut here ---
+[    1.765310] 1f40: e0ba1f7c c0300bac b6d83088 beffffff 00000071 00000055 00000051 b6d83088
+[    1.765581] Unhandled fault: external abort on non-linefetch (0x008) at 0x00530200
+[    1.766325] 1f60: 00000000 00000000 00000000 00000000 00000000 e0ba1fac f7d8308b e0ba1f98
+[    1.766982] [00530200] *pgd=035ba835
+[    1.767724] 1f80: c0394304 3ea08ee6 80010113 00000000 00000000 00000000 00000000 00000000
+[    1.767724] , *pte=000017df, *ppte=00001e7f
+[    1.768552] 8<--- cut here ---
+[    1.768792] 1fa0: c371a500 00000000 00000000 c030012c 00000000 00000000 00000000 00000000
+[    1.769170] Unhandled fault: external abort on non-linefetch (0x008) at 0x00530320
+[    1.769450] 1fc0: b6d83088 00000000 00000001 00000078 bea9cfd4 b6ee2e58 bea9cf54 00000000
+[    1.770168] [00530320] *pgd=024de835
+[    1.770838] 1fe0: b6d83020 bea9cddc b6d83520 b6e3b738 20010010 01200011 00000000 00000000
+[    1.771554] , *pte=000017df
+[    1.771874] Call trace: 
+[    1.772602] , *ppte=00001e7f
+[    1.772888] Code: 30d22001 2a000005 23a00000 e320f014 (e4902004) 
+[    1.773109] 
+[    1.773384] ---[ end trace 0000000000000000 ]---
+[    1.774500] note: mount-helper[113] exited with irqs disabled
+[    1.781558] 8<--- cut here ---
+[    1.781903] Unhandled fault: external abort on non-linefetch (0x008) at 0x004f8958
+[    1.782608] [004f8958] *pgd=03609835, *pte=0001275f, *ppte=00012c7f
+[    1.783321] 8<--- cut here ---
+[    1.783642] Unhandled fault: external abort on non-linefetch (0x008) at 0xb6d8308c
+[    1.784356] [b6d8308c] *pgd=0360a835, *pte=0001375f, *ppte=00013c7f
+[    1.784995] Internal error: : 8 [#2] SMP ARM
+[    1.785414] Modules linked in:
+[    1.785736] CPU: 2 UID: 0 PID: 94 Comm: mount-helper Tainted: G      D             7.1.0-00005-g453820219629-dirty #15 VOLUNTARY 
+[    1.786812] Tainted: [D]=DIE
+[    1.787107] Hardware name: Generic DT based system
+[    1.787568] PC is at __get_user_4+0x14/0x20
+[    1.788000] LR is at exit_robust_list+0x34/0x1b4
+[    1.788447] pc : [<c1187858>]    lr : [<c0420204>]    psr: 80010113
+[    1.789033] sp : e0b69e68  ip : 00000000  fp : c35e39c0
+[    1.789536] r10: c2161bc0  r9 : b6d8308c  r8 : c2161bc0
+[    1.790032] r7 : c21764c0  r6 : 0000070c  r5 : c2162328  r4 : 00000051
+realpath: : No such file or directory[    1.790659] r3 : 00000055  r2 : f7d8308f  r1 : beffffff  r0 : b6d8308c
+
+[    1.791525] Flags: Nzcv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment user
+[    1.792199] Control: 10c5387d  Table: 0362c06a  DAC: 00000055
+[    1.792742] Register r0 information: non-paged memory
+[    1.793233] Register r1 information: non-paged memory
+[    1.793727] Register r2 information: vmalloc memory
+[    1.794205] Register r3 information: non-paged memory
+[    1.794690] Register r4 information: non-paged memory
+[    1.795181] Register r5 information: slab task_struct start c2161bc0 pointer offset 1896 size 2368
+[    1.796048] Register r6 information: non-paged memory
+[    1.796573] Register r7 information: slab sighand_cache start c21764c0 pointer offset 0 size 1300
+[    1.796878] 8<--- cut here ---
+[    1.797434] Register r8 information:
+[    1.797722] Unhandled fault: imprecise external abort (0xc06) at 0x004f8660
+[    1.797729]  slab task_struct
+[    1.797739] [004f8660] *pgd=03493835, *pte=1ceba75f
+[    1.798063]  start c2161bc0
+[    1.798683] , *ppte=1cebac7f
+[    1.798955]  pointer offset 0
+[    1.799392] 
+[    1.799648]  size 2368
+[    1.800577] Register r9 information: non-paged memory
+[    1.801063] Register r10 information: slab task_struct start c2161bc0 pointer offset 0 size 2368
+[    1.801911] Register r11 information: slab signal_cache start c35e39c0 pointer offset 0 size 664
+[    1.802761] Register r12 information: NULL pointer
+[    1.803252] Process mount-helper (pid: 94, stack limit = 0x(ptrval))
+[    1.803864] Stack: (0xe0b69e68 to 0xe0b6a000)
+[    1.804323] 9e60:                   c311de9c 00000000 c311de9c c21764c0 c311de9c c2161bc0
+[    1.805093] 9e80: c2162328 0000070c c21764c0 0000f000 00000000 e0b69f4c c35e39c0 c04208b0
+[    1.805858] 9ea0: c2161bc0 c311de00 00000007 c0356d28 c311de00 c2161bc0 00000007 c035e848
+[    1.806632] 9ec0: 00000000 c2161bc0 00000007 3ea08ee6 00000006 00000006 c35e39c0 c035fd84
+[    1.806997] 8<--- cut here ---
+[    1.807399] 9ee0: 00000006 c036f3d0 00000122 c1d66040 08430000 00000007 00000000 00000000
+[    1.807666] Unhandled fault: external abort on non-linefetch (0x008) at 0x005b618c
+[    1.808405] 9f00: c2161bc0 00000000 00000000 3ea08ee6 00000000 c2161bc0 e0b69fb0 e0b69f4c
+[    1.809069] [005b618c] *pgd=036bc835, *pte=0000175f
+[    1.809811] 9f20: c2161bc0 c2162284 fffffe30 5ac3c35a c1b03f8c c0322e14 c2162284 5ac3c35a
+[    1.809835] 9f40: e0b69fb0 c1b09698 c1a73044 00000000 004d3a4c c036d998 e0b69f7c 00000007
+[    1.810267] , *ppte=00001c7f
+[    1.811018] 9f60: 00000007 00000000 00000000 004f8958 00000000 00000000 00000000 00000000
+[    1.811728] 
+[    1.812009] 9f80: 00000008 3ea08ee6 004f8958 00451ba8 20010010 ffffffff c2161bc0 00000000
+[    1.813616] 9fa0: c2161bc0 004d3a4c 004e84c8 c030012c 004f8950 00000000 0000001f 0000005f
+[    1.814369] 9fc0: 0052e550 0052f170 004f6548 004e84c8 00000000 00000000 004d3a4c 004e84c8
+[    1.815143] 9fe0: ffffffff bea9e928 0047e860 00451ba8 20010010 ffffffff 00000000 00000000
+[    1.815914] Call trace: 
+[    1.815960] Code: 30d22001 2a00000e 23a00000 e320f014 (e5902000) 
+[    1.816786] ---[ end trace 0000000000000000 ]---
+[    1.817227] note: mount-helper[94] exited with irqs disabled
+[    1.817975] Fixing recursive fault but reboot is needed!
+[    1.824165] 8<--- cut here ---
+[    1.824506] Unhandled fault: external abort on non-linefetch (0x008) at 0xb6f86e38
+[    1.825224] [b6f86e38] *pgd=036c9835, *pte=0000175f, *ppte=00001c7f
+[    1.836721] 8<--- cut here ---
+[    1.837065] Unhandled fault: imprecise external abort (0xc06) at 0xb6f33938
+[    1.837730] [b6f33938] *pgd=035cf835, *pte=1cec875f, *ppte=1cec8c7f
+[    1.838351] Internal error: : c06 [#3] SMP ARM
+[    1.838783] Modules linked in:
+[    1.839095] CPU: 0 UID: 0 PID: 126 Comm: realpath Tainted: G      D             7.1.0-00005-g453820219629-dirty #15 VOLUNTARY 
+[    1.840142] Tainted: [D]=DIE
+[    1.840439] Hardware name: Generic DT based system
+[    1.840894] PC is at __copy_to_user_std+0x2a8/0x374
+[    1.841376] LR is at 0x86160a8b
+[    1.841698] pc : [<c11869f8>]    lr : [<86160a8b>]    psr: 20000013
+[    1.842276] sp : e0b95e88  ip : 00000003  fp : e0b95e88
+[    1.842764] r10: be835f75  r9 : c242b480  r8 : 00000002
+[    1.843261] r7 : c1d76214  r6 : be835f65  r5 : c30b5600  r4 : 0000000a
+[    1.843889] r3 : 0000008b  r2 : 00000009  r1 : e0b95ef8  r0 : be835f68
+[    1.844504] Flags: nzCv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment user
+[    1.845163] Control: 10c5387d  Table: 0372806a  DAC: 00000055
+[    1.845684] Register r0 information: non-paged memory
+[    1.846166] Register r1 information: 2-page vmalloc region starting at 0xe0b94000 allocated at kernel_clone+0xac/0x404
+[    1.846559] mtdblock: MTD device 'userdata' is NAND, please consider using UBI block devices instead.
+[    1.847162] Register r2 information: non-paged memory
+[    1.848427] Register r3 information: non-paged memory
+[    1.848905] Register r4 information: non-paged memory
+[    1.849373] Register r5 information: slab kmalloc-512 start c30b5600 pointer offset 0 size 512
+[    1.850169] Register r6 information: non-paged memory
+[    1.850642] Register r7 information: non-slab/vmalloc memory
+[    1.851169] Register r8 information: non-paged memory
+[    1.851637] Register r9 information: slab mm_struct start c242b480 pointer offset 0 size 908
+[    1.852421] Register r10 information: non-paged memory
+[    1.852897] Register r11 information: 2-page vmalloc region starting at 0xe0b94000 allocated at kernel_clone+0xac/0x404
+[    1.853880] Register r12 information: non-paged memory
+[    1.854363] Process realpath (pid: 126, stack limit = 0x(ptrval))
+[    1.854923] Stack: (0xe0b95e88 to 0xe0b96000)
+[    1.855330] 5e80:                   be835f65 00000010 00000000 00000051 c24a0e00 c05975bc
+[    1.856063] 5ea0: 00000012 00000000 00000008 b6f0c000 000dc6f4 000dc13d 00000000 c2160940
+[    1.856800] 5ec0: 00000001 b6f228e8 000d9328 000da7c0 00483fc0 00479000 00000034 00000001
+[    1.857533] 5ee0: 00000005 c30b5600 00000034 00000000 00000100 86160a8b 5690633e ba4d1215
+[    1.858265] 5f00: 2a779d37 3ea08ee6 00000000 c2160940 c30b5600 c1da8d04 c1bae288 fffffff8
+[    1.859000] 5f20: 00000006 c30b5658 c1bb3040 c0530cd8 c1da8d04 00000000 0000007e 0000007e
+[    1.859732] 5f40: 00000100 00000000 ffffffff 3ea08ee6 c2160940 00000000 c2160940 0052fc10
+[    1.860466] 5f60: 004fe218 c30b5600 c2160940 0000000b 004f243c c05311a0 c21aac00 0052fc10
+[    1.861203] 5f80: 0052fed0 0000000b c0300324 c0532144 00000000 c0524d40 00000000 0052fed0
+[    1.861940] 5fa0: 004e84c8 c03000c0 0052fed0 004e84c8 0052fed0 0052fc10 004fe218 00000000
+[    1.862681] 5fc0: 0052fed0 004e84c8 0052fed0 0000000b 0052fc10 004fe218 00000020 004f243c
+[    1.863421] 5fe0: 004e878c bea9e8a4 00445b14 b6e3be9c 60000010 0052fed0 00000000 00000000
+[    1.864151] Call trace: 
+[    1.864169]  __copy_to_user_std from load_elf_binary+0xb3c/0x13c0
+[    1.864982]  load_elf_binary from bprm_execve+0x1d0/0x55c
+[    1.865499]  bprm_execve from do_execveat_common+0x13c/0x17c
+[    1.866035]  do_execveat_common from sys_execve+0x38/0x50
+[    1.866547]  sys_execve from ret_fast_syscall+0x0/0x54
+[    1.867032] Exception stack(0xe0b95fa8 to 0xe0b95ff0)
+[    1.867499] 5fa0:                   0052fed0 004e84c8 0052fed0 0052fc10 004fe218 00000000
+[    1.868237] 5fc0: 0052fed0 004e84c8 0052fed0 0000000b 0052fc10 004fe218 00000020 004f243c
+[    1.868970] 5fe0: 004e878c bea9e8a4 00445b14 b6e3be9c
+[    1.869438] Code: e4803004 cafffff9 e2411002 eaffff8d (e252201c) 
+[    1.869991] ---[ end trace 0000000000000000 ]---
+[    1.870416] note: realpath[126] exited with irqs disabled
+[    1.918158] mtdblock: MTD device 'rootfs' is NAND, please consider using UBI block devices instead.
+[    1.986842] mtdblock: MTD device 'boot' is NAND, please consider using UBI block devices instead.
+[    2.020500] random: crng init done
+[    2.055549] mtdblock: MTD device 'recovery' is NAND, please consider using UBI block devices instead.
+[    2.123825] mtdblock: MTD device 'vnvm' is NAND, please consider using UBI block devices instead.
+[    2.191985] mtdblock: MTD device 'misc' is NAND, please consider using UBI block devices instead.
+[    2.259333] 8<--- cut here ---
+[    2.259647] Unhandled fault: imprecise external abort (0xc06) at 0xb6d5f000
+[    2.260274] [b6d5f000] *pgd=036c4835, *pte=0000175f, *ppte=00001c7f
+[    2.260860] Internal error: : c06 [#4] SMP ARM
+[    2.261273] Modules linked in:
+[    2.261565] CPU: 0 UID: 0 PID: 121 Comm: blkid Tainted: G      D             7.1.0-00005-g453820219629-dirty #15 VOLUNTARY 
+[    2.262556] Tainted: [D]=DIE
+[    2.262820] Hardware name: Generic DT based system
+[    2.263249] PC is at __copy_to_user_std+0x6c/0x374
+[    2.263699] LR is at 0x0
+[    2.263936] pc : [<c11867bc>]    lr : [<00000000>]    psr: 20000013
+[    2.264493] sp : e0b75d60  ip : 00000000  fp : e0b75d70
+[    2.264960] r10: e0b75f10  r9 : 00000000  r8 : 00000000
+[    2.265426] r7 : c36bc000  r6 : 00000000  r5 : 00000000  r4 : 00000000
+[    2.266003] r3 : 00000000  r2 : 00000780  r1 : c36bc800  r0 : b6d5f808
+[    2.266584] Flags: nzCv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment user
+[    2.267220] Control: 10c5387d  Table: 0363806a  DAC: 00000055
+[    2.267730] Register r0 information: non-paged memory
+[    2.268190] Register r1 information: non-slab/vmalloc memory
+[    2.268700] Register r2 information: non-paged memory
+[    2.269155] Register r3 information: NULL pointer
+[    2.269581] Register r4 information: NULL pointer
+[    2.270005] Register r5 information: NULL pointer
+[    2.270431] Register r6 information: NULL pointer
+[    2.270862] Register r7 information: non-slab/vmalloc memory
+[    2.271376] Register r8 information: NULL pointer
+[    2.271804] Register r9 information: NULL pointer
+[    2.272231] Register r10 information: 2-page vmalloc region starting at 0xe0b74000 allocated at kernel_clone+0xac/0x404
+[    2.273208] Register r11 information: 2-page vmalloc region starting at 0xe0b74000 allocated at kernel_clone+0xac/0x404
+[    2.274178] Register r12 information: NULL pointer
+[    2.274616] Process blkid (pid: 121, stack limit = 0x75427fbc)
+[    2.275145] Stack: (0xe0b75d60 to 0xe0b76000)
+[    2.275544] 5d60: e0b75f10 00000051 00000000 dfc62f80 b6d5f008 00001000 00000000 00001000
+[    2.276270] 5d80: c1d76718 c07fda7c c24add80 00000000 00180008 0000c000 61c88647 00000000
+[    2.276995] 5da0: 0b532b81 51eb851f 00000000 3ea08ee6 c2936758 00000004 00000000 00001000
+[    2.277722] 5dc0: c36bc000 00000000 dfc62f80 e0b75f10 c1d76718 c07fe14c e0b75f10 00000004
+[    2.278447] 5de0: 00011000 00000000 00001000 e0b75f28 00000000 e0b75f10 00009000 c049cd78
+[    2.279174] 5e00: 00000000 00009000 e0b75e48 00000000 dfc62f80 00000000 00000000 c2840268
+[    2.279899] 5e20: 00100000 00000000 c2840360 c24add80 b6d56000 b6000008 dfc62300 dfc5f040
+[    2.280627] 5e40: dfc3f4a0 dfc3f400 dfc62f80 dfc3f3c0 dfc60e40 dfc63200 c1d60300 00000000
+[    2.281357] 5e60: c1d60300 00000001 00000003 00000000 00000156 dff92d80 10044400 0000000e
+[    2.282084] 5e80: 00000012 0000000a 0000001c 3ea08ee6 dff92d80 1ceac75f b6d56000 c36c4558
+[    2.282812] 5ea0: 1ceac75f c36c4558 00001255 b6d56000 00000000 3ea08ee6 c3101280 00000000
+[    2.283539] 5ec0: e0b75f28 00011000 e0b75f10 c28402e8 00000000 00011000 00000000 c0799110
+[    2.284266] 5ee0: c24add80 e0b75f80 c079908c 00000001 c1233da4 00004004 00011000 c05275a8
+[    2.284992] 5f00: c363adb0 00000000 00100000 00000000 00000000 00009000 b6d56008 00008000
+[    2.285717] 5f20: 00000001 00000000 c24add80 00000000 00009000 00000000 00000000 00000000
+[    2.286443] 5f40: 00000000 00004004 00000000 00000000 c24add80 3ea08ee6 00000000 c24add80
+[    2.287169] 5f60: c24add80 00000000 00000000 c0300324 c3101280 00000003 0056b7c4 c0527fcc
+[    2.287893] 5f80: 00000000 00000000 ffffffff 3ea08ee6 00000000 00000004 b6d56008 00011000
+[    2.288618] 5fa0: 00000003 c03000c0 00000004 b6d56008 00000004 b6d56008 00011000 00000001
+[    2.289342] 5fc0: 00000004 b6d56008 00011000 00000003 0056d548 00000000 00011000 0056b7c4
+[    2.290066] 5fe0: 0056ca64 be9f3a28 0049ec44 b6e52144 20000010 00000004 00000000 00000000
+[    2.290791] Call trace: 
+[    2.290807]  __copy_to_user_std from _copy_to_iter+0xcc/0x6b8
+[    2.291582]  _copy_to_iter from copy_page_to_iter+0xe4/0x16c
+[    2.292109]  copy_page_to_iter from filemap_read+0x240/0x554
+[    2.292635]  filemap_read from blkdev_read_iter+0x84/0x188
+[    2.293145]  blkdev_read_iter from vfs_read+0x238/0x308
+[    2.293630]  vfs_read from ksys_read+0x60/0xd8
+[    2.294040]  ksys_read from ret_fast_syscall+0x0/0x54
+[    2.294503] Exception stack(0xe0b75fa8 to 0xe0b75ff0)
+[    2.294961] 5fa0:                   00000004 b6d56008 00000004 b6d56008 00011000 00000001
+[    2.295686] 5fc0: 00000004 b6d56008 00011000 00000003 0056d548 00000000 00011000 0056b7c4
+[    2.296410] 5fe0: 0056ca64 be9f3a28 0049ec44 b6e52144
+[    2.296869] Code: ba000002 f5d1f03c f5d1f05c f5d1f07c (e8b15378) 
+[    2.297416] ---[ end trace 0000000000000000 ]---
+[    2.297833] note: blkid[121] exited with irqs disabled
+no device found
+[   10.603292] 8<--- cut here ---
+[   10.603603] Unhandled fault: external abort on non-linefetch (0x008) at 0xb6f00584
+[   10.604276] [b6f00584] *pgd=03132835, *pte=0000175f, *ppte=00001c7f

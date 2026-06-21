@@ -1,0 +1,1378 @@
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xf-0x1-0x2, 0x4-0x1-0x2,status:a007
+rdtrn:0x15-0x2e-0x47(0x32)
+wrtrn:0x0-0x20-0x3f(0x3f)
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g26c8833 #alientek (Mar 26 2026 - 11:32:53)
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 13
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(93603ca22c...) + OK
+## Checking uboot 0x00200000 ... sha256(678f3fb19a...) + OK
+## Checking fdt 0x002a5010 ... sha256(178d2c6943...) + OK
+Jumping to U-Boot(0x00200000) via OP-TEE(0x00001000)
+Total: 73.759/117.178 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-958-g46dcf51e88a #chenjh (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 Thu Mar  6 10:17:27 CST 2025 arm, fwver: v2.10 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00200000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2017.09-g26c8833 #alientek (Mar 26 2026 - 11:32:53 +0800)
+
+Model: ALIENTEK RK3506 Board
+MPIDR: 0xf00
+PreSerial: 0, raw, 0xff0a0000
+DRAM:  512 MiB
+Sysmem: init
+Relocation Offset: 1ebef000
+Relocation fdt: 1dbfadf0 - 1dbfede0
+CR: M/C/I
+Using default environment
+
+DM: v2
+SPI Nand ID ef aa 23
+Bootdev(atags): mtd 1
+PartType: EFI
+boot mode: None
+RESC: 'boot', blk@0x0000e0c6
+resource: sha256+
+FIT: no signed, no conf required
+   - dev=saradc, channel=2, dtb_adc=691, read=705, found=1
+DTB: rk3506b-alientek-mipi800x1280-nand-ubi-ubifs#_saradc_ch2=691.dtb
+HASH(c): OK
+vdd_arm init 1011000 uV
+Could not find baseparameter partition
+Model: ATK-DLRK3506B Board
+Rockchip UBOOT DRM driver version: v1.0.1
+Using display timing dts
+dsi@ff640000:  detailed mode clock 67000 kHz, flags[a]
+    H: 0800 0812 0836 0841
+    V: 1280 1287 1289 1298
+bus_format: 100e
+VOP:0xff600000 update mode to: 800x1280p61, type: MIPI0
+VOP:0xff600000 set crtc_clock to 67000KHz, get 65217391Hz
+Unsupported bt709f at 10bit csc depth, use bt601f instead
+VOP:0xff600000 set plane [400x400->400x400@200x440] fmt[0] addr[0x1f000000]
+final DSI-Link bandwidth: 1000 Mbps x 2
+CLK: (arm clk use pvtpll, rate = 1200M)
+  gpll 1500000 KHz
+  v0pll 1179648 KHz
+  v1pll 903168 KHz
+  clk_gpll_div 187500 KHz
+  clk_gpll_div_100m 93750 KHz
+  clk_v0pll_div 147456 KHz
+  clk_v1pll_div 129024 KHz
+  aclk_bus_root 187500 KHz
+  hclk_bus_root 147456 KHz
+  pclk_bus_root 93750 KHz
+  aclk_hsperi_root 147456 KHz
+  hclk_ksperi_root 93750 KHz
+Net:   eth0: ethernet@ff4c8000, eth1: ethernet@ff4d0000
+Hit key to stop autoboot('CTRL+C'):  0 
+## Booting FIT Image at 0x1d51f1c0 with size 0x004d8c00
+Fdt Ramdisk skip relocation
+## Loading kernel from FIT Image at 1d51f1c0 ...
+   Using 'conf' configuration
+## Verified-boot: 0
+   Trying 'kernel' kernel subimage
+     Description:  unavailable
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x1d52a3c0
+     Data Size:    5036112 Bytes = 4.8 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x01100000
+     Entry Point:  0x01100000
+     Hash algo:    sha256
+     Hash value:   4fd135cbbe85ce9b3366130ad8ed266b66aaa4499085b7dfe9c321b1d2d57b8d
+   Verifying Hash Integrity ... sha256+ OK
+## Loading fdt from FIT Image at 1d51f1c0 ...
+   Using 'conf' configuration
+   Trying 'fdt' fdt subimage
+     Description:  unavailable
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x1d51f9c0
+     Data Size:    43487 Bytes = 42.5 KiB
+     Architecture: ARM
+     Load Address: 0x00063000
+     Hash algo:    sha256
+     Hash value:   a17eb6011ca29f6dfdba8cfb466107a7fd61eb9aacae9afa2d9feced696a551d
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x00063000 to 0x00063000
+   Booting using the fdt blob at 0x00063000
+   Loading Kernel Image from 0x1d52a3c0 to 0x01100000 ... OK
+   kernel loaded at 0x01100000, end = 0x015cd850
+   Using Device Tree in place at 00063000, end 00070c52
+## reserved-memory:
+  trust@0: addr=0 size=62000
+  drm-logo@0: addr=1f000000 size=13a000
+  ramoops@83000: addr=83000 size=2d000
+Adding bank: 0x00000000 - 0x20000000 (size: 0x20000000)
+Total: 1782.270/1908.296 ms
+
+Starting kernel ...
+
+[    2.008276] Booting Linux on physical CPU 0xf00
+[    2.008300] Linux version 6.1.118 (alientek@alientek) (arm-none-linux-gnueabihf-gcc (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 10.3.1 20210621, GNU ld (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 2.36.1.20210621) #1 SMP PREEMPT Wed Mar 25 17:43:11 CST 2026
+[    2.008312] CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=50c5387d
+[    2.008322] CPU: div instructions available: patching division code
+[    2.008328] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    2.008618] OF: fdt: Machine model: ATK-DLRK3506B Board
+[    2.010531] earlycon: uart8250 at MMIO32 0xff0a0000 (options '')
+[    2.016403] printk: bootconsole [uart8250] enabled
+[    2.016920] Memory policy: Data cache writealloc
+[    2.017555] Reserved memory: created CMA memory pool at 0x1da00000, size 22 MiB
+[    2.018229] OF: reserved mem: initialized node linux,cma, compatible id shared-dma-pool
+[    2.019003] cma: Reserved 32768 KiB at 0x1ba00000
+[    2.019815] Zone ranges:
+[    2.020073]   Normal   [mem 0x0000000000000000-0x000000001fffffff]
+[    2.020649] Movable zone start for each node
+[    2.021041] Early memory node ranges
+[    2.021372]   node   0: [mem 0x0000000000000000-0x000000001fffffff]
+[    2.021948] Initmem setup node 0 [mem 0x0000000000000000-0x000000001fffffff]
+[    2.038626] psci: probing for conduit method from DT.
+[    2.039114] psci: PSCIv1.0 detected in firmware.
+[    2.039543] psci: Using standard PSCI v0.2 function IDs
+[    2.040025] psci: MIGRATE_INFO_TYPE not supported.
+[    2.040467] psci: SMC Calling Convention v1.1
+[    2.041006] percpu: Embedded 11 pages/cpu s16340 r8192 d20524 u45056
+[    2.041704] Built 1 zonelists, mobility grouping on.  Total pages: 130048
+[    2.042339] Kernel command line: storagemedia=mtd androidboot.storagemedia=mtd androidboot.mode=normal  rw rootwait earlycon=uart8250,mmio32,0xff0a0000 console=ttyFIQ0 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs snd_aloop.index=7 snd_aloop.use_raw_jiffies=1 mtdparts=spi-nand0:0x400000@0x400000(uboot),0x100000@0x800000(misc),0x40000@0x900000(vnvm),0xe00000@0x940000(recovery),0xa00000@0x1740000(boot),0xb400000@0x2140000(rootfs),0x12a20000@0xd540000(userdata) #a-03/26/2026 androidboot.fwver=ddr-v1.06-d27ac532c4,tee-v2.10,uboot-26c8833 user_debug=31
+[    2.047283] Unknown kernel command line parameters "#a-03/26/2026 storagemedia=mtd", will be passed to user space.
+[    2.048385] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    2.049150] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+[    2.049852] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    2.062414] Memory: 455012K/524288K available (4211K kernel code, 375K rwdata, 2116K rodata, 188K init, 120K bss, 13980K reserved, 55296K cma-reserved)
+[    2.063800] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=3, Nodes=1
+[    2.064616] rcu: Preemptible hierarchical RCU implementation.
+[    2.065155] rcu: 	RCU event tracing is enabled.
+[    2.065573] rcu: 	RCU restricting CPUs from NR_CPUS=4 to nr_cpu_ids=3.
+[    2.066175] rcu: RCU calculated value of scheduler-enlistment delay is 30 jiffies.
+[    2.066868] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=3
+[    2.067512] NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+[    2.068905] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    2.079256] arch_timer: cp15 timer(s) running at 24.00MHz (virt).
+[    2.079852] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    2.080851] sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+[    2.081592] Switching to timer-based delay loop, resolution 41ns
+[    2.082590] Console: colour dummy device 80x30
+[    2.083052] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=80000)
+[    2.084002] CPU: Testing write buffer coherency: ok
+[    2.084497] pid_max: default: 4096 minimum: 301
+[    2.085041] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    2.085727] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    2.087308] /cpus/cpu@f00 missing clock-frequency property
+[    2.087854] /cpus/cpu@f01 missing clock-frequency property
+[    2.088372] /cpus/cpu@f02 missing clock-frequency property
+[    2.088882] CPU0: thread -1, cpu 0, socket 15, mpidr 80000f00
+[    2.090309] Setting up static identity map for 0x108240 - 0x108294
+[    2.091081] rcu: Hierarchical SRCU implementation.
+[    2.091533] rcu: 	Max phase no-delay instances is 1000.
+[    2.092740] smp: Bringing up secondary CPUs ...
+I/TC: Secondary CPU 1 initializing
+I/TC: Secondary CPU 1 switching to normal world boot
+I/TC: Secondary CPU 2 initializing
+I/TC: Secondary CPU 2 switching to normal world boot
+[    2.094662] CPU1: thread -1, cpu 1, socket 15, mpidr 80000f01
+[    2.096242] CPU2: thread -1, cpu 2, socket 15, mpidr 80000f02
+[    2.096371] smp: Brought up 1 node, 3 CPUs
+[    2.097863] SMP: Total of 3 processors activated (144.00 BogoMIPS).
+[    2.098442] CPU: All CPU(s) started in SVC mode.
+[    2.099660] devtmpfs: initialized
+[    2.108235] VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+[    2.109140] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 6370867519511994 ns
+[    2.110054] futex hash table entries: 16 (order: -2, 1024 bytes, linear)
+[    2.110784] pinctrl core: initialized pinctrl subsystem
+[    2.112430] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    2.113543] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    2.114944] Registered FIQ tty driver
+[    2.115657] thermal_sys: Registered thermal governor 'step_wise'
+[    2.115667] thermal_sys: Registered thermal governor 'user_space'
+[    2.116294] cpuidle: using governor menu
+[    2.118784] ramoops: boot-log-0	0xd000@0x00083000
+[    2.119449] ramoops: console	0x20000@0x00090000
+[    2.120184] printk: console [ramoops-1] enabled
+[    2.120608] pstore: Registered ramoops as persistent store backend
+[    2.121217] ramoops: using 0x2d000@0x83000, ecc: 0
+[    2.133432] rockchip-gpio ff940000.gpio: probed /pinctrl/gpio@ff940000
+[    2.134910] rockchip-gpio ff870000.gpio: probed /pinctrl/gpio@ff870000
+[    2.136319] rockchip-gpio ff1c0000.gpio: probed /pinctrl/gpio@ff1c0000
+[    2.137749] rockchip-gpio ff1d0000.gpio: probed /pinctrl/gpio@ff1d0000
+[    2.139217] rockchip-gpio ff1e0000.gpio: probed /pinctrl/gpio@ff1e0000
+[    2.139935] rockchip-pinctrl pinctrl: probed pinctrl
+[    2.142938] platform ff600000.vop: Fixed dependency cycle(s) with /dsi@ff640000
+[    2.143724] platform ff640000.dsi: Fixed dependency cycle(s) with /dsi@ff640000/panel@0
+[    2.144478] platform ff640000.dsi: Fixed dependency cycle(s) with /vop@ff600000
+[    2.157326] fiq_debugger fiq_debugger.0: error -ENXIO: IRQ fiq not found
+[    2.157978] fiq_debugger fiq_debugger.0: error -ENXIO: IRQ wakeup not found
+[    2.158669] fiq_debugger_probe: could not install nmi irq handler
+[ [    2.159344] printk: console [ttyFIQ0] enabled
+   2.159344] printk: console [ttyFIQ0] enabled
+[    2.160143] printk: bootconsole [uart8250] disabled
+[    2.160143] printk: bootconsole [uart8250] disabled
+[    2.160833] Registered fiq debugger ttyFIQ0
+[    2.165595] usbcore: registered new interface driver usbfs
+[    2.165678] usbcore: registered new interface driver hub
+[    2.165733] usbcore: registered new device driver usb
+[    2.165967] mc: Linux media interface: v0.10
+[    2.166073] videodev: Linux video capture interface: v2.00
+[    2.166130] pps_core: LinuxPPS API ver. 1 registered
+[    2.166146] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    2.166173] PTP clock support registered
+[    2.167455] Advanced Linux Sound Architecture Driver Initialized.
+[    2.167961] Bluetooth: Core ver 2.22
+[    2.168040] NET: Registered PF_BLUETOOTH protocol family
+[    2.168057] Bluetooth: HCI device and connection manager initialized
+[    2.168078] Bluetooth: HCI socket layer initialized
+[    2.168095] Bluetooth: L2CAP socket layer initialized
+[    2.168143] Bluetooth: SCO socket layer initialized
+[    2.168628] rockchip-cpuinfo cpuinfo: SoC		: 35060000
+[    2.168662] rockchip-cpuinfo cpuinfo: Serial		: 5175af3fa368384f
+[    2.169677] clocksource: Switched to clocksource arch_sys_counter
+[    2.180904] NET: Registered PF_INET protocol family
+[    2.181194] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    2.182356] tcp_listen_portaddr_hash hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    2.182528] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    2.182565] TCP established hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    2.182608] TCP bind hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    2.182733] TCP: Hash tables configured (established 4096 bind 4096)
+[    2.182855] UDP hash table entries: 256 (order: 1, 8192 bytes, linear)
+[    2.182988] UDP-Lite hash table entries: 256 (order: 1, 8192 bytes, linear)
+[    2.183249] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    2.183937] RPC: Registered named UNIX socket transport module.
+[    2.183973] RPC: Registered udp transport module.
+[    2.183986] RPC: Registered tcp transport module.
+[    2.183996] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    2.185683] rockchip-thermal ff650000.tsadc: tsadc is probed successfully!
+[    2.187108] Initialise system trusted keyrings
+[    2.187484] workingset: timestamp_bits=30 max_order=17 bucket_order=0
+[    2.191601] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    2.255353] Key type asymmetric registered
+[    2.255437] Asymmetric key parser 'x509' registered
+[    2.255567] io scheduler mq-deadline registered
+[    2.255589] io scheduler kyber registered
+[    2.255739] io scheduler bfq registered
+[    2.258764] pwm-backlight backlight: supply power not found, using dummy regulator
+[    2.263394] dma-pl330 ff000000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    2.263496] dma-pl330 ff000000.dma-controller: 	DBUFF-32x8bytes Num_Chans-6 Num_Peri-12 Num_Events-12
+[    2.265045] dma-pl330 ff008000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    2.265079] dma-pl330 ff008000.dma-controller: 	DBUFF-128x8bytes Num_Chans-8 Num_Peri-20 Num_Events-16
+[    2.265295] rockchip-system-monitor rockchip-system-monitor: system monitor probe
+[    2.266797] Serial: 8250/16550 driver, 6 ports, IRQ sharing disabled
+[    2.267587] ff0c0000.serial: ttyS2 at MMIO 0xff0c0000 (irq = 58, base_baud = 1500000) is a 16550A
+[    2.268789] random: crng init done
+[    2.270689] dw-mipi-dsi-rockchip ff640000.dsi: Fixed dependency cycle(s) with /dsi@ff640000/panel@0
+[    2.270818] mipi-dsi ff640000.dsi.0: Fixed dependency cycle(s) with /dsi@ff640000
+[    2.273681] rockchip-drm display-subsystem: bound ff600000.vop (ops 0xb0657ca4)
+[    2.273753] dw-mipi-dsi-rockchip ff640000.dsi: failed to find panel or bridge: -517
+E/TC:0   plat_shm_get_page_num:386 plat_shm_get_page_num: type 6 alloc is not supported
+[    2.275705] no ATF memory for init
+[    2.276530] panel-simple-dsi ff640000.dsi.0: Expected bpc in {6,8} but got: 0
+[    2.278645] rockchip-spi ff120000.spi: no high_speed pinctrl state
+[    2.280074] rockchip-spi ff120000.spi: probed, poll=0, rsd=0, cs-inactive=0, ready=0
+[    2.281618] spi-nand spi2.0: Winbond SPI NAND was found.
+[    2.281664] spi-nand spi2.0: 512 MiB, block size: 128 KiB, page size: 2048, OOB size: 128
+[    2.282741] 7 cmdlinepart partitions found on MTD device spi-nand0
+[    2.282770] Creating 7 MTD partitions on "spi-nand0":
+[    2.282784] 0x000000400000-0x000000800000 : "uboot"
+[    2.284927] 0x000000800000-0x000000900000 : "misc"
+[    2.287059] 0x000000900000-0x000000940000 : "vnvm"
+[    2.288959] 0x000000940000-0x000001740000 : "recovery"
+[    2.290974] 0x000001740000-0x000002140000 : "boot"
+[    2.292861] 0x000002140000-0x00000d540000 : "rootfs"
+[    2.295472] 0x00000d540000-0x00001ff60000 : "userdata"
+[    2.300005] rk_gmac-dwmac ff4c8000.ethernet: IRQ eth_lpi not found
+[    2.300270] rk_gmac-dwmac ff4c8000.ethernet: supply phy not found, using dummy regulator
+[    2.300470] rk_gmac-dwmac ff4c8000.ethernet: clock input or output? (output).
+[    2.300496] rk_gmac-dwmac ff4c8000.ethernet: Can not read property: tx_delay.
+[    2.300511] rk_gmac-dwmac ff4c8000.ethernet: set tx_delay to 0xffffffff
+[    2.300527] rk_gmac-dwmac ff4c8000.ethernet: Can not read property: rx_delay.
+[    2.300540] rk_gmac-dwmac ff4c8000.ethernet: set rx_delay to 0xffffffff
+[    2.300563] rk_gmac-dwmac ff4c8000.ethernet: integrated PHY? (no).
+[    2.300583] rk_gmac-dwmac ff4c8000.ethernet: cannot get clock mac_clk_rx
+[    2.300599] rk_gmac-dwmac ff4c8000.ethernet: cannot get clock mac_clk_tx
+[    2.300631] rk_gmac-dwmac ff4c8000.ethernet: cannot get clock clk_mac_ref
+[    2.300647] rk_gmac-dwmac ff4c8000.ethernet: cannot get clock clk_mac_refout
+[    2.300663] rk_gmac-dwmac ff4c8000.ethernet: cannot get clock clk_mac_speed
+[    2.300914] rk_gmac-dwmac ff4c8000.ethernet: init for RMII
+[    2.301167] rk_gmac-dwmac ff4c8000.ethernet: User ID: 0x40, Synopsys ID: 0x51
+[    2.301202] rk_gmac-dwmac ff4c8000.ethernet: 	DWMAC4/5
+[    2.301217] rk_gmac-dwmac ff4c8000.ethernet: DMA HW capability register supported
+[    2.301230] rk_gmac-dwmac ff4c8000.ethernet: RX Checksum Offload Engine supported
+[    2.301242] rk_gmac-dwmac ff4c8000.ethernet: TX Checksum insertion supported
+[    2.301254] rk_gmac-dwmac ff4c8000.ethernet: Wake-Up On Lan supported
+[    2.301339] rk_gmac-dwmac ff4c8000.ethernet: TSO supported
+[    2.301354] rk_gmac-dwmac ff4c8000.ethernet: Enable RX Mitigation via HW Watchdog Timer
+[    2.301370] rk_gmac-dwmac ff4c8000.ethernet: Enabled RFS Flow TC (entries=10)
+[    2.301384] rk_gmac-dwmac ff4c8000.ethernet: TSO feature enabled
+[    2.301399] rk_gmac-dwmac ff4c8000.ethernet: Using 40/40 bits DMA host/device width
+[    2.435255] rk_gmac-dwmac ff4d0000.ethernet: IRQ eth_lpi not found
+[    2.435519] rk_gmac-dwmac ff4d0000.ethernet: supply phy not found, using dummy regulator
+[    2.435711] rk_gmac-dwmac ff4d0000.ethernet: clock input or output? (output).
+[    2.435737] rk_gmac-dwmac ff4d0000.ethernet: Can not read property: tx_delay.
+[    2.435750] rk_gmac-dwmac ff4d0000.ethernet: set tx_delay to 0xffffffff
+[    2.435764] rk_gmac-dwmac ff4d0000.ethernet: Can not read property: rx_delay.
+[    2.435778] rk_gmac-dwmac ff4d0000.ethernet: set rx_delay to 0xffffffff
+[    2.435817] rk_gmac-dwmac ff4d0000.ethernet: integrated PHY? (no).
+[    2.435840] rk_gmac-dwmac ff4d0000.ethernet: cannot get clock mac_clk_rx
+[    2.435858] rk_gmac-dwmac ff4d0000.ethernet: cannot get clock mac_clk_tx
+[    2.435891] rk_gmac-dwmac ff4d0000.ethernet: cannot get clock clk_mac_ref
+[    2.435907] rk_gmac-dwmac ff4d0000.ethernet: cannot get clock clk_mac_refout
+[    2.435922] rk_gmac-dwmac ff4d0000.ethernet: cannot get clock clk_mac_speed
+[    2.436174] rk_gmac-dwmac ff4d0000.ethernet: init for RMII
+[    2.436458] rk_gmac-dwmac ff4d0000.ethernet: User ID: 0x40, Synopsys ID: 0x51
+[    2.436494] rk_gmac-dwmac ff4d0000.ethernet: 	DWMAC4/5
+[    2.436510] rk_gmac-dwmac ff4d0000.ethernet: DMA HW capability register supported
+[    2.436524] rk_gmac-dwmac ff4d0000.ethernet: RX Checksum Offload Engine supported
+[    2.436536] rk_gmac-dwmac ff4d0000.ethernet: TX Checksum insertion supported
+[    2.436548] rk_gmac-dwmac ff4d0000.ethernet: Wake-Up On Lan supported
+[    2.436645] rk_gmac-dwmac ff4d0000.ethernet: TSO supported
+[    2.436665] rk_gmac-dwmac ff4d0000.ethernet: Enable RX Mitigation via HW Watchdog Timer
+[    2.436682] rk_gmac-dwmac ff4d0000.ethernet: Enabled RFS Flow TC (entries=10)
+[    2.436698] rk_gmac-dwmac ff4d0000.ethernet: TSO feature enabled
+[    2.436712] rk_gmac-dwmac ff4d0000.ethernet: Using 40/40 bits DMA host/device width
+[    2.571446] PPP generic driver version 2.4.2
+[    2.571752] usbcore: registered new interface driver ch341
+[    2.571797] usbserial: USB Serial support registered for ch341-uart
+[    2.572251] i2c_dev: i2c /dev entries driver
+[    2.576492] Goodix-TS 2-0014: Wakeup enabled on IRQ 69 (DT wakeup-source)
+[    2.576595] Goodix-TS 2-0014: supply AVDD28 not found, using dummy regulator
+[    2.576785] Goodix-TS 2-0014: supply VDDIO not found, using dummy regulator
+[    2.669790] Goodix-TS 2-0014: Error reading 1 bytes from 0x8140: -6
+[    2.696408] Goodix-TS 2-0014: Error reading 1 bytes from 0x8140: -6
+[    2.723014] Goodix-TS 2-0014: I2C communication failure: -6
+[    2.727477] Bluetooth: HCI UART driver ver 2.3
+[    2.727518] Bluetooth: HCI UART protocol H4 registered
+[    2.727691] cpu cpu0: bin=0
+[    2.727750] cpu cpu0: leakage=4
+[    2.728772] cpu cpu0: pvtm=1688
+[    2.729353] cpu cpu0: pvtm-volt-sel=3
+[    2.729382] cpu cpu0: soc version=0, speed=3
+[    2.730652] cpu cpu0: avs=0
+[    2.730927] cpu cpu0: l=10000 h=2147483647 hyst=5000 l_limit=0 h_limit=0 h_table=1
+[    2.731546] Synopsys Designware Multimedia Card Interface Driver
+[    2.732270] dwmmc_rockchip ff480000.mmc: No normal pinctrl state
+[    2.732308] dwmmc_rockchip ff480000.mmc: No idle pinctrl state
+[    2.732526] dwmmc_rockchip ff480000.mmc: IDMAC supports 32-bit address mode.
+[    2.732584] dwmmc_rockchip ff480000.mmc: Using internal DMA controller.
+[    2.732606] dwmmc_rockchip ff480000.mmc: Version ID is 270a
+[    2.732686] dwmmc_rockchip ff480000.mmc: DW MMC controller at irq 70,32 bit host data width,256 deep fifo
+[    2.732799] usbcore: registered new interface driver usbhid
+[    2.732821] usbhid: USB HID core driver
+[    2.733237] dwmmc_rockchip ff480000.mmc: Got CD GPIO
+[    2.740074] rk-multicodecs es8388-sound: Has no ADC channel
+[    2.746059] mmc_host mmc0: Bus speed (slot 0) = 400000Hz (slot req 400000Hz, actual 400000HZ div = 0)
+[    2.795792] rk-multicodecs es8388-sound: Don't need to map headset detect gpio to irq
+[    2.801077] NET: Registered PF_PACKET protocol family
+[    2.801441] Bluetooth: RFCOMM TTY layer initialized
+[    2.801507] Bluetooth: RFCOMM socket layer initialized
+[    2.801570] Bluetooth: RFCOMM ver 1.11
+[    2.801622] Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+[    2.801666] Bluetooth: BNEP socket layer initialized
+[    2.801697] Bluetooth: HIDP (Human Interface Emulation) ver 1.2
+[    2.801736] Bluetooth: HIDP socket layer initialized
+[    2.802555] Registering SWP/SWPB emulation handler
+[    2.803152] Loading compiled-in X.509 certificates
+[    2.809950] rga2 ff610000.rga: probe successfully, irq = 75, hw_version:3.a.07135
+[    2.810179] rga: IOMMU binding successfully, default mapping core[0x4]
+[    2.810436] rga: Module initialized. v1.3.8
+[    2.828897] rockchip-drm display-subsystem: bound ff600000.vop (ops 0xb0657ca4)
+[    2.829087] rockchip-drm display-subsystem: bound ff640000.dsi (ops 0xb0659234)
+[    2.830206] [drm] Initialized rockchip 4.0.0 20140818 for display-subsystem on minor 0
+[    2.835502] rockchip-drm display-subsystem: [drm] fb0: rockchipdrmfb frame buffer device
+[    2.835815] rockchip-drm display-subsystem: [drm] run display error_event monitor
+[    2.838676] ubi0: attaching mtd5
+[    3.214228] ubi0: scanning is finished
+[    3.219618] ubi0: attached mtd5 (name "rootfs", size 180 MiB)
+[    3.219689] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    3.219714] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    3.219731] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    3.219748] ubi0: good PEBs: 1440, bad PEBs: 0, corrupted PEBs: 0
+[    3.219764] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    3.219780] ubi0: max/mean erase counter: 2/0, WL threshold: 4096, image sequence number: 1527011325
+[    3.219799] ubi0: available PEBs: 0, total reserved PEBs: 1440, PEBs reserved for bad PEB handling: 80
+[    3.219833] ubi0: background thread "ubi_bgt0d" started, PID 105
+[    3.220499] clk: Disabling unused clocks
+[    3.221012] rockchip-pm rockchip-suspend: not set pwm-regulator-config
+[    3.221227] rockchip-suspend not set sleep-mode-config for mem-lite
+[    3.221250] rockchip-suspend not set wakeup-config for mem-lite
+[    3.221268] rockchip-suspend not set sleep-mode-config for mem-ultra
+[    3.221282] rockchip-suspend not set wakeup-config for mem-ultra
+[    3.221938] ALSA device list:
+[    3.221964]   #0: rockchip-es8388
+[    3.221979]   #1: rockchip,acodec
+[    3.222872] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[    3.223151] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 106
+[    3.238827] UBIFS (ubi0:0): recovery needed
+[    3.337707] UBIFS (ubi0:0): recovery completed
+[    3.337839] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[    3.337868] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    3.337891] UBIFS (ubi0:0): FS size: 170782720 bytes (162 MiB, 1345 LEBs), max 8456 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    3.337917] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[    3.337935] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID 68E79E07-E055-4592-8F84-0D4E3FD20218, small LPT model
+[    3.341816] VFS: Mounted root (ubifs filesystem) on device 0:14.
+[    3.342369] devtmpfs: mounted
+[    3.342576] Freeing unused kernel image (initmem) memory: 188K
+[    3.342599] Kernel memory protection not selected by kernel config.
+[    3.342633] Run /sbin/init as init process
+Starting lv_demo
+Start mounting all internal partitions in /etc/fstab
+Log saved to /var/log/mount-all.log
+Note: Create /.skip_fsck to skip fsck
+ - The check might take a while if didn't shutdown properly!
+realpath: : No such file or directory
+[2]: Handling /dev/mtdblock6 /userdata ubifs defaults 2
+[    3.977644] mtdblock: MTD device 'userdata' is NAND, please consider using UBI block devices instead.
+[2]: Preparing /dev/ubi6_0 from /dev/mtd6
+[2]: Remove ubi block device
+[    4.049119] mtdblock: MTD device 'rootfs' is NAND, please consider using UBI block devices instead.
+[2]: Detach ubi device
+[2]: Attach ubi device
+[    4.082781] ubi6: attaching mtd6
+[    4.156290] mtdblock: MTD device 'boot' is NAND, please consider using UBI block devices instead.
+[    4.244239] mtdblock: MTD device 'recovery' is NAND, please consider using UBI block devices instead.
+[    4.336908] mtdblock: MTD device 'vnvm' is NAND, please consider using UBI block devices instead.
+[    4.446499] mtdblock: MTD device 'misc' is NAND, please consider using UBI block devices instead.
+[    4.578923] mtdblock: MTD device 'uboot' is NAND, please consider using UBI block devices instead.
+[    5.098340] ubi6: scanning is finished
+[    5.104484] ubi6: attached mtd6 (name "userdata", size 298 MiB)
+[    5.104530] ubi6: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    5.104549] ubi6: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    5.104566] ubi6: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    5.104583] ubi6: good PEBs: 2385, bad PEBs: 0, corrupted PEBs: 0
+UBI device number 6, total 2385 LEBs (302837760 bytes, 288.8 MiB), available 0 LEBs (0 bytes), LEB size 126976 bytes (124.0 KiB)
+[    5.104598] ubi6: user volume: 1, internal volumes: 1, max. volumes count: 128
+[2]: Check for valid volume
+[    5.104615] ubi6: max/mean erase counter: 2/0, WL threshold: 4096, image sequence number: 1709231318
+[2]: Create ubi block device
+[    5.104633] ubi6: available PEBs: 0, total reserved PEBs: 2385, PEBs reserved for bad PEB handling: 80
+[    5.104662] ubi6: background thread "ubi_bgt6d" started, PID 220
+[2]: No fsck for ubifs
+[2]: Mounting /dev/ubi6_0(ubifs) on /userdata with -o defaults
+[    5.128949] UBIFS (ubi6:0): Mounting in unauthenticated mode
+[    5.129155] UBIFS (ubi6:0): background thread "ubifs_bgt6_0" started, PID 225
+[    5.144923] UBIFS (ubi6:0): recovery needed
+[    5.229879] UBIFS (ubi6:0): recovery completed
+[    5.230009] UBIFS (ubi6:0): UBIFS: mounted UBI device 6, volume 0, name "userdata"
+[    5.230037] UBIFS (ubi6:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    5.230060] UBIFS (ubi6:0): FS size: 290648064 bytes (277 MiB, 2289 LEBs), max 16912 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    5.230086] UBIFS (ubi6:0): reserved for root: 0 bytes (0 KiB)
+[    5.230104] UBIFS (ubi6:0): media format: w4/r0 (latest is w5/r0), UUID C0E01F16-F2EE-48B0-B5AA-3248FC5B0EA0, small LPT model
+[2]: No resize for ubifs
+Seeding 256 bits and crediting
+Saving 256 bits of creditable seed for next boot
+Starting syslogd: OK
+Starting klogd: OK
+Running sysctl: OK
+[    5.646617] [BT_RFKILL]: Enter rfkill_rk_init
+[    5.646667] [WLAN_RFKILL]: Enter rfkill_wlan_init
+[    5.690624] cfg80211: Loading compiled-in X.509 certificates for regulatory database
+[    5.705715] cfg80211: Loaded X.509 cert 'wens: 61c038651aabdcf94bd0ac7ff06c7248db18c600'
+[    5.707419] cfg80211: Loaded X.509 cert 'sforshee: 00b28ddf47aef9cea7'
+[    5.708580] platform regulatory.0: Direct firmware load for regulatory.db failed with error -2
+[    5.708631] cfg80211: failed to load regulatory.db
+[    5.975590] usbcore: registered new interface driver rtl8733bu
+[    5.996946] rockchip-usb2phy ff2b0000.usb2-phy: error -ENXIO: IRQ index 0 not found
+[    6.034772] dwc2 ff740000.usb: supply vusb_d not found, using dummy regulator
+[    6.034996] dwc2 ff740000.usb: supply vusb_a not found, using dummy regulator
+[    6.163202] dwc2 ff740000.usb: EPs: 10, dedicated fifos, 972 entries in SPRAM
+[    6.163635] dwc2 ff740000.usb: DWC OTG Controller
+[    6.163715] dwc2 ff740000.usb: new USB bus registered, assigned bus number 1
+[    6.163907] dwc2 ff740000.usb: irq 80, io mem 0xff740000
+[    6.165464] hub 1-0:1.0: USB hub found
+[    6.165590] hub 1-0:1.0: 1 port detected
+[    6.168027] dwc2 ff780000.usb: supply vusb_d not found, using dummy regulator
+[    6.168437] dwc2 ff780000.usb: supply vusb_a not found, using dummy regulator
+[    6.184001] dwc2 ff780000.usb: DWC OTG Controller
+[    6.184127] dwc2 ff780000.usb: new USB bus registered, assigned bus number 2
+[    6.184179] dwc2 ff780000.usb: irq 81, io mem 0xff780000
+[    6.185267] hub 2-0:1.0: USB hub found
+[    6.185353] hub 2-0:1.0: 1 port detected
+[    6.221340] SCSI subsystem initialized
+[    6.229002] usbcore: registered new interface driver usb-storage
+[    6.375182] usbcore: registered new interface driver rtk_btusb
+[    6.442249] usbcore: registered new interface driver uvcvideo
+Populating /dev using udev: [    6.473064] usb 2-1: new high-speed USB device number 2 using dwc2
+[    6.532941] udevd[317]: starting version 3.2.14
+[    6.588879] udevd[318]: starting eudev-3.2.14
+[    6.680990] hub 2-1:1.0: USB hub found
+[    6.681236] hub 2-1:1.0: 4 ports detected
+[    6.828889] mtdblock: MTD device 'uboot' is NAND, please consider using UBI block devices instead.
+[    6.831840] mtdblock: MTD device 'vnvm' is NAND, please consider using UBI block devices instead.
+[    6.833067] mtdblock: MTD device 'recovery' is NAND, please consider using UBI block devices instead.
+[    6.836988] mtdblock: MTD device 'misc' is NAND, please consider using UBI block devices instead.
+[    6.836988] mtdblock: MTD device 'boot' is NAND, please consider using UBI block devices instead.
+[    6.840156] mtdblock: MTD device 'userdata' is NAND, please consider using UBI block devices instead.
+[    6.843141] mtdblock: MTD device 'rootfs' is NAND, please consider using UBI block devices instead.
+[    6.979749] usb 2-1.3: new high-speed USB device number 3 using dwc2
+[    7.092447] rtk_btusb: btusb_probe intf->cur_altsetting->desc.bInterfaceNumber 0
+[    7.119109] rtk_btusb: btusb_open hdev->promisc ==0
+[    7.119145] rtk_btusb: chip type value: 0x76
+[    7.132187] rtk_btusb: config filename rtl8733bu_config
+[    7.133805] rtk_btusb: no bdaddr file /opt/bdaddr
+[    7.133857] rtk_btusb: Origin cfg len 14
+[    7.133883] rtk_btusb: New cfg len 14
+[    7.142667] rtk_btusb: This is not 8723a, use new patch style!
+done
+Starting irqbalance: OK
+[    7.564153] rtk_btusb: chip type value: 0x76
+[    7.564181] rtk_btusb: btusb_open set HCI UP RUNNING
+[    7.564235] rtk_btcoex: Open BTCOEX
+Starting system message bus: done
+Starting rpcbind: OK
+Starting iptables: OK
+Starting bluetoothd: OK
+Starting network: [    8.088027] Bluetooth: MGMT ver 1.22
+OK
+Starting connmand: OK
+Starting ntpd: [    8.340538] rk_gmac-dwmac ff4c8000.ethernet eth0: Register MEM_TYPE_PAGE_POOL RxQ-0
+[    8.343557] rk_gmac-dwmac ff4c8000.ethernet eth0: PHY [stmmac-0:01] driver [YT8512 100M Ethernet] (irq=POLL)
+[    8.344098] dwmac4: Master AXI performs any burst length
+[    8.344138] rk_gmac-dwmac ff4c8000.ethernet eth0: No Safety Features support found
+[    8.344171] rk_gmac-dwmac ff4c8000.ethernet eth0: IEEE 1588-2008 Advanced Timestamp supported
+[    8.344500] rk_gmac-dwmac ff4c8000.ethernet eth0: registered PTP clock
+[    8.346924] rk_gmac-dwmac ff4c8000.ethernet eth0: configuring for phy/rmii link mode
+[    8.354807] rk_gmac-dwmac ff4d0000.ethernet eth1: Register MEM_TYPE_PAGE_POOL RxQ-0
+[    8.357615] rk_gmac-dwmac ff4d0000.ethernet eth1: PHY [stmmac-1:01] driver [YT8512 100M Ethernet] (irq=POLL)
+[    8.358186] dwmac4: Master AXI performs any burst length
+[    8.358232] rk_gmac-dwmac ff4d0000.ethernet eth1: No Safety Features support found
+[    8.358268] rk_gmac-dwmac ff4d0000.ethernet eth1: IEEE 1588-2008 Advanced Timestamp supported
+[    8.358543] rk_gmac-dwmac ff4d0000.ethernet eth1: registered PTP clock
+[    8.361984] rk_gmac-dwmac ff4d0000.ethernet eth1: configuring for phy/rmii link mode
+OK
+starting weston... done.
+Starting nginx...
+Date: 1970-01-01 CST
+[08:00:06.001] weston 14.0.1
+               https://wayland.freedesktop.org
+               Bug reports to: https://gitlab.freedesktop.org/wayland/weston/issues/
+               Build: 14.0.1
+[08:00:06.-1495177632] Command line: /usr/bin/weston
+[08:00:06.-1495177564] OS: Linux, 6.1.118, #1 SMP PREEMPT Wed Mar 25 17:43:11 CST 2026, armv7l
+[08:00:06.-1360011240] Flight recorder: enabled
+[08:00:06.-1495177564] warning: XDG_RUNTIME_DIR "/var/run" is not configured
+correctly.  Unix access mode must be 0700 (current mode is 0777),
+and must be owned by the user UID 0 (current owner is UID 0).
+Refer to your distribution on how to get it, or
+http://www.freedesktop.org/wiki/Specifications/basedir-spec
+on how to implement it.
+[08:00:06.-1495177632] Using config file '/etc/xdg/weston/weston.ini'
+[08:00:06.000] Output repaint window is -1 ms maximum.
+[08:00:06.-1360015468] Loading module '/usr/lib/libweston-14/drm-backend.so'
+[08:00:06.-1360011480] initializing drm backend
+[08:00:06.-1495177564] Entering mirror mode.
+[08:00:06.-1495308752] Trying direct launcher...
+[08:00:06.4096] using /dev/dri/card0
+[08:00:06.-1495177564] DRM: does not support atomic modesetting
+[08:00:06.-1360011520] DRM: does not support GBM modifiers
+[08:00:06.-1495177564] DRM: does not support Atomic async page flip
+[08:00:06.-1360011520] DRM: supports picture aspect ratio
+[08:00:06.000] Using Pixman renderer
+Starting sshd: [08:00:06.000] warning: no input devices found, but none required as per configuration.
+[08:00:06.000] Registered plugin API 'weston_drm_output_api_v1' of size 20
+[08:00:06.-1495214608] Color manager: no-op
+                 protocol support: no
+[08:00:06.000] DRM: head 'DSI-1' found, connector 75 is connected, EDID make 'unknown', model 'unknown', serial ''
+               Supported EOTF modes: SDR
+               Supported colorimetry modes: default
+[08:00:06.-1495660380] DSI-1 using at least 2 buffers
+[08:00:06.809119792] Output 'DSI-1' attempts EOTF mode SDR and colorimetry mode default.
+[08:00:06.-1360011280] Output 'DSI-1' using color profile: stock sRGB color profile
+[08:00:06.-1494233912] DRM: output DSI-1 uses shadow framebuffer.
+[08:00:06.1634887200] Output DSI-1 (crtc 72) video modes:
+               800x1280@61.4, preferred, current, 67.0 MHz
+[08:00:06.4790600] Output 'DSI-1' enabled with head(s) DSI-1
+[08:00:06.-1500078464] Compositor capabilities:
+               arbitrary surface rotation: yes
+               screen capture uses y-flip: no
+               cursor planes: yes
+               arbitrary resolutions: no
+               view mask clipping: yes
+               explicit sync: no
+               color operations: no
+               presentation clock: CLOCK_MONOTONIC, id 1
+               presentation clock resolution: 0.000000001 s
+[08:00:06.-1360015420] Loading module '/usr/lib/weston/desktop-shell.so'
+[08:00:06.-1495298408] launching '/usr/libexec/weston-keyboard'
+[08:00:06.-1360012248] launching '/usr/libexec/weston-desktop-shell'
+OK
+could not load cursor 'dnd-move'
+could not load cursor 'dnd-move'
+could not load cursor 'dnd-copy'
+could not load cursor 'dnd-none'
+could not load cursor 'dnd-copy'
+could not load cursor 'dnd-none'
+starting systemui... done.
+starting usbdevice service, log saved to /var/log/usbdevice.log
+Starting NFS statd: OK
+Starting NFS services: OK
+Starting NFS daemon: rpc.nfsd: Unable to access /proc/fs/nfsd errno 2 (No such file or directory).
+Please try, as root, 'mount -t nfsd nfsd /proc/fs/nfsd' and then restart rpc.nfsd to correct the problem
+FAIL
+Starting NFS mountd: rpc.mountd: svc_tli_create: could not open connection for udp6
+rpc.mountd: svc_tli_create: could not open connection for tcp6
+rpc.mountd: svc_tli_create: could not open connection for udp6
+rpc.mountd: svc_tli_create: could not open connection for tcp6
+rpc.mountd: svc_tli_create: could not open connection for udp6
+rpc.mountd: svc_tli_create: could not open connection for tcp6
+OK
+Starting vsftpd: OK
+Enabling OUT1 and OUT2 audio outputs...
+OUT1/OUT2 enabled
+Starting input-event-daemon: fstrim: Starting fstrim process (533)...
+input-event-daemon: no listener found!
+done
+root@ATK-DLRK3506:/# [   10.399977] Freeing drm_logo memory: 1256K
+[   11.266258] file system registered
+[   11.740950] read descriptors
+[   11.741008] read strings
+[   11.818134] dwc2 ff740000.usb: bound driver configfs-gadget.rockchip
+[   11.938902] dwc2 ff740000.usb: new device is high-speed
+[   11.976025] android_work: sent uevent USB_STATE=CONNECTED
+[   11.976169] dwc2 ff740000.usb: new address 4
+[   11.999444] android_work: sent uevent USB_STATE=CONFIGURED
+[08:00:11.000] seeing the first app
+
+root@ATK-DLRK3506:/# 
+root@ATK-DLRK3506:/# 
+root@ATK-DLRK3506:/# echo "1" > 2.txt
+root@ATK-DLRK3506:/# cat 2.txt
+1
+root@ATK-DLRK3506:/# reboot
+root@ATK-DLRK3506:/# Stopping input-event-daemon: killall: input-event-daemon: no process killed
+done
+fstrim: Stopping fstrim process (533)...
+Stopping vsftpd: stopped /usr/sbin/vsftpd (pid 527)
+OK
+Shutting down NFS mountd: OK
+Shutting down NFS daemon: FAIL
+Shutting down NFS services: OK
+Stopping NFS statd: OK
+starting usbdevice service, log saved to /var/log/usbdevice.log
+stoping systemui... done.
+Stopping sshd: OK
+Stopping nginx...
+stopped /usr/sbin/nginx (pid 454)
+stoping weston... [08:00:25.000] caught signal 15
+done.
+[08:00:25.-1500078464] destroying output DSI-1 (id 0) with a pending flip, but as we are shutting down we can't wait to destroy it when the flip completes... destroying it now
+Stopping ntpd: OK
+Stopping connmand: [   27.840849] rockchip-vop ff600000.vop: [drm:vop_crtc_atomic_enable] Update mode to 800x1280p61, type: 16
+OK
+Stopping network: ifdown: interface lo not configured
+OK
+Stopping bluetoothd: OK
+Stopping iptables: [   27.939825] rtk_btcoex: Close BTCOEX
+modprobe: module ip_tables not found in modules.dep
+iptables v1.8.9 (legacy): can't initialize iptables table `filter': Table does not exist (do you need to insmod?)
+Perhaps iptables or your kernel needs to be upgraded.
+FAIL
+Stopping rpcbind daemon: OK
+Stopping system message bus: done
+Stopping irqbalance: OK
+Skip unloading modules
+Stopping klogd: OK
+Stopping syslogd: OK
+Seeding 256 bits and crediting
+Saving 256 bits of creditable seed for next boot
+umount: /etc: not mounted.
+umount: /userdata/overlay/lower: no mount point specified.
+umount: /opt: not mounted.
+umount: /var/lib: not mounted.
+umount: /dev/usb-ffs/adb: target is busy.
+[   28.340071] UBIFS (ubi6:0): background thread "ubifs_bgt6_0" stops
+umount: /run: target is busy.
+umount: /var/log: target is busy.
+[   28.365356] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" stops
+The system is going down NOW!
+Sent SIGTERM to all processes
+Terminated
+[   28.440211] android_work: sent uevent USB_STATE=DISCONNECTED
+[   29.204018] dw-mipi-dsi-rockchip ff640000.dsi: [drm:dw_mipi_dsi_bridge_atomic_enable] final DSI-Link bandwidth: 996 x 2 Mbps
+Sent SIGKILL to all processes
+Requesting system reboot
+[   30.536536] rga2 ff610000.rga: shutdown success
+[   30.537072] reboot: Restarting system
+󃐠d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+SRX
+get rd_skew=0x2e, wr_skew=0x20
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xf-0x1-0x2, 0x2-0x1-0x2,status:a007
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g26c8833 #alientek (Mar 26 2026 - 11:32:53)
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 12
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(93603ca22c...) + OK
+## Checking uboot 0x00200000 ... sha256(678f3fb19a...) + OK
+## Checking fdt 0x002a5010 ... sha256(178d2c6943...) + OK
+Jumping to U-Boot(0x00200000) via OP-TEE(0x00001000)
+Total: 73.786/113.397 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-958-g46dcf51e88a #chenjh (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 Thu Mar  6 10:17:27 CST 2025 arm, fwver: v2.10 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00200000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2017.09-g26c8833 #alientek (Mar 26 2026 - 11:32:53 +0800)
+
+Model: ALIENTEK RK3506 Board
+MPIDR: 0xf00
+PreSerial: 0, raw, 0xff0a0000
+DRAM:  512 MiB
+Sysmem: init
+Relocation Offset: 1ebef000
+Relocation fdt: 1dbfadf0 - 1dbfede0
+CR: M/C/I
+Using default environment
+
+DM: v2
+SPI Nand ID ef aa 23
+Bootdev(atags): mtd 1
+PartType: EFI
+boot mode: normal
+RESC: 'boot', blk@0x0000e0c6
+resource: sha256+
+FIT: no signed, no conf required
+   - dev=saradc, channel=2, dtb_adc=691, read=778, found=0
+   - dev=saradc, channel=2, dtb_adc=12, read=778, found=0
+DTB: rk-kernel.dtb
+HASH(c): OK
+vdd_arm init 1011000 uV
+Could not find baseparameter partition
+Model: ATK-DLRK3506B Board
+Rockchip UBOOT DRM driver version: v1.0.1
+Using display timing dts
+dsi@ff640000:  detailed mode clock 67000 kHz, flags[a]
+    H: 0800 0812 0836 0841
+    V: 1280 1287 1289 1298
+bus_format: 100e
+VOP:0xff600000 update mode to: 800x1280p61, type: MIPI0
+VOP:0xff600000 set crtc_clock to 67000KHz, get 65217391Hz
+Unsupported bt709f at 10bit csc depth, use bt601f instead
+VOP:0xff600000 set plane [400x400->400x400@200x440] fmt[0] addr[0x1f000000]
+final DSI-Link bandwidth: 1000 Mbps x 2
+CLK: (arm clk use pvtpll, rate = 1200M)
+  gpll 1500000 KHz
+  v0pll 1179648 KHz
+  v1pll 903168 KHz
+  clk_gpll_div 187500 KHz
+  clk_gpll_div_100m 93750 KHz
+  clk_v0pll_div 147456 KHz
+  clk_v1pll_div 129024 KHz
+  aclk_bus_root 187500 KHz
+  hclk_bus_root 147456 KHz
+  pclk_bus_root 93750 KHz
+  aclk_hsperi_root 147456 KHz
+  hclk_ksperi_root 93750 KHz
+Net:   eth0: ethernet@ff4c8000, eth1: ethernet@ff4d0000
+Hit key to stop autoboot('CTRL+C'):  0 
+## Booting FIT Image at 0x1d51f1c0 with size 0x004d8c00
+Fdt Ramdisk skip relocation
+## Loading kernel from FIT Image at 1d51f1c0 ...
+   Using 'conf' configuration
+## Verified-boot: 0
+   Trying 'kernel' kernel subimage
+     Description:  unavailable
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x1d52a3c0
+     Data Size:    5036112 Bytes = 4.8 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x01100000
+     Entry Point:  0x01100000
+     Hash algo:    sha256
+     Hash value:   4fd135cbbe85ce9b3366130ad8ed266b66aaa4499085b7dfe9c321b1d2d57b8d
+   Verifying Hash Integrity ... sha256+ OK
+## Loading fdt from FIT Image at 1d51f1c0 ...
+   Using 'conf' configuration
+   Trying 'fdt' fdt subimage
+     Description:  unavailable
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x1d51f9c0
+     Data Size:    43487 Bytes = 42.5 KiB
+     Architecture: ARM
+     Load Address: 0x00063000
+     Hash algo:    sha256
+     Hash value:   a17eb6011ca29f6dfdba8cfb466107a7fd61eb9aacae9afa2d9feced696a551d
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x00063000 to 0x00063000
+   Booting using the fdt blob at 0x00063000
+   Loading Kernel Image from 0x1d52a3c0 to 0x01100000 ... OK
+   kernel loaded at 0x01100000, end = 0x015cd850
+   Using Device Tree in place at 00063000, end 00070c52
+## reserved-memory:
+  trust@0: addr=0 size=62000
+  drm-logo@0: addr=1f000000 size=13a000
+  ramoops@83000: addr=83000 size=2d000
+Adding bank: 0x00000000 - 0x20000000 (size: 0x20000000)
+Total: 1783.906/1906.196 ms
+
+Starting kernel ...
+
+[    2.006980] Booting Linux on physical CPU 0xf00
+[    2.007004] Linux version 6.1.118 (alientek@alientek) (arm-none-linux-gnueabihf-gcc (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 10.3.1 20210621, GNU ld (GNU Toolchain for the A-profile Architecture 10.3-2021.07 (arm-10.29)) 2.36.1.20210621) #1 SMP PREEMPT Wed Mar 25 17:43:11 CST 2026
+[    2.007016] CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=50c5387d
+[    2.007027] CPU: div instructions available: patching division code
+[    2.007032] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    2.007323] OF: fdt: Machine model: ATK-DLRK3506B Board
+[    2.009253] earlycon: uart8250 at MMIO32 0xff0a0000 (options '')
+[    2.015127] printk: bootconsole [uart8250] enabled
+[    2.015644] Memory policy: Data cache writealloc
+[    2.016281] Reserved memory: created CMA memory pool at 0x1da00000, size 22 MiB
+[    2.016955] OF: reserved mem: initialized node linux,cma, compatible id shared-dma-pool
+[    2.017730] cma: Reserved 32768 KiB at 0x1ba00000
+[    2.018541] Zone ranges:
+[    2.018801]   Normal   [mem 0x0000000000000000-0x000000001fffffff]
+[    2.019376] Movable zone start for each node
+[    2.019769] Early memory node ranges
+[    2.020097]   node   0: [mem 0x0000000000000000-0x000000001fffffff]
+[    2.020674] Initmem setup node 0 [mem 0x0000000000000000-0x000000001fffffff]
+[    2.037528] psci: probing for conduit method from DT.
+[    2.038019] psci: PSCIv1.0 detected in firmware.
+[    2.038446] psci: Using standard PSCI v0.2 function IDs
+[    2.038929] psci: MIGRATE_INFO_TYPE not supported.
+[    2.039372] psci: SMC Calling Convention v1.1
+[    2.039914] percpu: Embedded 11 pages/cpu s16340 r8192 d20524 u45056
+[    2.040612] Built 1 zonelists, mobility grouping on.  Total pages: 130048
+[    2.041246] Kernel command line: storagemedia=mtd androidboot.storagemedia=mtd androidboot.mode=normal  rw rootwait earlycon=uart8250,mmio32,0xff0a0000 console=ttyFIQ0 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs snd_aloop.index=7 snd_aloop.use_raw_jiffies=1 mtdparts=spi-nand0:0x400000@0x400000(uboot),0x100000@0x800000(misc),0x40000@0x900000(vnvm),0xe00000@0x940000(recovery),0xa00000@0x1740000(boot),0xb400000@0x2140000(rootfs),0x12a20000@0xd540000(userdata) #a-03/26/2026 androidboot.fwver=ddr-v1.06-d27ac532c4,tee-v2.10,uboot-26c8833 user_debug=31
+[    2.046197] Unknown kernel command line parameters "#a-03/26/2026 storagemedia=mtd", will be passed to user space.
+[    2.047299] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    2.048067] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+[    2.048768] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    2.061433] Memory: 455012K/524288K available (4211K kernel code, 375K rwdata, 2116K rodata, 188K init, 120K bss, 13980K reserved, 55296K cma-reserved)
+[    2.062819] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=3, Nodes=1
+[    2.063636] rcu: Preemptible hierarchical RCU implementation.
+[    2.064175] rcu: 	RCU event tracing is enabled.
+[    2.064592] rcu: 	RCU restricting CPUs from NR_CPUS=4 to nr_cpu_ids=3.
+[    2.065194] rcu: RCU calculated value of scheduler-enlistment delay is 30 jiffies.
+[    2.065888] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=3
+[    2.066528] NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+[    2.067941] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    2.078323] arch_timer: cp15 timer(s) running at 24.00MHz (virt).
+[    2.078919] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    2.079918] sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+[    2.080660] Switching to timer-based delay loop, resolution 41ns
+[    2.081663] Console: colour dummy device 80x30
+[    2.082125] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=80000)
+[    2.083076] CPU: Testing write buffer coherency: ok
+[    2.083570] pid_max: default: 4096 minimum: 301
+[    2.084115] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    2.084801] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    2.086393] /cpus/cpu@f00 missing clock-frequency property
+[    2.086938] /cpus/cpu@f01 missing clock-frequency property
+[    2.087455] /cpus/cpu@f02 missing clock-frequency property
+[    2.087965] CPU0: thread -1, cpu 0, socket 15, mpidr 80000f00
+[    2.089409] Setting up static identity map for 0x108240 - 0x108294
+[    2.090176] rcu: Hierarchical SRCU implementation.
+[    2.090628] rcu: 	Max phase no-delay instances is 1000.
+[    2.091850] smp: Bringing up secondary CPUs ...
+I/TC: Secondary CPU 1 initializing
+I/TC: Secondary CPU 1 switching to normal world boot
+I/TC: Secondary CPU 2 initializing
+I/TC: Secondary CPU 2 switching to normal world boot
+[    2.093784] CPU1: thread -1, cpu 1, socket 15, mpidr 80000f01
+[    2.095366] CPU2: thread -1, cpu 2, socket 15, mpidr 80000f02
+[    2.095495] smp: Brought up 1 node, 3 CPUs
+[    2.096990] SMP: Total of 3 processors activated (144.00 BogoMIPS).
+[    2.097569] CPU: All CPU(s) started in SVC mode.
+[    2.098797] devtmpfs: initialized
+[    2.107369] VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+[    2.108271] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 6370867519511994 ns
+[    2.109186] futex hash table entries: 16 (order: -2, 1024 bytes, linear)
+[    2.109921] pinctrl core: initialized pinctrl subsystem
+[    2.111573] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    2.112690] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    2.114101] Registered FIQ tty driver
+[    2.114813] thermal_sys: Registered thermal governor 'step_wise'
+[    2.114825] thermal_sys: Registered thermal governor 'user_space'
+[    2.115497] cpuidle: using governor menu
+[    2.117995] ramoops: boot-log-0	0xd000@0x00083000
+[    2.118666] ramoops: console	0x20000@0x00090000
+[    2.119400] printk: console [ramoops-1] enabled
+[    2.119825] pstore: Registered ramoops as persistent store backend
+[    2.120433] ramoops: using 0x2d000@0x83000, ecc: 0
+[    2.132673] rockchip-gpio ff940000.gpio: probed /pinctrl/gpio@ff940000
+[    2.134166] rockchip-gpio ff870000.gpio: probed /pinctrl/gpio@ff870000
+[    2.135582] rockchip-gpio ff1c0000.gpio: probed /pinctrl/gpio@ff1c0000
+[    2.137011] rockchip-gpio ff1d0000.gpio: probed /pinctrl/gpio@ff1d0000
+[    2.138506] rockchip-gpio ff1e0000.gpio: probed /pinctrl/gpio@ff1e0000
+[    2.139225] rockchip-pinctrl pinctrl: probed pinctrl
+[    2.142244] platform ff600000.vop: Fixed dependency cycle(s) with /dsi@ff640000
+[    2.143033] platform ff640000.dsi: Fixed dependency cycle(s) with /dsi@ff640000/panel@0
+[    2.143788] platform ff640000.dsi: Fixed dependency cycle(s) with /vop@ff600000
+[    2.156653] fiq_debugger fiq_debugger.0: error -ENXIO: IRQ fiq not found
+[    2.157308] fiq_debugger fiq_debugger.0: error -ENXIO: IRQ wakeup not found
+[    2.158003] fiq_debugger_probe: could not install nmi irq handler
+[ [    2.158674] printk: console [ttyFIQ0] enabled
+   2.158674] printk: console [ttyFIQ0] enabled
+[    2.159474] printk: bootconsole [uart8250] disabled
+[    2.159474] printk: bootconsole [uart8250] disabled
+[    2.160166] Registered fiq debugger ttyFIQ0
+[    2.164952] usbcore: registered new interface driver usbfs
+[    2.165034] usbcore: registered new interface driver hub
+[    2.165090] usbcore: registered new device driver usb
+[    2.165323] mc: Linux media interface: v0.10
+[    2.165427] videodev: Linux video capture interface: v2.00
+[    2.165484] pps_core: LinuxPPS API ver. 1 registered
+[    2.165499] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    2.165526] PTP clock support registered
+[    2.166801] Advanced Linux Sound Architecture Driver Initialized.
+[    2.167316] Bluetooth: Core ver 2.22
+[    2.167401] NET: Registered PF_BLUETOOTH protocol family
+[    2.167419] Bluetooth: HCI device and connection manager initialized
+[    2.167440] Bluetooth: HCI socket layer initialized
+[    2.167457] Bluetooth: L2CAP socket layer initialized
+[    2.167504] Bluetooth: SCO socket layer initialized
+[    2.167989] rockchip-cpuinfo cpuinfo: SoC		: 35060000
+[    2.168023] rockchip-cpuinfo cpuinfo: Serial		: 5175af3fa368384f
+[    2.169044] clocksource: Switched to clocksource arch_sys_counter
+[    2.179874] NET: Registered PF_INET protocol family
+[    2.180115] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    2.181387] tcp_listen_portaddr_hash hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    2.181439] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    2.181465] TCP established hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    2.181506] TCP bind hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    2.181640] TCP: Hash tables configured (established 4096 bind 4096)
+[    2.181766] UDP hash table entries: 256 (order: 1, 8192 bytes, linear)
+[    2.181822] UDP-Lite hash table entries: 256 (order: 1, 8192 bytes, linear)
+[    2.182034] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    2.182706] RPC: Registered named UNIX socket transport module.
+[    2.182742] RPC: Registered udp transport module.
+[    2.182754] RPC: Registered tcp transport module.
+[    2.182765] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    2.184509] rockchip-thermal ff650000.tsadc: tsadc is probed successfully!
+[    2.185689] Initialise system trusted keyrings
+[    2.186069] workingset: timestamp_bits=30 max_order=17 bucket_order=0
+[    2.189824] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    2.253110] Key type asymmetric registered
+[    2.253157] Asymmetric key parser 'x509' registered
+[    2.253289] io scheduler mq-deadline registered
+[    2.253314] io scheduler kyber registered
+[    2.253476] io scheduler bfq registered
+[    2.256339] pwm-backlight backlight: supply power not found, using dummy regulator
+[    2.260714] dma-pl330 ff000000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    2.260761] dma-pl330 ff000000.dma-controller: 	DBUFF-32x8bytes Num_Chans-6 Num_Peri-12 Num_Events-12
+[    2.262149] dma-pl330 ff008000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    2.262186] dma-pl330 ff008000.dma-controller: 	DBUFF-128x8bytes Num_Chans-8 Num_Peri-20 Num_Events-16
+[    2.262468] rockchip-system-monitor rockchip-system-monitor: system monitor probe
+[    2.263782] Serial: 8250/16550 driver, 6 ports, IRQ sharing disabled
+[    2.264447] ff0c0000.serial: ttyS2 at MMIO 0xff0c0000 (irq = 58, base_baud = 1500000) is a 16550A
+[    2.265586] random: crng init done
+[    2.267505] dw-mipi-dsi-rockchip ff640000.dsi: Fixed dependency cycle(s) with /dsi@ff640000/panel@0
+[    2.267634] mipi-dsi ff640000.dsi.0: Fixed dependency cycle(s) with /dsi@ff640000
+[    2.270510] rockchip-drm display-subsystem: bound ff600000.vop (ops 0xb0657ca4)
+[    2.270586] dw-mipi-dsi-rockchip ff640000.dsi: failed to find panel or bridge: -517
+E/TC:0   plat_shm_get_page_num:386 plat_shm_get_page_num: type 6 alloc is not supported
+[    2.272561] no ATF memory for init
+[    2.273266] panel-simple-dsi ff640000.dsi.0: Expected bpc in {6,8} but got: 0
+[    2.275617] rockchip-spi ff120000.spi: no high_speed pinctrl state
+[    2.276946] rockchip-spi ff120000.spi: probed, poll=0, rsd=0, cs-inactive=0, ready=0
+[    2.278516] spi-nand spi2.0: Winbond SPI NAND was found.
+[    2.278561] spi-nand spi2.0: 512 MiB, block size: 128 KiB, page size: 2048, OOB size: 128
+[    2.279650] 7 cmdlinepart partitions found on MTD device spi-nand0
+[    2.279682] Creating 7 MTD partitions on "spi-nand0":
+[    2.279696] 0x000000400000-0x000000800000 : "uboot"
+[    2.281734] 0x000000800000-0x000000900000 : "misc"
+[    2.283851] 0x000000900000-0x000000940000 : "vnvm"
+[    2.285821] 0x000000940000-0x000001740000 : "recovery"
+[    2.287765] 0x000001740000-0x000002140000 : "boot"
+[    2.289761] 0x000002140000-0x00000d540000 : "rootfs"
+[    2.292286] 0x00000d540000-0x00001ff60000 : "userdata"
+[    2.296891] rk_gmac-dwmac ff4c8000.ethernet: IRQ eth_lpi not found
+[    2.297175] rk_gmac-dwmac ff4c8000.ethernet: supply phy not found, using dummy regulator
+[    2.297380] rk_gmac-dwmac ff4c8000.ethernet: clock input or output? (output).
+[    2.297406] rk_gmac-dwmac ff4c8000.ethernet: Can not read property: tx_delay.
+[    2.297422] rk_gmac-dwmac ff4c8000.ethernet: set tx_delay to 0xffffffff
+[    2.297437] rk_gmac-dwmac ff4c8000.ethernet: Can not read property: rx_delay.
+[    2.297450] rk_gmac-dwmac ff4c8000.ethernet: set rx_delay to 0xffffffff
+[    2.297474] rk_gmac-dwmac ff4c8000.ethernet: integrated PHY? (no).
+[    2.297494] rk_gmac-dwmac ff4c8000.ethernet: cannot get clock mac_clk_rx
+[    2.297511] rk_gmac-dwmac ff4c8000.ethernet: cannot get clock mac_clk_tx
+[    2.297544] rk_gmac-dwmac ff4c8000.ethernet: cannot get clock clk_mac_ref
+[    2.297560] rk_gmac-dwmac ff4c8000.ethernet: cannot get clock clk_mac_refout
+[    2.297575] rk_gmac-dwmac ff4c8000.ethernet: cannot get clock clk_mac_speed
+[    2.297827] rk_gmac-dwmac ff4c8000.ethernet: init for RMII
+[    2.298086] rk_gmac-dwmac ff4c8000.ethernet: User ID: 0x40, Synopsys ID: 0x51
+[    2.298122] rk_gmac-dwmac ff4c8000.ethernet: 	DWMAC4/5
+[    2.298137] rk_gmac-dwmac ff4c8000.ethernet: DMA HW capability register supported
+[    2.298150] rk_gmac-dwmac ff4c8000.ethernet: RX Checksum Offload Engine supported
+[    2.298162] rk_gmac-dwmac ff4c8000.ethernet: TX Checksum insertion supported
+[    2.298174] rk_gmac-dwmac ff4c8000.ethernet: Wake-Up On Lan supported
+[    2.298272] rk_gmac-dwmac ff4c8000.ethernet: TSO supported
+[    2.298290] rk_gmac-dwmac ff4c8000.ethernet: Enable RX Mitigation via HW Watchdog Timer
+[    2.298305] rk_gmac-dwmac ff4c8000.ethernet: Enabled RFS Flow TC (entries=10)
+[    2.298321] rk_gmac-dwmac ff4c8000.ethernet: TSO feature enabled
+[    2.298334] rk_gmac-dwmac ff4c8000.ethernet: Using 40/40 bits DMA host/device width
+[    2.431303] rk_gmac-dwmac ff4d0000.ethernet: IRQ eth_lpi not found
+[    2.431583] rk_gmac-dwmac ff4d0000.ethernet: supply phy not found, using dummy regulator
+[    2.431765] rk_gmac-dwmac ff4d0000.ethernet: clock input or output? (output).
+[    2.431790] rk_gmac-dwmac ff4d0000.ethernet: Can not read property: tx_delay.
+[    2.431803] rk_gmac-dwmac ff4d0000.ethernet: set tx_delay to 0xffffffff
+[    2.431817] rk_gmac-dwmac ff4d0000.ethernet: Can not read property: rx_delay.
+[    2.431831] rk_gmac-dwmac ff4d0000.ethernet: set rx_delay to 0xffffffff
+[    2.431869] rk_gmac-dwmac ff4d0000.ethernet: integrated PHY? (no).
+[    2.431893] rk_gmac-dwmac ff4d0000.ethernet: cannot get clock mac_clk_rx
+[    2.431909] rk_gmac-dwmac ff4d0000.ethernet: cannot get clock mac_clk_tx
+[    2.431942] rk_gmac-dwmac ff4d0000.ethernet: cannot get clock clk_mac_ref
+[    2.431959] rk_gmac-dwmac ff4d0000.ethernet: cannot get clock clk_mac_refout
+[    2.431974] rk_gmac-dwmac ff4d0000.ethernet: cannot get clock clk_mac_speed
+[    2.432230] rk_gmac-dwmac ff4d0000.ethernet: init for RMII
+[    2.432528] rk_gmac-dwmac ff4d0000.ethernet: User ID: 0x40, Synopsys ID: 0x51
+[    2.432567] rk_gmac-dwmac ff4d0000.ethernet: 	DWMAC4/5
+[    2.432582] rk_gmac-dwmac ff4d0000.ethernet: DMA HW capability register supported
+[    2.432596] rk_gmac-dwmac ff4d0000.ethernet: RX Checksum Offload Engine supported
+[    2.432609] rk_gmac-dwmac ff4d0000.ethernet: TX Checksum insertion supported
+[    2.432621] rk_gmac-dwmac ff4d0000.ethernet: Wake-Up On Lan supported
+[    2.432707] rk_gmac-dwmac ff4d0000.ethernet: TSO supported
+[    2.432726] rk_gmac-dwmac ff4d0000.ethernet: Enable RX Mitigation via HW Watchdog Timer
+[    2.432742] rk_gmac-dwmac ff4d0000.ethernet: Enabled RFS Flow TC (entries=10)
+[    2.432758] rk_gmac-dwmac ff4d0000.ethernet: TSO feature enabled
+[    2.432772] rk_gmac-dwmac ff4d0000.ethernet: Using 40/40 bits DMA host/device width
+[    2.567486] PPP generic driver version 2.4.2
+[    2.567786] usbcore: registered new interface driver ch341
+[    2.567830] usbserial: USB Serial support registered for ch341-uart
+[    2.568294] i2c_dev: i2c /dev entries driver
+[    2.571685] Goodix-TS 2-0014: Wakeup enabled on IRQ 69 (DT wakeup-source)
+[    2.571742] Goodix-TS 2-0014: supply AVDD28 not found, using dummy regulator
+[    2.571916] Goodix-TS 2-0014: supply VDDIO not found, using dummy regulator
+[    2.662456] Goodix-TS 2-0014: Error reading 1 bytes from 0x8140: -6
+[    2.689136] Goodix-TS 2-0014: Error reading 1 bytes from 0x8140: -6
+[    2.715728] Goodix-TS 2-0014: I2C communication failure: -6
+[    2.720371] Bluetooth: HCI UART driver ver 2.3
+[    2.720458] Bluetooth: HCI UART protocol H4 registered
+[    2.720638] cpu cpu0: bin=0
+[    2.720698] cpu cpu0: leakage=4
+[    2.721807] cpu cpu0: pvtm=1687
+[    2.722450] cpu cpu0: pvtm-volt-sel=3
+[    2.722481] cpu cpu0: soc version=0, speed=3
+[    2.723890] cpu cpu0: avs=0
+[    2.724136] cpu cpu0: l=10000 h=2147483647 hyst=5000 l_limit=0 h_limit=0 h_table=1
+[    2.724821] Synopsys Designware Multimedia Card Interface Driver
+[    2.725773] dwmmc_rockchip ff480000.mmc: No normal pinctrl state
+[    2.725810] dwmmc_rockchip ff480000.mmc: No idle pinctrl state
+[    2.726025] dwmmc_rockchip ff480000.mmc: IDMAC supports 32-bit address mode.
+[    2.726068] dwmmc_rockchip ff480000.mmc: Using internal DMA controller.
+[    2.726101] dwmmc_rockchip ff480000.mmc: Version ID is 270a
+[    2.726166] dwmmc_rockchip ff480000.mmc: DW MMC controller at irq 70,32 bit host data width,256 deep fifo
+[    2.726517] usbcore: registered new interface driver usbhid
+[    2.726546] usbhid: USB HID core driver
+[    2.726661] dwmmc_rockchip ff480000.mmc: Got CD GPIO
+[    2.734168] rk-multicodecs es8388-sound: Has no ADC channel
+[    2.739451] mmc_host mmc0: Bus speed (slot 0) = 400000Hz (slot req 400000Hz, actual 400000HZ div = 0)
+[    2.789815] rk-multicodecs es8388-sound: Don't need to map headset detect gpio to irq
+[    2.795282] NET: Registered PF_PACKET protocol family
+[    2.795743] Bluetooth: RFCOMM TTY layer initialized
+[    2.795819] Bluetooth: RFCOMM socket layer initialized
+[    2.795964] Bluetooth: RFCOMM ver 1.11
+[    2.796020] Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+[    2.796064] Bluetooth: BNEP socket layer initialized
+[    2.796094] Bluetooth: HIDP (Human Interface Emulation) ver 1.2
+[    2.796133] Bluetooth: HIDP socket layer initialized
+[    2.797228] Registering SWP/SWPB emulation handler
+[    2.797775] Loading compiled-in X.509 certificates
+[    2.804645] rga2 ff610000.rga: probe successfully, irq = 75, hw_version:3.a.07135
+[    2.804873] rga: IOMMU binding successfully, default mapping core[0x4]
+[    2.805146] rga: Module initialized. v1.3.8
+[    2.823601] rockchip-drm display-subsystem: bound ff600000.vop (ops 0xb0657ca4)
+[    2.823791] rockchip-drm display-subsystem: bound ff640000.dsi (ops 0xb0659234)
+[    2.824755] [drm] Initialized rockchip 4.0.0 20140818 for display-subsystem on minor 0
+[    2.834125] rockchip-drm display-subsystem: [drm] fb0: rockchipdrmfb frame buffer device
+[    2.834474] rockchip-drm display-subsystem: [drm] run display error_event monitor
+[    2.837828] ubi0: attaching mtd5
+[    3.211791] ubi0: scanning is finished
+[    3.217275] ubi0: attached mtd5 (name "rootfs", size 180 MiB)
+[    3.217320] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    3.217339] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    3.217356] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    3.217372] ubi0: good PEBs: 1440, bad PEBs: 0, corrupted PEBs: 0
+[    3.217388] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    3.217404] ubi0: max/mean erase counter: 2/0, WL threshold: 4096, image sequence number: 1527011325
+[    3.217423] ubi0: available PEBs: 0, total reserved PEBs: 1440, PEBs reserved for bad PEB handling: 80
+[    3.217451] ubi0: background thread "ubi_bgt0d" started, PID 105
+[    3.218140] clk: Disabling unused clocks
+[    3.218664] rockchip-pm rockchip-suspend: not set pwm-regulator-config
+[    3.218887] rockchip-suspend not set sleep-mode-config for mem-lite
+[    3.218915] rockchip-suspend not set wakeup-config for mem-lite
+[    3.218934] rockchip-suspend not set sleep-mode-config for mem-ultra
+[    3.218947] rockchip-suspend not set wakeup-config for mem-ultra
+[    3.219617] ALSA device list:
+[    3.219643]   #0: rockchip-es8388
+[    3.219656]   #1: rockchip,acodec
+[    3.220421] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[    3.220684] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 106
+[    3.261855] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[    3.261906] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    3.261930] UBIFS (ubi0:0): FS size: 170782720 bytes (162 MiB, 1345 LEBs), max 8456 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    3.261954] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[    3.261970] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID 68E79E07-E055-4592-8F84-0D4E3FD20218, small LPT model
+[    3.263143] VFS: Mounted root (ubifs filesystem) on device 0:14.
+[    3.263695] devtmpfs: mounted
+[    3.263882] Freeing unused kernel image (initmem) memory: 188K
+[    3.263903] Kernel memory protection not selected by kernel config.
+[    3.263934] Run /sbin/init as init process
+Starting lv_demo
+Start mounting all internal partitions in /etc/fstab
+Log saved to /var/log/mount-all.log
+Note: Create /.skip_fsck to skip fsck
+ - The check might take a while if didn't shutdown properly!
+realpath: : No such file or directory
+[2]: Handling /dev/mtdblock6 /userdata ubifs defaults 2
+[    3.905621] mtdblock: MTD device 'userdata' is NAND, please consider using UBI block devices instead.
+[    3.975874] mtdblock: MTD device 'rootfs' is NAND, please consider using UBI block devices instead.
+[2]: Preparing /dev/ubi6_0 from /dev/mtd6
+[2]: Remove ubi block device
+[2]: Detach ubi device
+[2]: Attach ubi device
+[    4.032271] ubi6: attaching mtd6
+[    4.060113] mtdblock: MTD device 'boot' is NAND, please consider using UBI block devices instead.
+[    4.187803] mtdblock: MTD device 'recovery' is NAND, please consider using UBI block devices instead.
+[    4.297947] mtdblock: MTD device 'vnvm' is NAND, please consider using UBI block devices instead.
+[    4.431929] mtdblock: MTD device 'misc' is NAND, please consider using UBI block devices instead.
+[    4.521711] mtdblock: MTD device 'uboot' is NAND, please consider using UBI block devices instead.
+[    5.032514] ubi6: scanning is finished
+[    5.038623] ubi6: attached mtd6 (name "userdata", size 298 MiB)
+[    5.038712] ubi6: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    5.038733] ubi6: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    5.038749] ubi6: VID header offset: 2048 (aligned 2048), data offset: 4096
+UBI device number 6, total 2385 LEBs (302837760 bytes, 288.8 MiB), available 0 LEBs (0 bytes), LEB size 126976 bytes (124.0 KiB)
+[    5.038765] ubi6: good PEBs: 2385, bad PEBs: 0, corrupted PEBs: 0
+[2]: Check for valid volume
+[    5.038781] ubi6: user volume: 1, internal volumes: 1, max. volumes count: 128
+[2]: Create ubi block device
+[    5.038797] ubi6: max/mean erase counter: 2/0, WL threshold: 4096, image sequence number: 1709231318
+[    5.038816] ubi6: available PEBs: 0, total reserved PEBs: 2385, PEBs reserved for bad PEB handling: 80
+[    5.038851] ubi6: background thread "ubi_bgt6d" started, PID 221
+[2]: No fsck for ubifs
+[2]: Mounting /dev/ubi6_0(ubifs) on /userdata with -o defaults
+[    5.064504] UBIFS (ubi6:0): Mounting in unauthenticated mode
+[    5.064716] UBIFS (ubi6:0): background thread "ubifs_bgt6_0" started, PID 226
+[    5.101040] UBIFS (ubi6:0): UBIFS: mounted UBI device 6, volume 0, name "userdata"
+[    5.101090] UBIFS (ubi6:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    5.101112] UBIFS (ubi6:0): FS size: 290648064 bytes (277 MiB, 2289 LEBs), max 16912 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    5.101137] UBIFS (ubi6:0): reserved for root: 0 bytes (0 KiB)
+[    5.101155] UBIFS (ubi6:0): media format: w4/r0 (latest is w5/r0), UUID C0E01F16-F2EE-48B0-B5AA-3248FC5B0EA0, small LPT model
+[2]: No resize for ubifs
+Seeding 256 bits and crediting
+Saving 256 bits of creditable seed for next boot
+Starting syslogd: OK
+Starting klogd: OK
+Running sysctl: OK
+[    5.510595] [BT_RFKILL]: Enter rfkill_rk_init
+[    5.510699] [WLAN_RFKILL]: Enter rfkill_wlan_init
+[    5.553670] cfg80211: Loading compiled-in X.509 certificates for regulatory database
+[    5.568282] cfg80211: Loaded X.509 cert 'wens: 61c038651aabdcf94bd0ac7ff06c7248db18c600'
+[    5.569747] cfg80211: Loaded X.509 cert 'sforshee: 00b28ddf47aef9cea7'
+[    5.570904] platform regulatory.0: Direct firmware load for regulatory.db failed with error -2
+[    5.570954] cfg80211: failed to load regulatory.db
+[    5.838034] usbcore: registered new interface driver rtl8733bu
+[    5.859714] rockchip-usb2phy ff2b0000.usb2-phy: error -ENXIO: IRQ index 0 not found
+[    5.899222] dwc2 ff740000.usb: supply vusb_d not found, using dummy regulator
+[    5.899526] dwc2 ff740000.usb: supply vusb_a not found, using dummy regulator
+[    6.029258] dwc2 ff740000.usb: EPs: 10, dedicated fifos, 972 entries in SPRAM
+[    6.029694] dwc2 ff740000.usb: DWC OTG Controller
+[    6.029773] dwc2 ff740000.usb: new USB bus registered, assigned bus number 1
+[    6.029951] dwc2 ff740000.usb: irq 80, io mem 0xff740000
+[    6.031447] hub 1-0:1.0: USB hub found
+[    6.031559] hub 1-0:1.0: 1 port detected
+[    6.034292] dwc2 ff780000.usb: supply vusb_d not found, using dummy regulator
+[    6.034648] dwc2 ff780000.usb: supply vusb_a not found, using dummy regulator
+[    6.048753] dwc2 ff780000.usb: DWC OTG Controller
+[    6.048822] dwc2 ff780000.usb: new USB bus registered, assigned bus number 2
+[    6.048873] dwc2 ff780000.usb: irq 81, io mem 0xff780000
+[    6.049898] hub 2-0:1.0: USB hub found
+[    6.049973] hub 2-0:1.0: 1 port detected
+[    6.085675] SCSI subsystem initialized
+[    6.093607] usbcore: registered new interface driver usb-storage
+[    6.243869] usbcore: registered new interface driver rtk_btusb
+[    6.310223] usbcore: registered new interface driver uvcvideo
+Populating /dev using udev: [    6.342424] usb 2-1: new high-speed USB device number 2 using dwc2
+[    6.400681] udevd[319]: starting version 3.2.14
+[    6.456684] udevd[320]: starting eudev-3.2.14
+[    6.540681] hub 2-1:1.0: USB hub found
+[    6.540855] hub 2-1:1.0: 4 ports detected
+[    6.711808] mtdblock: MTD device 'vnvm' is NAND, please consider using UBI block devices instead.
+[    6.712098] mtdblock: MTD device 'recovery' is NAND, please consider using UBI block devices instead.
+[    6.720795] mtdblock: MTD device 'rootfs' is NAND, please consider using UBI block devices instead.
+[    6.722713] mtdblock: MTD device 'userdata' is NAND, please consider using UBI block devices instead.
+[    6.729209] mtdblock: MTD device 'boot' is NAND, please consider using UBI block devices instead.
+[    6.744974] mtdblock: MTD device 'misc' is NAND, please consider using UBI block devices instead.
+[    6.749574] mtdblock: MTD device 'uboot' is NAND, please consider using UBI block devices instead.
+[    6.839116] usb 2-1.3: new high-speed USB device number 3 using dwc2
+[    6.934512] rtk_btusb: btusb_probe intf->cur_altsetting->desc.bInterfaceNumber 0
+[    6.949317] rtk_btusb: btusb_open hdev->promisc ==0
+[    6.949441] rtk_btusb: chip type value: 0x76
+[    6.962595] rtk_btusb: config filename rtl8733bu_config
+[    6.965654] rtk_btusb: no bdaddr file /opt/bdaddr
+[    6.965779] rtk_btusb: Origin cfg len 14
+[    6.965811] rtk_btusb: New cfg len 14
+[    6.998772] rtk_btusb: This is not 8723a, use new patch style!
+done
+[    7.421609] rtk_btusb: chip type value: 0x76
+[    7.421655] rtk_btusb: btusb_open set HCI UP RUNNING
+[    7.421708] rtk_btcoex: Open BTCOEX
+Starting irqbalance: OK
+Starting system message bus: done
+Starting rpcbind: OK
+Starting iptables: OK
+Starting bluetoothd: OK
+Starting network: [    8.003807] Bluetooth: MGMT ver 1.22
+OK
+Starting connmand: OK
+Starting ntpd: [    8.266598] rk_gmac-dwmac ff4c8000.ethernet eth0: Register MEM_TYPE_PAGE_POOL RxQ-0
+[    8.269558] rk_gmac-dwmac ff4c8000.ethernet eth0: PHY [stmmac-0:01] driver [YT8512 100M Ethernet] (irq=POLL)
+[    8.270141] dwmac4: Master AXI performs any burst length
+[    8.270190] rk_gmac-dwmac ff4c8000.ethernet eth0: No Safety Features support found
+[    8.270227] rk_gmac-dwmac ff4c8000.ethernet eth0: IEEE 1588-2008 Advanced Timestamp supported
+[    8.270504] rk_gmac-dwmac ff4c8000.ethernet eth0: registered PTP clock
+[    8.271366] rk_gmac-dwmac ff4c8000.ethernet eth0: configuring for phy/rmii link mode
+[    8.280438] rk_gmac-dwmac ff4d0000.ethernet eth1: Register MEM_TYPE_PAGE_POOL RxQ-0
+[    8.283573] rk_gmac-dwmac ff4d0000.ethernet eth1: PHY [stmmac-1:01] driver [YT8512 100M Ethernet] (irq=POLL)
+[    8.284144] dwmac4: Master AXI performs any burst length
+[    8.284183] rk_gmac-dwmac ff4d0000.ethernet eth1: No Safety Features support found
+[    8.284214] rk_gmac-dwmac ff4d0000.ethernet eth1: IEEE 1588-2008 Advanced Timestamp supported
+[    8.284510] rk_gmac-dwmac ff4d0000.ethernet eth1: registered PTP clock
+[    8.285435] rk_gmac-dwmac ff4d0000.ethernet eth1: configuring for phy/rmii link mode
+OK
+starting weston... done.
+Starting nginx...
+Date: 1970-01-01 CST
+[08:00:06.001] weston 14.0.1
+               https://wayland.freedesktop.org
+               Bug reports to: https://gitlab.freedesktop.org/wayland/weston/issues/
+               Build: 14.0.1
+[08:00:06.-1495128480] Command line: /usr/bin/weston
+[08:00:06.-1495128412] OS: Linux, 6.1.118, #1 SMP PREEMPT Wed Mar 25 17:43:11 CST 2026, armv7l
+[08:00:06.-1359523816] Flight recorder: enabled
+[08:00:06.-1495128412] warning: XDG_RUNTIME_DIR "/var/run" is not configured
+correctly.  Unix access mode must be 0700 (current mode is 0777),
+and must be owned by the user UID 0 (current owner is UID 0).
+Refer to your distribution on how to get it, or
+http://www.freedesktop.org/wiki/Specifications/basedir-spec
+on how to implement it.
+[08:00:06.-1495128480] Using config file '/etc/xdg/weston/weston.ini'
+[08:00:06.000] Output repaint window is -1 ms maximum.
+[08:00:06.-1359528044] Loading module '/usr/lib/libweston-14/drm-backend.so'
+[08:00:06.-1359524056] initializing drm backend
+[08:00:06.-1495128412] Entering mirror mode.
+[08:00:06.-1495259600] Trying direct launcher...
+[08:00:06.4096] using /dev/dri/card0
+[08:00:06.-1495128412] DRM: does not support atomic modesetting
+[08:00:06.-1359524096] DRM: does not support GBM modifiers
+[08:00:06.-1495128412] DRM: does not support Atomic async page flip
+[08:00:06.-1359524096] DRM: supports picture aspect ratio
+[08:00:06.000] Using Pixman renderer
+Starting sshd: [08:00:06.000] warning: no input devices found, but none required as per configuration.
+[08:00:06.000] Registered plugin API 'weston_drm_output_api_v1' of size 20
+[08:00:06.-1495165456] Color manager: no-op
+                 protocol support: no
+[08:00:06.000] DRM: head 'DSI-1' found, connector 75 is connected, EDID make 'unknown', model 'unknown', serial ''
+               Supported EOTF modes: SDR
+               Supported colorimetry modes: default
+[08:00:06.-1495611228] DSI-1 using at least 2 buffers
+[08:00:06.809119792] Output 'DSI-1' attempts EOTF mode SDR and colorimetry mode default.
+[08:00:06.-1359523856] Output 'DSI-1' using color profile: stock sRGB color profile
+[08:00:06.-1494184760] DRM: output DSI-1 uses shadow framebuffer.
+[08:00:06.1634887200] Output DSI-1 (crtc 72) video modes:
+               800x1280@61.4, preferred, current, 67.0 MHz
+[08:00:06.5200200] Output 'DSI-1' enabled with head(s) DSI-1
+[08:00:06.-1500029312] Compositor capabilities:
+               arbitrary surface rotation: yes
+               screen capture uses y-flip: no
+               cursor planes: yes
+               arbitrary resolutions: no
+               view mask clipping: yes
+               explicit sync: no
+               color operations: no
+               presentation clock: CLOCK_MONOTONIC, id 1
+               presentation clock resolution: 0.000000001 s
+[08:00:06.-1359527996] Loading module '/usr/lib/weston/desktop-shell.so'
+[08:00:06.-1495249256] launching '/usr/libexec/weston-keyboard'
+[08:00:06.-1359524824] launching '/usr/libexec/weston-desktop-shell'
+could not load cursor 'dnd-move'
+could not load cursor 'dnd-move'
+could not load cursor 'dnd-copy'
+could not load cursor 'dnd-none'
+could not load cursor 'dnd-copy'
+could not load cursor 'dnd-none'
+OK
+starting systemui... done.
+starting usbdevice service, log saved to /var/log/usbdevice.log
+Starting NFS statd: OK
+Starting NFS services: OK
+Starting NFS daemon: rpc.nfsd: Unable to access /proc/fs/nfsd errno 2 (No such file or directory).
+Please try, as root, 'mount -t nfsd nfsd /proc/fs/nfsd' and then restart rpc.nfsd to correct the problem
+FAIL
+Starting NFS mountd: rpc.mountd: svc_tli_create: could not open connection for udp6
+rpc.mountd: svc_tli_create: could not open connection for tcp6
+rpc.mountd: svc_tli_create: could not open connection for udp6
+rpc.mountd: svc_tli_create: could not open connection for tcp6
+rpc.mountd: svc_tli_create: could not open connection for udp6
+rpc.mountd: svc_tli_create: could not open connection for tcp6
+OK
+Starting vsftpd: OK
+Enabling OUT1 and OUT2 audio outputs...
+OUT1/OUT2 enabled
+fstrim: Starting fstrim process (535)...
+Starting input-event-daemon: input-event-daemon: no listener found!
+done
+root@ATK-DLRK3506:/# [   10.319547] Freeing drm_logo memory: 1256K
+[   11.200189] file system registered
+[   11.672663] read descriptors
+[   11.672886] read strings
+
+root@ATK-DLRK3506:/# [   11.850053] dwc2 ff740000.usb: bound driver configfs-gadget.rockchip
+
+root@ATK-DLRK3506:/# [   11.971036] dwc2 ff740000.usb: new device is high-speed
+[   12.008413] android_work: sent uevent USB_STATE=CONNECTED
+[   12.008504] dwc2 ff740000.usb: new address 4
+
+root@ATK-DLRK3506:/# [   12.031643] android_work: sent uevent USB_STATE=CONFIGURED
+ca[08:00:10.000] seeing the first app
+root@ATK-DLRK3506:/# 
+root@ATK-DLRK3506:/# 
+root@ATK-DLRK3506:/# cat 2.txt 
+1
+root@ATK-DLRK3506:/# 

@@ -1,0 +1,53 @@
+[init] rootfs mounts but has no marker → will provision
+[    1.457938] UBIFS (ubi0:0): un-mount UBI device 0
+[    1.458431] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" stops
+[    1.470244] ubi0: detaching mtd5
+[    1.473823] ubi0: mtd5 is detached
+[init] FIRST BOOT: ubiprog rewriting /dev/mtd5 (data blocks only)…
+ubiprog: /dev/mtd5  size=182452224  erasesize=131072  PEBs=1392  writesize=2048
+[    1.620790] spi-nand: spinand_rd eb=317 pg=3 st=0x20 ecc=0x20
+[    1.621506] spi-nand: spinand_rd eb=317 pg=4 st=0x10 ecc=0x10
+[    1.622191] spi-nand: spinand_rd eb=317 pg=5 st=0x20 ecc=0x20
+[    1.631888] spi-nand: spinand_rd eb=317 pg=3 st=0x20 ecc=0x20
+[    1.632616] spi-nand: spinand_rd eb=317 pg=4 st=0x10 ecc=0x10
+[    1.633405] spi-nand: spinand_rd eb=317 pg=5 st=0x20 ecc=0x20
+  peb=3 full-read uncorrectable → page recovery (3/64 pages unreadable → 0xFF, rest kept)
+[    1.680090] spi-nand: spinand_rd eb=318 pg=3 st=0x20 ecc=0x20
+[    1.680810] spi-nand: spinand_rd eb=318 pg=4 st=0x10 ecc=0x10
+[    1.681495] spi-nand: spinand_rd eb=318 pg=5 st=0x20 ecc=0x20
+[    1.691203] spi-nand: spinand_rd eb=318 pg=3 st=0x20 ecc=0x20
+[    1.691959] spi-nand: spinand_rd eb=318 pg=4 st=0x10 ecc=0x10
+[    1.692675] spi-nand: spinand_rd eb=318 pg=5 st=0x20 ecc=0x20
+  peb=4 full-read uncorrectable → page recovery (3/64 pages unreadable → 0xFF, rest kept)
+  ... 8 blocks written
+  ... 16 blocks written
+[    2.523279] random: crng init done
+  ... 24 blocks written
+  ... 32 blocks written
+  ... 40 blocks written
+  ... 48 blocks written
+  ... 56 blocks written
+  ... 64 blocks written
+ubiprog done: rewrote=66 recovered(page-level)=2 skipped(erased)=1324 failed=0 (of 1392 PEBs)
+[   17.288591] ubi0: attaching mtd5
+[   17.502452] ubi0: scanning is finished
+[   17.508776] ubi0: attached mtd5 (name "rootfs", size 174 MiB)
+[   17.509327] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[   17.509939] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[   17.510541] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[   17.511155] ubi0: good PEBs: 1392, bad PEBs: 0, corrupted PEBs: 0
+[   17.511697] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[   17.512334] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 1358782820
+[   17.513140] ubi0: available PEBs: 0, total reserved PEBs: 1392, PEBs reserved for bad PEB handling: 80
+[   17.514071] ubi0: background thread "ubi_bgt0d" started, PID 65
+[   17.521431] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[   17.522314] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 67
+[   17.614968] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[   17.615665] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[   17.616548] UBIFS (ubi0:0): FS size: 164687872 bytes (157 MiB, 1297 LEBs), max 1400 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[   17.617609] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[   17.618135] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID A8A290F1-4DBF-4524-8718-99D75D2BD462, small LPT model
+[init] provisioning complete → switch_root
+mount: mounting none on /tmp failed: Invalid argument
+mount: mounting none on /run failed: Invalid argument
+~ # 

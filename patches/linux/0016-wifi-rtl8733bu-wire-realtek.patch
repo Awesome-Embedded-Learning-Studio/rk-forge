@@ -1,0 +1,48 @@
+From bded0f8410937dfea58b22b0d6e0cb3fb82c59b8 Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Sat, 20 Jun 2026 11:57:35 +0800
+Subject: [PATCH] wifi: rtl8733bu -- wire into realtek Kconfig + Makefile
+
+Register the ported RTL8733BU out-of-tree driver (wirenboard
+v5.15.12-264_for6.18, ported in-tree for Linux 7.1) with the realtek
+subsystem so CONFIG_RTL8733BU selects it. This is ONLY the 2-line
+registration (source the Kconfig + add the obj-$(CONFIG) line); the
+driver drop itself is materialized by
+scripts/fetch-rtl8733bu-driver.sh (clone upstream + the forge overlay
+under drivers/rtl8733bu/: hand-written Kbuild Makefile + fixed Kconfig
++ the cfg80211 wdev-wrapper patch). The wiring is a real git commit so
+the tree stays clean -- the fetched rtl8733bu/ drop is gitignored.
+
+Board-verified: document/logs/boot-sdl-202606201050.txt
+(insmod -> probe RTL8733B -> fw from array -> wlan0/wlan1 ->
+wpa_supplicant connects). Port roadmap: document/notes/29. Full pit
+set: document/pitfalls/07.
+---
+ drivers/net/wireless/realtek/Kconfig  | 1 +
+ drivers/net/wireless/realtek/Makefile | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/drivers/net/wireless/realtek/Kconfig b/drivers/net/wireless/realtek/Kconfig
+index 4a1f0e64d..f115ea31b 100644
+--- a/drivers/net/wireless/realtek/Kconfig
++++ b/drivers/net/wireless/realtek/Kconfig
+@@ -17,5 +17,6 @@ source "drivers/net/wireless/realtek/rtlwifi/Kconfig"
+ source "drivers/net/wireless/realtek/rtl8xxxu/Kconfig"
+ source "drivers/net/wireless/realtek/rtw88/Kconfig"
+ source "drivers/net/wireless/realtek/rtw89/Kconfig"
++source "drivers/net/wireless/realtek/rtl8733bu/Kconfig"
+ 
+ endif # WLAN_VENDOR_REALTEK
+diff --git a/drivers/net/wireless/realtek/Makefile b/drivers/net/wireless/realtek/Makefile
+index ab25419f5..38de4afdd 100644
+--- a/drivers/net/wireless/realtek/Makefile
++++ b/drivers/net/wireless/realtek/Makefile
+@@ -9,4 +9,5 @@ obj-$(CONFIG_RTLWIFI)		+= rtlwifi/
+ obj-$(CONFIG_RTL8XXXU)		+= rtl8xxxu/
+ obj-$(CONFIG_RTW88)		+= rtw88/
+ obj-$(CONFIG_RTW89)		+= rtw89/
++obj-$(CONFIG_RTL8733BU)		+= rtl8733bu/
+ 
+-- 
+2.43.0
+

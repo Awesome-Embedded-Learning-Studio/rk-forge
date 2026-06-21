@@ -1,0 +1,444 @@
+From bdae7602ee2840f7ef45ebf42aa524b0617e10bf Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Wed, 17 Jun 2026 00:03:21 +0800
+Subject: [PATCH 1/3] =?UTF-8?q?ARM:=20dts:=20rockchip:=20rk3506b-aes=20?=
+ =?UTF-8?q?=E2=80=94=20SFC=20+=20W25N04KV=20SPI-NAND=20+=20RW=20rootfs?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+AES RK3506B board DT on top of mainline rk3506 SoC support:
+- rk3506.dtsi sfc node: compatible = "rockchip,rk3506-fspi", "rockchip,sfc"
+  + rockchip,grf = <&grf_pmu> (the per-transfer power-good gate the SFC
+  driver needs for reliable writes).
+- rk3506b-aes.dts: enable SFC + W25N04KV SPI-NAND (JEDEC ef aa 23) + MTD
+  partitions; spi-max-frequency = <50000000> + rockchip,max-dll = <0x17F>
+  (50MHz: board DLL window is 230 cells vs ~70 at 80MHz); persistent-rootfs
+  bootargs (ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait rw).
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
+---
+ arch/arm/boot/dts/rockchip/Makefile        |   3 +-
+ arch/arm/boot/dts/rockchip/rk3506.dtsi     | 299 +++++++++++++++++++++
+ arch/arm/boot/dts/rockchip/rk3506b-aes.dts |  92 +++++++
+ 3 files changed, 393 insertions(+), 1 deletion(-)
+ create mode 100644 arch/arm/boot/dts/rockchip/rk3506.dtsi
+ create mode 100644 arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+
+diff --git a/arch/arm/boot/dts/rockchip/Makefile b/arch/arm/boot/dts/rockchip/Makefile
+index d0154fd7f..028f361d6 100644
+--- a/arch/arm/boot/dts/rockchip/Makefile
++++ b/arch/arm/boot/dts/rockchip/Makefile
+@@ -44,4 +44,5 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += \
+ 	rk3288-veyron-pinky.dtb \
+ 	rk3288-veyron-speedy.dtb \
+ 	rk3288-veyron-tiger.dtb \
+-	rk3288-vyasa.dtb
++	rk3288-vyasa.dtb \
++	rk3506b-aes.dtb
+diff --git a/arch/arm/boot/dts/rockchip/rk3506.dtsi b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+new file mode 100644
+index 000000000..8d4108c66
+--- /dev/null
++++ b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+@@ -0,0 +1,299 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * (C) Copyright 2023 Rockchip Electronics Co., Ltd.
++ *
++ * Minimal RK3506 SoC dtsi for mainline Linux bring-up.
++ * Ported/reduced from the ATK vendor SDK rk3502.dtsi. Nodes needed to boot +
++ * reach the early UART console: clocks, cru, grf, ioc syscons, gic, arch timer,
++ * psci, cpus, pinctrl (all 5 gpio banks) + uart0.
++ * + sfc (SPI flash controller) — drives the W25N04KV SPI-NAND, needed for a
++ *   persistent rootfs on NAND. Uses the mainline `rockchip,sfc` binding (the
++ *   same node proven on the U-Boot side); vendor BSP instead uses a private
++ *   `fspi` driver — we stay mainline. The mainline rockchip_sfc.c now ports
++ *   the vendor delay-line tuning, so the SFC runs at full speed. See notes/10
++ *   + BLOBS.md.
++ * Other peripherals (i2c/spi/pwm/sai/mmc/usb/display/io-domains) still deferred.
++ */
++
++#include <dt-bindings/clock/rockchip,rk3506-cru.h>
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/pinctrl/rockchip.h>
++
++/ {
++	#address-cells = <1>;
++	#size-cells = <1>;
++
++	compatible = "rockchip,rk3506";
++
++	interrupt-parent = <&gic>;
++
++	aliases {
++		gpio0 = &gpio0;
++		gpio1 = &gpio1;
++		gpio2 = &gpio2;
++		gpio3 = &gpio3;
++		gpio4 = &gpio4;
++		serial0 = &uart0;
++	};
++
++	clocks {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges;
++
++		clk_rc: clk-rc {
++			compatible = "fixed-clock";
++			#clock-cells = <0>;
++			clock-frequency = <400000>;
++			clock-output-names = "clk_rc";
++		};
++
++		xin24m: xin24m {
++			compatible = "fixed-clock";
++			#clock-cells = <0>;
++			clock-frequency = <24000000>;
++			clock-output-names = "xin24m";
++		};
++
++		xin32k: xin32k {
++			compatible = "fixed-clock";
++			#clock-cells = <0>;
++			clock-frequency = <32768>;
++			clock-output-names = "xin32k";
++		};
++	};
++
++	cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		cpu0: cpu@f00 {
++			device_type = "cpu";
++			compatible = "arm,cortex-a7";
++			reg = <0xf00>;
++			enable-method = "psci";
++			clocks = <&cru ARMCLK>;
++		};
++
++		cpu1: cpu@f01 {
++			device_type = "cpu";
++			compatible = "arm,cortex-a7";
++			reg = <0xf01>;
++			enable-method = "psci";
++			clocks = <&cru ARMCLK>;
++		};
++
++		cpu2: cpu@f02 {
++			device_type = "cpu";
++			compatible = "arm,cortex-a7";
++			reg = <0xf02>;
++			enable-method = "psci";
++			clocks = <&cru ARMCLK>;
++		};
++	};
++
++	psci {
++		compatible = "arm,psci-1.0";
++		method = "smc";
++	};
++
++	timer {
++		compatible = "arm,armv7-timer";
++		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(3) | IRQ_TYPE_LEVEL_HIGH)>,
++			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(3) | IRQ_TYPE_LEVEL_HIGH)>,
++			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(3) | IRQ_TYPE_LEVEL_HIGH)>,
++			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(3) | IRQ_TYPE_LEVEL_HIGH)>;
++		clock-frequency = <24000000>;
++	};
++
++	uart0: serial@ff0a0000 {
++		compatible = "rockchip,rk3506-uart", "snps,dw-apb-uart";
++		reg = <0xff0a0000 0x100>;
++		interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
++		reg-shift = <2>;
++		reg-io-width = <4>;
++		clocks = <&cru SCLK_UART0>, <&cru PCLK_UART0>;
++		clock-names = "baudclk", "apb_pclk";
++		pinctrl-names = "default";
++		pinctrl-0 = <&uart0_xfer_pins>;
++		status = "disabled";
++	};
++
++	sfc: spi@ff488000 {
++		compatible = "rockchip,rk3506-fspi", "rockchip,sfc";
++		reg = <0xff488000 0x4000>;
++		interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru SCLK_FSPI>, <&cru HCLK_FSPI>;
++		clock-names = "clk_sfc", "hclk_sfc";
++		rockchip,grf = <&grf_pmu>;	/* power-good gate (GRF_PMU+0x100 bit0); needed for reliable writes */
++		rockchip,sfc-no-dma;	/* DMA reads corrupt on this board; force PIO (notes/10) */
++		rockchip,max-dll = <0x17F>;	/* RK3506 SFC is VER_5; cap DLL cell scan (vendor value) */
++		#address-cells = <1>;
++		#size-cells = <0>;
++		status = "disabled";
++	};
++
++	grf: syscon@ff288000 {
++		compatible = "rockchip,rk3506-grf", "syscon", "simple-mfd";
++		reg = <0xff288000 0x4000>;
++	};
++
++	ioc_grf: syscon@ff4d8000 {
++		compatible = "rockchip,rk3506-ioc-grf", "syscon";
++		reg = <0xff4d8000 0x8000>;
++	};
++
++	gic: interrupt-controller@ff581000 {
++		compatible = "arm,gic-400";
++		reg = <0xff581000 0x1000>,
++		      <0xff582000 0x2000>,
++		      <0xff584000 0x2000>,
++		      <0xff586000 0x2000>;
++		interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
++		#interrupt-cells = <3>;
++		interrupt-controller;
++		#address-cells = <0>;
++	};
++
++	ioc1: syscon@ff660000 {
++		compatible = "rockchip,rk3506-ioc1", "syscon";
++		reg = <0xff660000 0x10000>;
++	};
++
++	grf_pmu: syscon@ff910000 {
++		compatible = "rockchip,rk3506-grf-pmu", "syscon", "simple-mfd";
++		reg = <0xff910000 0x4000>;
++	};
++
++	ioc_pmu: syscon@ff950000 {
++		compatible = "rockchip,rk3506-ioc-pmu", "syscon";
++		reg = <0xff950000 0x10000>;
++	};
++
++	cru: clock-controller@ff9a0000 {
++		compatible = "rockchip,rk3506-cru";
++		reg = <0xff9a0000 0x20000>;
++		rockchip,grf = <&grf>;
++		#clock-cells = <1>;
++		#reset-cells = <1>;
++
++		assigned-clocks =
++			<&cru CLK_32K_FRAC>,
++			<&cru CLK_FRAC_UART_MATRIX0>,
++			<&cru CLK_FRAC_UART_MATRIX1>;
++		assigned-clock-rates =
++			<32768>,
++			<96000000>,
++			<128000000>;
++	};
++
++	pinctrl: pinctrl {
++		compatible = "rockchip,rk3506-pinctrl";
++		rockchip,grf = <&ioc_grf>;
++		rockchip,ioc1 = <&ioc1>;
++		rockchip,pmu = <&ioc_pmu>;
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges;
++
++		pcfg_pull_up: pcfg-pull-up {
++			bias-pull-up;
++		};
++
++		pcfg_pull_none: pcfg-pull-none {
++			bias-disable;
++		};
++
++		gpio0: gpio@ff940000 {
++			compatible = "rockchip,gpio-bank";
++			reg = <0xff940000 0x200>;
++			interrupts = <GIC_SPI 0 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 1 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru PCLK_GPIO0>, <&cru DBCLK_GPIO0>;
++
++			gpio-controller;
++			#gpio-cells = <2>;
++			gpio-ranges = <&pinctrl 0 0 32>;
++			interrupt-controller;
++			#interrupt-cells = <2>;
++		};
++
++		gpio1: gpio@ff870000 {
++			compatible = "rockchip,gpio-bank";
++			reg = <0xff870000 0x200>;
++			interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
++
++			clocks = <&cru PCLK_GPIO1>, <&cru DBCLK_GPIO1>;
++
++			gpio-controller;
++			#gpio-cells = <2>;
++			gpio-ranges = <&pinctrl 0 32 32>;
++			interrupt-controller;
++			#interrupt-cells = <2>;
++		};
++
++		gpio2: gpio@ff1c0000 {
++			compatible = "rockchip,gpio-bank";
++			reg = <0xff1c0000 0x200>;
++			interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru PCLK_GPIO2>, <&cru DBCLK_GPIO2>;
++
++			gpio-controller;
++			#gpio-cells = <2>;
++			gpio-ranges = <&pinctrl 0 64 32>;
++			interrupt-controller;
++			#interrupt-cells = <2>;
++		};
++
++		gpio3: gpio@ff1d0000 {
++			compatible = "rockchip,gpio-bank";
++			reg = <0xff1d0000 0x200>;
++			interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru PCLK_GPIO3>, <&cru DBCLK_GPIO3>;
++
++			gpio-controller;
++			#gpio-cells = <2>;
++			gpio-ranges = <&pinctrl 0 96 32>;
++			interrupt-controller;
++			#interrupt-cells = <2>;
++		};
++
++		gpio4: gpio@ff1e0000 {
++			compatible = "rockchip,gpio-bank";
++			reg = <0xff1e0000 0x200>;
++			interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru PCLK_GPIO4>, <&cru DBCLK_GPIO4>;
++
++			gpio-controller;
++			#gpio-cells = <2>;
++			gpio-ranges = <&pinctrl 0 128 32>;
++			interrupt-controller;
++			#interrupt-cells = <2>;
++		};
++
++		uart0 {
++			uart0_xfer_pins: uart0-xfer-pins {
++				rockchip,pins =
++					/* uart0_rx */ <0 RK_PC7 1 &pcfg_pull_up>,
++					/* uart0_tx */ <0 RK_PC6 1 &pcfg_pull_up>;
++			};
++		};
++	};
++};
+diff --git a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+new file mode 100644
+index 000000000..e8bb7f8d0
+--- /dev/null
++++ b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+@@ -0,0 +1,92 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Board device tree for the AES RK3506B board (RK3506B SoC, arm32 Cortex-A7).
++ * Mainline bring-up: minimal board for earlycon/console on uart0.
++ */
++
++/dts-v1/;
++
++#include "rk3506.dtsi"
++
++/ {
++	model = "AES RK3506B Board";
++	compatible = "aes,rk3506b-aes", "rockchip,rk3506b", "rockchip,rk3506";
++
++	chosen {
++		stdout-path = "serial0:1500000n8";
++		/* Mount the NAND rootfs (UBI volume "rootfs" on mtd5 — the 6th fixed
++		 * partition in the SFC node below) as root; rootwait lets UBI attach
++		 * first. `rw` mounts it read-write so writes persist (without it the
++		 * kernel mounts the initial root read-only). Harmless for the
++		 * initramfs-shell boot variant: if the boot FIT also bundles an
++		 * initramfs with /init, the kernel runs that /init and ignores root=. */
++		bootargs = "earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait rw";
++	};
++
++	memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x20000000>;	/* 512 MiB; DRAM base 0x0 (CFG_SYS_SDRAM_BASE=0) */
++	};
++};
++
++&uart0 {
++	status = "okay";
++};
++
++/*
++ * SPI-NAND (Winbond W25N04KV, 4Gb) on the SFC. Lets Linux see the NAND as MTD
++ * + attach UBI for persistent rootfs (see notes/10). Partition layout mirrors
++ * third_party/bringup/parameter-nand-aes.txt (512B-sector units → bytes, 128KB
++ * erase-block aligned); the 0x0–0x400000 (0–4MB) loader/idblock area is left
++ * unpartitioned. 50 MHz + DLL. Reads are reliable (230-cell window; ro reboot
++ * loop clean). RW writes corrupted the page at ALL speeds (24/50/80 MHz) —
++ * root cause was the SFC TX-FIFO level mask being 5-bit instead of RK3506's
++ * 6-bit (GENMASK(13,8)), so write_fifo miscomputed free slots. Fixed in the
++ * driver; this DT is back to the target 50 MHz.
++ */
++&sfc {
++	status = "okay";
++
++	flash@0 {
++		compatible = "spi-nand";	/* W25N04KV; mainline winbond.c id (0xaa,0x23) */
++		reg = <0>;
++		spi-max-frequency = <50000000>;
++		spi-rx-bus-width = <4>;
++		spi-tx-bus-width = <1>;
++
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@400000 {
++				label = "uboot";
++				reg = <0x400000 0x400000>;
++			};
++			partition@800000 {
++				label = "misc";
++				reg = <0x800000 0x100000>;
++			};
++			partition@900000 {
++				label = "vnvm";
++				reg = <0x900000 0x40000>;
++			};
++			partition@940000 {
++				label = "recovery";
++				reg = <0x940000 0xe00000>;
++			};
++			partition@1740000 {
++				label = "boot";
++				reg = <0x1740000 0x1000000>;
++			};
++			partition@2740000 {
++				label = "rootfs";
++				reg = <0x2740000 0xae00000>;
++			};
++			partition@d540000 {
++				label = "userdata";
++				reg = <0xd540000 0x12ac0000>;
++			};
++		};
++	};
++};
+-- 
+2.43.0
+

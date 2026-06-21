@@ -1,0 +1,109 @@
+❯ ./build.sh lunch
+
+############### Rockchip Linux SDK ###############
+
+Manifest: atk-dlrk3506_linux6.1_release_v1.3.1_20260326.xml
+
+Log colors: message notice warning error fatal
+================= 正点原子RK3506 快速配置选择 =================
+
+配置分类说明：
+  atk_dlrk3506b：正点原子RK3506B开发板
+  atk_dlrk3506j：正点原子RK3506J开发板
+  mipi720x1280：720×1280分辨率MIPI屏幕
+  mipi800x1280：800×1280分辨率MIPI屏幕
+  rgb1024x600：1024×600分辨率RGB屏幕
+  amp_linux：AMP Linux系统镜像（运行在A核）
+  amp_mcu：AMP MCU镜像（运行在M核）
+  thunderboot：快速启动版
+  nand：NAND闪存
+  emmc：EMMC存储
+  sd：SD卡存储
+  automipi：自动识别正点原子MIPI屏
+  ubi_ubifs：可读写文件系统，调试使用
+  ubi_squashfs：只读压缩文件系统，用于生产
+------------------------------------------------
+使用说明：
+  1. 有/无屏幕用户：根据自己的开发板选择，新手推荐19、21、22、41、42中的automipi配置
+  2. 有正点原子MIPI屏：根据屏幕分辨率选择对应配置
+  3. RGB屏配置，底板上默认无RGB接口，需要自己做底板
+  4. 自动适配屏幕：选择automipi配置(仅识别正点原子5.5寸720p和10.1寸800p屏幕)
+  5. NAND存储读写文件系统：选择带ubi_ubifs(读写)的配置，常用于临时调试
+  6. NAND存储只读文件系统：选择带squashfs(只读)的配置，常用于生产
+  7. 开发AMP多核异构：
+     - amp_linux：AMP Linux系统镜像（运行在A核）
+     - amp_mcu：AMP MCU镜像（运行在M核）
+  8. 快速启动需求：选择带thunderboot的配置
+  9. SD卡存储：选择带SD卡的配置
+  10. SDK更多开发资料参考网盘资料10、用户手册/【正点原子】ATK-DLRK3506_SDK开发手册
+------------------------------------------------
+请输入配置序号 (1-42): 
+Log saved at /home/charliechen/rk-forge/third_party/vendor-sdk/output/sessions/2026-06-14_10-34-16
+Pick a defconfig:
+
+1. 01_atk_dlrk3506b_mipi720x1280_nand_ubi_squashfs_defconfig
+2. 02_atk_dlrk3506b_mipi720x1280_nand_ubi_squashfs_thunderboot_defconfig
+3. 03_atk_dlrk3506b_mipi720x1280_nand_ubi_ubifs_amp_linux_defconfig
+4. 04_atk_dlrk3506b_mipi720x1280_nand_ubi_ubifs_amp_mcu_defconfig
+5. 05_atk_dlrk3506b_mipi720x1280_nand_ubi_ubifs_defconfig
+6. 06_atk_dlrk3506b_rgb1024x600_nand_ubi_ubifs_defconfig
+7. 07_atk_dlrk3506b_mipi720x1280_nand_ubi_ubifs_thunderboot_defconfig
+8. 08_atk_dlrk3506b_mipi720x1280_sd_defconfig
+9. 09_atk_dlrk3506j_mipi720x1280_emmc_amp_linux_defconfig
+10. 10_atk_dlrk3506j_mipi720x1280_emmc_amp_mcu_defconfig
+11. 11_atk_dlrk3506j_mipi720x1280_emmc_defconfig
+12. 12_atk_dlrk3506j_mipi720x1280_emmc_thunderboot_defconfig
+13. 13_atk_dlrk3506j_mipi720x1280_nand_ubi_squashfs_defconfig
+14. 14_atk_dlrk3506j_mipi720x1280_nand_ubi_squashfs_thunderboot_defconfig
+15. 15_atk_dlrk3506j_mipi720x1280_nand_ubi_ubifs_amp_linux_defconfig
+16. 16_atk_dlrk3506j_mipi720x1280_nand_ubi_ubifs_amp_mcu_defconfig
+17. 17_atk_dlrk3506j_mipi720x1280_nand_ubi_ubifs_defconfig
+18. 18_atk_dlrk3506j_mipi720x1280_nand_ubi_ubifs_thunderboot_defconfig
+19. 19_atk_dlrk3506b_automipi_nand_ubi_squashfs_defconfig
+20. 20_atk_dlrk3506b_automipi_sd_defconfig
+21. 21_atk_dlrk3506j_automipi_nand_ubi_squashfs_defconfig
+22. 22_atk_dlrk3506j_automipi_emmc_defconfig
+23. 23_atk_dlrk3506b_mipi800x1280_nand_ubi_squashfs_defconfig
+24. 24_atk_dlrk3506b_mipi800x1280_nand_ubi_squashfs_thunderboot_defconfig
+25. 25_atk_dlrk3506b_mipi800x1280_nand_ubi_ubifs_amp_linux_defconfig
+26. 26_atk_dlrk3506b_mipi800x1280_nand_ubi_ubifs_amp_mcu_defconfig
+27. 27_atk_dlrk3506b_mipi800x1280_nand_ubi_ubifs_defconfig
+28. 28_atk_dlrk3506b_mipi800x1280_sd_defconfig
+29. 29_atk_dlrk3506j_mipi800x1280_emmc_amp_linux_defconfig
+30. 30_atk_dlrk3506j_mipi800x1280_emmc_amp_mcu_defconfig
+31. 31_atk_dlrk3506j_mipi800x1280_emmc_defconfig
+32. 32_atk_dlrk3506j_mipi800x1280_emmc_thunderboot_defconfig
+33. 33_atk_dlrk3506j_mipi800x1280_nand_ubi_squashfs_defconfig
+34. 34_atk_dlrk3506j_mipi800x1280_nand_ubi_squashfs_thunderboot_defconfig
+35. 35_atk_dlrk3506j_mipi800x1280_nand_ubi_ubifs_amp_linux_defconfig
+36. 36_atk_dlrk3506j_mipi800x1280_nand_ubi_ubifs_amp_mcu_defconfig
+37. 37_atk_dlrk3506j_mipi800x1280_nand_ubi_ubifs_defconfig
+38. 38_atk_dlrk3506j_mipi800x1280_nand_ubi_ubifs_thunderboot_defconfig
+39. 39_atk_dlrk3506j_rgb1024x600_emmc_defconfig
+40. 40_atk_dlrk3506j_rgb1024x600_nand_ubi_ubifs_defconfig
+41. 41_atk_dlrk3506b_automipi_nand_ubi_ubifs_defconfig
+42. 42_atk_dlrk3506j_automipi_nand_ubi_ubifs_defconfig
+Which would you like? [1]: 19
+Switching to defconfig: /home/charliechen/rk-forge/third_party/vendor-sdk/device/rockchip/.chip/19_atk_dlrk3506b_automipi_nand_ubi_squashfs_defconfig
+mkdir -p /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/lxdialog
+make CC="gcc" HOSTCC="gcc" \
+    obj=/home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf -C /home/charliechen/rk-forge/third_party/vendor-sdk/device/rockchip/common/kconfig -f Makefile.br conf
+make[1]: Entering directory '/home/charliechen/rk-forge/third_party/vendor-sdk/device/rockchip/common/kconfig'
+gcc -DCURSES_LOC="<curses.h>" -DLOCALE  -I/home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf -DCONFIG_=\"\"  -MM *.c > /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/.depend 2>/dev/null || :
+gcc -DCURSES_LOC="<curses.h>" -DLOCALE  -I/home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf -DCONFIG_=\"\"   -c conf.c -o /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/conf.o
+gcc -DCURSES_LOC="<curses.h>" -DLOCALE  -I/home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf -DCONFIG_=\"\"  -I. -c /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/zconf.tab.c -o /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/zconf.tab.o
+In file included from /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/zconf.tab.c:2518:
+./util.c: In function 'file_write_dep':
+./util.c:86:26: warning: '%s' directive writing 10 or more bytes into a region of size between 1 and 4097 [-Wformat-overflow=]
+   86 |         sprintf(buf2, "%s%s", dir, name);
+      |                          ^~
+./util.c:86:9: note: 'sprintf' output 11 or more bytes (assuming 4107) into a destination of size 4097
+   86 |         sprintf(buf2, "%s%s", dir, name);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gcc -DCURSES_LOC="<curses.h>" -DLOCALE  -I/home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf -DCONFIG_=\"\"   /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/conf.o /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/zconf.tab.o  -o /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/conf
+rm /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/zconf.tab.c
+make[1]: Leaving directory '/home/charliechen/rk-forge/third_party/vendor-sdk/device/rockchip/common/kconfig'
+#
+# configuration written to /home/charliechen/rk-forge/third_party/vendor-sdk/output/.config
+#
+Using current kernel version(6.1)

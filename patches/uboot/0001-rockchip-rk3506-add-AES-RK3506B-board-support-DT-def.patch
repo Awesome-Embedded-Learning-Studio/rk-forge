@@ -1,0 +1,356 @@
+From 153ef4e54d946dd2c13d66ff57de4e3e26edf0ba Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Wed, 17 Jun 2026 00:04:04 +0800
+Subject: [PATCH 1/2] rockchip: rk3506: add AES RK3506B board support (DT +
+ defconfig)
+
+Board support on top of mainline rk3506 U-Boot (2026.07-rc4, Jonas Karlman
+SoC support already merged): AES RK3506B defconfig + board DT entry.
+---
+ arch/arm/dts/rk3506-evb.dts  |  23 ++++
+ arch/arm/dts/rk3506.dtsi     | 246 +++++++++++++++++++++++++++++++++++
+ configs/evb-rk3506_defconfig |  52 ++++++++
+ 3 files changed, 321 insertions(+)
+ create mode 100644 arch/arm/dts/rk3506-evb.dts
+ create mode 100644 arch/arm/dts/rk3506.dtsi
+ create mode 100644 configs/evb-rk3506_defconfig
+
+diff --git a/arch/arm/dts/rk3506-evb.dts b/arch/arm/dts/rk3506-evb.dts
+new file mode 100644
+index 00000000..48cdded1
+--- /dev/null
++++ b/arch/arm/dts/rk3506-evb.dts
+@@ -0,0 +1,23 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * EVB-RK3506 board device tree (ATK RK3506B). Minimal: just SoC dtsi +
++ * U-Boot overlay + console alias/chosen. Console = UART0 @ 0xff0a0000.
++ */
++
++/dts-v1/;
++
++#include "rk3506.dtsi"
++#include "rk3506-u-boot.dtsi"
++
++/ {
++	model = "Rockchip RK3506 Evaluation Board (ATK RK3506B)";
++	compatible = "rockchip,rk3506-evb", "rockchip,rk3506";
++
++	aliases {
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = &uart0;
++	};
++};
+diff --git a/arch/arm/dts/rk3506.dtsi b/arch/arm/dts/rk3506.dtsi
+new file mode 100644
+index 00000000..735f805d
+--- /dev/null
++++ b/arch/arm/dts/rk3506.dtsi
+@@ -0,0 +1,246 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * (C) Copyright 2023 Rockchip Electronics Co., Ltd.
++ *
++ * Minimal RK3506 SoC dtsi for rk-forge bring-up (U-Boot banner milestone).
++ * Ported/reduced from the ATK vendor SDK rk3506.dtsi. Only the nodes needed to
++ * reach the U-Boot banner are included: clocks, cru, grf/grf_pmu, ioc syscons,
++ * gic, arch timer, pinctrl (all 5 gpio banks + uart0 pins), uart0 console.
++ * All other peripherals (i2c/spi/pwm/sai/mmc-fspi/display/usb/...) deferred —
++ * they are not required for SPL→U-Boot console. Add them in later iterations.
++ */
++
++#include <dt-bindings/clock/rockchip,rk3506-cru.h>
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/pinctrl/rockchip.h>
++#include <dt-bindings/soc/rockchip,boot-mode.h>
++
++/ {
++	#address-cells = <1>;
++	#size-cells = <1>;
++
++	compatible = "rockchip,rk3506";
++
++	interrupt-parent = <&gic>;
++
++	aliases {
++		serial0 = &uart0;
++		gpio0 = &gpio0;
++		gpio1 = &gpio1;
++		gpio2 = &gpio2;
++		gpio3 = &gpio3;
++		gpio4 = &gpio4;
++	};
++
++	clocks {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges;
++
++		clk_rc: clk-rc {
++			compatible = "fixed-clock";
++			#clock-cells = <0>;
++			clock-frequency = <400000>;
++			clock-output-names = "clk_rc";
++		};
++
++		xin24m: xin24m {
++			compatible = "fixed-clock";
++			#clock-cells = <0>;
++			clock-frequency = <24000000>;
++			clock-output-names = "xin24m";
++		};
++	};
++
++	psci: psci {
++		compatible = "arm,psci-1.0";
++		method = "smc";
++	};
++
++	timer {
++		compatible = "arm,armv7-timer";
++		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(3) | IRQ_TYPE_LEVEL_HIGH)>,
++			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(3) | IRQ_TYPE_LEVEL_HIGH)>,
++			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(3) | IRQ_TYPE_LEVEL_HIGH)>,
++			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(3) | IRQ_TYPE_LEVEL_HIGH)>;
++		clock-frequency = <24000000>;
++	};
++
++	uart0: serial@ff0a0000 {
++		compatible = "rockchip,rk3506-uart", "snps,dw-apb-uart";
++		reg = <0xff0a0000 0x100>;
++		interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
++		reg-shift = <2>;
++		reg-io-width = <4>;
++		clocks = <&cru SCLK_UART0>, <&cru PCLK_UART0>;
++		clock-names = "baudclk", "apb_pclk";
++		pinctrl-names = "default";
++		pinctrl-0 = <&uart0_xfer_pins>;
++		status = "okay";
++	};
++
++	grf: syscon@ff288000 {
++		compatible = "rockchip,rk3506-grf", "syscon", "simple-mfd";
++		reg = <0xff288000 0x4000>;
++	};
++
++	sfc: spi@ff488000 {
++		compatible = "rockchip,sfc";
++		reg = <0xff488000 0x4000>;
++		interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru SCLK_FSPI>, <&cru HCLK_FSPI>;
++		clock-names = "clk_sfc", "hclk_sfc";
++		rockchip,sfc-no-dma;	/* XXX: rk-forge debug — SFC DMA corrupts reads (printf breaks DMA state), try PIO */
++		rockchip,max-dll = <0x17F>;	/* RK3506 SFC is VER_5; cap DLL cell scan (vendor value) */
++		#address-cells = <1>;
++		#size-cells = <0>;
++		status = "disabled";
++	};
++
++	ioc_grf: syscon@ff4d8000 {
++		compatible = "rockchip,rk3506-ioc-grf", "syscon";
++		reg = <0xff4d8000 0x8000>;
++	};
++
++	otp: otp@ff4f0000 {
++		compatible = "rockchip,rk3506-otp";
++		reg = <0xff4f0000 0x4000>;
++		#address-cells = <1>;
++		#size-cells = <1>;
++	};
++
++	ioc1: syscon@ff660000 {
++		compatible = "rockchip,rk3506-ioc1", "syscon";
++		reg = <0xff660000 0x10000>;
++	};
++
++	gic: interrupt-controller@ff581000 {
++		compatible = "arm,gic-400";
++		reg = <0xff581000 0x1000>,
++		      <0xff582000 0x2000>,
++		      <0xff584000 0x2000>,
++		      <0xff586000 0x2000>;
++		interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
++		#interrupt-cells = <3>;
++		interrupt-controller;
++		#address-cells = <0>;
++	};
++
++	grf_pmu: syscon@ff910000 {
++		compatible = "rockchip,rk3506-grf-pmu", "syscon", "simple-mfd";
++		reg = <0xff910000 0x4000>;
++
++		reboot_mode: reboot-mode {
++			compatible = "syscon-reboot-mode";
++			offset = <0x200>;
++			mode-bootloader = <BOOT_BL_DOWNLOAD>;
++			mode-fastboot = <BOOT_FASTBOOT>;
++			mode-loader = <BOOT_BL_DOWNLOAD>;
++			mode-normal = <BOOT_NORMAL>;
++			mode-recovery = <BOOT_RECOVERY>;
++		};
++	};
++
++	ioc_pmu: syscon@ff950000 {
++		compatible = "rockchip,rk3506-ioc-pmu", "syscon";
++		reg = <0xff950000 0x10000>;
++	};
++
++	cru: clock-controller@ff9a0000 {
++		compatible = "rockchip,rk3506-cru";
++		reg = <0xff9a0000 0x20000>;
++		rockchip,grf = <&grf>;
++		#clock-cells = <1>;
++		#reset-cells = <1>;
++	};
++
++	pinctrl: pinctrl {
++		compatible = "rockchip,rk3506-pinctrl";
++		rockchip,grf = <&ioc_grf>;
++		rockchip,ioc1 = <&ioc1>;
++		rockchip,pmu = <&ioc_pmu>;
++		rockchip,rmio = <&grf_pmu>;
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges;
++
++		gpio0: gpio@ff940000 {
++			compatible = "rockchip,gpio-bank";
++			reg = <0xff940000 0x200>;
++			interrupts = <GIC_SPI 0 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru PCLK_GPIO0>, <&cru DBCLK_GPIO0>;
++			gpio-controller;
++			#gpio-cells = <2>;
++			gpio-ranges = <&pinctrl 0 0 32>;
++			interrupt-controller;
++			#interrupt-cells = <2>;
++		};
++
++		gpio1: gpio@ff870000 {
++			compatible = "rockchip,gpio-bank";
++			reg = <0xff870000 0x200>;
++			interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru PCLK_GPIO1>, <&cru DBCLK_GPIO1>;
++			gpio-controller;
++			#gpio-cells = <2>;
++			gpio-ranges = <&pinctrl 0 32 32>;
++			interrupt-controller;
++			#interrupt-cells = <2>;
++		};
++
++		gpio2: gpio@ff1c0000 {
++			compatible = "rockchip,gpio-bank";
++			reg = <0xff1c0000 0x200>;
++			interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru PCLK_GPIO2>, <&cru DBCLK_GPIO2>;
++			gpio-controller;
++			#gpio-cells = <2>;
++			gpio-ranges = <&pinctrl 0 64 32>;
++			interrupt-controller;
++			#interrupt-cells = <2>;
++		};
++
++		gpio3: gpio@ff1d0000 {
++			compatible = "rockchip,gpio-bank";
++			reg = <0xff1d0000 0x200>;
++			interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru PCLK_GPIO3>, <&cru DBCLK_GPIO3>;
++			gpio-controller;
++			#gpio-cells = <2>;
++			gpio-ranges = <&pinctrl 0 96 32>;
++			interrupt-controller;
++			#interrupt-cells = <2>;
++		};
++
++		gpio4: gpio@ff1e0000 {
++			compatible = "rockchip,gpio-bank";
++			reg = <0xff1e0000 0x200>;
++			interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&cru PCLK_GPIO4>, <&cru DBCLK_GPIO4>;
++			gpio-controller;
++			#gpio-cells = <2>;
++			gpio-ranges = <&pinctrl 0 128 32>;
++			interrupt-controller;
++			#interrupt-cells = <2>;
++		};
++
++		pcfg_pull_up: pcfg-pull-up {
++			bias-pull-up;
++		};
++
++		pcfg_pull_none: pcfg-pull-none {
++			bias-disable;
++		};
++
++		uart0 {
++			uart0_xfer_pins: uart0-xfer-pins {
++				rockchip,pins =
++					/* uart0_rx */ <0 RK_PC7 1 &pcfg_pull_up>,
++					/* uart0_tx */ <0 RK_PC6 1 &pcfg_pull_up>;
++			};
++		};
++	};
++};
+diff --git a/configs/evb-rk3506_defconfig b/configs/evb-rk3506_defconfig
+new file mode 100644
+index 00000000..382dedb0
+--- /dev/null
++++ b/configs/evb-rk3506_defconfig
+@@ -0,0 +1,52 @@
++CONFIG_ARM=y
++CONFIG_SKIP_LOWLEVEL_INIT=y
++CONFIG_COUNTER_FREQUENCY=24000000
++CONFIG_ARCH_ROCKCHIP=y
++CONFIG_DEFAULT_DEVICE_TREE="rk3506-evb"
++CONFIG_ROCKCHIP_RK3506=y
++CONFIG_SYS_LOAD_ADDR=0xc00800
++CONFIG_DEBUG_UART_BASE=0xff0a0000
++CONFIG_DEBUG_UART_CLOCK=24000000
++CONFIG_DEBUG_UART=y
++# CONFIG_BOOTMETH_VBE is not set
++CONFIG_DEFAULT_FDT_FILE="rockchip/rk3506-evb.dtb"
++# CONFIG_DISPLAY_CPUINFO is not set
++CONFIG_SPL_MAX_SIZE=0x40000
++# CONFIG_SPL_RAW_IMAGE_SUPPORT is not set
++CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR=0x2000
++CONFIG_CMD_MEMINFO=y
++CONFIG_CMD_MEMINFO_MAP=y
++CONFIG_CMD_GPIO=y
++CONFIG_CMD_GPT=y
++CONFIG_CMD_MISC=y
++CONFIG_CMD_MMC=y
++# CONFIG_CMD_SETEXPR is not set
++CONFIG_CMD_RNG=y
++# CONFIG_SPL_DOS_PARTITION is not set
++# CONFIG_OF_UPSTREAM is not set
++# CONFIG_TOOLS_MKEFICAPSULE is not set
++CONFIG_OF_SPL_REMOVE_PROPS="clock-names interrupt-parent assigned-clocks assigned-clock-rates assigned-clock-parents"
++CONFIG_NO_NET=y
++# CONFIG_ADC is not set
++CONFIG_ROCKCHIP_GPIO=y
++CONFIG_MMC_DW=y
++CONFIG_MMC_DW_ROCKCHIP=y
++CONFIG_BAUDRATE=1500000
++CONFIG_DEBUG_UART_SHIFT=2
++CONFIG_SYS_NS16550_MEM32=y
++CONFIG_ERRNO_STR=y
++
++# SPI SFC controller + SPI NAND (Winbond W25N04KV, 512MB) — boot from on-board NAND
++CONFIG_DM_SPI=y
++CONFIG_ROCKCHIP_SFC=y
++CONFIG_MTD=y
++CONFIG_DM_MTD=y
++CONFIG_MTD_SPI_NAND=y
++CONFIG_CMD_MTD=y
++# kernel boot
++CONFIG_FIT=y
++CONFIG_CMD_BOOTM=y
++CONFIG_CMD_BOOTZ=y
++CONFIG_SYS_BOOTM_LEN=0x2000000
++# NAND partition: boot = 16MB @ sector 0xBA00 (= byte 0x1740000), holds kernel FIT
++CONFIG_MTDPARTS_DEFAULT="mtdparts=spi-nand0:16m@0x1740000(boot)"

@@ -1,0 +1,58 @@
+From eb9339d2b92d34563363809893efbe3b3be77c4a Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Fri, 19 Jun 2026 23:06:08 +0800
+Subject: [12/12] ARM: dts: rockchip: rk3506b-aes: reserve OP-TEE/trust memory
+ (fix external abort)
+
+Root cause of the write-stress abort saga (imprecise external abort 0xc06 on
+UBIFS dd, precise 0x008 on dd-to-tmpfs). The loader (rkbin TOS, ADDR=0x1000)
+pins OP-TEE in low DRAM [0x1000, ~0x61000]. The DT had no reserved-memory
+node, so the kernel added those physical pages to the free pool and handed
+them to user space; the secure world rejects the access as an external abort.
+Reproduces under any sustained alloc churn (dd to tmpfs needs no NAND at all),
+which is why the abort was initially mis-attributed to the SFC/NAND path.
+
+The abort's decoded physical address (pte -> 0x5000) lands squarely inside the
+OP-TEE region, and the kernel log 'No reserved-memory node in the DT' confirms
+the carve-out was missing. The DDR blob is identical to the ATK reference (same
+md5), and the SFC write path is byte-identical to vendor's -- the divergence
+was purely this missing reservation.
+
+Fix: add a reserved-memory node carving out [0x0, 0x62000), mirroring the
+vendor rk3506 DT's trust@0 reservation. vendor_sdk sustains heavy writes on
+the same board because its DT carries this carve-out.
+---
+ arch/arm/boot/dts/rockchip/rk3506b-aes.dts | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+index 981d7c81b..57f4100b6 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
++++ b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+@@ -27,6 +27,23 @@ memory@0 {
+ 		device_type = "memory";
+ 		reg = <0x0 0x20000000>;	/* 512 MiB; DRAM base 0x0 (CFG_SYS_SDRAM_BASE=0) */
+ 	};
++
++	reserved-memory {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges;
++
++		/* OP-TEE / trust resident memory. The loader (rkbin TOS, ADDR=0x1000)
++		 * pins OP-TEE in low DRAM [0x1000, ~0x61000]. Without this carve-out the
++		 * kernel adds those physical pages to the free pool and hands them to
++		 * user space; the secure world then rejects the access as a precise
++		 * external abort (0x008) — reproducible under any sustained alloc churn
++		 * (dd to tmpfs, not just NAND I/O), the root cause of the write-stress
++		 * abort saga. Mirrors the vendor rk3506 DT's trust@0 reservation. */
++		trust@0 {
++			reg = <0x0 0x62000>;
++		};
++	};
+ };
+ 
+ &uart0 {
+-- 
+2.43.0
+

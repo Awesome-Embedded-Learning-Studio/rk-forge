@@ -1,4 +1,19 @@
 # patches/uboot/series — quilt-style ordered apply list.
-# U-Boot RK3506 SoC support is ALREADY upstream (Jonas Karlman v2 merged), so this
-# series is usually empty or holds only a board/defconfig delta. If it stays empty,
-# that itself is evidence the mainline-first thesis holds.
+# One filename per line (relative to this dir). '#' = comment, blank lines OK.
+# Applied by scripts/apply-series.sh via `git am` (run from the uboot tree).
+#
+# U-Boot RK3506 SoC support is ALREADY upstream (Jonas Karlman v2 merged into
+# 2026.07-rc4); this series holds ONLY the board/DT/defconfig + SFC delta.
+# Consolidated 2026-06-17 into 2 patches (board + SFC) from explore/uboot
+# (base 5ca1a73c); the earlier 4-patch additive series squashed.
+
+# Board support: AES RK3506B defconfig + DT entries (rk3506.dtsi + rk3506-evb.dts).
+0001-rockchip-rk3506-add-AES-RK3506B-board-support-DT-def.patch
+# SFC: sampling delay-line tuning (vendor port, mirror of linux 0002) so U-Boot
+# reads the kernel FIT reliably + SFC_CTRL_WPEN per transfer (vendor parity) +
+# dts SFC node (80MHz + max-dll). U-Boot only READS the kernel FIT (reliable
+# with DLL tuning); WPEN is belt-and-suspenders.
+0002-spi-rockchip_sfc-DLL-tuning-WPEN-dts-SFC-node.patch
+# Autoboot: env=nowhere → compiled-default bootcmd (mtd read + bootm) runs every
+# boot, no hand-typed 3 lines. Board-verified boot-sdl-202606182124.
+0003-uboot-autoboot-mtd-bootm.patch

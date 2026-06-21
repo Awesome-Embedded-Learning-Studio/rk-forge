@@ -1,0 +1,1232 @@
+[35m
+############### Rockchip Linux SDK ###############
+[0m
+[35mManifest: atk-dlrk3506_linux6.1_release_v1.3.1_20260326.xml[0m
+
+[35mLog colors: [0m[36mmessage [0m[35mnotice [0m[34mwarning [0m[91merror [0m[31mfatal[0m
+
+[36mLog saved at /home/charliechen/rk-forge/third_party/vendor-sdk/output/sessions/2026-06-14_11-45-21[0m
+[34mWARN: /home/charliechen/rk-forge/third_party/vendor-sdk/output/defconfig not exists[0m
+[36mPick a defconfig:
+[0m
+1. 01_atk_dlrk3506b_mipi720x1280_nand_ubi_squashfs_defconfig
+2. 02_atk_dlrk3506b_mipi720x1280_nand_ubi_squashfs_thunderboot_defconfig
+3. 03_atk_dlrk3506b_mipi720x1280_nand_ubi_ubifs_amp_linux_defconfig
+4. 04_atk_dlrk3506b_mipi720x1280_nand_ubi_ubifs_amp_mcu_defconfig
+5. 05_atk_dlrk3506b_mipi720x1280_nand_ubi_ubifs_defconfig
+6. 06_atk_dlrk3506b_rgb1024x600_nand_ubi_ubifs_defconfig
+7. 07_atk_dlrk3506b_mipi720x1280_nand_ubi_ubifs_thunderboot_defconfig
+8. 08_atk_dlrk3506b_mipi720x1280_sd_defconfig
+9. 09_atk_dlrk3506j_mipi720x1280_emmc_amp_linux_defconfig
+10. 10_atk_dlrk3506j_mipi720x1280_emmc_amp_mcu_defconfig
+11. 11_atk_dlrk3506j_mipi720x1280_emmc_defconfig
+12. 12_atk_dlrk3506j_mipi720x1280_emmc_thunderboot_defconfig
+13. 13_atk_dlrk3506j_mipi720x1280_nand_ubi_squashfs_defconfig
+14. 14_atk_dlrk3506j_mipi720x1280_nand_ubi_squashfs_thunderboot_defconfig
+15. 15_atk_dlrk3506j_mipi720x1280_nand_ubi_ubifs_amp_linux_defconfig
+16. 16_atk_dlrk3506j_mipi720x1280_nand_ubi_ubifs_amp_mcu_defconfig
+17. 17_atk_dlrk3506j_mipi720x1280_nand_ubi_ubifs_defconfig
+18. 18_atk_dlrk3506j_mipi720x1280_nand_ubi_ubifs_thunderboot_defconfig
+19. 19_atk_dlrk3506b_automipi_nand_ubi_squashfs_defconfig
+20. 20_atk_dlrk3506b_automipi_sd_defconfig
+21. 21_atk_dlrk3506j_automipi_nand_ubi_squashfs_defconfig
+22. 22_atk_dlrk3506j_automipi_emmc_defconfig
+23. 23_atk_dlrk3506b_mipi800x1280_nand_ubi_squashfs_defconfig
+24. 24_atk_dlrk3506b_mipi800x1280_nand_ubi_squashfs_thunderboot_defconfig
+25. 25_atk_dlrk3506b_mipi800x1280_nand_ubi_ubifs_amp_linux_defconfig
+26. 26_atk_dlrk3506b_mipi800x1280_nand_ubi_ubifs_amp_mcu_defconfig
+27. 27_atk_dlrk3506b_mipi800x1280_nand_ubi_ubifs_defconfig
+28. 28_atk_dlrk3506b_mipi800x1280_sd_defconfig
+29. 29_atk_dlrk3506j_mipi800x1280_emmc_amp_linux_defconfig
+30. 30_atk_dlrk3506j_mipi800x1280_emmc_amp_mcu_defconfig
+31. 31_atk_dlrk3506j_mipi800x1280_emmc_defconfig
+32. 32_atk_dlrk3506j_mipi800x1280_emmc_thunderboot_defconfig
+33. 33_atk_dlrk3506j_mipi800x1280_nand_ubi_squashfs_defconfig
+34. 34_atk_dlrk3506j_mipi800x1280_nand_ubi_squashfs_thunderboot_defconfig
+35. 35_atk_dlrk3506j_mipi800x1280_nand_ubi_ubifs_amp_linux_defconfig
+36. 36_atk_dlrk3506j_mipi800x1280_nand_ubi_ubifs_amp_mcu_defconfig
+37. 37_atk_dlrk3506j_mipi800x1280_nand_ubi_ubifs_defconfig
+38. 38_atk_dlrk3506j_mipi800x1280_nand_ubi_ubifs_thunderboot_defconfig
+39. 39_atk_dlrk3506j_rgb1024x600_emmc_defconfig
+40. 40_atk_dlrk3506j_rgb1024x600_nand_ubi_ubifs_defconfig
+41. 41_atk_dlrk3506b_automipi_nand_ubi_ubifs_defconfig
+42. 42_atk_dlrk3506j_automipi_nand_ubi_ubifs_defconfig
+Which would you like? [1]: [35mSwitching to defconfig: /home/charliechen/rk-forge/third_party/vendor-sdk/device/rockchip/.chip/19_atk_dlrk3506b_automipi_nand_ubi_squashfs_defconfig[0m
+mkdir -p /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/lxdialog
+make CC="gcc" HOSTCC="gcc" \
+    obj=/home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf -C /home/charliechen/rk-forge/third_party/vendor-sdk/device/rockchip/common/kconfig -f Makefile.br conf
+make[1]: Entering directory '/home/charliechen/rk-forge/third_party/vendor-sdk/device/rockchip/common/kconfig'
+gcc -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=600  -DCURSES_LOC="<ncurses.h>" -DNCURSES_WIDECHAR=1 -DLOCALE  -I/home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf -DCONFIG_=\"\"  -MM *.c > /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/.depend 2>/dev/null || :
+gcc -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=600  -DCURSES_LOC="<ncurses.h>" -DNCURSES_WIDECHAR=1 -DLOCALE  -I/home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf -DCONFIG_=\"\"   -c conf.c -o /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/conf.o
+gcc -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=600  -DCURSES_LOC="<ncurses.h>" -DNCURSES_WIDECHAR=1 -DLOCALE  -I/home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf -DCONFIG_=\"\"  -I. -c /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/zconf.tab.c -o /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/zconf.tab.o
+In file included from /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/zconf.tab.c:2518:
+./util.c: In function 'file_write_dep':
+./util.c:86:26: warning: '%s' directive writing 10 or more bytes into a region of size between 1 and 4097 [-Wformat-overflow=]
+   86 |         sprintf(buf2, "%s%s", dir, name);
+      |                          ^~
+./util.c:86:9: note: 'sprintf' output 11 or more bytes (assuming 4107) into a destination of size 4097
+   86 |         sprintf(buf2, "%s%s", dir, name);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gcc -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=600  -DCURSES_LOC="<ncurses.h>" -DNCURSES_WIDECHAR=1 -DLOCALE  -I/home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf -DCONFIG_=\"\"   /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/conf.o /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/zconf.tab.o  -o /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/conf
+rm /home/charliechen/rk-forge/third_party/vendor-sdk/output/kconf/zconf.tab.c
+make[1]: Leaving directory '/home/charliechen/rk-forge/third_party/vendor-sdk/device/rockchip/common/kconfig'
+#
+# configuration written to /home/charliechen/rk-forge/third_party/vendor-sdk/output/.config
+#
+[35mUsing current kernel version(6.1)[0m
+[36m
+==========================================[0m
+[36m          Final configs[0m
+[36m==========================================[0m
+RK_BOOT_COMPRESSED=y
+RK_BOOT_FIT_ITS=/home/charliechen/rk-forge/third_party/vendor-sdk/device/rockchip/.chip/zboot.its
+RK_BOOT_IMG=zboot.img
+RK_BUILDROOT=y
+RK_BUILDROOT_CFG=alientek_rk3506
+RK_CHIP=rk3506
+RK_CHIP_ARM32=y
+RK_CHIP_FAMILY=rk3506
+RK_DEFCONFIG=19_atk_dlrk3506b_automipi_nand_ubi_squashfs_defconfig
+RK_EXTRA_PARTITION_NUM=2
+RK_EXTRA_PARTITION_STR=auto:oem:auto:ubifs:defaults:rk3506_oem:auto:@auto:userdata:auto:ubifs:defaults:normal:auto:@@@
+RK_FLASH_SIZE=2048
+RK_KERNEL=y
+RK_KERNEL_ARCH=arm
+RK_KERNEL_ARM32=y
+RK_KERNEL_CFG=alientek_rk3506_defconfig
+RK_KERNEL_CFG_FRAGMENTS=rk3506-display.config rk3506-ethernet.config rk3506-alientek.config
+RK_KERNEL_DTS=kernel/arch/arm/boot/dts/rk3506b-alientek-mipi720x1280-nand-ubi-squashfs.dts
+RK_KERNEL_DTS_LIST=rk3506b-alientek-mipi720x1280-nand-ubi-squashfs rk3506b-alientek-mipi800x1280-nand-ubi-squashfs
+RK_KERNEL_IMG=kernel/arch/arm/boot/zImage
+RK_KERNEL_VERSION=6.1
+RK_KERNEL_VERSION_RAW=6.1
+RK_LOADER=y
+RK_MISC=y
+RK_MISC_BLANK=y
+RK_OVERLAY=y
+RK_OWNER=charliechen
+RK_OWNER_UID=1000
+RK_PARAMETER=parameter-nand.txt
+RK_RECOVERY=y
+RK_RECOVERY_CFG=alientek_rk3506_recovery
+RK_RECOVERY_CPIO_GZ=y
+RK_RECOVERY_FIT_ITS=/home/charliechen/rk-forge/third_party/vendor-sdk/device/rockchip/.chip/thunderboot4recovery.its
+RK_RECOVERY_INITRD_TYPE=cpio.gz
+RK_ROOTFS=y
+RK_ROOTFS_ASYNC_COMMIT=y
+RK_ROOTFS_DEBUG_INFO=y
+RK_ROOTFS_FSTRIM=y
+RK_ROOTFS_FSTRIM_INTERVAL=3600
+RK_ROOTFS_GENERATE_LOGS=y
+RK_ROOTFS_HOSTNAME=ATK-DLRK3506
+RK_ROOTFS_HOSTNAME_CUSTOM=y
+RK_ROOTFS_INPUT_EVENT_DAEMON=y
+RK_ROOTFS_INSTALL_MODULES=y
+RK_ROOTFS_IRQBALANCE=y
+RK_ROOTFS_LD_CACHE=y
+RK_ROOTFS_OVERLAY=y
+RK_ROOTFS_PREFER_PREBUILT_TOOLS=y
+RK_ROOTFS_STRIP_MODULES=y
+RK_ROOTFS_SYSTEM=buildroot
+RK_ROOTFS_TYPE=ubi
+RK_ROOTFS_UBI=y
+RK_ROOTFS_UDEV_RULES=y
+RK_SAVE_TRACKED=y
+RK_SESSION=2026-06-14_11-45-21
+RK_TARGET_BOARD=ATK-DLRK3506B-NAND-UBI-SQUASHFS
+RK_UBI=y
+RK_UBI_BLOCK_SIZE=0x20000
+RK_UBI_PAGE_SIZE=0x800
+RK_UBOOT_ARCH=arm
+RK_UBOOT_ARM32=y
+RK_UBOOT_CFG=alientek_rk3506
+RK_UBOOT_SPL=y
+RK_UPDATE=y
+RK_USB_ADBD=y
+RK_USB_ADBD_SHELL=/bin/bash
+RK_USB_ADBD_TCP_PORT=5555
+RK_USB_FW_VER=0x0310
+RK_USB_GADGET=y
+RK_USB_MANUFACTURER=Rockchip
+RK_USB_PID=0
+RK_USB_PRODUCT=rk3xxx
+RK_USB_VID=0x2207
+RK_USE_FIT_IMG=y
+RK_YOCTO=y
+RK_YOCTO_DISPLAY_PLATFORM=wayland
+RK_YOCTO_MACHINE=rockchip-rk3506-evb
+RK_YOCTO_USBMOUNT=y
+
+[36mToolchain for loader (U-Boot):[0m
+[36m/home/charliechen/rk-forge/third_party/vendor-sdk/prebuilts/gcc/linux-x86/arm/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-[0m
+
+[36m==========================================[0m
+[36m          Start building U-Boot[0m
+[36m==========================================[0m
+[35m+ cd u-boot[0m
+[35m+ ./make.sh CROSS_COMPILE=/home/charliechen/rk-forge/third_party/vendor-sdk/prebuilts/gcc/linux-x86/arm/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf- alientek_rk3506 --spl-new[0m
+grep: .config: No such file or directory
+## make alientek_rk3506_defconfig -j28
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/kconfig/conf.o
+  SHIPPED scripts/kconfig/zconf.tab.c
+  SHIPPED scripts/kconfig/zconf.lex.c
+  SHIPPED scripts/kconfig/zconf.hash.c
+  HOSTCC  scripts/kconfig/zconf.tab.o
+In file included from scripts/kconfig/zconf.tab.c:2470:
+In function ‘dep_stack_insert’,
+    inlined from ‘sym_check_print_recursive’ at scripts/kconfig/symbol.c:1123:3,
+    inlined from ‘sym_check_deps’ at scripts/kconfig/symbol.c:1300:3:
+scripts/kconfig/symbol.c:1099:19: warning: storing the address of local variable ‘cv_stack’ in ‘check_top’ [-Wdangling-pointer=]
+ 1099 |         check_top = stack;
+      |         ~~~~~~~~~~^~~~~~~
+scripts/kconfig/symbol.c: In function ‘sym_check_deps’:
+scripts/kconfig/symbol.c:1120:26: note: ‘cv_stack’ declared here
+ 1120 |         struct dep_stack cv_stack;
+      |                          ^~~~~~~~
+scripts/kconfig/symbol.c:1090:4: note: ‘check_top’ declared here
+ 1090 | } *check_top;
+      |    ^~~~~~~~~
+  HOSTLD  scripts/kconfig/conf
+#
+# configuration written to .config
+#
+scripts/kconfig/conf  --silentoldconfig Kconfig
+  CHK     include/config.h
+  UPD     include/config.h
+  CFG     u-boot.cfg
+  GEN     include/autoconf.mk.dep
+  CFG     spl/u-boot.cfg
+  CFG     tpl/u-boot.cfg
+  GEN     include/autoconf.mk
+  GEN     spl/include/autoconf.mk
+  GEN     tpl/include/autoconf.mk
+  CHK     include/config/uboot.release
+  CHK     include/generated/timestamp_autogenerated.h
+  UPD     include/generated/timestamp_autogenerated.h
+  HOSTCC  scripts/dtc/dtc.o
+  HOSTCC  scripts/dtc/flattree.o
+  HOSTCC  scripts/dtc/fstree.o
+  HOSTCC  scripts/dtc/data.o
+  HOSTCC  scripts/dtc/livetree.o
+  HOSTCC  scripts/dtc/treesource.o
+  HOSTCC  scripts/dtc/srcpos.o
+  HOSTCC  scripts/dtc/checks.o
+  HOSTCC  scripts/dtc/util.o
+  SHIPPED scripts/dtc/dtc-lexer.lex.c
+  SHIPPED scripts/dtc/dtc-parser.tab.h
+  SHIPPED scripts/dtc/dtc-parser.tab.c
+  HOSTCC  scripts/dtc/dtc-lexer.lex.o
+  HOSTCC  scripts/dtc/dtc-parser.tab.o
+  UPD     include/config/uboot.release
+  CHK     include/generated/version_autogenerated.h
+  UPD     include/generated/version_autogenerated.h
+  CC      lib/asm-offsets.s
+  CC      arch/arm/lib/asm-offsets.s
+  CHK     include/generated/generic-asm-offsets.h
+  UPD     include/generated/generic-asm-offsets.h
+  CHK     include/generated/asm-offsets.h
+  UPD     include/generated/asm-offsets.h
+  LDS     u-boot.lds
+  CHK     include/config.h
+  CFG     u-boot.cfg
+  HOSTLD  scripts/dtc/dtc
+  HOSTCC  tools/gen_eth_addr
+  HOSTCC  tools/gen_ethaddr_crc.o
+  WRAP    tools/lib/crc8.c
+  HOSTCC  tools/mkenvimage.o
+  HOSTCC  tools/os_support.o
+  WRAP    tools/lib/crc32.c
+  HOSTCC  tools/aisimage.o
+  HOSTCC  tools/atmelimage.o
+  WRAP    tools/common/bootm.c
+  HOSTCC  tools/default_image.o
+  WRAP    tools/lib/fdtdec_common.c
+  WRAP    tools/lib/fdtdec.c
+  HOSTCC  tools/fit_common.o
+  HOSTCC  tools/fit_image.o
+  WRAP    tools/common/image-fit.c
+  HOSTCC  tools/image-host.o
+  WRAP    tools/common/image.c
+  HOSTCC  tools/imagetool.o
+  HOSTCC  tools/imximage.o
+  HOSTCC  tools/kwbimage.o
+  WRAP    tools/lib/md5.c
+  HOSTCC  tools/lpc32xximage.o
+  HOSTCC  tools/mxsimage.o
+  HOSTCC  tools/omapimage.o
+  HOSTCC  tools/pblimage.o
+  HOSTCC  tools/pbl_crc32.o
+  HOSTCC  tools/vybridimage.o
+  WRAP    tools/lib/rc4.c
+  HOSTCC  tools/rkcommon.o
+  HOSTCC  tools/rkimage.o
+  HOSTCC  tools/rknand.o
+  HOSTCC  tools/rksd.o
+  HOSTCC  tools/rkspi.o
+  HOSTCC  tools/socfpgaimage.o
+  WRAP    tools/lib/sha1.c
+  WRAP    tools/lib/sha256.c
+  WRAP    tools/common/hash.c
+  HOSTCC  tools/ublimage.o
+  HOSTCC  tools/zynqimage.o
+  HOSTCC  tools/zynqmpimage.o
+  HOSTCC  tools/libfdt/fdt.o
+  HOSTCC  tools/libfdt/fdt_wip.o
+  HOSTCC  tools/libfdt/fdt_sw.o
+  HOSTCC  tools/libfdt/fdt_rw.o
+  HOSTCC  tools/libfdt/fdt_strerror.o
+  HOSTCC  tools/libfdt/fdt_empty_tree.o
+  HOSTCC  tools/libfdt/fdt_addresses.o
+  HOSTCC  tools/libfdt/fdt_overlay.o
+  WRAP    tools/lib/libfdt/fdt_ro.c
+  WRAP    tools/lib/libfdt/fdt_region.c
+  HOSTCC  tools/gpimage.o
+  HOSTCC  tools/gpimage-common.o
+  HOSTCC  tools/dumpimage.o
+  HOSTCC  tools/mkimage.o
+  HOSTCC  tools/rockchip/resource_tool.o
+  HOSTCC  tools/rockchip/bmp2gray16.o
+  HOSTCC  tools/proftool
+  HOSTCC  tools/fdtgrep.o
+  HOSTCC  tools/lib/crc8.o
+  HOSTCC  tools/lib/crc32.o
+  HOSTCC  tools/common/bootm.o
+  HOSTCC  tools/lib/fdtdec_common.o
+  HOSTCC  tools/lib/fdtdec.o
+  HOSTCC  tools/common/image-fit.o
+  HOSTCC  tools/common/image.o
+  HOSTCC  tools/lib/md5.o
+  HOSTCC  tools/lib/rc4.o
+  HOSTCC  tools/lib/sha1.o
+  HOSTCC  tools/lib/sha256.o
+  HOSTCC  tools/common/hash.o
+  HOSTCC  tools/lib/libfdt/fdt_ro.o
+tools/rockchip/bmp2gray16.c: In function ‘usage’:
+  HOSTCC  tools/lib/libfdt/fdt_region.o
+tools/rockchip/bmp2gray16.c:121:25: warning: ‘%s’ directive argument is not a nul-terminated string [-Wformat-overflow=]
+  121 |         printf("Version %s (zwp@rock-chips.com)\n", version);
+      |                         ^~                          ~~~~~~~
+tools/rockchip/bmp2gray16.c:109:19: note: referenced argument declared here
+  109 | static const char version[4] = "1.00";
+      |                   ^~~~~~~
+  HOSTLD  tools/gen_ethaddr_crc
+  HOSTLD  tools/mkenvimage
+  HOSTLD  tools/bmp2gray16
+  HOSTLD  tools/fdtgrep
+  HOSTLD  tools/dumpimage
+  HOSTLD  tools/mkimage
+  HOSTLD  tools/resource_tool
+  LD      arch/arm/cpu/built-in.o
+  CC      board/rockchip/evb_rk3506/evb_rk3506.o
+  CC      arch/arm/cpu/armv7/cache_v7.o
+  AS      arch/arm/cpu/armv7/cache_v7_asm.o
+  CC      arch/arm/cpu/armv7/cpu.o
+  CC      arch/arm/cpu/armv7/cp15.o
+  CC      arch/arm/cpu/armv7/syslib.o
+  AS      arch/arm/cpu/armv7/lowlevel_init.o
+  AS      arch/arm/cpu/armv7/smccc-call.o
+  CC      arch/arm/cpu/armv7/arch_timer.o
+  AS      arch/arm/cpu/armv7/start.o
+  LD      drivers/cpu/built-in.o
+  LD      drivers/dma/built-in.o
+  AS      arch/arm/lib/vectors.o
+  AS      arch/arm/lib/crt0.o
+  CC      disk/part.o
+  AS      arch/arm/lib/setjmp.o
+  CC      disk/part_dos.o
+  CC      disk/part_iso.o
+  AS      arch/arm/lib/relocate.o
+  CC      disk/part_efi.o
+  CC      arch/arm/mach-rockchip/fit_misc.o
+  CC      arch/arm/lib/bootm.o
+  CC      arch/arm/lib/zimage.o
+  CC      drivers/gpio/gpio-uclass.o
+  CC      arch/arm/lib/bootm-fdt.o
+  CC      arch/arm/mach-rockchip/chip_info.o
+  LD      drivers/mtd/onenand/built-in.o
+  AS      arch/arm/lib/memset.o
+  CC      drivers/gpio/rk_gpio.o
+  CC      drivers/i2c/i2c-uclass.o
+  AS      arch/arm/mach-rockchip/lowlevel_init.o
+  CC      drivers/mtd/mtdcore.o
+  AS      arch/arm/lib/memcpy.o
+  CC      drivers/mtd/mtd_uboot.o
+  CC      drivers/mtd/spi/sf-uclass.o
+  CC      drivers/net/eth-phy-uclass.o
+  CC      drivers/i2c/rk_i2c.o
+  CC      drivers/mtd/spi/sf_probe.o
+  CC      arch/arm/mach-rockchip/boot_mode.o
+  CC      drivers/net/gmac_rockchip.o
+  CC      cmd/boot.o
+  LD      board/rockchip/evb_rk3506/built-in.o
+  CC      drivers/net/phy/phy.o
+  CC      drivers/adc/adc-uclass.o
+  CC      drivers/net/dwc_eth_qos.o
+  CC      drivers/mtd/spi/spi-nor-ids.o
+  CC      common/init/board_init.o
+  LD      drivers/ata/built-in.o
+  CC      drivers/mtd/mtd-uclass.o
+  LD      arch/arm/cpu/armv7/built-in.o
+  CC      common/main.o
+  LD      drivers/pci/built-in.o
+  CC      drivers/mtd/spi/spi-nor-core.o
+  CC      cmd/bootm.o
+  CC      drivers/mtd/spi/sf_mtd.o
+  CC      drivers/adc/rockchip-saradc-v2.o
+  CC      drivers/mtd/mtd_blk.o
+  CC      arch/arm/mach-rockchip/boot_rkimg.o
+  LD      drivers/power/built-in.o
+  LD      common/init/built-in.o
+  CC      common/exports.o
+  CC      arch/arm/lib/sections.o
+  CC      drivers/mtd/mtdpart.o
+  CC      drivers/block/blk-uclass.o
+  CC      arch/arm/mach-rockchip/board.o
+  CC      drivers/clk/clk-uclass.o
+  CC      drivers/mtd/nand/core.o
+  LD      drivers/power/battery/built-in.o
+  CC      arch/arm/lib/stack.o
+  CC      cmd/help.o
+  CC      common/cli_hush.o
+  CC      arch/arm/lib/interrupts.o
+  LD      drivers/power/charge/built-in.o
+  CC      drivers/clk/clk_fixed_rate.o
+  LD      drivers/adc/built-in.o
+  CC      drivers/clk/rockchip/clk_pll.o
+  CC      drivers/clk/rockchip/clk_rk3506.o
+  CC      drivers/core/device.o
+  CC      cmd/version.o
+  CC      drivers/core/fdtaddr.o
+  LD      drivers/clk/tegra/built-in.o
+  CC      common/autoboot.o
+  CC      common/board_f.o
+  CC      common/board_r.o
+  LD      drivers/power/domain/built-in.o
+  CC      drivers/core/lists.o
+  LD      drivers/power/dvfs/built-in.o
+  CC      arch/arm/lib/stacktrace.o
+  CC      arch/arm/mach-rockchip/iomem.o
+  CC      drivers/mtd/nand/bbt.o
+  CC      cmd/blk_common.o
+  CC      arch/arm/lib/cache.o
+  LD      drivers/i2c/built-in.o
+  CC      drivers/crypto/crypto-uclass.o
+  CC      cmd/blk.o
+  CC      drivers/crypto/fsl/sec.o
+  LD      drivers/net/built-in.o
+  LD      drivers/dfu/built-in.o
+  CC      common/board_info.o
+  LD      drivers/block/built-in.o
+  CC      drivers/core/root.o
+  CC      cmd/boot_android.o
+  CC      arch/arm/lib/cache-cp15.o
+  LD      drivers/crypto/fsl/built-in.o
+  LD      drivers/power/fuel_gauge/built-in.o
+  CC      arch/arm/mach-rockchip/memblk.o
+  LD      drivers/gpio/built-in.o
+  CC      drivers/firmware/firmware-uclass.o
+  CC      arch/arm/lib/psci-dt.o
+  LD      drivers/power/io-domain/built-in.o
+  CC      common/bootm.o
+  AS      arch/arm/lib/ashldi3.o
+  CC      drivers/core/uclass.o
+  CC      arch/arm/mach-rockchip/hotkey.o
+  CC      drivers/core/util.o
+  LD      drivers/power/mfd/built-in.o
+  CC      arch/arm/mach-rockchip/kernel_dtb.o
+  LD      drivers/net/phy/built-in.o
+  CC      drivers/crypto/rockchip/crypto_v2.o
+  CC      arch/arm/mach-rockchip/fit.o
+  CC      drivers/firmware/psci.o
+  AS      arch/arm/lib/ashrdi3.o
+  CC      drivers/input/key-uclass.o
+  CC      drivers/crypto/rockchip/crypto_hash_cache.o
+  CC      drivers/input/input.o
+  CC      cmd/android.o
+  CC      common/bootm_os.o
+  CC      drivers/crypto/rockchip/crypto_v2_pka.o
+  CC      drivers/power/pmic/pmic-uclass.o
+  CC      drivers/irq/irq-gic.o
+  CC      drivers/input/key_matrix.o
+  LD      drivers/mailbox/built-in.o
+  CC      cmd/bootfit.o
+  CC      drivers/irq/irq-gpio-v2.o
+  LD      disk/built-in.o
+  CC      arch/arm/lib/div0.o
+  CC      drivers/crypto/rsa_mod_exp/mod_exp_uclass.o
+  CC      drivers/power/pmic/pmic_rk801.o
+  CC      cmd/bootz.o
+  CC      drivers/crypto/rockchip/crypto_v2_util.o
+  LD      drivers/firmware/built-in.o
+  CC      drivers/crypto/rsa_mod_exp/mod_exp_sw.o
+  AS      arch/arm/lib/div64.o
+  CC      arch/arm/mach-rockchip/rockchip_smccc.o
+  CC      drivers/crypto/rockchip/crypto_mpa.o
+  AS      arch/arm/lib/lib1funcs.o
+  CC      drivers/core/device-remove.o
+  CC      common/fdt_support.o
+  AS      arch/arm/lib/lshrdi3.o
+  CC      cmd/crypto_sum.o
+  CC      drivers/irq/irq-generic.o
+  CC      drivers/power/regulator/regulator-uclass.o
+  CC      common/miiphyutil.o
+  CC      drivers/irq/irq-gpio-switch.o
+  AS      arch/arm/lib/muldi3.o
+  CC      drivers/input/adc_key.o
+  CC      drivers/irq/virq.o
+  LD      drivers/clk/rockchip/built-in.o
+  CC      common/usb.o
+  CC      drivers/power/regulator/pwm_regulator.o
+  AS      arch/arm/lib/uldivmod.o
+  LD      drivers/clk/built-in.o
+  LD      drivers/crypto/rsa_mod_exp/built-in.o
+  CC      drivers/power/regulator/fixed.o
+  LD      drivers/power/pmic/built-in.o
+  CC      drivers/power/regulator/gpio-regulator.o
+  CC      arch/arm/mach-rockchip/vendor.o
+  CC      cmd/echo.o
+  CC      arch/arm/lib/eabi_compat.o
+  LD      drivers/memory/built-in.o
+  CC      common/usb_hub.o
+  CC      drivers/power/regulator/rk801_regulator.o
+  CC      drivers/mtd/nand/spi/gigadevice.o
+  CC      drivers/mtd/nand/spi/macronix.o
+  CC      drivers/misc/misc-uclass.o
+  CC      cmd/exit.o
+  CC      drivers/misc/misc_otp.o
+  CC      drivers/mmc/mmc.o
+  CC      drivers/core/simple-bus.o
+  CC      drivers/misc/rockchip-otp.o
+  CC      drivers/mmc/mmc-uclass.o
+  LD      drivers/mtd/spi/spi-nor.o
+  LD      arch/arm/lib/built-in.o
+  LD      drivers/mtd/spi/built-in.o
+  LD      drivers/input/built-in.o
+  AR      arch/arm/lib/lib.a
+  CC      common/splash.o
+  CC      arch/arm/mach-rockchip/vendor_misc.o
+  CC      drivers/mmc/mmc_write.o
+  LD      drivers/pcmcia/built-in.o
+  CC      drivers/core/dump.o
+  CC      drivers/mtd/nand/spi/micron.o
+  CC      common/menu.o
+  CC      cmd/ext4.o
+  CC      arch/arm/mach-rockchip/resource_img.o
+  CC      drivers/mtd/nand/spi/toshiba.o
+  CC      cmd/ext2.o
+  LD      drivers/crypto/rockchip/built-in.o
+  LD      drivers/irq/built-in.o
+  CC      drivers/phy/phy-uclass.o
+  LD      drivers/crypto/built-in.o
+  CC      arch/arm/mach-rockchip/rk_hwid.o
+  CC      drivers/mmc/dw_mmc.o
+  CC      arch/arm/mach-rockchip/param.o
+  CC      cmd/fat.o
+  CC      cmd/fdt.o
+  CC      drivers/core/regmap.o
+  LD      drivers/phy/marvell/built-in.o
+  CC      drivers/phy/phy-rockchip-inno-usb2.o
+  CC      drivers/mmc/rockchip_dw_mmc.o
+  CC      arch/arm/mach-rockchip/sdram.o
+  CC      drivers/core/syscon-uclass.o
+  CC      drivers/serial/serial-uclass.o
+  LD      drivers/misc/built-in.o
+  CC      arch/arm/mach-rockchip/rk_atags.o
+  CC      arch/arm/mach-rockchip/rk3506/syscon_rk3506.o
+  CC      common/cli_readline.o
+  CC      drivers/serial/ns16550.o
+  LD      drivers/mtd/nand/nandcore.o
+  CC      arch/arm/mach-rockchip/rk3506/rk3506.o
+  CC      cmd/fs.o
+  CC      drivers/pinctrl/pinctrl-uclass.o
+  CC      drivers/mtd/nand/spi/winbond.o
+  CC      drivers/core/of_access.o
+  CC      drivers/core/of_addr.o
+  LD      drivers/power/regulator/built-in.o
+  CC      drivers/pinctrl/pinctrl-generic.o
+  CC      drivers/core/read.o
+  CC      drivers/spi/spi-uclass.o
+  CC      drivers/pwm/pwm-uclass.o
+  CC      drivers/mtd/nand/spi/dosilicon.o
+  CC      cmd/load.o
+  LD      drivers/usb/cdns3/built-in.o
+  CC      drivers/core/of_extra.o
+  CC      drivers/spi/spi-mem.o
+  LD      arch/arm/mach-rockchip/rk3506/built-in.o
+  LD      drivers/pinctrl/nxp/built-in.o
+  CC      drivers/pwm/rk_pwm.o
+  CC      drivers/core/ofnode.o
+  CC      drivers/pinctrl/rockchip/pinctrl-rockchip-core.o
+  CC      drivers/usb/common/common.o
+  CC      drivers/ram/ram-uclass.o
+  CC      drivers/pinctrl/rockchip/pinctrl-rk3506.o
+  CC      common/cli_simple.o
+  CC      drivers/pinctrl/pinctrl-rockchip.o
+  LD      arch/arm/mach-rockchip/built-in.o
+  CC      drivers/ram/rockchip/sdram_common.o
+  CC      cmd/download.o
+  CC      drivers/ram/rockchip/sdram_rk3506.o
+  LD      drivers/usb/dwc3/built-in.o
+  CC      drivers/spi/rockchip_sfc.o
+  CC      drivers/mtd/nand/spi/esmt.o
+  CC      cmd/mem.o
+  CC      drivers/core/read_extra.o
+  CC      common/edid.o
+  CC      common/bouncebuf.o
+  LD      drivers/usb/emul/built-in.o
+  CC      drivers/mtd/nand/spi/xincun.o
+  LD      drivers/serial/built-in.o
+  LD      drivers/usb/common/built-in.o
+  CC      cmd/mii.o
+  CC      common/console.o
+  CC      drivers/mtd/nand/spi/xtx.o
+  LD      drivers/usb/eth/built-in.o
+  CC      drivers/reset/reset-uclass.o
+  CC      drivers/reset/reset-rockchip.o
+  CC      common/dlmalloc.o
+  CC      cmd/mdio.o
+  CC      common/malloc_simple.o
+  CC      drivers/rng/rng-uclass.o
+  CC      cmd/mmc.o
+  CC      drivers/rng/rockchip_rng.o
+  CC      drivers/rng/rockchip_rand.o
+  LD      drivers/phy/built-in.o
+  CC      cmd/mtd.o
+  CC      drivers/rtc/date.o
+  CC      cmd/mtd_blk.o
+  CC      drivers/usb/gadget/epautoconf.o
+  CC      drivers/usb/gadget/config.o
+  LD      drivers/ram/rockchip/built-in.o
+  CC      drivers/usb/gadget/usbstring.o
+  LD      drivers/scsi/built-in.o
+  LD      drivers/ram/built-in.o
+  CC      drivers/usb/gadget/dwc2_udc_otg.o
+  CC      drivers/mtd/nand/spi/hyf.o
+  LD      drivers/pinctrl/rockchip/built-in.o
+  LD      drivers/rtc/built-in.o
+  CC      drivers/usb/gadget/udc/udc-uclass.o
+  CC      cmd/net.o
+  CC      drivers/usb/host/usb-uclass.o
+  CC      drivers/mtd/nand/spi/fmsh.o
+  LD      drivers/pwm/built-in.o
+  LD      drivers/reset/built-in.o
+  CC      drivers/usb/gadget/g_dnl.o
+  CC      common/image.o
+  CC      cmd/part.o
+  CC      cmd/pcmcia.o
+  CC      drivers/usb/gadget/f_mass_storage.o
+  LD      drivers/soc/built-in.o
+  CC      cmd/pinmux.o
+  LD      drivers/usb/gadget/udc/built-in.o
+  LD      drivers/sound/built-in.o
+  LD      drivers/rng/built-in.o
+  CC      common/image-android.o
+  CC      drivers/mtd/nand/spi/foresee.o
+  CC      common/android_bootloader.o
+  LD      drivers/spi/built-in.o
+  LD      drivers/spmi/built-in.o
+  CC      cmd/pxe.o
+  CC      common/image-fdt.o
+  CC      drivers/sysreset/sysreset-uclass.o
+  CC      cmd/rockusb.o
+  CC      drivers/sysreset/sysreset-syscon-reboot.o
+  LD      drivers/usb/musb-new/built-in.o
+  CC      drivers/sysreset/sysreset_psci.o
+  CC      cmd/test.o
+  LD      drivers/thermal/built-in.o
+  CC      common/image-fit.o
+  LD      drivers/mmc/built-in.o
+  CC      cmd/script_update.o
+  LD      drivers/usb/musb/built-in.o
+  CC      cmd/pmic.o
+  CC      drivers/mtd/nand/spi/biwin.o
+  CC      cmd/rkimgtest.o
+  LD      drivers/core/built-in.o
+  CC      drivers/sysreset/sysreset_rockchip.o
+  CC      common/memsize.o
+  LD      drivers/usb/phy/built-in.o
+  LD      drivers/tpm/built-in.o
+  CC      drivers/mtd/nand/spi/etron.o
+  CC      cmd/atags.o
+  CC      drivers/mtd/nand/spi/jsc.o
+  CC      common/stdio.o
+  CC      drivers/mtd/nand/spi/silicongo.o
+  LD      drivers/pinctrl/built-in.o
+  LD      drivers/usb/ulpi/built-in.o
+  CC      common/cli.o
+  LD      drivers/ufs/built-in.o
+  CC      drivers/mtd/nand/spi/unim.o
+  CC      drivers/mtd/nand/spi/skyhigh.o
+  CC      drivers/mtd/nand/spi/gsto.o
+  CC      env/common.o
+  LD      drivers/sysreset/built-in.o
+  CC      fs/fs.o
+  CC      env/env.o
+  CC      drivers/video/display-uclass.o
+  CC      env/attr.o
+  LD      drivers/usb/host/built-in.o
+  CC      fs/ext4/ext4fs.o
+  CC      common/command.o
+  CC      env/callback.o
+  CC      drivers/mtd/nand/spi/zbit.o
+  CC      cmd/nvedit.o
+  CC      drivers/video/backlight-uclass.o
+  CC      drivers/video/panel-uclass.o
+  CC      fs/ext4/ext4_common.o
+  CC      common/s_record.o
+  CC      env/flags.o
+  CC      fs/fat/fat.o
+  CC      fs/ext4/dev.o
+  CC      net/checksum.o
+  CC      env/nowhere.o
+  LD      drivers/watchdog/built-in.o
+  LD      lib/avb/rk_avb_user/built-in.o
+  CC      drivers/mtd/nand/spi/hiksemi.o
+  CC      drivers/video/simple_panel.o
+  CC      lib/lzma/LzmaDec.o
+  LD      test/built-in.o
+  CC      lib/lzma/LzmaTools.o
+  CC      lib/libfdt/fdt.o
+  CC      lib/libfdt/fdt_wip.o
+  CC      fs/fs_internal.o
+  CC      lib/rsa/rsa-mod-exp.o
+  CC      lib/libfdt/fdt_strerror.o
+  CC      drivers/video/video-uclass.o
+  CC      drivers/mtd/nand/spi/core.o
+  CC      test/dm/cmd_dm.o
+  CC      net/arp.o
+  CC      drivers/video/vidconsole-uclass.o
+  CC      drivers/video/video_bmp.o
+  CC      lib/zlib/zlib.o
+  CC      net/bootp.o
+  CC      drivers/video/pwm_backlight.o
+  CC      lib/libfdt/fdt_sw.o
+  CC      drivers/video/console_normal.o
+  CC      lib/of_live.o
+  CC      lib/libfdt/fdt_rw.o
+  LD      cmd/built-in.o
+  LD      env/built-in.o
+  CC      lib/charset.o
+  CC      net/eth_common.o
+  CC      net/eth-uclass.o
+  LD      lib/rsa/built-in.o
+  CC      lib/libfdt/fdt_empty_tree.o
+  CC      lib/crc7.o
+  CC      net/net.o
+  CC      drivers/video/bridge/video-bridge-uclass.o
+  CC      lib/libfdt/fdt_addresses.o
+  CC      lib/crc8.o
+  CC      net/ping.o
+  CC      lib/libfdt/fdt_ro.o
+  LD      fs/ext4/built-in.o
+  CC      lib/crc16.o
+  CC      drivers/video/drm/drm_modes.o
+  CC      lib/libfdt/fdt_region.o
+  CC      net/tftp.o
+  LD      drivers/video/sunxi/built-in.o
+  CC      lib/errno_str.o
+  CC      lib/fdtdec_common.o
+  CC      drivers/video/drm/rockchip_display.o
+  CC      drivers/video/drm/rockchip_display_helper.o
+  CC      lib/initcall.o
+  CC      lib/lmb.o
+  LD      test/dm/built-in.o
+  CC      drivers/video/drm/rockchip_crtc.o
+  CC      drivers/video/drm/rockchip_phy.o
+  CC      lib/sysmem.o
+  CC      lib/bidram.o
+  CC      drivers/video/drm/rockchip_bridge.o
+  CC      lib/ldiv.o
+  LD      drivers/video/bridge/built-in.o
+  CC      lib/lz4_wrapper.o
+  CC      drivers/video/drm/rockchip_vop.o
+  CC      lib/net_utils.o
+  LD      fs/fat/built-in.o
+  CC      drivers/video/drm/rockchip_vop_reg.o
+  LD      fs/built-in.o
+  CC      lib/qsort.o
+  CC      drivers/video/drm/rockchip_vop2.o
+  CC      lib/rc4.o
+  CC      drivers/video/drm/bmp_helper.o
+  CC      drivers/video/drm/rockchip_connector.o
+  CC      drivers/video/drm/rockchip_post_csc.o
+  CC      lib/list_sort.o
+  CC      lib/sha256.o
+  CC      lib/sha1.o
+  CC      drivers/video/drm/libnsbmp.o
+  CC      drivers/video/drm/drm_mipi_dsi.o
+  CC      lib/gunzip.o
+  CC      lib/fdtdec.o
+  CC      drivers/video/drm/dw_mipi_dsi.o
+  CC      drivers/video/drm/inno_mipi_phy.o
+  LD      net/built-in.o
+  CC      drivers/video/drm/rockchip_rgb.o
+  CC      lib/abuf.o
+  CC      lib/hashtable.o
+  CC      drivers/video/drm/rockchip_panel.o
+  CC      lib/errno.o
+  CC      lib/display_options.o
+  CC      lib/crc32.o
+  CC      lib/ctype.o
+  CC      lib/div64.o
+  CC      lib/hang.o
+  CC      lib/linux_compat.o
+  CC      lib/linux_string.o
+  LD      lib/lzma/built-in.o
+  LD      drivers/usb/gadget/built-in.o
+  LD      lib/libfdt/built-in.o
+  CC      lib/membuff.o
+  CC      lib/string.o
+  CC      lib/stdlib.o
+  CC      lib/tables_csum.o
+  CC      lib/time.o
+  CC      lib/hexdump.o
+  CC      lib/uuid.o
+  CC      lib/vsprintf.o
+  CC      lib/panic.o
+  CC      lib/strto.o
+  CC      lib/strmhz.o
+  LD      lib/zlib/built-in.o
+  LD      drivers/mtd/nand/spi/spinand.o
+  LD      drivers/mtd/nand/spi/built-in.o
+  LD      common/built-in.o
+  LD      drivers/mtd/nand/built-in.o
+  LD      drivers/mtd/built-in.o
+  LD      lib/built-in.o
+  LD      drivers/video/drm/built-in.o
+  LD      drivers/video/built-in.o
+  LD      drivers/built-in.o
+  LD      u-boot
+  OBJCOPY u-boot.srec
+  OBJCOPY u-boot-nodtb.bin
+  SYM     u-boot.sym
+  DTC     arch/arm/dts/rk3036-sdk.dtb
+  DTC     arch/arm/dts/rk3066a-mk808.dtb
+  DTC     arch/arm/dts/rk3126-evb.dtb
+  DTC     arch/arm/dts/rk3128-evb.dtb
+  DTC     arch/arm/dts/rk3188-radxarock.dtb
+  DTC     arch/arm/dts/rk3288-evb.dtb
+  DTC     arch/arm/dts/rk3288-fennec.dtb
+  DTC     arch/arm/dts/rk3288-miqi.dtb
+  DTC     arch/arm/dts/rk3288-firefly.dtb
+  DTC     arch/arm/dts/rk3288-phycore-rdk.dtb
+  DTC     arch/arm/dts/rk3288-rock2-square.dtb
+  DTC     arch/arm/dts/rk3288-popmetal.dtb
+  DTC     arch/arm/dts/rk3288-tinker.dtb
+  DTC     arch/arm/dts/rk3288-veyron-jerry.dtb
+  DTC     arch/arm/dts/rk3288-veyron-mickey.dtb
+  DTC     arch/arm/dts/rk3288-veyron-minnie.dtb
+  DTC     arch/arm/dts/rk3288-vyasa.dtb
+  DTC     arch/arm/dts/rk3308-evb.dtb
+  DTC     arch/arm/dts/rk3328-evb.dtb
+  DTC     arch/arm/dts/rk3368-lion.dtb
+  DTC     arch/arm/dts/rk3368-sheep.dtb
+  DTC     arch/arm/dts/rk3368-geekbox.dtb
+  DTC     arch/arm/dts/rk3368-px5-evb.dtb
+  DTC     arch/arm/dts/rk3399-evb.dtb
+  DTC     arch/arm/dts/rk3399-firefly.dtb
+  DTC     arch/arm/dts/rk3399-puma-ddr1333.dtb
+  DTC     arch/arm/dts/rk3399-puma-ddr1600.dtb
+  DTC     arch/arm/dts/rk3399-puma-ddr1866.dtb
+  DTC     arch/arm/dts/alientek-rk3506.dtb
+  DTC     arch/arm/dts/rv1103b-evb1.dtb
+  DTC     arch/arm/dts/rv1106-evb.dtb
+  DTC     arch/arm/dts/rv1106-evb2.dtb
+  DTC     arch/arm/dts/rv1106b-evb2.dtb
+  DTC     arch/arm/dts/rv1106b-evb2-spi-nand.dtb
+  DTC     arch/arm/dts/rv1108-evb.dtb
+make[2]: 'arch/arm/dts/alientek-rk3506.dtb' is up to date.
+  FDTGREP dts/dt.dtb
+  FDTGREP dts/dt-spl.dtb
+  FDTGREP dts/dt-tpl.dtb
+  CAT     u-boot-dtb.bin
+  MKIMAGE u-boot.img
+  COPY    u-boot.dtb
+  MKIMAGE u-boot-dtb.img
+  COPY    u-boot.bin
+  ALIGN   u-boot.bin
+  LD      spl/arch/arm/cpu/built-in.o
+  CC      spl/board/rockchip/evb_rk3506/evb_rk3506.o
+  CC      spl/cmd/nvedit.o
+  CC      spl/common/init/board_init.o
+  CC      spl/disk/part.o
+  CC      spl/env/common.o
+  CC      spl/common/spl/spl.o
+  CC      spl/env/env.o
+  CC      spl/common/spl/spl_fit.o
+  CC      spl/disk/part_iso.o
+  LD      spl/dts/built-in.o
+  CC      spl/common/spl/spl_mmc.o
+  CC      spl/fs/fs_internal.o
+  CC      spl/common/spl/spl_mtd_blk.o
+  CC      spl/disk/part_efi.o
+  CC      spl/arch/arm/cpu/armv7/cache_v7.o
+  AS      spl/common/spl/spl_optee.o
+  AS      spl/arch/arm/cpu/armv7/cache_v7_asm.o
+  CC      spl/arch/arm/cpu/armv7/cpu.o
+  CC      spl/arch/arm/mach-rockchip/fit_misc.o
+  CC      spl/arch/arm/cpu/armv7/cp15.o
+  CC      spl/arch/arm/mach-rockchip/spl_boot_mode.o
+  CC      spl/arch/arm/cpu/armv7/syslib.o
+  AS      spl/arch/arm/cpu/armv7/lowlevel_init.o
+  LDS     spl/u-boot-spl.lds
+  CC      spl/common/hash.o
+  AS      spl/arch/arm/lib/vectors.o
+  AS      spl/arch/arm/cpu/armv7/smccc-call.o
+  CC      tpl/arch/arm/mach-rockchip/param.o
+  COPY    spl/u-boot-spl.dtb
+  AS      spl/arch/arm/lib/crt0.o
+  CC      spl/common/common_fit.o
+  CC      tpl/arch/arm/cpu/armv7/cache_v7.o
+  CC      tpl/arch/arm/mach-rockchip/sdram.o
+  CC      spl/arch/arm/mach-rockchip/param.o
+  AS      spl/arch/arm/lib/setjmp.o
+  LD      spl/lib/avb/rk_avb_user/built-in.o
+  LD      tpl/arch/arm/cpu/built-in.o
+  LD      spl/fs/built-in.o
+  CC      spl/lib/lzma/LzmaDec.o
+  CC      spl/drivers/block/blk-uclass.o
+  CC      tpl/arch/arm/mach-rockchip/rk3506/rk3506.o
+  CC      spl/common/fdt_support.o
+  AS      spl/arch/arm/lib/relocate.o
+  LD      spl/common/init/built-in.o
+  LD      spl/board/rockchip/evb_rk3506/built-in.o
+  CC      spl/arch/arm/mach-rockchip/sdram.o
+  CC      spl/lib/lzma/LzmaTools.o
+  CC      spl/lib/libfdt/fdt.o
+  CC      spl/lib/rsa/rsa-mod-exp.o
+  CC      spl/arch/arm/lib/bootm-fdt.o
+  CC      spl/arch/arm/lib/bootm.o
+  CC      spl/drivers/clk/clk-uclass.o
+  CC      spl/arch/arm/lib/zimage.o
+  CC      spl/lib/libfdt/fdt_wip.o
+  LD      spl/env/built-in.o
+  CC      tpl/arch/arm/mach-rockchip/bootrom.o
+  CC      spl/drivers/clk/clk_fixed_rate.o
+  CC      spl/arch/arm/cpu/armv7/arch_timer.o
+  CC      spl/drivers/core/device.o
+  AS      tpl/arch/arm/cpu/armv7/cache_v7_asm.o
+  AS      spl/arch/arm/lib/memset.o
+  AS      tpl/arch/arm/lib/vectors.o
+  AS      spl/arch/arm/lib/memcpy.o
+  LD      spl/cmd/built-in.o
+  CC      spl/common/bouncebuf.o
+  CC      spl/lib/libfdt/fdt_strerror.o
+  CC      spl/drivers/core/fdtaddr.o
+  CC      tpl/arch/arm/cpu/armv7/cpu.o
+  AS      tpl/arch/arm/lib/crt0.o
+  AS      spl/arch/arm/cpu/armv7/start.o
+  CC      spl/lib/zlib/zlib.o
+  CC      tpl/arch/arm/cpu/armv7/cp15.o
+  CC      spl/drivers/core/lists.o
+  AS      tpl/arch/arm/lib/setjmp.o
+  CC      spl/drivers/core/root.o
+  CC      spl/lib/sha1.o
+  LD      tpl/arch/arm/mach-rockchip/rk3506/built-in.o
+  CC      tpl/arch/arm/mach-rockchip/tpl.o
+  CC      spl/common/console.o
+  CC      tpl/arch/arm/lib/spl.o
+  CC      tpl/board/rockchip/evb_rk3506/evb_rk3506.o
+  CC      tpl/arch/arm/mach-rockchip/rk_atags.o
+  CC      spl/arch/arm/mach-rockchip/rk3506/syscon_rk3506.o
+  CC      spl/lib/libfdt/fdt_sw.o
+  LD      spl/lib/rsa/built-in.o
+  CC      spl/lib/libfdt/fdt_rw.o
+  CC      spl/arch/arm/lib/sections.o
+  CC      spl/drivers/core/uclass.o
+  CC      spl/drivers/core/util.o
+  CC      tpl/arch/arm/cpu/armv7/syslib.o
+  CC      spl/arch/arm/mach-rockchip/rk3506/rk3506.o
+  CC      spl/arch/arm/lib/stack.o
+  LD      spl/arch/arm/cpu/armv7/built-in.o
+  CC      spl/arch/arm/lib/interrupts.o
+  LD      spl/common/spl/built-in.o
+  CC      spl/drivers/core/simple-bus.o
+  CC      spl/common/dlmalloc.o
+  CC      spl/lib/sha256.o
+  LD      tpl/board/rockchip/evb_rk3506/built-in.o
+  CC      tpl/arch/arm/lib/zimage.o
+  CC      spl/drivers/clk/rockchip/clk_pll.o
+  AS      tpl/arch/arm/cpu/armv7/lowlevel_init.o
+  CC      spl/drivers/crypto/crypto-uclass.o
+  LD      spl/disk/built-in.o
+  CC      spl/drivers/clk/rockchip/clk_rk3506.o
+  CC      spl/drivers/crypto/fsl/sec.o
+  LD      tpl/arch/arm/mach-rockchip/built-in.o
+  CC      spl/common/malloc_simple.o
+  CC      spl/drivers/crypto/rockchip/crypto_v2.o
+  CC      spl/drivers/crypto/rsa_mod_exp/mod_exp_uclass.o
+  AS      tpl/arch/arm/cpu/armv7/smccc-call.o
+  CC      spl/drivers/crypto/rsa_mod_exp/mod_exp_sw.o
+  CC      spl/drivers/firmware/firmware-uclass.o
+  CC      tpl/arch/arm/lib/bootm-fdt.o
+  CC      spl/drivers/core/dump.o
+  LD      spl/drivers/clk/tegra/built-in.o
+  CC      spl/common/image.o
+  CC      spl/lib/gunzip.o
+  AS      tpl/arch/arm/cpu/armv7/start.o
+  LD      spl/arch/arm/mach-rockchip/rk3506/built-in.o
+  CC      spl/arch/arm/mach-rockchip/bootrom.o
+  LD      spl/drivers/crypto/fsl/built-in.o
+  CC      spl/drivers/gpio/gpio-uclass.o
+  CC      spl/arch/arm/lib/stacktrace.o
+  LD      tpl/arch/arm/cpu/armv7/built-in.o
+  CC      tpl/common/init/board_init.o
+  CC      spl/drivers/gpio/rk_gpio.o
+  CC      spl/lib/fdtdec_common.o
+  CC      spl/lib/libfdt/fdt_empty_tree.o
+  CC      spl/drivers/misc/misc-uclass.o
+  LD      spl/drivers/block/built-in.o
+  CC      spl/drivers/crypto/rockchip/crypto_hash_cache.o
+  CC      spl/drivers/firmware/psci.o
+  CC      spl/drivers/misc/misc_otp.o
+  LD      spl/drivers/crypto/rsa_mod_exp/built-in.o
+  CC      spl/arch/arm/mach-rockchip/spl.o
+  AS      tpl/arch/arm/lib/memset.o
+  CC      spl/lib/libfdt/fdt_addresses.o
+  CC      spl/arch/arm/mach-rockchip/spl-boot-order.o
+  CC      spl/drivers/mmc/mmc.o
+  LD      tpl/common/init/built-in.o
+  CC      spl/drivers/crypto/rockchip/crypto_v2_pka.o
+  CC      spl/arch/arm/lib/cache.o
+  CC      tpl/disk/part.o
+  AS      tpl/arch/arm/lib/memcpy.o
+  CC      spl/arch/arm/lib/cache-cp15.o
+  CC      tpl/arch/arm/lib/sections.o
+  CC      spl/lib/libfdt/fdt_ro.o
+  CC      spl/drivers/core/regmap.o
+  CC      spl/drivers/mmc/mmc-uclass.o
+  CC      tpl/drivers/ram/rockchip/sdram_common.o
+  CC      spl/drivers/misc/rockchip-otp.o
+  CC      tpl/arch/arm/lib/stack.o
+  CC      spl/lib/fdtdec.o
+  CC      tpl/arch/arm/lib/interrupts.o
+  CC      spl/lib/libfdt/fdt_region.o
+  CC      tpl/drivers/ram/rockchip/sdram_rk3506.o
+  CC      spl/arch/arm/mach-rockchip/rk_atags.o
+  CC      spl/drivers/mtd/mtdcore.o
+  CC      spl/drivers/crypto/rockchip/crypto_v2_util.o
+  CC      spl/common/image-fdt.o
+  LD      spl/drivers/firmware/built-in.o
+  CC      spl/drivers/mtd/mtd_uboot.o
+  LD      tpl/dts/built-in.o
+  CC      tpl/arch/arm/lib/stacktrace.o
+  AS      spl/drivers/misc/rk3506-secure-otp.o
+  CC      spl/arch/arm/lib/psci-dt.o
+  CC      spl/drivers/crypto/rockchip/crypto_mpa.o
+  CC      spl/drivers/mmc/dw_mmc.o
+  LD      tpl/disk/built-in.o
+  LD      spl/lib/lzma/built-in.o
+  CC      spl/drivers/mtd/mtd-uclass.o
+  AS      spl/arch/arm/lib/ashldi3.o
+  CC      tpl/drivers/serial/serial-uclass.o
+  LD      spl/arch/arm/mach-rockchip/built-in.o
+  LD      tpl/drivers/ram/rockchip/built-in.o
+  CC      spl/drivers/mmc/rockchip_dw_mmc.o
+  CC      tpl/fs/fs_internal.o
+  LD      tpl/drivers/ram/built-in.o
+  CC      spl/drivers/mtd/mtd_blk.o
+  CC      spl/drivers/core/syscon-uclass.o
+  CC      spl/common/image-fit.o
+  CC      spl/drivers/mtd/spi/sf-uclass.o
+  CC      spl/common/memsize.o
+  AS      spl/arch/arm/lib/ashrdi3.o
+  CC      spl/drivers/mtd/spi/sf_probe.o
+  LDS     tpl/u-boot-spl.lds
+  CC      spl/lib/abuf.o
+  CC      spl/arch/arm/lib/div0.o
+  CC      tpl/drivers/serial/ns16550.o
+  CC      spl/drivers/mtd/spi/spi-nor-ids.o
+  CC      spl/lib/hashtable.o
+  LD      spl/drivers/crypto/rockchip/built-in.o
+  AS      spl/arch/arm/lib/div64.o
+  LD      spl/drivers/crypto/built-in.o
+  CC      spl/drivers/mtd/mtdpart.o
+  LD      spl/drivers/clk/rockchip/built-in.o
+  CC      spl/drivers/core/of_access.o
+  LD      spl/drivers/clk/built-in.o
+  AS      spl/arch/arm/lib/lib1funcs.o
+  LD      spl/drivers/gpio/built-in.o
+  CC      spl/common/stdio.o
+  CC      spl/lib/errno.o
+  CC      spl/lib/display_options.o
+  LD      tpl/fs/built-in.o
+  CC      spl/drivers/mtd/spi/spi-nor-core.o
+  CC      tpl/arch/arm/lib/cache.o
+  LD      spl/lib/libfdt/built-in.o
+  LD      spl/drivers/misc/built-in.o
+  AS      spl/arch/arm/lib/lshrdi3.o
+  CC      tpl/arch/arm/lib/cache-cp15.o
+  LD      spl/lib/zlib/built-in.o
+  CC      spl/drivers/mtd/spi/sf_mtd.o
+  CC      spl/common/cli.o
+  CC      tpl/arch/arm/lib/psci-dt.o
+  CC      spl/drivers/mtd/nand/core.o
+  CC      spl/common/command.o
+  CC      spl/drivers/ram/ram-uclass.o
+  CC      spl/drivers/pinctrl/pinctrl-uclass.o
+  AS      spl/arch/arm/lib/muldi3.o
+  CC      spl/drivers/core/of_addr.o
+  CC      spl/drivers/ram/rockchip/sdram_common.o
+  CC      spl/drivers/pinctrl/pinctrl-generic.o
+  AS      spl/arch/arm/lib/uldivmod.o
+  CC      spl/drivers/core/read.o
+  LD      spl/drivers/pinctrl/nxp/built-in.o
+  CC      spl/arch/arm/lib/eabi_compat.o
+  CC      spl/drivers/serial/serial-uclass.o
+  CC      spl/lib/crc32.o
+  CC      spl/drivers/serial/ns16550.o
+  CC      spl/lib/ctype.o
+  CC      spl/drivers/ram/rockchip/sdram_rk3506.o
+  CC      spl/drivers/core/of_extra.o
+  CC      spl/drivers/mtd/nand/bbt.o
+  AS      tpl/arch/arm/lib/ashldi3.o
+  AS      tpl/arch/arm/lib/ashrdi3.o
+  CC      spl/drivers/core/ofnode.o
+  CC      spl/drivers/spi/spi-uclass.o
+  LD      spl/arch/arm/lib/built-in.o
+  LD      tpl/drivers/serial/built-in.o
+  CC      spl/drivers/spi/spi-mem.o
+  AR      spl/arch/arm/lib/lib.a
+  CC      spl/drivers/spi/rockchip_sfc.o
+  LD      tpl/drivers/built-in.o
+  CC      tpl/arch/arm/lib/div0.o
+  CC      spl/drivers/mtd/nand/spi/gigadevice.o
+  CC      spl/drivers/pinctrl/rockchip/pinctrl-rockchip-core.o
+  CC      spl/lib/div64.o
+  CC      spl/drivers/sysreset/sysreset-uclass.o
+  CC      spl/drivers/sysreset/sysreset_rockchip.o
+  CC      spl/drivers/mtd/nand/spi/macronix.o
+  CC      spl/drivers/pinctrl/rockchip/pinctrl-rk3506.o
+  CC      spl/drivers/mtd/nand/spi/micron.o
+  AS      tpl/arch/arm/lib/div64.o
+  CC      spl/drivers/mtd/nand/spi/toshiba.o
+  AS      tpl/arch/arm/lib/lib1funcs.o
+  CC      spl/drivers/core/read_extra.o
+  CC      spl/drivers/pinctrl/pinctrl-rockchip.o
+  AS      tpl/arch/arm/lib/lshrdi3.o
+  CC      spl/common/s_record.o
+  CC      spl/drivers/mtd/nand/spi/winbond.o
+  AS      tpl/arch/arm/lib/muldi3.o
+  AS      tpl/arch/arm/lib/uldivmod.o
+  CC      spl/drivers/mtd/nand/spi/dosilicon.o
+  LD      spl/drivers/mtd/spi/spi-nor.o
+  LD      spl/drivers/mtd/spi/built-in.o
+  LD      spl/drivers/serial/built-in.o
+  CC      tpl/arch/arm/lib/eabi_compat.o
+  CC      spl/lib/hang.o
+  CC      spl/lib/linux_compat.o
+  CC      spl/lib/linux_string.o
+  CC      spl/lib/membuff.o
+  LD      spl/drivers/sysreset/built-in.o
+  LD      tpl/arch/arm/lib/built-in.o
+  CC      spl/drivers/mtd/nand/spi/esmt.o
+  CC      spl/lib/string.o
+  CC      spl/lib/stdlib.o
+  AR      tpl/arch/arm/lib/lib.a
+  CC      spl/drivers/mtd/nand/spi/xincun.o
+  CC      spl/lib/tables_csum.o
+  CC      spl/lib/time.o
+  CC      spl/lib/hexdump.o
+  CC      spl/lib/uuid.o
+  CC      spl/drivers/mtd/nand/spi/xtx.o
+  CC      spl/drivers/mtd/nand/spi/hyf.o
+  CC      spl/lib/rand.o
+  CC      spl/lib/tiny-printf.o
+  LD      spl/common/built-in.o
+  CC      spl/drivers/mtd/nand/spi/fmsh.o
+  CC      spl/drivers/mtd/nand/spi/foresee.o
+  CC      spl/lib/panic.o
+  CC      spl/lib/strto.o
+  CC      spl/drivers/mtd/nand/spi/biwin.o
+  LD      spl/drivers/ram/rockchip/built-in.o
+  CC      spl/drivers/mtd/nand/spi/etron.o
+  LD      spl/drivers/ram/built-in.o
+  CC      spl/drivers/mtd/nand/spi/jsc.o
+  CC      spl/drivers/mtd/nand/spi/silicongo.o
+  CC      spl/drivers/mtd/nand/spi/unim.o
+  LD      spl/drivers/mmc/built-in.o
+  CC      spl/drivers/mtd/nand/spi/skyhigh.o
+  LD      spl/drivers/spi/built-in.o
+  CC      spl/drivers/mtd/nand/spi/gsto.o
+  CC      spl/drivers/mtd/nand/spi/zbit.o
+  CC      spl/drivers/mtd/nand/spi/hiksemi.o
+  CC      spl/drivers/mtd/nand/spi/core.o
+  LD      tpl/u-boot-tpl
+  OBJCOPY tpl/u-boot-tpl-nodtb.bin
+  COPY    tpl/u-boot-tpl.bin
+  LD      spl/drivers/pinctrl/rockchip/built-in.o
+  LD      spl/lib/built-in.o
+  LD      spl/drivers/mtd/nand/nandcore.o
+  LD      spl/drivers/core/built-in.o
+  LD      spl/drivers/pinctrl/built-in.o
+  LD      spl/drivers/mtd/nand/spi/spinand.o
+  LD      spl/drivers/mtd/nand/spi/built-in.o
+  LD      spl/drivers/mtd/nand/built-in.o
+  LD      spl/drivers/mtd/built-in.o
+  LD      spl/drivers/built-in.o
+  LD      spl/u-boot-spl
+  OBJCOPY spl/u-boot-spl-nodtb.bin
+  CAT     spl/u-boot-spl-dtb.bin
+  COPY    spl/u-boot-spl.bin
+  CFGCHK  u-boot.cfg
+pack u-boot.itb okay! Input: /home/charliechen/rk-forge/third_party/vendor-sdk/rkbin/RKTRUST/RK3506TOS.ini
+
+FIT description: FIT Image with ATF/OP-TEE/U-Boot/MCU
+Created:         Sun Jun 14 11:45:47 2026
+ Image 0 (uboot)
+  Description:  U-Boot
+  Created:      Sun Jun 14 11:45:47 2026
+  Type:         Standalone Program
+  Compression:  uncompressed
+  Data Size:    675864 Bytes = 660.02 KiB = 0.64 MiB
+  Architecture: ARM
+  Load Address: 0x00200000
+  Entry Point:  unavailable
+  Hash algo:    sha256
+  Hash value:   a709981c68a5525bd02bea42b354edc32697b9bc338e371d1659f5956fda935e
+ Image 1 (optee)
+  Description:  OP-TEE
+  Created:      Sun Jun 14 11:45:47 2026
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    125904 Bytes = 122.95 KiB = 0.12 MiB
+  Architecture: ARM
+  Load Address: 0x00001000
+  Hash algo:    sha256
+  Hash value:   93603ca22cdf22e47ac130e4ac386cdf9474443ab076039807dfc2d5d30b7ecd
+ Image 2 (fdt)
+  Description:  U-Boot dtb
+  Created:      Sun Jun 14 11:45:47 2026
+  Type:         Flat Device Tree
+  Compression:  uncompressed
+  Data Size:    6381 Bytes = 6.23 KiB = 0.01 MiB
+  Architecture: ARM
+  Hash algo:    sha256
+  Hash value:   178d2c69439c1b947be4ff1825ead1e20d46ba138fabf11f82137bd36f6b2299
+ Default Configuration: 'conf'
+ Configuration 0 (conf)
+  Description:  alientek-rk3506
+  Kernel:       unavailable
+  Firmware:     optee
+  FDT:          fdt
+  Loadables:    uboot
+********boot_merger ver 1.35********
+Info:Pack loader ok.
+creating new idblock from loader...
+idblock binary saving at rk3506_idblock_v1.06.111.img
+pack loader(SPL) okay! Input: /home/charliechen/rk-forge/third_party/vendor-sdk/rkbin/RKBOOT/RK3506BMINIALL.ini
+
+/home/charliechen/rk-forge/third_party/vendor-sdk/u-boot
+pack loader with new: spl/u-boot-spl.bin
+
+Image(no-signed, version=0): uboot.img (FIT with uboot, trust...) is ready
+Image(no-signed): rk3506_idblock_v1.06.111.img (with spl, ddr...) is ready
+pack uboot.img okay! Input: /home/charliechen/rk-forge/third_party/vendor-sdk/rkbin/RKTRUST/RK3506TOS.ini
+
+Platform RK3506 is build OK, with new .config(make alientek_rk3506_defconfig -j28)
+/home/charliechen/rk-forge/third_party/vendor-sdk/prebuilts/gcc/linux-x86/arm/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-
+Sun Jun 14 11:45:48 CST 2026
+[35m+ cd ..[0m
+[35mRunning 70-loader.sh - build_uboot succeeded.[0m

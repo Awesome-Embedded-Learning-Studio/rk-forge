@@ -1,0 +1,197 @@
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0x11-0x1-0x2, 0x7-0x1-0x2,status:a007
+rdtrn:0x15-0x2e-0x47(0x32)
+wrtrn:0x0-0x1f-0x3e(0x3e)
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g1e54c433094-250107 #lxh (Jan 16 2025 - 16:37:07), fwver: v1.11
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 13
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+SPL: A/B-slot: _a, successful: 0, tries-remain: 7
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256 Bad hash: 7b78fe4ee6db98cd7ebd662e4c9dd8182c6f7a01007c6ff961bc8c4b82775269
+ error!
+Bad hash value for 'hash' hash node in 'optee' image node
+Trying fit image at 0x3000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(93603ca22c...) + OK
+## Checking uboot 0x00200000 ... sha256(9d237e6721...) + OK
+## Checking fdt 0x002a5010 ... sha256(178d2c6943...) + OK
+Jumping to U-Boot(0x00200000) via OP-TEE(0x00001000)
+Total: 85.328/130.144 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-958-g46dcf51e88a #chenjh (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 Thu Mar  6 10:17:27 CST 2025 arm, fwver: v2.10 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00200000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2017.09-g26c8833 #alientek (Mar 26 2026 - 10:45:57 +0800)
+
+Model: ALIENTEK RK3506 Board
+MPIDR: 0xf00
+PreSerial: 0, raw, 0xff0a0000
+DRAM:  512 MiB
+Sysmem: init
+Relocation Offset: 1ebef000
+Relocation fdt: 1dbfadf0 - 1dbfede0
+CR: M/C/I
+Using default environment
+
+DM: v2
+SPI Nand ID ef aa 23
+Bootdev(atags): mtd 1
+PartType: EFI
+boot mode: None
+Failed to load DTB, ret=-2
+No valid DTB, ret=-22
+Failed to get kernel dtb, ret=-22
+Model: ALIENTEK RK3506 Board
+rockchip_set_serialno: could not find efuse/otp device
+download key pressed... entering download mode...
+RKUSB: LUN 0, dev 1, hwpart 0, sector 0x0, count 0xffc00
+/Write in GPT area, lba=1047519 cnt=1
+Write in GPT area, lba=1047520 cnt=32
+󃐠d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+SRX
+get rd_skew=0x2e, wr_skew=0x1f
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xd-0x1-0x2, 0x3f-0x0-0x2,status:a007
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g1e54c433094-250107 #lxh (Jan 16 2025 - 16:37:07), fwver: v1.11
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 12
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+SPL: A/B-slot: _a, successful: 0, tries-remain: 7
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256 Bad hash: 7b78fe4ee6db98cd7ebd662e4c9dd8182c6f7a01007c6ff961bc8c4b82775269
+ error!
+Bad hash value for 'hash' hash node in 'optee' image node
+Trying fit image at 0x3000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(93603ca22c...) + OK
+## Checking uboot 0x00200000 ... sha256(9d237e6721...) + OK
+## Checking fdt 0x002a5010 ... sha256(178d2c6943...) + OK
+Jumping to U-Boot(0x00200000) via OP-TEE(0x00001000)
+Total: 85.506/126.685 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-958-g46dcf51e88a #chenjh (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 Thu Mar  6 10:17:27 CST 2025 arm, fwver: v2.10 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00200000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2017.09-g26c8833 #alientek (Mar 26 2026 - 10:45:57 +0800)
+
+Model: ALIENTEK RK3506 Board
+MPIDR: 0xf00
+PreSerial: 0, raw, 0xff0a0000
+DRAM:  512 MiB
+Sysmem: init
+Relocation Offset: 1ebef000
+Relocation fdt: 1dbfadf0 - 1dbfede0
+CR: M/C/I
+Using default environment
+
+DM: v2
+SPI Nand ID ef aa 23
+Bootdev(atags): mtd 1
+PartType: EFI
+boot mode: normal
+Failed to load DTB, ret=-2
+No valid DTB, ret=-22
+Failed to get kernel dtb, ret=-22
+Model: ALIENTEK RK3506 Board
+rockchip_set_serialno: could not find efuse/otp device
+CLK: (arm clk use pvtpll, rate = 1200M)
+  gpll 1500000 KHz
+  v0pll 1179648 KHz
+  v1pll 903168 KHz
+  clk_gpll_div 187500 KHz
+  clk_gpll_div_100m 93750 KHz
+  clk_v0pll_div 147456 KHz
+  clk_v1pll_div 129024 KHz
+  aclk_bus_root 187500 KHz
+  hclk_bus_root 147456 KHz
+  pclk_bus_root 93750 KHz
+  aclk_hsperi_root 147456 KHz
+  hclk_ksperi_root 93750 KHz
+Net:   No ethernet found.
+Hit key to stop autoboot('CTRL+C'):  0 
+## Booting FIT Image at 0x1ce759c0 with size 0x00b823e8
+Fdt Ramdisk skip relocation
+## Loading kernel from FIT Image at 1ce759c0 ...
+   Using 'conf' configuration
+## Verified-boot: 0
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel (zImage, self-decompressing)
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x1ce761c0
+     Data Size:    12059136 Bytes = 11.5 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x02080000
+     Entry Point:  0x02080000
+     Hash algo:    sha256
+     Hash value:   205e2c71e2207039d1faf2f787913901fcb0fc999946eea7fa5e948553dd8655
+   Verifying Hash Integrity ... sha256+ OK
+## Loading fdt from FIT Image at 1ce759c0 ...
+   Using 'conf' configuration
+   Trying 'fdt' fdt subimage
+     Description:  RK3506B AES board flat DT (bootargs: ubi.mtd=5 root=ubi0:rootfs)
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x1d9f63c0
+     Data Size:    5867 Bytes = 5.7 KiB
+     Architecture: ARM
+     Load Address: 0x01e00000
+     Hash algo:    sha256
+     Hash value:   737821746f341203802a5462c6d91b6b981af29f87a2bda71eee0aa9bff0d52e
+   Verifying Hash Integrity ... sha256+ OK
+   Using fdt from load-in fdt
+   Loading fdt from 0x1d9f63c0 to 0x01e00000
+   Booting using the fdt blob at 0x01e00000
+   Loading Kernel Image from 0x1ce761c0 to 0x02080000 ... OK
+   kernel loaded at 0x02080000, end = 0x02c00200
+   Using Device Tree in place at 01e00000, end 01e046ea
+can't found rockchip,drm-logo, use rockchip,fb-logo
+WARNING: could not set reg FDT_ERR_BADOFFSET.
+failed to reserve fb-loader-logo memory
+Adding bank: 0x00000000 - 0x20000000 (size: 0x20000000)
+Total: 739.542/875.112 ms
+
+Starting kernel ...

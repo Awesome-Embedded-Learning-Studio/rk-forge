@@ -1,0 +1,4530 @@
+SoftReset, 21653376 us
+
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+SRX
+get rd_skew=0x2e, wr_skew=0x20
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xc-0x1-0x2, 0x3f-0x0-0x2,status:a007
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g80d18cf0259-250930 #lxh (Oct 22 2025 - 15:21:58), fwver: v1.12
+Ram size: 20000000
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 12
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+SPL: A/B-slot: _a, successful: 0, tries-remain: 7
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(e2a712a533...) + OK
+## Checking uboot 0x00800000 ... sha256(54d12cbf09...) + OK
+## Checking fdt 0x00874460 ... sha256(8e3f2ac7ab...) + OK
+Jumping to U-Boot(0x00800000) via OP-TEE(0x00001000)
+Total: 64.894/106.930 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-1038-gb204648dc #derrick.huang (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 2025年 12月 11日 星期四 11:51:18 CST arm, fwver: v2.40 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00800000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2026.07-rc4-g2f87d69f737f-dirty (Jun 18 2026 - 21:12:43 +0800)
+
+Model: Rockchip RK3506 Evaluation Board (ATK RK3506B)
+SoC:   RK3506B
+DRAM:  512 MiB
+Core:  35 devices, 17 uclasses, devicetree: separate
+MMC:   
+Loading Environment from nowhere... OK
+In:    serial@ff0a0000
+Out:   serial@ff0a0000
+Err:   serial@ff0a0000
+Hit any key to stop autoboot: 0
+rockchip_sfc: dll tuning target=50000000Hz real=100000000Hz cell_max=383 step=10 cs=0
+rockchip_sfc:   dll window [0, 230] (230 cells)
+rockchip_sfc:   dll window [270, 373] (103 cells)
+rockchip_sfc: dll ok best=[0,230] -> cell 92 (real 100000000Hz)
+Reading 16777216 byte(s) (8192 page(s)) at offset 0x00000000
+## Loading kernel (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel (zImage, self-decompressing)
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x04000800
+     Data Size:    8180224 Bytes = 7.8 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x02080000
+     Entry Point:  0x02080000
+     Hash algo:    sha256
+     Hash value:   589c579db7f80497bb4a309305d0b280153364b635e756d37f43e47d8836ed81
+   Verifying Hash Integrity ... sha256+ OK
+## Loading ramdisk (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'ramdisk' ramdisk subimage
+     Description:  Minimal initramfs (static busybox shell)
+     Type:         RAMDisk Image
+     Compression:  gzip compressed
+     Data Start:   0x047d1a2c
+     Data Size:    1209011 Bytes = 1.2 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x08000000
+     Entry Point:  unavailable
+     Hash algo:    sha256
+     Hash value:   b8327795b83c67f360252dcb8a2360ea4f37e616c21b7d2f44f4ee38c4153114
+   Verifying Hash Integrity ... sha256+ OK
+   Loading ramdisk from 0x047d1a2c to 0x08000000
+WARNING: 'compression' nodes for ramdisks are deprecated, please fix your .its file!
+## Loading fdt (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'fdt' fdt subimage
+     Description:  RK3506B AES board flat DT
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x047cda00
+     Data Size:    16428 Bytes = 16 KiB
+     Architecture: ARM
+     Load Address: 0x01e00000
+     Hash algo:    sha256
+     Hash value:   a4a932f33947b92fd1d001dc9cb9f5f0456638f459a6f44708711f55165a32dc
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x047cda00 to 0x01e00000
+   Booting using the fdt blob at 0x1e00000
+Working FDT set to 1e00000
+   Loading Kernel Image to 2080000
+   Loading Ramdisk to 1ce34000, end 1cf5b2b3 ... OK
+   Loading Device Tree to 1ce2c000, end 1ce3302b ... OK
+Working FDT set to 1ce2c000
+No RNG device
+
+Starting kernel ...
+
+I/TC: Secondary CPU 1 initializing
+I/TC: Secondary CPU 1 switching to normal world boot
+I/TC: Secondary CPU 2 initializing
+I/TC: Secondary CPU 2 switching to normal world boot
+[    0.000000] Booting Linux on physical CPU 0xf00
+[    0.000000] Linux version 7.1.0-00015-gb2e98a648b7e-dirty (charliechen@Charliechen) (arm-none-linux-gnueabihf-gcc (Arm GNU Toolchain 15.2.Rel1 (Build arm-15.86)) 15.2.1 20251203, GNU ld (Arm GNU Toolchain 15.2.Rel1 (Build arm-15.86)) 2.45.1.20251203) #24 SMP Sat Jun 20 10:26:17 CST 2026
+[    0.000000] CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=10c5387d
+[    0.000000] CPU: div instructions available: patching division code
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    0.000000] OF: fdt: Machine model: AES RK3506B Board
+[    0.000000] Memory policy: Data cache writealloc
+[    0.000000] efi: UEFI not found.
+[    0.000000] OF: reserved mem: 0x00000000..0x00061fff (392 KiB) map non-reusable trust@0
+[    0.000000] psci: probing for conduit method from DT.
+[    0.000000] psci: PSCIv1.0 detected in firmware.
+[    0.000000] psci: Using standard PSCI v0.2 function IDs
+[    0.000000] psci: MIGRATE_INFO_TYPE not supported.
+[    0.000000] psci: SMC Calling Convention v1.1
+[    0.000000] Zone ranges:
+[    0.000000]   DMA      [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000]   Normal   empty
+[    0.000000]   HighMem  empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000000000-0x000000001fffffff]
+[    0.000000] percpu: Embedded 18 pages/cpu s41292 r8192 d24244 u73728
+[    0.000000] Kernel command line: console=ttyS0,1500000
+[    0.000000] printk: log buffer data + meta data: 131072 + 409600 = 540672 bytes
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes, linear)
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 131072
+[    0.000000] mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=3, Nodes=1
+[    0.000000] rcu: Hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=16 to nr_cpu_ids=3.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=3
+[    0.000000] NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] arch_timer: cp15 timer running at 24.00MHz (virt).
+[    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.000002] sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+[    0.000014] Switching to timer-based delay loop, resolution 41ns
+[    0.001559] Console: colour dummy device 80x30
+[    0.001645] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=240000)
+[    0.001666] CPU: Testing write buffer coherency: ok
+[    0.001727] pid_max: default: 32768 minimum: 301
+[    0.002001] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.002028] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.002545] VFS: Finished mounting rootfs on nullfs
+[    0.003434] /cpus/cpu@f00 missing clock-frequency property
+[    0.003481] /cpus/cpu@f01 missing clock-frequency property
+[    0.003499] /cpus/cpu@f02 missing clock-frequency property
+[    0.003511] CPU0: thread -1, cpu 0, socket 15, mpidr 80000f00
+[    0.003546] cacheinfo: Unable to detect cache hierarchy for CPU 0
+[    0.005835] Setting up static identity map for 0x300000 - 0x3000ac
+[    0.006679] rcu: Hierarchical SRCU implementation.
+[    0.006696] rcu: 	Max phase no-delay instances is 1000.
+[    0.007251] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.008478] EFI services will not be available.
+[    0.008948] smp: Bringing up secondary CPUs ...
+[    0.011004] CPU1: thread -1, cpu 1, socket 15, mpidr 80000f01
+[    0.013418] CPU2: thread -1, cpu 2, socket 15, mpidr 80000f02
+[    0.013769] smp: Brought up 1 node, 3 CPUs
+[    0.013794] SMP: Total of 3 processors activated (144.00 BogoMIPS).
+[    0.013802] CPU: All CPU(s) started in SVC mode.
+[    0.014103] Memory: 484500K/524288K available (17408K kernel code, 2655K rwdata, 7128K rodata, 2048K init, 400K bss, 37088K reserved, 0K cma-reserved, 0K highmem)
+[    0.015006] devtmpfs: initialized
+[    0.019549] VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+[    0.019846] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.019913] posixtimers hash table entries: 2048 (order: 2, 16384 bytes, linear)
+[    0.020142] futex hash table entries: 1024 (65536 bytes on 1 NUMA nodes, total 64 KiB, linear).
+[    0.022822] DMI: not present or invalid.
+[    0.023779] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.024156] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.026742] thermal_sys: Registered thermal governor 'step_wise'
+[    0.026894] cpuidle: using governor menu
+[    0.027294] No ATAGs?
+[    0.027478] hw-breakpoint: found 5 (+1 reserved) breakpoint and 4 watchpoint registers.
+[    0.027499] hw-breakpoint: maximum watchpoint size is 8 bytes.
+[    0.029799] Serial: AMBA PL011 UART driver
+[    0.049345] rockchip-gpio ff940000.gpio: probed /pinctrl/gpio@ff940000
+[    0.050757] rockchip-gpio ff870000.gpio: probed /pinctrl/gpio@ff870000
+[    0.052057] rockchip-gpio ff1c0000.gpio: probed /pinctrl/gpio@ff1c0000
+[    0.053242] rockchip-gpio ff1d0000.gpio: probed /pinctrl/gpio@ff1d0000
+[    0.054434] rockchip-gpio ff1e0000.gpio: probed /pinctrl/gpio@ff1e0000
+[    0.065756] iommu: Default domain type: Translated
+[    0.065776] iommu: DMA domain TLB invalidation policy: strict mode
+[    0.067353] SCSI subsystem initialized
+[    0.068228] usbcore: registered new interface driver usbfs
+[    0.068315] usbcore: registered new interface driver hub
+[    0.068379] usbcore: registered new device driver usb
+[    0.069560] pps_core: LinuxPPS API ver. 1 registered
+[    0.069575] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.069617] PTP clock support registered
+[    0.069784] EDAC MC: Ver: 3.0.0
+[    0.070556] scmi_core: SCMI protocol bus registered
+[    0.072090] Advanced Linux Sound Architecture Driver Initialized.
+[    0.074017] vgaarb: loaded
+[    0.074808] clocksource: Switched to clocksource arch_sys_counter
+[    0.092462] NET: Registered PF_INET protocol family
+[    0.092804] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.094072] tcp_listen_portaddr_hash hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.094114] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.094131] TCP established hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    0.094167] TCP bind hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.094287] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.094411] UDP hash table entries: 256 (order: 2, 14336 bytes, linear)
+[    0.094674] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.095610] RPC: Registered named UNIX socket transport module.
+[    0.095633] RPC: Registered udp transport module.
+[    0.095637] RPC: Registered tcp transport module.
+[    0.095640] RPC: Registered tcp-with-tls transport module.
+[    0.095644] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.097104] PCI: CLS 0 bytes, default 64
+[    0.098797] Initialise system trusted keyrings
+[    0.099318] workingset: timestamp_bits=30 (anon: 26) max_order=17 bucket_order=0 (anon: 0)
+[    0.099916] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.100726] Trying to unpack rootfs image as initramfs...
+[    0.105222] NFS: Registering the id_resolver key type
+[    0.105304] Key type id_resolver registered
+[    0.105318] Key type id_legacy registered
+[    0.105398] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    0.105412] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    0.106819] Key type asymmetric registered
+[    0.106844] Asymmetric key parser 'x509' registered
+[    0.107092] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 246)
+[    0.107117] io scheduler mq-deadline registered
+[    0.107139] io scheduler kyber registered
+[    0.107204] io scheduler bfq registered
+[    0.146462] ledtrig-cpu: registered to indicate activity on CPUs
+[    0.150863] Freeing initrd memory: 1184K
+[    0.163070] dma-pl330 ff000000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    0.163094] dma-pl330 ff000000.dma-controller: 	DBUFF-32x8bytes Num_Chans-6 Num_Peri-12 Num_Events-12
+[    0.165256] dma-pl330 ff008000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    0.165279] dma-pl330 ff008000.dma-controller: 	DBUFF-128x8bytes Num_Chans-8 Num_Peri-20 Num_Events-16
+[    0.286241] Serial: 8250/16550 driver, 5 ports, IRQ sharing enabled
+[    0.292392] printk: legacy console [ttyS0] disabled
+[    0.292987] ff0a0000.serial: ttyS0 at MMIO 0xff0a0000 (irq = 39, base_baud = 1500000) is a 16550A
+[    0.293116] printk: legacy console [ttyS0] enabled
+[    0.368830] ff0c0000.serial: ttyS2 at MMIO 0xff0c0000 (irq = 40, base_baud = 1500000) is a 16550A
+[    0.374609] msm_serial: driver initialized
+[    0.375836] SuperH (H)SCI(F) driver initialized
+[    0.376562] STMicroelectronics ASC driver initialized
+[    0.377412] STM32 USART driver initialized
+[    0.399003] brd: module loaded
+[    0.408571] loop: module loaded
+[    0.420013] rockchip-spi ff120000.spi: error -ENODEV: Failed to request optional TX DMA channel
+[    0.420821] rockchip-spi ff120000.spi: error -ENODEV: Failed to request optional RX DMA channel
+[    0.425286] rockchip-sfc ff488000.spi: dll tuning: target=80000000Hz real=75000011Hz cell_max=383 step=10 cs=0
+[    0.426252] rockchip-sfc ff488000.spi:   dll window [90, 170] (80 cells)
+[    0.426892] rockchip-sfc ff488000.spi:   dll window [280, 350] (70 cells)
+[    0.427506] rockchip-sfc ff488000.spi: dll ok: best=[90,170] -> cell 130 (real 75000011Hz)
+[    0.428300] spi-nand spi1.0: Winbond SPI NAND was found.
+[    0.428782] spi-nand spi1.0: 512 MiB, block size: 128 KiB, page size: 2048, OOB size: 128
+[    0.429677] 7 fixed-partitions partitions found on MTD device spi1.0
+[    0.430263] Creating 7 MTD partitions on "spi1.0":
+[    0.430696] 0x000000400000-0x000000800000 : "uboot"
+[    0.436099] 0x000000800000-0x000000900000 : "misc"
+[    0.439567] 0x000000900000-0x000000940000 : "vnvm"
+[    0.442696] 0x000000940000-0x000001740000 : "recovery"
+[    0.453343] 0x000001740000-0x000002740000 : "boot"
+[    0.465033] 0x000002740000-0x00000d540000 : "rootfs"
+[    0.553298] 0x00000d540000-0x000020000000 : "userdata"
+[    0.709097] CAN device driver interface
+[    0.710828] bgmac_bcma: Broadcom 47xx GBit MAC driver loaded
+[    0.712777] e1000e: Intel(R) PRO/1000 Network Driver
+[    0.713243] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[    0.713853] igb: Intel(R) Gigabit Ethernet Network Driver
+[    0.714341] igb: Copyright (c) 2007-2014 Intel Corporation.
+[    0.718881] rk_gmac-dwmac ff4c8000.ethernet: IRQ sfty not found
+[    0.719673] rk_gmac-dwmac ff4c8000.ethernet: supply phy not found, using dummy regulator
+[    0.720597] rk_gmac-dwmac ff4c8000.ethernet: clock input or output? (output).
+[    0.721249] rk_gmac-dwmac ff4c8000.ethernet: Can not read property: tx_delay.
+[    0.721882] rk_gmac-dwmac ff4c8000.ethernet: set tx_delay to 0x30
+[    0.722424] rk_gmac-dwmac ff4c8000.ethernet: Can not read property: rx_delay.
+[    0.723055] rk_gmac-dwmac ff4c8000.ethernet: set rx_delay to 0x10
+[    0.723606] rk_gmac-dwmac ff4c8000.ethernet: integrated PHY? (no).
+[    0.729238] rk_gmac-dwmac ff4c8000.ethernet: init for RMII
+[    0.730178] rk_gmac-dwmac ff4c8000.ethernet: User ID: 0x40, Synopsys ID: 0x51
+[    0.730853] rk_gmac-dwmac ff4c8000.ethernet: 	DWMAC4/5
+[    0.731315] rk_gmac-dwmac ff4c8000.ethernet: DMA HW capability register supported
+[    0.731979] rk_gmac-dwmac ff4c8000.ethernet: Active PHY interface: RMII (4)
+[    0.732598] rk_gmac-dwmac ff4c8000.ethernet: RX Checksum Offload Engine supported
+[    0.733260] rk_gmac-dwmac ff4c8000.ethernet: TX Checksum insertion supported
+[    0.733882] rk_gmac-dwmac ff4c8000.ethernet: Wake-Up On Lan supported
+[    0.734563] rk_gmac-dwmac ff4c8000.ethernet: Enable RX Mitigation via HW Watchdog Timer
+[    0.735329] rk_gmac-dwmac ff4c8000.ethernet: Enabled RFS Flow TC (entries=10)
+[    0.735978] rk_gmac-dwmac ff4c8000.ethernet: TSO supported
+[    0.736467] rk_gmac-dwmac ff4c8000.ethernet: TSO feature enabled
+[    0.737000] rk_gmac-dwmac ff4c8000.ethernet: SPH feature enabled
+[    0.737534] rk_gmac-dwmac ff4c8000.ethernet: Using 40/40 bits DMA host/device width
+[    0.877917] rk_gmac-dwmac ff4d0000.ethernet: IRQ sfty not found
+[    0.878703] rk_gmac-dwmac ff4d0000.ethernet: supply phy not found, using dummy regulator
+[    0.879626] rk_gmac-dwmac ff4d0000.ethernet: clock input or output? (output).
+[    0.880275] rk_gmac-dwmac ff4d0000.ethernet: Can not read property: tx_delay.
+[    0.880910] rk_gmac-dwmac ff4d0000.ethernet: set tx_delay to 0x30
+[    0.881453] rk_gmac-dwmac ff4d0000.ethernet: Can not read property: rx_delay.
+[    0.882083] rk_gmac-dwmac ff4d0000.ethernet: set rx_delay to 0x10
+[    0.882635] rk_gmac-dwmac ff4d0000.ethernet: integrated PHY? (no).
+[    0.888258] rk_gmac-dwmac ff4d0000.ethernet: init for RMII
+[    0.889239] rk_gmac-dwmac ff4d0000.ethernet: User ID: 0x40, Synopsys ID: 0x51
+[    0.889914] rk_gmac-dwmac ff4d0000.ethernet: 	DWMAC4/5
+[    0.890379] rk_gmac-dwmac ff4d0000.ethernet: DMA HW capability register supported
+[    0.891041] rk_gmac-dwmac ff4d0000.ethernet: Active PHY interface: RMII (4)
+[    0.891659] rk_gmac-dwmac ff4d0000.ethernet: RX Checksum Offload Engine supported
+[    0.892318] rk_gmac-dwmac ff4d0000.ethernet: TX Checksum insertion supported
+[    0.892943] rk_gmac-dwmac ff4d0000.ethernet: Wake-Up On Lan supported
+[    0.893621] rk_gmac-dwmac ff4d0000.ethernet: Enable RX Mitigation via HW Watchdog Timer
+[    0.894343] rk_gmac-dwmac ff4d0000.ethernet: Enabled RFS Flow TC (entries=10)
+[    0.895020] rk_gmac-dwmac ff4d0000.ethernet: TSO supported
+[    0.895522] rk_gmac-dwmac ff4d0000.ethernet: TSO feature enabled
+[    0.896054] rk_gmac-dwmac ff4d0000.ethernet: SPH feature enabled
+[    0.896589] rk_gmac-dwmac ff4d0000.ethernet: Using 40/40 bits DMA host/device width
+[    1.040673] pegasus: Pegasus/Pegasus II USB Ethernet driver
+[    1.041448] usbcore: registered new interface driver pegasus
+[    1.042041] usbcore: registered new interface driver asix
+[    1.042605] usbcore: registered new interface driver ax88179_178a
+[    1.043207] usbcore: registered new interface driver cdc_ether
+[    1.043775] usbcore: registered new interface driver smsc75xx
+[    1.044336] usbcore: registered new interface driver smsc95xx
+[    1.045016] usbcore: registered new interface driver net1080
+[    1.045612] usbcore: registered new interface driver cdc_subset
+[    1.046195] usbcore: registered new interface driver zaurus
+[    1.046745] usbcore: registered new interface driver cdc_ncm
+[    1.050897] dwc2 ff740000.usb: supply vusb_d not found, using dummy regulator
+[    1.051738] dwc2 ff740000.usb: supply vusb_a not found, using dummy regulator
+[    1.066883] dwc2 ff740000.usb: DWC OTG Controller
+[    1.067377] dwc2 ff740000.usb: new USB bus registered, assigned bus number 1
+[    1.068083] dwc2 ff740000.usb: irq 47, io mem 0xff740000
+[    1.069877] hub 1-0:1.0: USB hub found
+[    1.070339] hub 1-0:1.0: 1 port detected
+[    1.071678] dwc2 ff780000.usb: supply vusb_d not found, using dummy regulator
+[    1.072498] dwc2 ff780000.usb: supply vusb_a not found, using dummy regulator
+[    1.087354] dwc2 ff780000.usb: DWC OTG Controller
+[    1.087844] dwc2 ff780000.usb: new USB bus registered, assigned bus number 2
+[    1.088547] dwc2 ff780000.usb: irq 48, io mem 0xff780000
+[    1.090211] hub 2-0:1.0: USB hub found
+[    1.090666] hub 2-0:1.0: 1 port detected
+[    1.095497] usbcore: registered new interface driver usb-storage
+[    1.105391] i2c_dev: i2c /dev entries driver
+[    1.112344] Goodix-TS 2-0014: supply AVDD28 not found, using dummy regulator
+[    1.113174] Goodix-TS 2-0014: supply VDDIO not found, using dummy regulator
+[    1.205030] Goodix-TS 2-0014: Error reading 1 bytes from 0x8140: -6
+[    1.235031] Goodix-TS 2-0014: Error reading 1 bytes from 0x8140: -6
+[    1.264857] Goodix-TS 2-0014: I2C communication failure: -6
+[    1.293050] dwmmc_rockchip ff480000.mmc: IDMAC supports 32-bit address mode.
+[    1.293772] dwmmc_rockchip ff480000.mmc: Using internal DMA controller.
+[    1.294393] dwmmc_rockchip ff480000.mmc: Version ID is 270a
+[    1.295066] dwmmc_rockchip ff480000.mmc: DW MMC controller at irq 53,32 bit host data width,256 deep fifo
+[    1.296579] dwmmc_rockchip ff480000.mmc: Got CD GPIO
+[    1.309971] mmc_host mmc0: Bus speed = 400000Hz (req 400000Hz, actual 400000HZ div = 0)
+[    1.313124] es8328 0-0011: supply DVDD not found, using dummy regulator
+[    1.313972] es8328 0-0011: supply AVDD not found, using dummy regulator
+[    1.314637] es8328 0-0011: supply PVDD not found, using dummy regulator
+[    1.315408] es8328 0-0011: supply HPVDD not found, using dummy regulator
+[    1.317897] rockchip-sai ff310000.sai: using zero-initialized flat cache, this may cause unexpected behavior
+[    1.319453] NET: Registered PF_INET6 protocol family
+[    1.321789] Segment Routing with IPv6
+[    1.322207] In-situ OAM (IOAM) with IPv6
+[    1.322652] NET: Registered PF_PACKET protocol family
+[    1.323115] can: controller area network core
+[    1.323578] NET: Registered PF_CAN protocol family
+[    1.324046] can: raw protocol
+[    1.324348] can: broadcast manager protocol
+[    1.324765] can: netlink gateway - max_hops=1
+[    1.325835] Key type dns_resolver registered
+[    1.326426] ThumbEE CPU extension supported.
+[    1.326840] Registering SWP/SWPB emulation handler
+[    1.338675] Loading compiled-in X.509 certificates
+[    1.404855] usb 2-1: new high-speed USB device number 2 using dwc2
+[    1.477856] cfg80211: Loading compiled-in X.509 certificates for regulatory database
+[    1.481126] Loaded X.509 cert 'sforshee: 00b28ddf47aef9cea7'
+[    1.482994] Loaded X.509 cert 'wens: 61c038651aabdcf94bd0ac7ff06c7248db18c600'
+[    1.483820] faux_driver regulatory: Direct firmware load for regulatory.db failed with error -2
+[    1.484610] cfg80211: failed to load regulatory.db
+[    1.485031] clk: Disabling unused clocks
+[    1.485327] PM: genpd: Disabling unused power domains
+[    1.485949] ALSA device list:
+[    1.486232]   #0: rockchip-es8388
+[    1.487051] dw-apb-uart ff0a0000.serial: forbid DMA for kernel console
+[    1.489715] Freeing unused kernel image (initmem) memory: 2048K
+[    1.490568] Run /init as init process
+
+===== rk-forge provisioning initramfs =====[    1.520857] ubi0: attaching mtd5
+[    1.616393] hub 2-1:1.0: USB hub found
+[    1.616918] hub 2-1:1.0: 4 ports detected
+[    1.687192] ubi0: scanning is finished
+[    1.723671] ubi0: volume 0 ("rootfs") re-sized from 175 to 1308 LEBs
+[    1.725620] ubi0: attached mtd5 (name "rootfs", size 174 MiB)
+[    1.726174] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    1.726786] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    1.727386] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    1.728003] ubi0: good PEBs: 1392, bad PEBs: 0, corrupted PEBs: 0
+[    1.728545] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    1.729182] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 1038462995
+[    1.729988] ubi0: available PEBs: 0, total reserved PEBs: 1392, PEBs reserved for bad PEB handling: 80
+[    1.730844] ubi0: background thread "ubi_bgt0d" started, PID 72
+[    1.738127] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[    1.738999] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 74
+[    1.804915] random: crng init done
+[    1.816151] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[    1.816851] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    1.817737] UBIFS (ubi0:0): FS size: 164687872 bytes (157 MiB, 1297 LEBs), max 1400 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    1.818822] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[    1.819356] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID 8AFA3527-FC6B-4E53-B6F6-3ED9376C9ED4, small LPT model
+
+[init] rootfs mounts but has no marker → will provision
+[    1.908968] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 73 bytes from PEB 173:83968, read only 73 bytes, retry
+[    1.912454] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 73 bytes from PEB 173:83968, read only 73 bytes, retry
+[    1.915555] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 73 bytes from PEB 173:83968, read only 73 bytes, retry
+[    1.919020] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 73 bytes from PEB 173:83968, read 73 bytes
+[    1.919993] CPU: 0 UID: 0 PID: 77 Comm: rm Not tainted 7.1.0-00015-gb2e98a648b7e-dirty #24 VOLUNTARY 
+[    1.920012] Hardware name: Generic DT based system
+[    1.920019] Call trace: 
+[    1.920032]  unwind_backtrace from show_stack+0x10/0x14
+[    1.920060]  show_stack from dump_stack_lvl+0x54/0x68
+[    1.920078]  dump_stack_lvl from ubi_io_read+0x14c/0x310
+[    1.920095]  ubi_io_read from ubi_eba_read_leb+0x9c/0x3e8
+[    1.920114]  ubi_eba_read_leb from ubi_leb_read+0x78/0xc4
+[    1.920134]  ubi_leb_read from ubifs_leb_read+0x30/0x7c
+[    1.920158]  ubifs_leb_read from ubifs_read_node+0x94/0x254
+[    1.920175]  ubifs_read_node from ubifs_tnc_read_node+0x4c/0xb4
+[    1.920194]  ubifs_tnc_read_node from matches_name+0xac/0xf8
+[    1.920211]  matches_name from resolve_collision+0x4c/0x2b0
+[    1.920223]  resolve_collision from ubifs_tnc_remove_nm+0x120/0x13c
+[    1.920235]  ubifs_tnc_remove_nm from ubifs_jnl_update+0x324/0x718
+[    1.920251]  ubifs_jnl_update from ubifs_unlink+0x1f8/0x308
+[    1.920269]  ubifs_unlink from vfs_unlink+0xb8/0x3a0
+[    1.920291]  vfs_unlink from filename_unlinkat+0x174/0x27c
+[    1.920310]  filename_unlinkat from sys_unlink+0x24/0x3c
+[    1.920329]  sys_unlink from ret_fast_syscall+0x0/0x54
+[    1.920345] Exception stack(0xe0ae1fa8 to 0xe0ae1ff0)
+[    1.920357] 1fa0:                   bed52f9b 00000008 bed52f9b 00000001 40000000 00008000
+[    1.920366] 1fc0: bed52f9b 00000008 00000008 0000000a bed52ea4 bed52eb4 00000002 0016a518
+[    1.920373] 1fe0: 0000000a bed52c84 000d19ab 00010ae6
+[    1.936938] usb 2-1.3: new high-speed USB device number 3 using dwc2
+[    1.961655] UBIFS (ubi0:0): un-mount UBI device 0
+[    1.962167] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" stops
+[    1.972691] ubi0: detaching mtd5
+[    1.976193] ubi0: mtd5 is detached
+[init] FIRST BOOT: ubiprog rewriting /dev/mtd5 (data blocks only)…
+ubiprog: /dev/mtd5  size=182452224  erasesize=131072  PEBs=1392  writesize=2048
+  peb=3 full-read uncorrectable → page recovery (4/64 pages unreadable → 0xFF, rest kept)
+  peb=4 full-read uncorrectable → page recovery (4/64 pages unreadable → 0xFF, rest kept)
+  peb=5 full-read uncorrectable → page recovery (2/64 pages unreadable → 0xFF, rest kept)
+  ... 8 blocks written
+  ... 16 blocks written
+  ... 24 blocks written
+  ... 32 blocks written
+  ... 40 blocks written
+  ... 48 blocks written
+  ... 56 blocks written
+  ... 64 blocks written
+  ... 72 blocks written
+  ... 80 blocks written
+  ... 88 blocks written
+  ... 96 blocks written
+  ... 104 blocks written
+  ... 112 blocks written
+  ... 120 blocks written
+  ... 128 blocks written
+  ... 136 blocks written
+  ... 144 blocks written
+  ... 152 blocks written
+  ... 160 blocks written
+  ... 168 blocks written
+  peb=173 full-read uncorrectable → page recovery (2/64 pages unreadable → 0xFF, rest kept)
+  ... 176 blocks written
+  ... 184 blocks written
+  ... 192 blocks written
+  ... 200 blocks written
+  ... 208 blocks written
+  ... 216 blocks written
+  ... 224 blocks written
+  ... 232 blocks written
+ubiprog done: rewrote=233 recovered(page-level)=4 skipped(erased)=1155 failed=0 (of 1392 PEBs)
+[   18.943959] ubi0: attaching mtd5
+[   19.122582] ubi0: scanning is finished
+[   19.128435] ubi0: attached mtd5 (name "rootfs", size 174 MiB)
+[   19.128988] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[   19.129602] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[   19.130204] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[   19.130820] ubi0: good PEBs: 1392, bad PEBs: 0, corrupted PEBs: 0
+[   19.131361] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[   19.131998] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 1038462995
+[   19.132803] ubi0: available PEBs: 0, total reserved PEBs: 1392, PEBs reserved for bad PEB handling: 80
+[   19.133659] ubi0: background thread "ubi_bgt0d" started, PID 83
+[   19.141277] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[   19.142144] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 85
+[   19.235837] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[   19.236557] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[   19.237452] UBIFS (ubi0:0): FS size: 164687872 bytes (157 MiB, 1297 LEBs), max 1400 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[   19.238543] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[   19.239083] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID 8AFA3527-FC6B-4E53-B6F6-3ED9376C9ED4, small LPT model
+[init] provisioning complete → switch_root
+Saving 256 bits of creditable seed for next boot
+Starting syslogd: OK
+Starting klogd: OK
+Running sysctl: OK
+Starting network: OK
+Starting crond: OK
+S99wifi: loading RTL8733BU driver…
+[   23.508698] 8733bu: loading out-of-tree module taints kernel.
+[   23.534180] RTW: rtl8733bu v5.15.12-264-gdd9219782.20250922_COEX20241204-390f
+[   23.534907] RTW: rtl8733bu BT-Coex version = COEX20241204-390f
+[   23.535488] RTW: rtw_inetaddr_notifier_register
+[   23.536058] RTW: 
+[   23.536058] usb_endpoint_descriptor(0):
+[   23.536590] RTW: bLength=7
+[   23.536839] RTW: bDescriptorType=5
+[   23.537145] RTW: bEndpointAddress=84
+[   23.537466] RTW: wMaxPacketSize=512
+[   23.537779] RTW: bInterval=0
+[   23.538040] RTW: RT_usb_endpoint_is_bulk_in = 4
+[   23.538443] RTW: 
+[   23.538443] usb_endpoint_descriptor(1):
+[   23.538950] RTW: bLength=7
+[   23.539193] RTW: bDescriptorType=5
+[   23.539498] RTW: bEndpointAddress=5
+[   23.539810] RTW: wMaxPacketSize=512
+[   23.540123] RTW: bInterval=0
+[   23.540383] RTW: RT_usb_endpoint_is_bulk_out = 5
+[   23.540793] RTW: 
+[   23.540793] usb_endpoint_descriptor(2):
+[   23.541300] RTW: bLength=7
+[   23.541545] RTW: bDescriptorType=5
+[   23.541851] RTW: bEndpointAddress=6
+[   23.542163] RTW: wMaxPacketSize=512
+[   23.542476] RTW: bInterval=0
+[   23.542735] RTW: RT_usb_endpoint_is_bulk_out = 6
+[   23.543146] RTW: 
+[   23.543146] usb_endpoint_descriptor(3):
+[   23.543653] RTW: bLength=7
+[   23.543898] RTW: bDescriptorType=5
+[   23.544202] RTW: bEndpointAddress=87
+[   23.544522] RTW: wMaxPacketSize=64
+[   23.544913] RTW: bInterval=3
+[   23.545197] RTW: RT_usb_endpoint_is_int_in = 7, Interval = 3
+[   23.545725] RTW: 
+[   23.545725] usb_endpoint_descriptor(4):
+[   23.546251] RTW: bLength=7
+[   23.546510] RTW: bDescriptorType=5
+[   23.546818] RTW: bEndpointAddress=8
+[   23.547132] RTW: wMaxPacketSize=512
+[   23.547444] RTW: bInterval=0
+[   23.547706] RTW: RT_usb_endpoint_is_bulk_out = 8
+[   23.548117] RTW: nr_endpoint=5, in_num=2, out_num=3
+[   23.548117] 
+[   23.548680] RTW: USB_SPEED_HIGH
+[   23.548966] RTW: CHIP TYPE: RTL8733B
+[   23.549344] RTW: loadparam, Select P2P interface: iface_id:1
+[   23.549990] RTW: [HALMAC]140
+[   23.549990] HALMAC_MAJOR_VER = 1
+[   23.549990] HALMAC_PROTOTYPE_VER = 6
+[   23.549990] HALMAC_MINOR_VER = 6
+[   23.549990] HALMAC_PATCH_VER = 44
+[   23.552176] RTW: Chip Version Info: CHIP_8733B_U4_1T1R_RomVer(3)
+[   23.552738] RTW: config_chip_out_EP OutEpQueueSel(0x07), OutEpNumber(3)
+[   23.682298] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_LOGICAL_EFUSE
+[   23.682961] RTW: check_phy_efuse_tx_power_info_valid: tpt_mode is TSSI, skip check
+[   23.683636] RTW: EEPROM ID = 0x8129
+[   23.683953] RTW: EEPROM Version = 0
+[   23.684271] RTW: Hal_EfuseParseTxPowerInfo tpt_mode=4, PG with TSSI_OFFSET
+[   23.684938] RTW: EEPROM Regulatory=0x01
+[   23.685304] RTW: EEPROM Board Type=0x01
+[   23.685668] RTW: EEPROM Enable BT-coex, ant_num=2
+[   23.686097] RTW: EEPROM crystal_cap=0x3f
+[   23.686449] RTW: EEPROM ThermalMeter=0x1f
+[   23.686807] RTW: EEPROM efuse[0xc9]=0x11 is valid
+[   23.687227] RTW: EEPROM Customer ID=0x00
+[   23.687578] RTW: EEPROM SupportRemoteWakeup=1
+[   23.687967] RTW: EEPROM PAType_2G is 0x0, ExternalPA_2G = 0
+[   23.688461] RTW: EEPROM PAType_5G is 0x0, external_pa_5g = 0
+[   23.688963] RTW: EEPROM LNAType_2G is 0x0, ExternalLNA_2G = 0
+[   23.689471] RTW: EEPROM LNAType_5G is 0x0, external_lna_5g = 0
+[   23.689987] RTW: EEPROM TypeGPA = 0x0
+[   23.690315] RTW: EEPROM TypeAPA = 0x0
+[   23.690643] RTW: EEPROM TypeGLNA = 0x0
+[   23.690976] RTW: EEPROM TypeALNA = 0x0
+[   23.691312] RTW: EEPROM rfe_type=0x5
+[   23.691632] RTW: EEPROM USB Switch=0
+[   23.691953] RTW: EEPROM VID = 0x0BDA, PID = 0xB733
+[   23.703036] RTW: SetHwReg: bMacPwrCtrlOn=1
+[   23.705205] RTW: rtl8733b_fw_dl fw source from array
+[   23.814424] RTW: _rtw_hal_set_fw_rsvd_page((null)) Get [ NOR ] RsvdPageNUm  ==>
+[   23.815156] RTW: LocPsPoll: 4
+[   23.815453] RTW: LocNullData: 5
+[   23.815745] RTW: LocQosNull: 6
+[   23.816026] RTW: LocBTQosNull: 7
+[   23.816320] RTW: _rtw_hal_set_fw_rsvd_page((null)) Get [ NOR ] RsvdPageNUm <==
+[   23.834827] RTW: rtl8733b_fw_dl Download Firmware from array success
+[   23.835434] RTW: NIC FW Version:1 SubVersion:40 FW size:126664
+[   23.837921] RTW: SetHwReg: bMacPwrCtrlOn=0
+[   23.846289] RTW: hal_read_mac_hidden_rpt OK! (1, 10ms), fwdl:1, id:0x19
+[   23.846919] RTW: rtw_hal_read_chip_info in 300 ms
+[   23.847369] RTW: rtw_hal_rfpath_init trx_path_bmp:0x11(RF_1T1R), NumTotalRFPath:1, max_tx_cnt:1
+[   23.848149] RTW: rtw_hal_trxnss_init tx_nss:1, rx_nss:1
+[   23.848662] RTW: devobj_decide_init_chplan alpha2:{255,255}
+[   23.849161] RTW: devobj_decide_init_chplan chplan:0x7f
+[   23.849618] RTW: devobj_decide_init_chplan chplan_6g:0x00
+[   23.850097] RTW: devobj_decide_init_chplan disable_sw_chplan:0
+[   23.850617] RTW: rtw_rfctl_decide_init_chplan chplan:0x7F
+[   23.851312] RTW: init_mlme_default_rate_set: support CCK
+[   23.851798] RTW: init_mlme_default_rate_set: support OFDM
+[   23.852872] RTW: NR_RECVBUFF: 8, recvbuf_nr: 8
+[   23.853317] RTW: MAX_RECVBUF_SZ: 20480
+[   23.853666] RTW: NR_PREALLOC_RECV_SKB: 8
+[   23.854218] RTW: rtw_alloc_macid((null)) if1, mac_addr:ff:ff:ff:ff:ff:ff macid:1
+[   23.854994] RTW: rtw_init_pwrctrl_priv: IPS_mode=0, LPS_mode=0, LPS_level=0
+[   23.855644] RTW: rtw_init_pwrctrl_priv: WOW_IPS_mode=1, WOW_LPS_mode=2, WOW_LPS_level=0
+[   23.856387] RTW: Init_ODM_ComInfo bb_opmode set to 0
+[   23.856847] RTW: IQK FW offload:disable
+[   23.857200] RTW: init_phydm_cominfo: Fv=1 Cv=3
+[   23.858492] RTW: phy_ConfigBBWithPgParaFile(): No File PHY_REG_PG.txt, Load from HWImg Array!
+[   23.859289] RTW: default power by rate loaded
+[   23.859699] RTW: rtw_chset_apply_from_rtk_priv chplan:0x7F chplan_6g:0x00
+[   23.860316] RTW: band:5G ch52 is NO_IR DFS while beacon hint not allowed
+[   23.860910] RTW: band:5G ch56 is NO_IR DFS while beacon hint not allowed
+[   23.861503] RTW: band:5G ch60 is NO_IR DFS while beacon hint not allowed
+[   23.862095] RTW: band:5G ch64 is NO_IR DFS while beacon hint not allowed
+[   23.862687] RTW: band:5G ch100 is NO_IR DFS while beacon hint not allowed
+[   23.863286] RTW: band:5G ch104 is NO_IR DFS while beacon hint not allowed
+[   23.863885] RTW: band:5G ch108 is NO_IR DFS while beacon hint not allowed
+[   23.864484] RTW: band:5G ch112 is NO_IR DFS while beacon hint not allowed
+[   23.865156] RTW: band:5G ch116 is NO_IR DFS while beacon hint not allowed
+[   23.865778] RTW: band:5G ch120 is NO_IR DFS while beacon hint not allowed
+[   23.866393] RTW: band:5G ch124 is NO_IR DFS while beacon hint not allowed
+[   23.866997] RTW: band:5G ch128 is NO_IR DFS while beacon hint not allowed
+[   23.867598] RTW: band:5G ch132 is NO_IR DFS while beacon hint not allowed
+[   23.868198] RTW: band:5G ch136 is NO_IR DFS while beacon hint not allowed
+[   23.868797] RTW: band:5G ch140 is NO_IR DFS while beacon hint not allowed
+[   23.869396] RTW: band:5G ch144 is NO_IR DFS while beacon hint not allowed
+[   23.869998] RTW: rtw_rfctl_chset_apply_regulatory ch num:41
+[   23.871356] RTW: pwrctrlpriv.bSupportRemoteWakeup~~~~~~
+[   23.871837] RTW: pwrctrlpriv.bSupportRemoteWakeup~~~[1]~~~
+[   23.872328] RTW: can't get autopm:
+[   23.872638] RTW: rtw_macaddr_cfg mac addr:4c:a3:8f:7b:45:99
+[   23.873138] RTW: bDriverStopped:True, bSurpriseRemoved:False, bup:0, hw_init_completed:0
+[   23.873909] RTW: loadparam, Select P2P interface: iface_id:1
+[   23.874647] RTW: init_mlme_default_rate_set: support CCK
+[   23.875199] RTW: init_mlme_default_rate_set: support OFDM
+[   23.876310] RTW: NR_RECVBUFF: 8, recvbuf_nr: 8
+[   23.876755] RTW: MAX_RECVBUF_SZ: 20480
+[   23.877104] RTW: NR_PREALLOC_RECV_SKB: 8
+[   23.877656] RTW: rtw_alloc_macid((null)) if2, mac_addr:ff:ff:ff:ff:ff:ff macid:1
+[   23.878364] RTW: rtw_drv_add_vir_if if2 mac_addr : 4e:a3:8f:7b:45:99
+[   23.878968] RTW: rtw_cfg80211_init_wiphy_band:rf_type=0
+[   23.879451] RTW: [HT] HAL Support LDPC = 0x02
+[   23.879846] RTW: [HT] HAL Support STBC = 0x01
+[   23.880244] RTW: [HT] HAL Support LDPC = 0x02
+[   23.880634] RTW: [HT] HAL Support STBC = 0x01
+[   23.881040] RTW: rtw_wiphy_alloc(phy0)
+[   23.881418] RTW: rtw_wdev_alloc(padapter=60c95d7d)
+[   23.881900] RTW: rtw_wdev_alloc(padapter=417648d7)
+[   23.882342] RTW: rtw_wiphy_register(phy0)
+[   23.882705] RTW: Register RTW cfg80211 vendor cmd(0x67) interface
+[   23.883924] RTW: rtw_ndev_init(wlan0) if1 mac_addr=4c:a3:8f:7b:45:99
+[   23.884922] RTW: rtw_ndev_notifier_call(wlan0) state:17
+[   23.886261] RTW: cfg80211_rtw_get_txpower(wlan0) total max: -10000 mbm
+[   23.887050] RTW: rtw_ndev_notifier_call(wlan0) state:5
+[   23.887625] RTW: rtw_ndev_init(wlan1) if2 mac_addr=4e:a3:8f:7b:45:99
+[   23.888479] RTW: rtw_ndev_notifier_call(wlan1) state:17
+[   23.889709] RTW: cfg80211_rtw_get_txpower(wlan1) total max: -10000 mbm
+[   23.890514] RTW: rtw_ndev_notifier_call(wlan1) state:5
+[   23.891223] usbcore: registered new interface driver rtl8733bu
+S99wifi: 8733bu.ko loaded
+
+Welcome to rk-forge buildroot
+rk3506 login: root
+# ip link
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop qlen 1000
+    link/ether 2a:5b:ff:3d:b7:c4 brd ff:ff:ff:ff:ff:ff
+3: eth1: <BROADCAST,MULTICAST> mtu 1500 qdisc noop qlen 1000
+    link/ether 2a:5b:ff:3d:b7:c5 brd ff:ff:ff:ff:ff:ff
+4: wlan0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop qlen 1000
+    link/ether 4c:a3:8f:7b:45:99 brd ff:ff:ff:ff:ff:ff
+5: wlan1: <BROADCAST,MULTICAST> mtu 1500 qdisc noop qlen 1000
+    link/ether 4e:a3:8f:7b:45:99 brd ff:ff:ff:ff:ff:ff
+# iw wlan scan
+Usage:	iw [options] command
+Options:
+	--debug		enable netlink debugging
+	--version	show version (6.17)
+Commands:
+	dev <devname> ap stop 
+		Stop AP functionality
+		
+
+	dev <devname> ap start <SSID> <SSID> <freq> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz|160MHz|320MHz] [punct <bitmap>] <beacon interval in TU> <DTIM period> [hidden-ssid|zeroed-ssid] head <beacon head in hexadecimal> [tail <beacon tail in hexadecimal>] [inactivity-time <inactivity time in seconds>] [key0:abcde d:1:6162636465]
+	dev <devname> ap start <SSID> <control freq> [5|10|20|40|80|80+80|160|320] [<center1_freq> [<center2_freq>]] [punct <bitmap>] <beacon interval in TU> <DTIM period> [hidden-ssid|zeroed-ssid] head <beacon head in hexadecimal> [tail <beacon tail in hexadecimal>] [inactivity-time <inactivity time in seconds>] [key0:abcde d:1:6162636465]
+		Start an AP. Note that this usually requires hostapd or similar.
+		
+
+	phy <phyname> coalesce show 
+		Show coalesce status.
+
+	phy <phyname> coalesce disable 
+		Disable coalesce.
+
+	phy <phyname> coalesce enable <config-file>
+		Enable coalesce with given configuration.
+		The configuration file contains coalesce rules:
+		  delay=<delay>
+		  condition=<condition>
+		  patterns=<[offset1+]<pattern1>,<[offset2+]<pattern2>,...>
+		  delay=<delay>
+		  condition=<condition>
+		  patterns=<[offset1+]<pattern1>,<[offset2+]<pattern2>,...>
+		  ...
+		delay: maximum coalescing delay in msec.
+		condition: 1/0 i.e. 'not match'/'match' the patterns
+		patterns: each pattern is given as a bytestring with '-' in
+		places where any byte may be present, e.g. 00:11:22:-:44 will
+		match 00:11:22:33:44 and 00:11:22:33:ff:44 etc. Offset and
+		pattern should be separated by '+', e.g. 18+43:34:00:12 will
+		match '43:34:00:12' after 18 bytes of offset in Rx packet.
+		
+
+	dev <devname> auth <SSID> <bssid> <type:open|shared> <freq in MHz> [key 0:abcde d:1:6162636465]
+		Authenticate with the given network.
+		
+
+	dev <devname> connect [-w] <SSID> [<freq in MHz>] [<bssid>] [auth open|shared] [key 0:abcde d:1:6162636465] [mfp:req/opt/no]
+		Join the network with the given SSID (and frequency, BSSID).
+		With -w, wait for the connect to finish or fail.
+
+	dev <devname> disconnect
+		Disconnect from the current network.
+
+	dev <devname> cqm rssi <threshold|off> [<hysteresis>]
+		Set connection quality monitor RSSI threshold.
+		
+
+	event [-t|-T|-r] [-f]
+		Monitor events from the kernel.
+		-t - print timestamp
+		-T - print absolute, human-readable timestamp
+		-r - print relative timestamp
+		-f - print full frame for auth/assoc etc.
+
+	dev <devname> ftm start_responder [lci=<lci buffer in hex>] [civic=<civic buffer in hex>]
+		Start an FTM responder. Needs a running ap interface
+		
+
+	dev <devname> ftm get_stats 
+		Get FTM responder statistics.
+		
+
+	phy <phyname> hwsim wakequeues 
+		
+
+	phy <phyname> hwsim stopqueues 
+		
+
+	phy <phyname> hwsim setps <value>
+		
+
+	phy <phyname> hwsim getps 
+		
+
+	dev <devname> ibss join <SSID> <freq in MHz> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz] [fixed-freq] [<fixed bssid>] [beacon-interval <TU>] [basic-rates <rate in Mbps,rate2,...>] [mcast-rate <rate in Mbps>] [key d:0:abcde]
+		Join the IBSS cell with the given SSID, if it doesn't exist create
+		it on the given frequency. When fixed frequency is requested, don't
+		join/create a cell on a different frequency. When a fixed BSSID is
+		requested use that BSSID and do not adopt another cell's BSSID even
+		if it has higher TSF and the same SSID. If an IBSS is created, create
+		it with the specified basic-rates, multicast-rate and beacon-interval.
+
+	dev <devname> ibss leave
+		Leave the current IBSS cell.
+
+	features 
+		
+
+	commands
+		list all known commands and their decimal & hex value
+
+	phy
+	list
+		List all wireless devices and their capabilities.
+
+	phy <phyname> info
+		Show capabilities for the specified wireless device.
+
+	dev <devname> switch channel <channel> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz] [beacons <count>] [block-tx]
+	dev <devname> switch freq <freq> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz] [beacons <count>] [block-tx]
+	dev <devname> switch freq <control freq> [5|10|20|40|80|80+80|160] [<center1_freq> [<center2_freq>]] [beacons <count>] [block-tx]
+		Switch the operating channel by sending a channel switch announcement (CSA).
+
+	dev
+		List all network interfaces for wireless hardware.
+
+	dev <devname> info
+		Show information for this interface.
+
+	dev <devname> del
+		Remove this virtual interface
+
+	dev <devname> interface add <name> type <type> [mesh_id <meshid>] [4addr on|off] [flags <flag>*] [addr <mac-addr>]
+	phy <phyname> interface add <name> type <type> [mesh_id <meshid>] [4addr on|off] [flags <flag>*] [addr <mac-addr>]
+		Add a new virtual interface with the given configuration.
+		Valid interface types are: managed, ibss, monitor, mesh, wds.
+		
+		The flags are only used for monitor interfaces, valid flags are:
+		none:     no special flags
+		fcsfail:  show frames with FCS errors
+		control:  show control frames
+		otherbss: show frames from other BSSes
+		cook:     use cooked mode
+		active:   use active mode (ACK incoming unicast packets)
+		mumimo-groupid <GROUP_ID>: use MUMIMO according to a group id
+		mumimo-follow-mac <MAC_ADDRESS>: use MUMIMO according to a MAC address
+		
+		The mesh_id is used only for mesh mode.
+
+	help [command]
+		Print usage for all or a specific command, e.g.
+		"help wowlan" or "help wowlan enable".
+
+	dev <devname> key get <key index> <MAC address>
+		Retrieve a key and key sequence.
+		
+
+	dev <devname> link
+		Print information about the current connection, if any.
+
+	dev <devname> measurement ftm_request <config-file> [timeout=<seconds>] [randomise[=<addr>/<mask>]]
+		Send an FTM request to the targets supplied in the config file.
+		Each line in the file represents a target, with the following format:
+		<addr> bw=<[20|40|80|80+80|160]> cf=<center_freq> [cf1=<center_freq1>] [cf2=<center_freq2>] [ftms_per_burst=<samples per burst>] [ap-tsf] [asap] [bursts_exp=<num of bursts exponent>] [burst_period=<burst period>] [retries=<num of retries>] [burst_duration=<burst duration>] [preamble=<legacy,ht,vht,dmg>] [lci] [civic] [tb] [non_tb]
+
+	dev <devname> mesh_param dump 
+		List all supported mesh parameters
+
+	dev <devname> mesh leave
+		Leave a mesh.
+
+	dev <devname> mesh join <mesh ID> [[freq <freq in MHz> <NOHT|HT20|HT40+|HT40-|80MHz>] [basic-rates <rate in Mbps,rate2,...>]], [mcast-rate <rate in Mbps>] [beacon-interval <time in TUs>] [dtim-period <value>] [vendor_sync on|off] [<param>=<value>]*
+		Join a mesh with the given mesh ID with frequency, basic-rates,
+		mcast-rate and mesh parameters. Basic-rates are applied only if
+		frequency is provided.
+
+	dev <devname> mgmt dump frame <type as hex ab> <pattern as hex ab:cd:..> [frame <type> <pattern>]* [count <frames>]
+		Register for receiving certain mgmt frames and print them.
+		Frames are selected by their type and pattern containing
+		the first several bytes of the frame that should match.
+		
+		Example: iw dev wlan0 mgmt dump frame 40 00 frame 40 01:02 count 10
+		
+
+	dev <devname> mpath dump
+		List known mesh paths.
+
+	dev <devname> mpath set <destination MAC address> next_hop <next hop MAC address>
+		Set an existing mesh path's next hop.
+
+	dev <devname> mpath new <destination MAC address> next_hop <next hop MAC address>
+		Create a new mesh path (instead of relying on automatic discovery).
+
+	dev <devname> mpath del <MAC address>
+		Remove the mesh path to the given node.
+
+	dev <devname> mpath get <MAC address>
+		Get information on mesh path to the given node.
+
+	dev <devname> mpath probe <destination MAC address> frame <frame>
+		Inject ethernet frame to given peer overriding the next hop
+		lookup from mpath table.
+		.Example: iw dev wlan0 mpath probe xx:xx:xx:xx:xx:xx frame 01:xx:xx:00
+		
+
+	dev <devname> mpp dump
+		List known mesh proxy paths.
+
+	dev <devname> mpp get <MAC address>
+		Get information on mesh proxy path to the given node.
+
+	wdev <idx> nan add_func type <publish|subscribe|followup> [active] [solicited] [unsolicited] [bcast] [close_range] name <name> [info <info>] [flw_up_id <id> flw_up_req_id <id> flw_up_dest <mac>] [ttl <ttl>] [srf <include|exclude> <bf|list> [bf_idx] [bf_len] <mac1;mac2...>] [rx_filter <str1:str2...>] [tx_filter <str1:str2...>]
+		
+
+	wdev <idx> nan rm_func cookie <cookie>
+		
+
+	wdev <idx> nan config [pref <pref>] [bands [2GHz] [5GHz]]
+		
+
+	wdev <idx> nan stop 
+		
+
+	wdev <idx> nan start pref <pref> [bands [2GHz] [5GHz]]
+		
+
+	dev <devname> ocb leave
+		Leave the OCB mode network.
+
+	dev <devname> ocb join <freq in MHz> <5MHz|10MHz>
+		Join the OCB mode network.
+
+	dev <devname> offchannel <freq> <duration>
+		Leave operating channel and go to the given channel for a while.
+
+	wdev <idx> p2p stop 
+		
+
+	wdev <idx> p2p start 
+		
+
+	dev <devname> cac channel <channel> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz|160MHz|320MHz] [punct <bitmap>]
+	dev <devname> cac freq <freq> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz|160MHz|320MHz] [punct <bitmap>]
+	dev <devname> cac freq <control freq> [5|10|20|40|80|80+80|160|320] [<center1_freq> [<center2_freq>]] [punct <bitmap>]
+	dev <devname> cac background channel <channel> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz|160MHz|320MHz] [punct <bitmap>]
+	dev <devname> cac background freq <freq> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz|160MHz|320MHz] [punct <bitmap>]
+	dev <devname> cac background freq <control freq> [5|10|20|40|80|80+80|160|320] [<center1_freq> [<center2_freq>]] [punct <bitmap>]
+		Start background channel availability check (CAC) looking to look for
+		radars on the given channel.
+
+	dev <devname> cac trigger channel <channel> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz|160MHz|320MHz] [punct <bitmap>]
+	dev <devname> cac trigger freq <freq> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz|160MHz|320MHz] [punct <bitmap>]
+	dev <devname> cac trigger freq <control freq> [5|10|20|40|80|80+80|160|320] [<center1_freq> [<center2_freq>]] [punct <bitmap>]
+		Start or trigger a channel availability check (CAC) looking to look for
+		radars on the given channel.
+
+	phy <phyname> channels
+		Show available channels.
+
+	reg reload
+		Reload the kernel's regulatory database.
+
+	phy <phyname> reg get
+		Print out the devices' current regulatory domain information.
+
+	reg get
+		Print out the kernel's current regulatory domain information.
+
+	reg set <ISO/IEC 3166-1 alpha2>
+		Notify the kernel about the current regulatory domain.
+
+	dev <devname> roc start <freq> <time in ms>
+		
+
+	dev <devname> scan [-u] [freq <freq>*] [duration <dur>] [ies <hex as 00:11:..>] [meshid <meshid>] [lowpri,flush,ap-force,duration-mandatory] [randomise[=<addr>/<mask>]] [ssid <ssid>*|passive]
+		Scan on the given frequencies and probe for the given SSIDs
+		(or wildcard if not given) unless passive scanning is requested.
+		If -u is specified print unknown data in the scan results.
+		Specified (vendor) IEs must be well-formed.
+
+	dev <devname> scan sched_stop 
+		Stop an ongoing scheduled scan.
+
+	dev <devname> scan sched_start [interval <in_msecs> | scan_plans [<interval_secs:iterations>*] <interval_secs>] [delay <in_secs>] [freqs <freq>+] [matches [ssid <ssid>]+]] [active [ssid <ssid>]+|passive] [randomise[=<addr>/<mask>]] [coloc] [flush]
+		Start a scheduled scan at the specified interval on the given frequencies
+		with probing for the given SSIDs (or wildcard if not given) unless passive
+		scanning is requested.  If matches are specified, only matching results
+		will be returned.
+
+	dev <devname> scan abort 
+		Abort ongoing scan
+
+	dev <devname> scan trigger [freq <freq>*] [duration <dur>] [ies <hex as 00:11:..>] [meshid <meshid>] [lowpri,flush,ap-force,duration-mandatory,coloc] [randomise[=<addr>/<mask>]] [ssid <ssid>*|passive]
+		Trigger a scan on the given frequencies with probing for the given
+		SSIDs (or wildcard if not given) unless passive scanning is requested.
+		Duration(in TUs), if specified, will be used to set dwell times.
+		
+
+	dev <devname> scan dump [-u]
+		Dump the current scan results. If -u is specified, print unknown
+		data in scan results.
+
+	dev <devname> set bitrates [legacy-<2.4|5> <legacy rate in Mbps>*] [ht-mcs-<2.4|5> <MCS index>*] [vht-mcs-<2.4|5> [he-mcs-<2.4|5|6> <NSS:MCSx,MCSy... | NSS:MCSx-MCSy>*] [sgi-2.4|lgi-2.4] [sgi-5|lgi-5] [he-gi-<2.4|5|6> <0.8|1.6|3.2>] [he-ltf-<2.4|5|6> <1|2|4>]
+		Sets up the specified rate masks.
+		Not passing any arguments would clear the existing mask (if any).
+
+	dev <devname> set epcs <enable|disable>
+		Enable/Disable EPCS support
+
+	dev <devname> set tidconf [peer <MAC address>] tids <mask> [override] [sretry <num>] [lretry <num>] [ampdu [on|off]] [amsdu [on|off]] [noack [on|off]] [rtscts [on|off]][bitrates <type [auto|fixed|limit]> [legacy-<2.4|5> <legacy rate in Mbps>*] [ht-mcs-<2.4|5> <MCS index>*] [vht-mcs-<2.4|5> <NSS:MCSx,MCSy... | NSS:MCSx-MCSy>*] [sgi-2.4|lgi-2.4] [sgi-5|lgi-5]]
+		Setup per-node TID specific configuration for TIDs selected by bitmask.
+		If MAC address is not specified, then supplied TID configuration
+		applied to all the peers.
+		Examples:
+		  $ iw dev wlan0 set tidconf tids 0x1 ampdu off
+		  $ iw dev wlan0 set tidconf tids 0x5 ampdu off amsdu off rtscts on
+		  $ iw dev wlan0 set tidconf tids 0x3 override ampdu on noack on rtscts on
+		  $ iw dev wlan0 set tidconf peer xx:xx:xx:xx:xx:xx tids 0x1 ampdu off tids 0x3 amsdu off rtscts on
+		  $ iw dev wlan0 set tidconf peer xx:xx:xx:xx:xx:xx tids 0x2 bitrates auto
+		  $ iw dev wlan0 set tidconf peer xx:xx:xx:xx:xx:xx tids 0x2 bitrates limit vht-mcs-5 4:9
+		
+
+	dev <devname> set mcast_rate <rate in Mbps>
+		Set the multicast bitrate.
+
+	dev <devname> set peer <MAC address>
+		Set interface WDS peer.
+
+	dev <devname> set noack_map <map>
+		Set the NoAck map for the TIDs. (0x0009 = BE, 0x0006 = BK, 0x0030 = VI, 0x00C0 = VO)
+
+	dev <devname> set 4addr <on|off>
+		Set interface 4addr (WDS) mode.
+
+	dev <devname> set type <type>
+		Set interface type/mode.
+		Valid interface types are: managed, ibss, monitor, mesh, wds.
+
+	dev <devname> set meshid <meshid>
+	dev <devname> set monitor <flag>*
+		Set monitor flags. Valid flags are:
+		none:     no special flags
+		fcsfail:  show frames with FCS errors
+		control:  show control frames
+		otherbss: show frames from other BSSes
+		cook:     use cooked mode
+		active:   use active mode (ACK incoming unicast packets)
+		mumimo-groupid <GROUP_ID>: use MUMIMO according to a group id
+		mumimo-follow-mac <MAC_ADDRESS>: use MUMIMO according to a MAC address
+
+	dev <devname> set mesh_param <param>=<value> [<param>=<value>]*
+		Set mesh parameter (run command without any to see available ones).
+
+	phy <phyname> set txq limit <packets> | memory_limit <bytes> | quantum <bytes>
+		Set TXQ parameters. The limit and memory_limit are global queue limits
+		for the whole phy. The quantum is the DRR scheduler quantum setting.
+		Valid values: 1 - 2**32
+
+	phy <phyname> set antenna <bitmap> | all | <tx bitmap> <rx bitmap>
+		Set a bitmap of allowed antennas to use for TX and RX.
+		The driver may reject antenna configurations it cannot support.
+
+	dev <devname> set txpower <auto|fixed|limit> [<tx power in mBm>]
+		Specify transmit power level and setting type.
+
+	phy <phyname> set txpower <auto|fixed|limit> [<tx power in mBm>]
+		Specify transmit power level and setting type.
+
+	phy <phyname> set distance <auto|distance>
+		Enable ACK timeout estimation algorithm (dynack) or set appropriate
+		coverage class for given link distance in meters.
+		To disable dynack set valid value for coverage class.
+		Valid values: 0 - 114750
+
+	phy <phyname> set coverage <coverage class>
+		Set coverage class (1 for every 3 usec of air propagation time).
+		Valid values: 0 - 255.
+
+	phy <phyname> set netns { <pid> | name <nsname> }
+		Put this wireless device into a different network namespace:
+		    <pid>    - change network namespace by process id
+		    <nsname> - change network namespace by name from /var/run/netns
+		               or by absolute path (man ip-netns)
+		
+
+	phy <phyname> set retry [short <limit>] [long <limit>]
+		Set retry limit.
+
+	phy <phyname> set rts <rts threshold|off> [radio <radio index>]
+		Set rts threshold.
+
+	phy <phyname> set frag <fragmentation threshold|off>
+		Set fragmentation threshold.
+
+	dev <devname> set channel <channel> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz|160MHz|320MHz] [punct <bitmap>]
+	phy <phyname> set channel <channel> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz|160MHz|320MHz] [punct <bitmap>]
+	dev <devname> set freq_khz <freq in KHz> [1MHz|2MHz|4MHz|8MHz|16MHz]
+	dev <devname> set freq_khz <control freq in KHz> [1|2|4|8|16] [<center1_freq> [<center2_freq>]]
+	phy <phyname> set freq_khz <freq in KHz> [1MHz|2MHz|4MHz|8MHz|16MHz]
+	phy <phyname> set freq_khz <control freq in KHz> [1|2|4|8|16] [<center1_freq> [<center2_freq>]]
+		Set frequency in kHz the hardware is using
+		configuration.
+
+	dev <devname> set freq <freq> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz|160MHz|320MHz] [punct <bitmap>]
+	dev <devname> set freq <control freq> [5|10|20|40|80|80+80|160|320] [<center1_freq> [<center2_freq>]] [punct <bitmap>]
+	phy <phyname> set freq <freq> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz|160MHz|320MHz] [punct <bitmap>]
+	phy <phyname> set freq <control freq> [5|10|20|40|80|80+80|160|320] [<center1_freq> [<center2_freq>]] [punct <bitmap>]
+		Set frequency/channel configuration the hardware is using.
+
+	phy <phyname> set name <new name>
+		Rename this wireless device.
+
+	dev <devname> set power_save <on|off>
+		Set power save state to on or off.
+
+	phy <phyname> set sar_specs <sar type> <range index:sar power>*
+		Set SAR specs corresponding to SAR capa of wiphy.
+
+	dev <devname> get mesh_param [<param>]
+		Retrieve mesh parameter (run command without any to see available ones).
+
+	phy <phyname> get txq 
+		Get TXQ parameters.
+
+	dev <devname> get power_save 
+		Retrieve power save state.
+
+	dev <devname> station dump [-v]
+		List all stations known, e.g. the AP on managed interfaces
+
+	dev <devname> station set <MAC address> txpwr <auto|limit> [<tx power dBm>]
+		Set Tx power for this station.
+
+	dev <devname> station set <MAC address> airtime_weight <weight>
+		Set airtime weight for this station.
+
+	dev <devname> station set <MAC address> mesh_power_mode <active|light|deep>
+		Set link-specific mesh power mode for this station
+
+	dev <devname> station set <MAC address> vlan <ifindex>
+		Set an AP VLAN for this station.
+
+	dev <devname> station set <MAC address> plink_action <open|block>
+		Set mesh peer link action for this station (peer).
+
+	dev <devname> station del <MAC address> [subtype <subtype>] [reason-code <code>]
+		Remove the given station entry (use with caution!)
+		Example subtype values: 0xA (disassociation), 0xC (deauthentication)
+
+	dev <devname> station get <MAC address>
+		Get information for a specific station.
+
+	dev <devname> survey dump [--radio]
+		List all gathered channel survey data
+
+	dev <devname> vendor recvbin <oui> <subcmd> <filename|-|hex data>
+		
+
+	dev <devname> vendor recv <oui> <subcmd> <filename|-|hex data>
+		
+
+	dev <devname> vendor send <oui> <subcmd> <filename|-|hex data>
+		
+
+	phy <phyname> wowlan show 
+		Show WoWLAN status.
+
+	phy <phyname> wowlan disable 
+		Disable WoWLAN.
+
+	phy <phyname> wowlan enable [any] [disconnect] [magic-packet] [gtk-rekey-failure] [eap-identity-request] [4way-handshake] [rfkill-release] [net-detect [interval <in_msecs> | scan_plans [<interval_secs:iterations>*] <interval_secs>] [delay <in_secs>] [freqs <freq>+] [matches [ssid <ssid>]+]] [active [ssid <ssid>]+|passive] [randomise[=<addr>/<mask>]] [coloc] [flush]] [tcp <config-file>] [patterns [offset1+]<pattern1> ...]
+		Enable WoWLAN with the given triggers.
+		Each pattern is given as a bytestring with '-' in places where any byte
+		may be present, e.g. 00:11:22:-:44 will match 00:11:22:33:44 and
+		00:11:22:33:ff:44 etc.
+		Offset and pattern should be separated by '+', e.g. 18+43:34:00:12 will match '43:34:00:12' after 18 bytes of offset in Rx packet.
+		
+		The TCP configuration file contains:
+		  source=ip[:port]
+		  dest=ip:port@mac
+		  data=<hex data packet>
+		  data.interval=seconds
+		  [wake=<hex packet with masked out bytes indicated by '-'>]
+		  [data.seq=len,offset[,start]]
+		  [data.tok=len,offset,<token stream>]
+		
+		Net-detect configuration example:
+		 iw phy0 wowlan enable net-detect interval 5000 delay 30 freqs 2412 2422 matches ssid foo ssid bar
+
+
+Commands that use the netdev ('dev') can also be given the
+'wdev' instead to identify the device.
+
+You can omit the 'phy' or 'dev' if the identification is unique,
+e.g. "iw wlan0 info" or "iw phy0 info". (Don't when scripting.)
+
+Do NOT screenscrape this tool, we don't consider its output stable.
+
+# dmesg | grep -iE '8733|rtw|firmware' 
+[    0.000000] psci: PSCIv1.0 detected in firmware.
+[    1.483820] faux_driver regulatory: Direct firmware load for regulatory.db failed with error -2
+[   23.508698] 8733bu: loading out-of-tree module taints kernel.
+[   23.534180] RTW: rtl8733bu v5.15.12-264-gdd9219782.20250922_COEX20241204-390f
+[   23.534907] RTW: rtl8733bu BT-Coex version = COEX20241204-390f
+[   23.535488] RTW: rtw_inetaddr_notifier_register
+[   23.536058] RTW: 
+[   23.536590] RTW: bLength=7
+[   23.536839] RTW: bDescriptorType=5
+[   23.537145] RTW: bEndpointAddress=84
+[   23.537466] RTW: wMaxPacketSize=512
+[   23.537779] RTW: bInterval=0
+[   23.538040] RTW: RT_usb_endpoint_is_bulk_in = 4
+[   23.538443] RTW: 
+[   23.538950] RTW: bLength=7
+[   23.539193] RTW: bDescriptorType=5
+[   23.539498] RTW: bEndpointAddress=5
+[   23.539810] RTW: wMaxPacketSize=512
+[   23.540123] RTW: bInterval=0
+[   23.540383] RTW: RT_usb_endpoint_is_bulk_out = 5
+[   23.540793] RTW: 
+[   23.541300] RTW: bLength=7
+[   23.541545] RTW: bDescriptorType=5
+[   23.541851] RTW: bEndpointAddress=6
+[   23.542163] RTW: wMaxPacketSize=512
+[   23.542476] RTW: bInterval=0
+[   23.542735] RTW: RT_usb_endpoint_is_bulk_out = 6
+[   23.543146] RTW: 
+[   23.543653] RTW: bLength=7
+[   23.543898] RTW: bDescriptorType=5
+[   23.544202] RTW: bEndpointAddress=87
+[   23.544522] RTW: wMaxPacketSize=64
+[   23.544913] RTW: bInterval=3
+[   23.545197] RTW: RT_usb_endpoint_is_int_in = 7, Interval = 3
+[   23.545725] RTW: 
+[   23.546251] RTW: bLength=7
+[   23.546510] RTW: bDescriptorType=5
+[   23.546818] RTW: bEndpointAddress=8
+[   23.547132] RTW: wMaxPacketSize=512
+[   23.547444] RTW: bInterval=0
+[   23.547706] RTW: RT_usb_endpoint_is_bulk_out = 8
+[   23.548117] RTW: nr_endpoint=5, in_num=2, out_num=3
+[   23.548680] RTW: USB_SPEED_HIGH
+[   23.548966] RTW: CHIP TYPE: RTL8733B
+[   23.549344] RTW: loadparam, Select P2P interface: iface_id:1
+[   23.549990] RTW: [HALMAC]140
+[   23.552176] RTW: Chip Version Info: CHIP_8733B_U4_1T1R_RomVer(3)
+[   23.552738] RTW: config_chip_out_EP OutEpQueueSel(0x07), OutEpNumber(3)
+[   23.682298] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_LOGICAL_EFUSE
+[   23.682961] RTW: check_phy_efuse_tx_power_info_valid: tpt_mode is TSSI, skip check
+[   23.683636] RTW: EEPROM ID = 0x8129
+[   23.683953] RTW: EEPROM Version = 0
+[   23.684271] RTW: Hal_EfuseParseTxPowerInfo tpt_mode=4, PG with TSSI_OFFSET
+[   23.684938] RTW: EEPROM Regulatory=0x01
+[   23.685304] RTW: EEPROM Board Type=0x01
+[   23.685668] RTW: EEPROM Enable BT-coex, ant_num=2
+[   23.686097] RTW: EEPROM crystal_cap=0x3f
+[   23.686449] RTW: EEPROM ThermalMeter=0x1f
+[   23.686807] RTW: EEPROM efuse[0xc9]=0x11 is valid
+[   23.687227] RTW: EEPROM Customer ID=0x00
+[   23.687578] RTW: EEPROM SupportRemoteWakeup=1
+[   23.687967] RTW: EEPROM PAType_2G is 0x0, ExternalPA_2G = 0
+[   23.688461] RTW: EEPROM PAType_5G is 0x0, external_pa_5g = 0
+[   23.688963] RTW: EEPROM LNAType_2G is 0x0, ExternalLNA_2G = 0
+[   23.689471] RTW: EEPROM LNAType_5G is 0x0, external_lna_5g = 0
+[   23.689987] RTW: EEPROM TypeGPA = 0x0
+[   23.690315] RTW: EEPROM TypeAPA = 0x0
+[   23.690643] RTW: EEPROM TypeGLNA = 0x0
+[   23.690976] RTW: EEPROM TypeALNA = 0x0
+[   23.691312] RTW: EEPROM rfe_type=0x5
+[   23.691632] RTW: EEPROM USB Switch=0
+[   23.691953] RTW: EEPROM VID = 0x0BDA, PID = 0xB733
+[   23.703036] RTW: SetHwReg: bMacPwrCtrlOn=1
+[   23.705205] RTW: rtl8733b_fw_dl fw source from array
+[   23.814424] RTW: _rtw_hal_set_fw_rsvd_page((null)) Get [ NOR ] RsvdPageNUm  ==>
+[   23.815156] RTW: LocPsPoll: 4
+[   23.815453] RTW: LocNullData: 5
+[   23.815745] RTW: LocQosNull: 6
+[   23.816026] RTW: LocBTQosNull: 7
+[   23.816320] RTW: _rtw_hal_set_fw_rsvd_page((null)) Get [ NOR ] RsvdPageNUm <==
+[   23.834827] RTW: rtl8733b_fw_dl Download Firmware from array success
+[   23.835434] RTW: NIC FW Version:1 SubVersion:40 FW size:126664
+[   23.837921] RTW: SetHwReg: bMacPwrCtrlOn=0
+[   23.846289] RTW: hal_read_mac_hidden_rpt OK! (1, 10ms), fwdl:1, id:0x19
+[   23.846919] RTW: rtw_hal_read_chip_info in 300 ms
+[   23.847369] RTW: rtw_hal_rfpath_init trx_path_bmp:0x11(RF_1T1R), NumTotalRFPath:1, max_tx_cnt:1
+[   23.848149] RTW: rtw_hal_trxnss_init tx_nss:1, rx_nss:1
+[   23.848662] RTW: devobj_decide_init_chplan alpha2:{255,255}
+[   23.849161] RTW: devobj_decide_init_chplan chplan:0x7f
+[   23.849618] RTW: devobj_decide_init_chplan chplan_6g:0x00
+[   23.850097] RTW: devobj_decide_init_chplan disable_sw_chplan:0
+[   23.850617] RTW: rtw_rfctl_decide_init_chplan chplan:0x7F
+[   23.851312] RTW: init_mlme_default_rate_set: support CCK
+[   23.851798] RTW: init_mlme_default_rate_set: support OFDM
+[   23.852872] RTW: NR_RECVBUFF: 8, recvbuf_nr: 8
+[   23.853317] RTW: MAX_RECVBUF_SZ: 20480
+[   23.853666] RTW: NR_PREALLOC_RECV_SKB: 8
+[   23.854218] RTW: rtw_alloc_macid((null)) if1, mac_addr:ff:ff:ff:ff:ff:ff macid:1
+[   23.854994] RTW: rtw_init_pwrctrl_priv: IPS_mode=0, LPS_mode=0, LPS_level=0
+[   23.855644] RTW: rtw_init_pwrctrl_priv: WOW_IPS_mode=1, WOW_LPS_mode=2, WOW_LPS_level=0
+[   23.856387] RTW: Init_ODM_ComInfo bb_opmode set to 0
+[   23.856847] RTW: IQK FW offload:disable
+[   23.857200] RTW: init_phydm_cominfo: Fv=1 Cv=3
+[   23.858492] RTW: phy_ConfigBBWithPgParaFile(): No File PHY_REG_PG.txt, Load from HWImg Array!
+[   23.859289] RTW: default power by rate loaded
+[   23.859699] RTW: rtw_chset_apply_from_rtk_priv chplan:0x7F chplan_6g:0x00
+[   23.860316] RTW: band:5G ch52 is NO_IR DFS while beacon hint not allowed
+[   23.860910] RTW: band:5G ch56 is NO_IR DFS while beacon hint not allowed
+[   23.861503] RTW: band:5G ch60 is NO_IR DFS while beacon hint not allowed
+[   23.862095] RTW: band:5G ch64 is NO_IR DFS while beacon hint not allowed
+[   23.862687] RTW: band:5G ch100 is NO_IR DFS while beacon hint not allowed
+[   23.863286] RTW: band:5G ch104 is NO_IR DFS while beacon hint not allowed
+[   23.863885] RTW: band:5G ch108 is NO_IR DFS while beacon hint not allowed
+[   23.864484] RTW: band:5G ch112 is NO_IR DFS while beacon hint not allowed
+[   23.865156] RTW: band:5G ch116 is NO_IR DFS while beacon hint not allowed
+[   23.865778] RTW: band:5G ch120 is NO_IR DFS while beacon hint not allowed
+[   23.866393] RTW: band:5G ch124 is NO_IR DFS while beacon hint not allowed
+[   23.866997] RTW: band:5G ch128 is NO_IR DFS while beacon hint not allowed
+[   23.867598] RTW: band:5G ch132 is NO_IR DFS while beacon hint not allowed
+[   23.868198] RTW: band:5G ch136 is NO_IR DFS while beacon hint not allowed
+[   23.868797] RTW: band:5G ch140 is NO_IR DFS while beacon hint not allowed
+[   23.869396] RTW: band:5G ch144 is NO_IR DFS while beacon hint not allowed
+[   23.869998] RTW: rtw_rfctl_chset_apply_regulatory ch num:41
+[   23.871356] RTW: pwrctrlpriv.bSupportRemoteWakeup~~~~~~
+[   23.871837] RTW: pwrctrlpriv.bSupportRemoteWakeup~~~[1]~~~
+[   23.872328] RTW: can't get autopm:
+[   23.872638] RTW: rtw_macaddr_cfg mac addr:4c:a3:8f:7b:45:99
+[   23.873138] RTW: bDriverStopped:True, bSurpriseRemoved:False, bup:0, hw_init_completed:0
+[   23.873909] RTW: loadparam, Select P2P interface: iface_id:1
+[   23.874647] RTW: init_mlme_default_rate_set: support CCK
+[   23.875199] RTW: init_mlme_default_rate_set: support OFDM
+[   23.876310] RTW: NR_RECVBUFF: 8, recvbuf_nr: 8
+[   23.876755] RTW: MAX_RECVBUF_SZ: 20480
+[   23.877104] RTW: NR_PREALLOC_RECV_SKB: 8
+[   23.877656] RTW: rtw_alloc_macid((null)) if2, mac_addr:ff:ff:ff:ff:ff:ff macid:1
+[   23.878364] RTW: rtw_drv_add_vir_if if2 mac_addr : 4e:a3:8f:7b:45:99
+[   23.878968] RTW: rtw_cfg80211_init_wiphy_band:rf_type=0
+[   23.879451] RTW: [HT] HAL Support LDPC = 0x02
+[   23.879846] RTW: [HT] HAL Support STBC = 0x01
+[   23.880244] RTW: [HT] HAL Support LDPC = 0x02
+[   23.880634] RTW: [HT] HAL Support STBC = 0x01
+[   23.881040] RTW: rtw_wiphy_alloc(phy0)
+[   23.881418] RTW: rtw_wdev_alloc(padapter=60c95d7d)
+[   23.881900] RTW: rtw_wdev_alloc(padapter=417648d7)
+[   23.882342] RTW: rtw_wiphy_register(phy0)
+[   23.882705] RTW: Register RTW cfg80211 vendor cmd(0x67) interface
+[   23.883924] RTW: rtw_ndev_init(wlan0) if1 mac_addr=4c:a3:8f:7b:45:99
+[   23.884922] RTW: rtw_ndev_notifier_call(wlan0) state:17
+[   23.886261] RTW: cfg80211_rtw_get_txpower(wlan0) total max: -10000 mbm
+[   23.887050] RTW: rtw_ndev_notifier_call(wlan0) state:5
+[   23.887625] RTW: rtw_ndev_init(wlan1) if2 mac_addr=4e:a3:8f:7b:45:99
+[   23.888479] RTW: rtw_ndev_notifier_call(wlan1) state:17
+[   23.889709] RTW: cfg80211_rtw_get_txpower(wlan1) total max: -10000 mbm
+[   23.890514] RTW: rtw_ndev_notifier_call(wlan1) state:5
+[   23.891223] usbcore: registered new interface driver rtl8733bu
+# lsmod
+Module                  Size  Used by    Tainted: G  
+8733bu               3043328  0 
+# clear
+# iw wlan0 scan 
+command failed: Network is down (-100)
+# iw dev wlan0 scan
+command failed: Network is down (-100)
+# ip link set wlan0 up 
+[  249.480014] RTW: rtw_ndev_notifier_call(wlan0) state:14
+[  249.480529] RTW: _netdev_open(wlan0) , bup=0
+[  249.480921] RTW: rtl8733b_hal_init fw source from array
+[  249.491659] RTW: SetHwReg: bMacPwrCtrlOn=1
+[  249.600677] RTW: _rtw_hal_set_fw_rsvd_page(wlan0) Get [ NOR ] RsvdPageNUm  ==>
+[  249.601363] RTW: LocPsPoll: 4
+[  249.601645] RTW: LocNullData: 5
+[  249.601934] RTW: LocQosNull: 6
+[  249.602213] RTW: LocBTQosNull: 7
+[  249.602507] RTW: _rtw_hal_set_fw_rsvd_page(wlan0) Get [ NOR ] RsvdPageNUm <==
+[  249.620416] RTW: rtw_start_drv_threads(wlan0) enter
+[  249.620891] RTW: rtw_start_drv_threads(wlan0) start RTW_CMD_THREAD
+[  250.037825] RTW: rtl8733b_hal_init Download Firmware from array success
+[  250.038464] RTW: NIC FW Version:1 SubVersion:40 FW size:126664
+[  250.048215] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.049108] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.049967] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.050842] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.052333] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.053105] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.053965] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.054731] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.055680] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.056640] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.057485] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.058357] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.059219] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.059966] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.060738] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.061588] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.062343] RTW: is_valid_id_status: HALMAC_FEATURE_DUMP_PHYSICAL_EFUSE
+[  250.111833] RTW: start_addr=(0x0), end_addr=(0x20000), buffer_size=(0x20000), smp_number_max=(16384)
+[  250.113702] RTW: rtw_hal_set_default_port_id_cmd (wlan0) port_id :0, mac_id:0
+[  250.122954] RTW: rtw_hal_set_wifi_btc_port_id_cmd (wlan0) - hw_port :0
+[  250.123038] RTW: rtl8733b_c2h_handler_no_io: C2H(21) enqueue FAIL!
+[  250.126451] RTW: rtl8733bu_init in 650ms
+[  250.126858] RTW: rtw_hal_set_macaddr_port wlan0- hw port(0) mac_addr =4c:a3:8f:7b:45:99
+[  250.127961] RTW: rtw_hal_set_macaddr_port wlan1- hw port(1) mac_addr =4e:a3:8f:7b:45:99
+[  250.129948] RTW: [HW_VAR_ENABLE_RX_BAR] 0x6A2=0x100
+[  250.156584] RTW: wlan0: hw_port(0) will set mode to 2
+[  250.157712] RTW: set_opmode_port0(wlan0): hw_port(0) mode=2
+[  250.159827] RTW: rtw_hal_init: padapter->registrypriv.set_rrsr_value=0xffffffff
+[  250.160512] RTW: MAC Address = 4c:a3:8f:7b:45:99
+[  250.160945] RTW: _netdev_vir_if_open(wlan1) , bup=0
+[  250.161389] RTW: rtw_start_drv_threads(wlan1) enter
+[  250.161833] RTW: _netdev_vir_if_open(wlan1) (bup=1) exit
+[  250.162313] RTW: -871x_drv - drv_open, bup=1
+[  250.162948] RTW: cfg80211_rtw_set_power_mgmt(wlan0) enabled:1, timeout:-1
+[  250.163613] RTW: rtw_ndev_notifier_call(wlan0) state:1
+# iw dev wlan0 scan
+[  257.093609] RTW: cfg80211_rtw_scan(wlan0)
+[  257.099837] RTW: [HW_VAR_CHECK_TXBUF] Empty in 10 ms
+[  257.100704] RTW: wlan0 sleep m0=0x00000002, ori reg_0x4d4=0x00000000
+[  258.201298] RTW: rtw_process_beacon_hint: change band:5G ch:36 to active
+[  260.533364] RTW: rtw_process_beacon_hint: change band:5G ch:149 to active
+[  260.662826] RTW: rtw_process_beacon_hint: change band:5G ch:153 to active
+[  260.908750] RTW: rtw_process_beacon_hint: change band:5G ch:161 to active
+[  261.051502] RTW: rtw_process_beacon_hint: change band:5G ch:165 to active
+[  261.474881] RTW: LeaveAllPowerSaveModeDirect.....
+[  261.475358] RTW: rtw_hal_set_macaddr_port wlan0- hw port(0) mac_addr =4c:a3:8f:7b:45:99
+[  261.506710] RTW: wlan0 wakeup m0=0x00000002, ori reg_0x4d4=0x00000002
+[  261.507487] RTW: survey done event(2e) reason:0x0 complete for wlan0
+[  261.508485] RTW: rtw_indicate_scan_done(wlan0)
+BSS 0a:74:9c:4d:04:56(on wlan0)
+	TSF: 261503361 usec (0d, 00:04:21)
+	freq: 2412.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -64.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: JLU.WIFI
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 1
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 1
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0e:74:9c:4d:04:56(on wlan0)
+	TSF: 261503383 usec (0d, 00:04:21)
+	freq: 2412.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -65.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: JLU.PC
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 1
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 1
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0a:74:9c:4c:b7:06(on wlan0)
+	TSF: 261503393 usec (0d, 00:04:21)
+	freq: 2412.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -76.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: JLU.WIFI
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 1
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 1
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0e:74:9c:48:96:ba(on wlan0)
+	TSF: 261503400 usec (0d, 00:04:21)
+	freq: 2412.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -74.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: JLU.PC
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 1
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 1
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0a:74:9c:48:96:ba(on wlan0)
+	TSF: 261503409 usec (0d, 00:04:21)
+	freq: 2412.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -73.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: JLU.WIFI
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 1
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 1
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 02:82:3d:bc:f8:52(on wlan0)
+	TSF: 261503416 usec (0d, 00:04:21)
+	freq: 2412.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble SpectrumMgmt ShortSlotTime (0x0521)
+	signal: -76.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.PC
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 1
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x0
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 20 dBm
+	Power constraint: 0 dB
+	TPC report: TX power: 18 dBm
+	ERP: <no flags>
+	BSS Load:
+		 * station count: 0
+		 * channel utilisation: 54/255
+		 * available admission capacity: 0 [*32us]
+	Supported operating classes:
+		 * current operating class: 7
+		 * operating class: 7
+		 * operating class: 8
+		 * operating class: 9
+	HT capabilities:
+		Capabilities: 0x9ad
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 4 usec (0x05)
+		HT RX MCS rate indexes supported: 0-15
+		HT TX MCS rate indexes are undefined
+	HT operation:
+		 * primary channel: 1
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Extended Channel Switching
+		 * Event
+		 * BSS Transition
+		 * Operating Mode Notification
+		 * Channel Schedule Management
+		 * Channel Schedule Management
+		 * Max Number Of MSDUs In A-MSDU is 
+	VHT capabilities:
+		VHT Capabilities (0x0f817191):
+			Max MPDU length: 7991
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			TX STBC
+			SU Beamformee
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 1
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfff0
+	HE capabilities:
+		HE MAC Capabilities (0x000112081000):
+			+HTC HE Supported
+			BSR
+			OM Control
+			Maximum A-MPDU Length Exponent: 2
+			OM Control UL MU Data Disable RX
+		HE PHY Capabilities: (0x202002400d408108008c00):
+			242 tone RUs/2.4GHz
+			LDPC Coding in Payload
+			NDP with 4x HE-LTF and 3.2us GI
+			Rx HE MU PPDU from Non-AP STA
+			SU Beamformee
+			Beamformee STS <= 80MHz: 3
+			Ng = 16 SU Feedback
+			Codebook Size SU Feedback
+			PPE Threshold Present
+			Max NC: 1
+			TX 1024-QAM
+			RX 1024-QAM
+		PPE Threshold 0xfa 0xff 0xfa 0xff 0x19 0x1c 0xc7 0x71 
+	HE Operation:
+		HE Operation Parameters: (0x018004)
+			Default PE Duration: 4
+			TXOP Duration RTS Threshold: 0
+			Co-Hosted BSS
+			ER SU Disable
+		BSS Color: 62
+		Basic HE-MCS NSS Set: 0xfffc
+			1 streams: MCS 0-7
+			2 streams: not supported
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		Max Co-Hosted BSSID: 4
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0e:74:9c:4c:c0:2a(on wlan0)
+	TSF: 261503425 usec (0d, 00:04:21)
+	freq: 2437.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -57.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: JLU.PC
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 6
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 6
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0a:74:9c:4c:ae:26(on wlan0)
+	TSF: 261503432 usec (0d, 00:04:21)
+	freq: 2437.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -69.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: JLU.WIFI
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 6
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 6
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0e:74:9c:4c:ae:26(on wlan0)
+	TSF: 261503439 usec (0d, 00:04:21)
+	freq: 2437.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -69.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: JLU.PC
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 6
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 6
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0e:74:9c:48:a6:ea(on wlan0)
+	TSF: 261503455 usec (0d, 00:04:21)
+	freq: 2437.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -65.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: JLU.PC
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 6
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 6
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0a:74:9c:48:a6:ea(on wlan0)
+	TSF: 261503464 usec (0d, 00:04:21)
+	freq: 2437.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -65.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: JLU.WIFI
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 6
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 6
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0a:74:9c:4c:c0:2a(on wlan0)
+	TSF: 261503472 usec (0d, 00:04:21)
+	freq: 2437.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -58.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.WIFI
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 6
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x0
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 6
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0a:74:9c:4c:a7:02(on wlan0)
+	TSF: 261503478 usec (0d, 00:04:21)
+	freq: 2462.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -42.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: JLU.WIFI
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 11
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 11
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0e:74:9c:4c:a7:02(on wlan0)
+	TSF: 261503485 usec (0d, 00:04:21)
+	freq: 2462.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble ShortSlotTime (0x0421)
+	signal: -42.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: JLU.PC
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 11
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 30 dBm
+	ERP: <no flags>
+	HT capabilities:
+		Capabilities: 0x1ec
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 3839 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 8 usec (0x06)
+		HT TX/RX MCS rate indexes supported: 0-23
+	HT operation:
+		 * primary channel: 11
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 04:67:61:c3:2b:72(on wlan0)
+	TSF: 261503491 usec (0d, 00:04:21)
+	freq: 2462.0
+	beacon interval: 100 TUs
+	capability: ESS Privacy ShortPreamble ShortSlotTime RadioMeasure (0x1431)
+	signal: -64.00 dBm
+	last seen: 0 ms ago
+	Information elements from Probe Response frame:
+	SSID: QEMWCEZ_WIFI
+	Supported rates: 1.0* 2.0* 5.5* 11.0* 6.0 9.0 12.0 18.0 
+	DS Parameter set: channel 11
+	TPC report: TX power: 29 dBm
+	ERP: <no flags>
+	Extended supported rates: 24.0 36.0 48.0 54.0 
+	RSN:	 * Version: 1
+		 * Group cipher: CCMP
+		 * Pairwise ciphers: CCMP
+		 * Authentication suites: PSK
+		 * Capabilities: 16-PTKSA-RC 1-GTKSA-RC (0x000c)
+	RM enabled capabilities:
+		Capabilities: 0x73 0xd0 0x00 0x00 0x0c
+			Link Measurement
+			Neighbor Report
+			Beacon Passive Measurement
+			Beacon Active Measurement
+			Beacon Table Measurement
+			LCI Measurement
+			Transmit Stream/Category Measurement
+			Triggered Transmit Stream/Category
+			FTM Range Report
+			Civic Location Measurement
+		Nonoperating Channel Max Measurement Duration: 0
+		Measurement Pilot Capability: 4
+	HT capabilities:
+		Capabilities: 0x9ad
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 11
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 0
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Overlapping BSS scan params:
+		 * passive dwell: 20 TUs
+		 * active dwell: 10 TUs
+		 * channel width trigger scan interval: 300 s
+		 * scan passive total per channel: 200 TUs
+		 * scan active total per channel: 20 TUs
+		 * BSS width channel transition delay factor: 5
+		 * OBSS Scan Activity Threshold: 0.25 %
+	Extended capabilities:
+		 * HT Information Exchange Supported
+		 * Extended Channel Switching
+		 * TFS
+		 * WNM-Sleep Mode
+		 * TIM Broadcast
+		 * BSS Transition
+		 * SSID List
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x33816992):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			TX STBC
+			SU Beamformer
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 11
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	HE capabilities:
+		HE MAC Capabilities (0x01091a081040):
+			+HTC HE Supported
+			Dynamic BA Fragementation Level: 1
+			Minimum Payload size of 128 bytes: 1
+			BSR
+			OM Control
+			Maximum A-MPDU Length Exponent: 3
+			A-MSDU in A-MPDU
+			OM Control UL MU Data Disable RX
+		HE PHY Capabilities: (0x0060088800018004110800):
+			LDPC Coding in Payload
+			HE SU PPDU with 1x HE-LTF and 0.8us GI
+			STBC Rx <= 80MHz
+			DCM Max Constellation Rx: 1
+			SU Beamformer
+			Sounding Dimensions <= 80MHz: 1
+			PPE Threshold Present
+			HE SU PPDU & HE PPDU 4x HE-LTF 0.8us GI
+			HE ER SU PPDU 4x HE-LTF 0.8us GI
+			HE ER SU PPDU 1x HE-LTF 0.8us GI
+			RX 1024-QAM
+		PPE Threshold 0xfa 0xff 0xfa 0xff 0x19 0x1c 0xc7 0x71 
+	HE Operation:
+		HE Operation Parameters: (0x003ff4)
+			Default PE Duration: 4
+			TXOP Duration RTS Threshold: 1023
+		BSS Color: 36
+		Basic HE-MCS NSS Set: 0xfffc
+			1 streams: MCS 0-7
+			2 streams: not supported
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+	WPS:	 * Version: 1.0
+		 * Wi-Fi Protected Setup State: 2 (Configured)
+		 * Response Type: 3 (AP)
+		 * UUID: 87654321-9abc-def0-1234-046761c32b70
+		 * Manufacturer: xiaomi
+		 * Model: RD03v2
+		 * Model Number: 0002
+		 * Serial Number: 12345
+		 * Primary Device Type: 6-0050f204-1
+		 * Device name: XiaoMiRouter
+		 * Config methods:
+		 * RF Bands: 0x3
+		 * Version2: 2.0
+BSS 62:82:3d:bc:e5:67(on wlan0)
+	TSF: 261503500 usec (0d, 00:04:21)
+	freq: 2462.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble SpectrumMgmt ShortSlotTime (0x0521)
+	signal: -73.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.WIFI
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 11
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x0
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 20 dBm
+	Power constraint: 0 dB
+	TPC report: TX power: 18 dBm
+	ERP: <no flags>
+	BSS Load:
+		 * station count: 0
+		 * channel utilisation: 41/255
+		 * available admission capacity: 0 [*32us]
+	Supported operating classes:
+		 * current operating class: 7
+		 * operating class: 7
+		 * operating class: 8
+		 * operating class: 9
+	HT capabilities:
+		Capabilities: 0x9ad
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 4 usec (0x05)
+		HT RX MCS rate indexes supported: 0-15
+		HT TX MCS rate indexes are undefined
+	HT operation:
+		 * primary channel: 11
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Extended Channel Switching
+		 * Event
+		 * BSS Transition
+		 * Operating Mode Notification
+		 * Channel Schedule Management
+		 * Channel Schedule Management
+		 * Max Number Of MSDUs In A-MSDU is 
+	VHT capabilities:
+		VHT Capabilities (0x0f817191):
+			Max MPDU length: 7991
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			TX STBC
+			SU Beamformee
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 11
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfff0
+	HE capabilities:
+		HE MAC Capabilities (0x000112081000):
+			+HTC HE Supported
+			BSR
+			OM Control
+			Maximum A-MPDU Length Exponent: 2
+			OM Control UL MU Data Disable RX
+		HE PHY Capabilities: (0x202002400d408108008c00):
+			242 tone RUs/2.4GHz
+			LDPC Coding in Payload
+			NDP with 4x HE-LTF and 3.2us GI
+			Rx HE MU PPDU from Non-AP STA
+			SU Beamformee
+			Beamformee STS <= 80MHz: 3
+			Ng = 16 SU Feedback
+			Codebook Size SU Feedback
+			PPE Threshold Present
+			Max NC: 1
+			TX 1024-QAM
+			RX 1024-QAM
+		PPE Threshold 0xfa 0xff 0xfa 0xff 0x19 0x1c 0xc7 0x71 
+	HE Operation:
+		HE Operation Parameters: (0x018004)
+			Default PE Duration: 4
+			TXOP Duration RTS Threshold: 0
+			Co-Hosted BSS
+			ER SU Disable
+		BSS Color: 54
+		Basic HE-MCS NSS Set: 0xfffc
+			1 streams: MCS 0-7
+			2 streams: not supported
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		Max Co-Hosted BSSID: 4
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 62:82:3d:bc:e5:68(on wlan0)
+	TSF: 261503508 usec (0d, 00:04:21)
+	freq: 2462.0
+	beacon interval: 100 TUs
+	capability: ESS ShortPreamble SpectrumMgmt ShortSlotTime (0x0521)
+	signal: -73.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.PC
+	Supported rates: 11.0* 18.0 24.0 36.0 48.0 54.0 
+	DS Parameter set: channel 11
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x0
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [1 - 13] @ 20 dBm
+	Power constraint: 0 dB
+	TPC report: TX power: 18 dBm
+	ERP: <no flags>
+	BSS Load:
+		 * station count: 0
+		 * channel utilisation: 41/255
+		 * available admission capacity: 0 [*32us]
+	Supported operating classes:
+		 * current operating class: 7
+		 * operating class: 7
+		 * operating class: 8
+		 * operating class: 9
+	HT capabilities:
+		Capabilities: 0x9ad
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 4 usec (0x05)
+		HT RX MCS rate indexes supported: 0-15
+		HT TX MCS rate indexes are undefined
+	HT operation:
+		 * primary channel: 11
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 1
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Extended Channel Switching
+		 * Event
+		 * BSS Transition
+		 * Operating Mode Notification
+		 * Channel Schedule Management
+		 * Channel Schedule Management
+		 * Max Number Of MSDUs In A-MSDU is 
+	VHT capabilities:
+		VHT Capabilities (0x0f817191):
+			Max MPDU length: 7991
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			TX STBC
+			SU Beamformee
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 11
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfff0
+	HE capabilities:
+		HE MAC Capabilities (0x000112081000):
+			+HTC HE Supported
+			BSR
+			OM Control
+			Maximum A-MPDU Length Exponent: 2
+			OM Control UL MU Data Disable RX
+		HE PHY Capabilities: (0x202002400d408108008c00):
+			242 tone RUs/2.4GHz
+			LDPC Coding in Payload
+			NDP with 4x HE-LTF and 3.2us GI
+			Rx HE MU PPDU from Non-AP STA
+			SU Beamformee
+			Beamformee STS <= 80MHz: 3
+			Ng = 16 SU Feedback
+			Codebook Size SU Feedback
+			PPE Threshold Present
+			Max NC: 1
+			TX 1024-QAM
+			RX 1024-QAM
+		PPE Threshold 0xfa 0xff 0xfa 0xff 0x19 0x1c 0xc7 0x71 
+	HE Operation:
+		HE Operation Parameters: (0x018004)
+			Default PE Duration: 4
+			TXOP Duration RTS Threshold: 0
+			Co-Hosted BSS
+			ER SU Disable
+		BSS Color: 54
+		Basic HE-MCS NSS Set: 0xfffc
+			1 streams: MCS 0-7
+			2 streams: not supported
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		Max Co-Hosted BSSID: 4
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 04:67:61:c3:2b:73(on wlan0)
+	TSF: 261503540 usec (0d, 00:04:21)
+	freq: 5180.0
+	beacon interval: 100 TUs
+	capability: ESS Privacy SpectrumMgmt ShortSlotTime RadioMeasure (0x1511)
+	signal: -86.00 dBm
+	last seen: 0 ms ago
+	SSID: QEMWCEZ_WIFI
+	Supported rates: 6.0* 9.0 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	DS Parameter set: channel 36
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x1 Bitmap[0] 0x8
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [36 - 36] @ 30 dBm
+		Channels [40 - 40] @ 30 dBm
+		Channels [44 - 44] @ 30 dBm
+		Channels [48 - 48] @ 30 dBm
+		Channels [52 - 52] @ 30 dBm
+		Channels [56 - 56] @ 30 dBm
+		Channels [60 - 60] @ 30 dBm
+		Channels [64 - 64] @ 30 dBm
+		Channels [149 - 149] @ 33 dBm
+		Channels [153 - 153] @ 33 dBm
+		Channels [157 - 157] @ 33 dBm
+		Channels [161 - 161] @ 33 dBm
+		Channels [165 - 165] @ 33 dBm
+	Power constraint: 3 dB
+	TPC report: TX power: 27 dBm
+	RSN:	 * Version: 1
+		 * Group cipher: CCMP
+		 * Pairwise ciphers: CCMP
+		 * Authentication suites: PSK
+		 * Capabilities: 16-PTKSA-RC 1-GTKSA-RC (0x000c)
+	RM enabled capabilities:
+		Capabilities: 0x73 0xd0 0x00 0x00 0x0c
+			Link Measurement
+			Neighbor Report
+			Beacon Passive Measurement
+			Beacon Active Measurement
+			Beacon Table Measurement
+			LCI Measurement
+			Transmit Stream/Category Measurement
+			Triggered Transmit Stream/Category
+			FTM Range Report
+			Civic Location Measurement
+		Nonoperating Channel Max Measurement Duration: 0
+		Measurement Pilot Capability: 4
+	HT capabilities:
+		Capabilities: 0x9ef
+			RX LDPC
+			HT20/HT40
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 36
+		 * secondary channel offset: above
+		 * STA channel width: any
+		 * RIFS: 0
+		 * HT protection: nonmember
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Extended Channel Switching
+		 * TFS
+		 * WNM-Sleep Mode
+		 * TIM Broadcast
+		 * BSS Transition
+		 * SSID List
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x338179f6):
+			Max MPDU length: 11454
+			Supported Channel Width: 160 MHz
+			RX LDPC
+			short GI (80 MHz)
+			short GI (160/80+80 MHz)
+			TX STBC
+			SU Beamformer
+			SU Beamformee
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: supported
+	VHT operation:
+		 * channel width: 1 (80 MHz)
+		 * center freq segment 1: 42
+		 * center freq segment 2: 50
+		 * VHT basic MCS set: 0xfffc
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: 30 dBm
+		 * Local Maximum Transmit Power For 40 MHz: 30 dBm
+		 * Local Maximum Transmit Power For 80 MHz: 30 dBm
+		 * Local Maximum Transmit Power For 160/80+80 MHz: 30 dBm
+	HE capabilities:
+		HE MAC Capabilities (0x01091a081040):
+			+HTC HE Supported
+			Dynamic BA Fragementation Level: 1
+			Minimum Payload size of 128 bytes: 1
+			BSR
+			OM Control
+			Maximum A-MPDU Length Exponent: 3
+			A-MSDU in A-MPDU
+			OM Control UL MU Data Disable RX
+		HE PHY Capabilities: (0x0c604888fd49818c110800):
+			HE40/HE80/5GHz
+			HE160/5GHz
+			LDPC Coding in Payload
+			HE SU PPDU with 1x HE-LTF and 0.8us GI
+			STBC Rx <= 80MHz
+			Full Bandwidth UL MU-MIMO
+			DCM Max Constellation Rx: 1
+			SU Beamformer
+			SU Beamformee
+			Beamformee STS <= 80MHz: 7
+			Beamformee STS > 80MHz: 7
+			Sounding Dimensions <= 80MHz: 1
+			Sounding Dimensions > 80MHz: 1
+			Ng = 16 SU Feedback
+			Codebook Size SU Feedback
+			PPE Threshold Present
+			HE SU PPDU & HE PPDU 4x HE-LTF 0.8us GI
+			Max NC: 1
+			STBC Rx > 80MHz
+			HE ER SU PPDU 4x HE-LTF 0.8us GI
+			HE ER SU PPDU 1x HE-LTF 0.8us GI
+			RX 1024-QAM
+		HE RX MCS and NSS set <= 80 MHz
+			1 streams: MCS 0-11
+			2 streams: MCS 0-11
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		HE TX MCS and NSS set <= 80 MHz
+			1 streams: MCS 0-11
+			2 streams: MCS 0-11
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		HE RX MCS and NSS set 160 MHz
+			1 streams: MCS 0-11
+			2 streams: MCS 0-11
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		HE TX MCS and NSS set 160 MHz
+			1 streams: MCS 0-11
+			2 streams: MCS 0-11
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		PPE Threshold 0x79 0x1c 0xc7 0x71 0x1c 0xc7 0x71 
+	HE Operation:
+		HE Operation Parameters: (0x003ff4)
+			Default PE Duration: 4
+			TXOP Duration RTS Threshold: 1023
+		BSS Color: 42
+		Basic HE-MCS NSS Set: 0xfffc
+			1 streams: MCS 0-7
+			2 streams: not supported
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+	WPS:	 * Version: 1.0
+		 * Wi-Fi Protected Setup State: 2 (Configured)
+		 * Model: RD03v2
+		 * RF Bands: 0x3
+		 * Version2: 2.0
+BSS 0e:74:9c:4c:c0:2b(on wlan0)
+	TSF: 261503595 usec (0d, 00:04:21)
+	freq: 5745.0
+	beacon interval: 100 TUs
+	capability: ESS SpectrumMgmt (0x0101)
+	signal: -84.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.PC
+	Supported rates: 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	DS Parameter set: channel 149
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x0 (+ 12 octets)
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [36 - 36] @ 30 dBm
+		Channels [40 - 40] @ 30 dBm
+		Channels [44 - 44] @ 30 dBm
+		Channels [48 - 48] @ 30 dBm
+		Channels [52 - 52] @ 30 dBm
+		Channels [56 - 56] @ 30 dBm
+		Channels [60 - 60] @ 30 dBm
+		Channels [64 - 64] @ 30 dBm
+		Channels [100 - 100] @ 30 dBm
+		Channels [104 - 104] @ 30 dBm
+		Channels [108 - 108] @ 30 dBm
+		Channels [112 - 112] @ 30 dBm
+		Channels [116 - 116] @ 30 dBm
+		Channels [120 - 120] @ 30 dBm
+		Channels [124 - 124] @ 30 dBm
+		Channels [128 - 128] @ 30 dBm
+		Channels [132 - 132] @ 30 dBm
+		Channels [136 - 136] @ 30 dBm
+		Channels [140 - 140] @ 30 dBm
+		Channels [149 - 149] @ 30 dBm
+		Channels [153 - 153] @ 30 dBm
+		Channels [157 - 157] @ 30 dBm
+		Channels [161 - 161] @ 30 dBm
+		Channels [165 - 165] @ 30 dBm
+	Power constraint: 3 dB
+	HT capabilities:
+		Capabilities: 0xbed
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 3-streams
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 149
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 0
+		 * HT protection: nonmember
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x33897fb2):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			short GI (80 MHz)
+			TX STBC
+			SU Beamformer
+			SU Beamformee
+			MU Beamformer
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: not supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 0
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 40 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 80 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 160/80+80 MHz: -30 dBm
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 3a:bd:ea:4b:07:94(on wlan0)
+	TSF: 261503606 usec (0d, 00:04:21)
+	freq: 5745.0
+	beacon interval: 100 TUs
+	capability: ESS Privacy ShortPreamble SpectrumMgmt RadioMeasure (0x1131)
+	signal: -51.00 dBm
+	last seen: 0 ms ago
+	SSID: HONOR 70
+	Supported rates: 6.0* 9.0 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	TIM: DTIM Count 1 DTIM Period 2 Bitmap Control 0x0 Bitmap[0] 0x0
+	Country: CN	Environment: bogus
+		Channels [36 - 64] @ 23 dBm
+		Channels [149 - 165] @ 33 dBm
+	Power constraint: 0 dB
+	Supported operating classes:
+		 * current operating class: 128
+		 * operating class: 83
+		 * operating class: 84
+		 * operating class: 125
+		 * operating class: 128
+		 * operating class: 129
+	TPC report: TX power: 33 dBm
+	RSN:	 * Version: 1
+		 * Group cipher: CCMP
+		 * Pairwise ciphers: CCMP
+		 * Authentication suites: PSK
+		 * Capabilities: 16-PTKSA-RC 1-GTKSA-RC (0x000c)
+	HT capabilities:
+		Capabilities: 0x9ef
+			RX LDPC
+			HT20/HT40
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 1-stream
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: 2 usec (0x04)
+		HT RX MCS rate indexes supported: 0-15
+		HT TX MCS rate indexes are undefined
+	HT operation:
+		 * primary channel: 149
+		 * secondary channel offset: above
+		 * STA channel width: any
+		 * RIFS: 0
+		 * HT protection: nonmember
+		 * non-GF present: 0
+		 * OBSS non-GF present: 1
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+	VHT capabilities:
+		VHT Capabilities (0x338071b2):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			short GI (80 MHz)
+			TX STBC
+			SU Beamformee
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 780 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 780 Mbps
+		VHT extended NSS: supported
+	VHT operation:
+		 * channel width: 1 (80 MHz)
+		 * center freq segment 1: 155
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffa
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: 16.5 dBm
+		 * Local Maximum Transmit Power For 40 MHz: 16.5 dBm
+		 * Local Maximum Transmit Power For 80 MHz: 16.5 dBm
+	Extended capabilities:
+		 * HT Information Exchange Supported
+		 * Extended Channel Switching
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+BSS 0a:74:9c:4c:c0:2b(on wlan0)
+	TSF: 261503615 usec (0d, 00:04:21)
+	freq: 5745.0
+	beacon interval: 100 TUs
+	capability: ESS SpectrumMgmt (0x0101)
+	signal: -80.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.WIFI
+	Supported rates: 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	DS Parameter set: channel 149
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x0 (+ 12 octets)
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [36 - 36] @ 30 dBm
+		Channels [40 - 40] @ 30 dBm
+		Channels [44 - 44] @ 30 dBm
+		Channels [48 - 48] @ 30 dBm
+		Channels [52 - 52] @ 30 dBm
+		Channels [56 - 56] @ 30 dBm
+		Channels [60 - 60] @ 30 dBm
+		Channels [64 - 64] @ 30 dBm
+		Channels [100 - 100] @ 30 dBm
+		Channels [104 - 104] @ 30 dBm
+		Channels [108 - 108] @ 30 dBm
+		Channels [112 - 112] @ 30 dBm
+		Channels [116 - 116] @ 30 dBm
+		Channels [120 - 120] @ 30 dBm
+		Channels [124 - 124] @ 30 dBm
+		Channels [128 - 128] @ 30 dBm
+		Channels [132 - 132] @ 30 dBm
+		Channels [136 - 136] @ 30 dBm
+		Channels [140 - 140] @ 30 dBm
+		Channels [149 - 149] @ 30 dBm
+		Channels [153 - 153] @ 30 dBm
+		Channels [157 - 157] @ 30 dBm
+		Channels [161 - 161] @ 30 dBm
+		Channels [165 - 165] @ 30 dBm
+	Power constraint: 3 dB
+	HT capabilities:
+		Capabilities: 0xbed
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 3-streams
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 149
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 0
+		 * HT protection: nonmember
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x33897fb2):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			short GI (80 MHz)
+			TX STBC
+			SU Beamformer
+			SU Beamformee
+			MU Beamformer
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: not supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 0
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 40 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 80 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 160/80+80 MHz: -30 dBm
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0a:74:9c:48:a6:eb(on wlan0)
+	TSF: 261503624 usec (0d, 00:04:21)
+	freq: 5765.0
+	beacon interval: 100 TUs
+	capability: ESS SpectrumMgmt ShortSlotTime (0x0501)
+	signal: -70.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.WIFI
+	Supported rates: 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	DS Parameter set: channel 153
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x10 (+ 8 octets)
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [36 - 36] @ 30 dBm
+		Channels [40 - 40] @ 30 dBm
+		Channels [44 - 44] @ 30 dBm
+		Channels [48 - 48] @ 30 dBm
+		Channels [52 - 52] @ 30 dBm
+		Channels [56 - 56] @ 30 dBm
+		Channels [60 - 60] @ 30 dBm
+		Channels [64 - 64] @ 30 dBm
+		Channels [100 - 100] @ 30 dBm
+		Channels [104 - 104] @ 30 dBm
+		Channels [108 - 108] @ 30 dBm
+		Channels [112 - 112] @ 30 dBm
+		Channels [116 - 116] @ 30 dBm
+		Channels [120 - 120] @ 30 dBm
+		Channels [124 - 124] @ 30 dBm
+		Channels [128 - 128] @ 30 dBm
+		Channels [132 - 132] @ 30 dBm
+		Channels [136 - 136] @ 30 dBm
+		Channels [140 - 140] @ 30 dBm
+		Channels [149 - 149] @ 30 dBm
+		Channels [153 - 153] @ 30 dBm
+		Channels [157 - 157] @ 30 dBm
+		Channels [161 - 161] @ 30 dBm
+		Channels [165 - 165] @ 30 dBm
+	Power constraint: 3 dB
+	HT capabilities:
+		Capabilities: 0xbed
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 3-streams
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 153
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 0
+		 * HT protection: nonmember
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x33897fb2):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			short GI (80 MHz)
+			TX STBC
+			SU Beamformer
+			SU Beamformee
+			MU Beamformer
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: not supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 0
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 40 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 80 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 160/80+80 MHz: -30 dBm
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 0-0, AIFSN 0
+		 * BK: CW 0-0, AIFSN 0
+		 * VI: CW 0-0, AIFSN 0, TXOP 3008 usec
+		 * VO: CW 0-0, AIFSN 0, TXOP 1504 usec
+BSS 0a:74:9c:4c:a7:03(on wlan0)
+	TSF: 261503633 usec (0d, 00:04:21)
+	freq: 5765.0
+	beacon interval: 100 TUs
+	capability: ESS SpectrumMgmt (0x0101)
+	signal: -65.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.WIFI
+	Supported rates: 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	DS Parameter set: channel 153
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x0 (+ 12 octets)
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [36 - 36] @ 30 dBm
+		Channels [40 - 40] @ 30 dBm
+		Channels [44 - 44] @ 30 dBm
+		Channels [48 - 48] @ 30 dBm
+		Channels [52 - 52] @ 30 dBm
+		Channels [56 - 56] @ 30 dBm
+		Channels [60 - 60] @ 30 dBm
+		Channels [64 - 64] @ 30 dBm
+		Channels [100 - 100] @ 30 dBm
+		Channels [104 - 104] @ 30 dBm
+		Channels [108 - 108] @ 30 dBm
+		Channels [112 - 112] @ 30 dBm
+		Channels [116 - 116] @ 30 dBm
+		Channels [120 - 120] @ 30 dBm
+		Channels [124 - 124] @ 30 dBm
+		Channels [128 - 128] @ 30 dBm
+		Channels [132 - 132] @ 30 dBm
+		Channels [136 - 136] @ 30 dBm
+		Channels [140 - 140] @ 30 dBm
+		Channels [149 - 149] @ 30 dBm
+		Channels [153 - 153] @ 30 dBm
+		Channels [157 - 157] @ 30 dBm
+		Channels [161 - 161] @ 30 dBm
+		Channels [165 - 165] @ 30 dBm
+	Power constraint: 3 dB
+	HT capabilities:
+		Capabilities: 0xbed
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 3-streams
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 153
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 0
+		 * HT protection: nonmember
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x33897fb2):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			short GI (80 MHz)
+			TX STBC
+			SU Beamformer
+			SU Beamformee
+			MU Beamformer
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: not supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 0
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 40 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 80 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 160/80+80 MHz: -30 dBm
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0e:74:9c:48:a6:eb(on wlan0)
+	TSF: 261503641 usec (0d, 00:04:21)
+	freq: 5765.0
+	beacon interval: 100 TUs
+	capability: ESS SpectrumMgmt ShortSlotTime (0x0501)
+	signal: -81.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.PC
+	Supported rates: 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	DS Parameter set: channel 153
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x0 (+ 3 octets)
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [36 - 36] @ 30 dBm
+		Channels [40 - 40] @ 30 dBm
+		Channels [44 - 44] @ 30 dBm
+		Channels [48 - 48] @ 30 dBm
+		Channels [52 - 52] @ 30 dBm
+		Channels [56 - 56] @ 30 dBm
+		Channels [60 - 60] @ 30 dBm
+		Channels [64 - 64] @ 30 dBm
+		Channels [100 - 100] @ 30 dBm
+		Channels [104 - 104] @ 30 dBm
+		Channels [108 - 108] @ 30 dBm
+		Channels [112 - 112] @ 30 dBm
+		Channels [116 - 116] @ 30 dBm
+		Channels [120 - 120] @ 30 dBm
+		Channels [124 - 124] @ 30 dBm
+		Channels [128 - 128] @ 30 dBm
+		Channels [132 - 132] @ 30 dBm
+		Channels [136 - 136] @ 30 dBm
+		Channels [140 - 140] @ 30 dBm
+		Channels [149 - 149] @ 30 dBm
+		Channels [153 - 153] @ 30 dBm
+		Channels [157 - 157] @ 30 dBm
+		Channels [161 - 161] @ 30 dBm
+		Channels [165 - 165] @ 30 dBm
+	Power constraint: 3 dB
+	HT capabilities:
+		Capabilities: 0xbed
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 3-streams
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 153
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 0
+		 * HT protection: nonmember
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x33897fb2):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			short GI (80 MHz)
+			TX STBC
+			SU Beamformer
+			SU Beamformee
+			MU Beamformer
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: not supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 0
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 40 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 80 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 160/80+80 MHz: -30 dBm
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 0-0, AIFSN 0
+		 * BK: CW 0-0, AIFSN 0
+		 * VI: CW 0-0, AIFSN 0, TXOP 3008 usec
+		 * VO: CW 0-0, AIFSN 0, TXOP 1504 usec
+BSS 0e:74:9c:4c:a7:03(on wlan0)
+	TSF: 261503649 usec (0d, 00:04:21)
+	freq: 5765.0
+	beacon interval: 100 TUs
+	capability: ESS SpectrumMgmt (0x0101)
+	signal: -66.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.PC
+	Supported rates: 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	DS Parameter set: channel 153
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x2 Bitmap[0] 0x0 (+ 10 octets)
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [36 - 36] @ 30 dBm
+		Channels [40 - 40] @ 30 dBm
+		Channels [44 - 44] @ 30 dBm
+		Channels [48 - 48] @ 30 dBm
+		Channels [52 - 52] @ 30 dBm
+		Channels [56 - 56] @ 30 dBm
+		Channels [60 - 60] @ 30 dBm
+		Channels [64 - 64] @ 30 dBm
+		Channels [100 - 100] @ 30 dBm
+		Channels [104 - 104] @ 30 dBm
+		Channels [108 - 108] @ 30 dBm
+		Channels [112 - 112] @ 30 dBm
+		Channels [116 - 116] @ 30 dBm
+		Channels [120 - 120] @ 30 dBm
+		Channels [124 - 124] @ 30 dBm
+		Channels [128 - 128] @ 30 dBm
+		Channels [132 - 132] @ 30 dBm
+		Channels [136 - 136] @ 30 dBm
+		Channels [140 - 140] @ 30 dBm
+		Channels [149 - 149] @ 30 dBm
+		Channels [153 - 153] @ 30 dBm
+		Channels [157 - 157] @ 30 dBm
+		Channels [161 - 161] @ 30 dBm
+		Channels [165 - 165] @ 30 dBm
+	Power constraint: 3 dB
+	HT capabilities:
+		Capabilities: 0xbed
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 3-streams
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 153
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 0
+		 * HT protection: nonmember
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x33897fb2):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			short GI (80 MHz)
+			TX STBC
+			SU Beamformer
+			SU Beamformee
+			MU Beamformer
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: not supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 0
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 40 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 80 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 160/80+80 MHz: -30 dBm
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0a:74:9c:48:a1:af(on wlan0)
+	TSF: 261503656 usec (0d, 00:04:21)
+	freq: 5805.0
+	beacon interval: 100 TUs
+	capability: ESS SpectrumMgmt (0x0101)
+	signal: -89.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.WIFI
+	Supported rates: 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	DS Parameter set: channel 161
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x60 (+ 10 octets)
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [36 - 36] @ 30 dBm
+		Channels [40 - 40] @ 30 dBm
+		Channels [44 - 44] @ 30 dBm
+		Channels [48 - 48] @ 30 dBm
+		Channels [52 - 52] @ 30 dBm
+		Channels [56 - 56] @ 30 dBm
+		Channels [60 - 60] @ 30 dBm
+		Channels [64 - 64] @ 30 dBm
+		Channels [100 - 100] @ 30 dBm
+		Channels [104 - 104] @ 30 dBm
+		Channels [108 - 108] @ 30 dBm
+		Channels [112 - 112] @ 30 dBm
+		Channels [116 - 116] @ 30 dBm
+		Channels [120 - 120] @ 30 dBm
+		Channels [124 - 124] @ 30 dBm
+		Channels [128 - 128] @ 30 dBm
+		Channels [132 - 132] @ 30 dBm
+		Channels [136 - 136] @ 30 dBm
+		Channels [140 - 140] @ 30 dBm
+		Channels [149 - 149] @ 30 dBm
+		Channels [153 - 153] @ 30 dBm
+		Channels [157 - 157] @ 30 dBm
+		Channels [161 - 161] @ 30 dBm
+		Channels [165 - 165] @ 30 dBm
+	Power constraint: 3 dB
+	HT capabilities:
+		Capabilities: 0xbed
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 3-streams
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 161
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 0
+		 * HT protection: nonmember
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x33897fb2):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			short GI (80 MHz)
+			TX STBC
+			SU Beamformer
+			SU Beamformee
+			MU Beamformer
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: not supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 0
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 40 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 80 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 160/80+80 MHz: -30 dBm
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0e:74:9c:48:a1:af(on wlan0)
+	TSF: 261503666 usec (0d, 00:04:21)
+	freq: 5805.0
+	beacon interval: 100 TUs
+	capability: ESS SpectrumMgmt (0x0101)
+	signal: -87.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.PC
+	Supported rates: 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	DS Parameter set: channel 161
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x80 (+ 10 octets)
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [36 - 36] @ 30 dBm
+		Channels [40 - 40] @ 30 dBm
+		Channels [44 - 44] @ 30 dBm
+		Channels [48 - 48] @ 30 dBm
+		Channels [52 - 52] @ 30 dBm
+		Channels [56 - 56] @ 30 dBm
+		Channels [60 - 60] @ 30 dBm
+		Channels [64 - 64] @ 30 dBm
+		Channels [100 - 100] @ 30 dBm
+		Channels [104 - 104] @ 30 dBm
+		Channels [108 - 108] @ 30 dBm
+		Channels [112 - 112] @ 30 dBm
+		Channels [116 - 116] @ 30 dBm
+		Channels [120 - 120] @ 30 dBm
+		Channels [124 - 124] @ 30 dBm
+		Channels [128 - 128] @ 30 dBm
+		Channels [132 - 132] @ 30 dBm
+		Channels [136 - 136] @ 30 dBm
+		Channels [140 - 140] @ 30 dBm
+		Channels [149 - 149] @ 30 dBm
+		Channels [153 - 153] @ 30 dBm
+		Channels [157 - 157] @ 30 dBm
+		Channels [161 - 161] @ 30 dBm
+		Channels [165 - 165] @ 30 dBm
+	Power constraint: 3 dB
+	HT capabilities:
+		Capabilities: 0xbed
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 3-streams
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 161
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 0
+		 * HT protection: nonmember
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x33897fb2):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			short GI (80 MHz)
+			TX STBC
+			SU Beamformer
+			SU Beamformee
+			MU Beamformer
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: not supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 0
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 40 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 80 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 160/80+80 MHz: -30 dBm
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0a:74:9c:4c:ae:27(on wlan0)
+	TSF: 261503674 usec (0d, 00:04:21)
+	freq: 5805.0
+	beacon interval: 100 TUs
+	capability: ESS SpectrumMgmt ShortSlotTime (0x0501)
+	signal: -78.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.WIFI
+	Supported rates: 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	DS Parameter set: channel 161
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x84 (+ 11 octets)
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [36 - 36] @ 30 dBm
+		Channels [40 - 40] @ 30 dBm
+		Channels [44 - 44] @ 30 dBm
+		Channels [48 - 48] @ 30 dBm
+		Channels [52 - 52] @ 30 dBm
+		Channels [56 - 56] @ 30 dBm
+		Channels [60 - 60] @ 30 dBm
+		Channels [64 - 64] @ 30 dBm
+		Channels [100 - 100] @ 30 dBm
+		Channels [104 - 104] @ 30 dBm
+		Channels [108 - 108] @ 30 dBm
+		Channels [112 - 112] @ 30 dBm
+		Channels [116 - 116] @ 30 dBm
+		Channels [120 - 120] @ 30 dBm
+		Channels [124 - 124] @ 30 dBm
+		Channels [128 - 128] @ 30 dBm
+		Channels [132 - 132] @ 30 dBm
+		Channels [136 - 136] @ 30 dBm
+		Channels [140 - 140] @ 30 dBm
+		Channels [149 - 149] @ 30 dBm
+		Channels [153 - 153] @ 30 dBm
+		Channels [157 - 157] @ 30 dBm
+		Channels [161 - 161] @ 30 dBm
+		Channels [165 - 165] @ 30 dBm
+	Power constraint: 3 dB
+	HT capabilities:
+		Capabilities: 0xbed
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 3-streams
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 161
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 0
+		 * HT protection: no
+		 * non-GF present: 0
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x33897fb2):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			short GI (80 MHz)
+			TX STBC
+			SU Beamformer
+			SU Beamformee
+			MU Beamformer
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: not supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 0
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 40 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 80 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 160/80+80 MHz: -30 dBm
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0a:74:9c:4d:04:57(on wlan0)
+	TSF: 261503681 usec (0d, 00:04:21)
+	freq: 5825.0
+	beacon interval: 100 TUs
+	capability: ESS SpectrumMgmt ShortSlotTime (0x0501)
+	signal: -70.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.WIFI
+	Supported rates: 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	DS Parameter set: channel 165
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x84 (+ 12 octets)
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [36 - 36] @ 30 dBm
+		Channels [40 - 40] @ 30 dBm
+		Channels [44 - 44] @ 30 dBm
+		Channels [48 - 48] @ 30 dBm
+		Channels [52 - 52] @ 30 dBm
+		Channels [56 - 56] @ 30 dBm
+		Channels [60 - 60] @ 30 dBm
+		Channels [64 - 64] @ 30 dBm
+		Channels [100 - 100] @ 30 dBm
+		Channels [104 - 104] @ 30 dBm
+		Channels [108 - 108] @ 30 dBm
+		Channels [112 - 112] @ 30 dBm
+		Channels [116 - 116] @ 30 dBm
+		Channels [120 - 120] @ 30 dBm
+		Channels [124 - 124] @ 30 dBm
+		Channels [128 - 128] @ 30 dBm
+		Channels [132 - 132] @ 30 dBm
+		Channels [136 - 136] @ 30 dBm
+		Channels [140 - 140] @ 30 dBm
+		Channels [149 - 149] @ 30 dBm
+		Channels [153 - 153] @ 30 dBm
+		Channels [157 - 157] @ 30 dBm
+		Channels [161 - 161] @ 30 dBm
+		Channels [165 - 165] @ 30 dBm
+	Power constraint: 3 dB
+	HT capabilities:
+		Capabilities: 0xbed
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 3-streams
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 165
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 0
+		 * HT protection: no
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x33897fb2):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			short GI (80 MHz)
+			TX STBC
+			SU Beamformer
+			SU Beamformee
+			MU Beamformer
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: not supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 0
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 40 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 80 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 160/80+80 MHz: -30 dBm
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+BSS 0e:74:9c:4d:04:57(on wlan0)
+	TSF: 261503690 usec (0d, 00:04:21)
+	freq: 5825.0
+	beacon interval: 100 TUs
+	capability: ESS SpectrumMgmt ShortSlotTime (0x0501)
+	signal: -90.00 dBm
+	last seen: 0 ms ago
+	SSID: JLU.PC
+	Supported rates: 12.0* 18.0 24.0* 36.0 48.0 54.0 
+	DS Parameter set: channel 165
+	TIM: DTIM Count 0 DTIM Period 1 Bitmap Control 0x0 Bitmap[0] 0x0 (+ 10 octets)
+	Country: CN	Environment: Indoor/Outdoor
+		Channels [36 - 36] @ 30 dBm
+		Channels [40 - 40] @ 30 dBm
+		Channels [44 - 44] @ 30 dBm
+		Channels [48 - 48] @ 30 dBm
+		Channels [52 - 52] @ 30 dBm
+		Channels [56 - 56] @ 30 dBm
+		Channels [60 - 60] @ 30 dBm
+		Channels [64 - 64] @ 30 dBm
+		Channels [100 - 100] @ 30 dBm
+		Channels [104 - 104] @ 30 dBm
+		Channels [108 - 108] @ 30 dBm
+		Channels [112 - 112] @ 30 dBm
+		Channels [116 - 116] @ 30 dBm
+		Channels [120 - 120] @ 30 dBm
+		Channels [124 - 124] @ 30 dBm
+		Channels [128 - 128] @ 30 dBm
+		Channels [132 - 132] @ 30 dBm
+		Channels [136 - 136] @ 30 dBm
+		Channels [140 - 140] @ 30 dBm
+		Channels [149 - 149] @ 30 dBm
+		Channels [153 - 153] @ 30 dBm
+		Channels [157 - 157] @ 30 dBm
+		Channels [161 - 161] @ 30 dBm
+		Channels [165 - 165] @ 30 dBm
+	Power constraint: 3 dB
+	HT capabilities:
+		Capabilities: 0xbed
+			RX LDPC
+			HT20
+			SM Power Save disabled
+			RX HT20 SGI
+			RX HT40 SGI
+			TX STBC
+			RX STBC 3-streams
+			Max AMSDU length: 7935 bytes
+			No DSSS/CCK HT40
+		Maximum RX AMPDU length 65535 bytes (exponent: 0x003)
+		Minimum RX AMPDU time spacing: No restriction (0x00)
+		HT TX/RX MCS rate indexes supported: 0-15
+	HT operation:
+		 * primary channel: 165
+		 * secondary channel offset: no secondary
+		 * STA channel width: 20 MHz
+		 * RIFS: 0
+		 * HT protection: no
+		 * non-GF present: 1
+		 * OBSS non-GF present: 0
+		 * dual beacon: 0
+		 * dual CTS protection: 0
+		 * STBC beacon: 0
+		 * L-SIG TXOP Prot: 0
+		 * PCO active: 0
+		 * PCO phase: 0
+	Extended capabilities:
+		 * Operating Mode Notification
+		 * Max Number Of MSDUs In A-MSDU is unlimited
+	VHT capabilities:
+		VHT Capabilities (0x33897fb2):
+			Max MPDU length: 11454
+			Supported Channel Width: neither 160 nor 80+80
+			RX LDPC
+			short GI (80 MHz)
+			TX STBC
+			SU Beamformer
+			SU Beamformee
+			MU Beamformer
+			RX antenna pattern consistency
+			TX antenna pattern consistency
+		VHT RX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT RX highest supported: 0 Mbps
+		VHT TX MCS set:
+			1 streams: MCS 0-9
+			2 streams: MCS 0-9
+			3 streams: not supported
+			4 streams: not supported
+			5 streams: not supported
+			6 streams: not supported
+			7 streams: not supported
+			8 streams: not supported
+		VHT TX highest supported: 0 Mbps
+		VHT extended NSS: not supported
+	VHT operation:
+		 * channel width: 0 (20 or 40 MHz)
+		 * center freq segment 1: 0
+		 * center freq segment 2: 0
+		 * VHT basic MCS set: 0xfffc
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 40 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 80 MHz: -30 dBm
+		 * Local Maximum Transmit Power For 160/80+80 MHz: -30 dBm
+	WMM:	 * Parameter version 1
+		 * u-APSD
+		 * BE: CW 15-1023, AIFSN 3
+		 * BK: CW 15-1023, AIFSN 7
+		 * VI: CW 7-15, AIFSN 2, TXOP 3008 usec
+		 * VO: CW 3-7, AIFSN 2, TXOP 1504 usec
+# 
+
+# iw dev wlan0 scan | grep -E 'SSID'
+[  362.895856] RTW: cfg80211_rtw_scan(wlan0)
+[  362.900324] RTW: [HW_VAR_CHECK_TXBUF] Empty in 0 ms
+[  362.901210] RTW: wlan0 sleep m0=0x00000002, ori reg_0x4d4=0x00000000
+[  363.978960] RTW: rtw_process_beacon_hint: change band:5G ch:36 to active
+[  366.377878] RTW: rtw_process_beacon_hint: change band:5G ch:149 to active
+[  366.474177] RTW: rtw_process_beacon_hint: change band:5G ch:153 to active
+[  366.720125] RTW: rtw_process_beacon_hint: change band:5G ch:161 to active
+[  366.828338] RTW: rtw_process_beacon_hint: change band:5G ch:165 to active
+[  367.284853] RTW: LeaveAllPowerSaveModeDirect.....
+[  367.285317] RTW: rtw_hal_set_macaddr_port wlan0- hw port(0) mac_addr =4c:a3:8f:7b:45:99
+[  367.316704] RTW: wlan0 wakeup m0=0x00000002, ori reg_0x4d4=0x00000002
+[  367.317500] RTW: survey done event(2f) reason:0x0 complete for wlan0
+[  367.318525] RTW: rtw_indicate_scan_done(wlan0)
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.WIFI
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: QEMWCEZ_WIFI
+		 * SSID List
+	SSID: JLU.WIFI
+		Max Co-Hosted BSSID: 4
+	SSID: QEMWCEZ_WIFI
+		 * SSID List
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.WIFI
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.PC
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+		Max Co-Hosted BSSID: 4
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.PC
+# iw dev wlan0 scan | grep -E 'SSID'
+[  378.173826] RTW: cfg80211_rtw_scan(wlan0)
+[  378.179452] RTW: [HW_VAR_CHECK_TXBUF] Empty in 0 ms
+[  378.180331] RTW: wlan0 sleep m0=0x00000002, ori reg_0x4d4=0x00000000
+[  382.304862] RTW: LeaveAllPowerSaveModeDirect.....
+[  382.305331] RTW: rtw_hal_set_macaddr_port wlan0- hw port(0) mac_addr =4c:a3:8f:7b:45:99
+[  382.337078] RTW: wlan0 wakeup m0=0x00000002, ori reg_0x4d4=0x00000002
+[  382.337867] RTW: survey done event(3b) reason:0x0 complete for wlan0
+[  382.338884] RTW: rtw_indicate_scan_done(wlan0)
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.WIFI
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: QEMWCEZ_WIFI
+		 * SSID List
+	SSID: JLU.WIFI
+		Max Co-Hosted BSSID: 4
+	SSID: QEMWCEZ_WIFI
+		 * SSID List
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.WIFI
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.PC
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+		Max Co-Hosted BSSID: 4
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: JLU.PC
+	SSID: JLU.WIFI
+	SSID: JLU.PC
+	SSID: HONOR 70
+	SSID: JLU.WIFI
+# wpa_passph^C.> /tmp/wpa.conf
+
+# ^C
+
+# 下面这个地方写你自己的WIFI名称和密码
+# wpa_passphrase "AAA" "BBB" > /tmp/wpa.conf
+# wpa_supplicant -B -i wlan0 -c /tmp/wpa.conf  
+Successfully initialized wpa_supplicant
+[  430.432702] RTW: cfg80211_rtw_get_txpower(wlan0) total max: -10000 mbm
+[  430.434121] RTW: cfg80211_rtw_get_txpower(wlan0) total max: -10000 mbm
+[  430.438652] RTW: cfg80211_rtw_get_txpower(wlan0) total max: -10000 mbm
+[  430.439413] RTW: cfg80211_rtw_get_txpower(wlan0) total max: -10000 mbm
+[  430.444430] RTW: cfg80211_rtw_get_txpower(wlan0) total max: -10000 mbm
+[  430.445366] RTW: rtw_ndev_notifier_call(wlan0) state:4
+[  430.478182] RTW: cfg80211_rtw_flush_pmksa(wlan0)
+# [  430.581298] RTW: cfg80211_rtw_scan(wlan0)
+[  430.587601] RTW: [HW_VAR_CHECK_TXBUF] Empty in 10 ms
+[  430.588603] RTW: wlan0 sleep m0=0x00000002, ori reg_0x4d4=0x00000000
+[  434.714875] RTW: LeaveAllPowerSaveModeDirect.....
+[  434.715339] RTW: rtw_hal_set_macaddr_port wlan0- hw port(0) mac_addr =4c:a3:8f:7b:45:99
+[  434.746082] RTW: wlan0 wakeup m0=0x00000002, ori reg_0x4d4=0x00000002
+[  434.746860] RTW: survey done event(38) reason:0x0 complete for wlan0
+[  434.747718] RTW: rtw_indicate_scan_done(wlan0)
+[  434.769832] RTW: =>cfg80211_rtw_connect(wlan0) - Start to Connection
+[  434.770451] RTW: privacy=1, key=00000000, key_len=0, key_idx=0, auth_type=0, bss_type=0
+[  434.771200] RTW: ssid=HONOR 70, len=8
+[  434.771548] RTW: bssid=3a:bd:ea:4b:07:94
+[  434.771915] RTW: rtw_cfg80211_set_wpa_version, wpa_version=2
+[  434.772425] RTW: rtw_cfg80211_set_auth_type, nl80211_auth_type=0
+[  434.772968] RTW: cfg80211_rtw_connect, ie_len=47
+[  434.773393] RTW: set wpa_ie(length:47):
+[  434.773750] RTW: 30 14 01 00  00 0F AC 04  01 00 00 0F  AC 04 01 00  
+[  434.774414] RTW: 00 0F AC 02  0C 00 7F 04  00 00 0A 02  3B 11 80 51  
+[  434.775169] RTW: 53 54 73 74  75 76 77 78  79 7A 7B 7C  7D 7E 7F 
+[  434.775822] RTW: got wpa2_ie, wpa2_ielen:20
+[  434.777091] RTW: rtw_cfg80211_set_cipher, ucast=1, cipher=0xfac04
+[  434.777673] RTW: rtw_cfg80211_set_cipher, ucast=0, cipher=0xfac04
+[  434.778229] RTW: rtw_cfg80211_set_key_mgt, key_mgt=0xfac02
+[  434.778771] RTW: [by_bssid:1][assoc_ssid:HONOR 70][to_roam:0] new candidate: HONOR 70(3a:bd:ea:4b:07:94, ch149) rssi:-57 dBm
+[  434.779793] RTW: rtw_select_and_join_from_scanned_queue: candidate: HONOR 70(3a:bd:ea:4b:07:94, ch:149)
+[  434.780086] RTW: rtw_ps_processor(wlan0): ps_deny=0x00000004, skip power save!
+[  434.780665] RTW: set ssid:dot11AuthAlgrthm=2, dot11PrivacyAlgrthm=4, dot118021XGrpPrivacy=4
+[  434.782010] RTW: <=cfg80211_rtw_connect, ret 0
+[  434.804280] RTW: link to new AP
+[  434.804603] RTW: rtw_phydm_update_ap_vendor_ie ODM_CMNINFO_HUAWEI_HWID:0 ATHEROS_HWID:0
+[  434.805370] RTW: rtw_phydm_update_ap_vendor_ie ODM_CMNINFO_BROADCOM_HWID:0 ODM_CMNINFO_RALINK_HWID:0
+[  434.806208] RTW: [HT] HAL Support LDPC = 0x02
+[  434.806617] RTW: [HT] HAL Support STBC = 0x01
+[  434.807026] RTW: [HT] Declare supporting RX STBC = 1
+[  434.807481] RTW: rtw_restructure_ht_ie IEEE80211_HT_CAP_MAX_AMSDU is set
+[  434.809333] RTW: rtw_chk_start_clnt_join(wlan0) req: 149,1,1
+[  434.809868] RTW: rtw_chk_start_clnt_join(wlan0) others ld_sta_num:0, ap_num:0, mesh_num:0
+[  434.810603] RTW: rtw_dfs_rd_en_decision(HB0) needed:0, lgd_sta_in_dfs:0, wlan0 mlme_act:6, excl_ifbmp:0x00
+[  434.811459] RTW: rtw_dfs_rd_en_decision(HB0) ld_sta:0, lg_sta:1, ap:0, mesh:0, 1,149,1,1, rd_freq:0~0
+[  434.812283] RTW: rtw_chk_start_clnt_join(wlan0) union: 149,1,1
+[  434.813368] RTW: rtw_hal_set_bssid wlan0- hw port -0 BSSID: 3a:bd:ea:4b:07:94
+[  435.156576] RTW: join_cmd_hdl rssi:-57 dBm, set IGI from 0x1c to 0x35
+[  435.238508] RTW: auth_null_update_cur_network(wlan0) beacon keys ready
+[  435.239175] RTW: link to new AP
+[  435.239479] RTW: rtw_phydm_update_ap_vendor_ie ODM_CMNINFO_HUAWEI_HWID:0 ATHEROS_HWID:0
+[  435.240196] RTW: rtw_phydm_update_ap_vendor_ie ODM_CMNINFO_BROADCOM_HWID:0 ODM_CMNINFO_RALINK_HWID:0
+[  435.241024] RTW: issue_auth to 3a:bd:ea:4b:07:94 status:0
+[  435.257682] RTW: OnAuthClient
+[  435.258057] RTW: network.SupportedRates[0]=8C
+[  435.258474] RTW: network.SupportedRates[1]=12
+[  435.258869] RTW: network.SupportedRates[2]=98
+[  435.259263] RTW: network.SupportedRates[3]=24
+[  435.259657] RTW: network.SupportedRates[4]=B0
+[  435.260050] RTW: network.SupportedRates[5]=48
+[  435.260442] RTW: network.SupportedRates[6]=60
+[  435.260835] RTW: network.SupportedRates[7]=6C
+[  435.261234] RTW: bssrate_len = 8
+[  435.294011] RTW: OnAssocRsp
+[  435.294378] RTW: Enable HT Tx LDPC!
+[  435.294718] RTW: report_join_res(1, 0)
+[  435.295080] RTW: rtw_joinbss_update_network
+[  435.295480] RTW: +rtw_update_ht_cap()
+[  435.295835] RTW: rtw_alloc_macid(wlan0) if1, mac_addr:3a:bd:ea:4b:07:94 macid:0
+[  435.296500] RTW: rtw_joinbss_update_stainfo
+[  435.296885] RTW: rtw_get_sta_tx_nss: 1 SS
+[  435.297252] RTW: rtw_get_sta_rx_nss: 1 ss
+[  435.297615] RTW: STA - MAC_ID:0, Tx - 1 SS, Rx - 1 SS
+[  435.298070] RTW: STA - MAC_ID:0, SM_PS 3
+[  435.298427] RTW: ht_mcs_set=ff 00 00 00, nss=1, bitmap=000000ff
+[  435.298960] RTW: ### Set STA_(0) info ###
+[  435.299334] RTW: rtw_xmit_queue_set(wlan0): enable queue TX for macid=0
+[  435.299936] RTW: rtw_cfg80211_indicate_connect(wlan0)
+[  435.300422] RTW: assoc success
+[  435.300863] RTW: rtw_ndev_notifier_call(wlan0) state:4
+[  435.301011] RTW: rtw_set_rts_bw connect_to_8812=0,enable=1
+[  435.302414] RTW: HW_VAR_BASIC_RATE: 0x150->0x150->0x150
+[  435.304981] RTW: WMM(0): 0, a42b
+[  435.305647] RTW: WMM(1): 0, a44f
+[  435.306261] RTW: WMM(2): 0, 5e4322
+[  435.306871] RTW: WMM(3): 0, 2f3222
+[  435.307216] RTW: wmm_para_seq(0): 0
+[  435.307254] RTW: cfg80211_rtw_change_station(wlan0) mac:3a:bd:ea:4b:07:94
+[  435.307551] RTW: wmm_para_seq(1): 1
+[  435.307557] RTW: wmm_para_seq(2): 2
+[  435.307564] RTW: wmm_para_seq(3): 3
+[  435.309385] RTW: HTOnAssocRsp
+[  435.310651] RTW: rtw_hal_set_wifi_btc_port_id_cmd (wlan0) - hw_port :0
+[  435.312699] RTW: wlan0 wakeup macid=0, ori reg_0x4d4=0x00000000
+[  435.313254] RTW: rtw_xmit_queue_clear(wlan0): disable queue TX for macid=0
+[  435.314339] RTW: hw_var_set_correct_tsf(wlan0)
+[  435.314759] RTW: [TSF_SYNC] p0 sync port = N/A
+[  435.315240] RTW: [TSF_SYNC] timer offset = 0
+[  435.315662] RTW: hw_var_set_dl_rsvd_page(wlan0):+ hw_port=0 mstatus(1)
+[  435.317459] RTW: _rtw_hal_set_fw_rsvd_page(wlan0) PageSize: 128, [ NOR ]-RsvdPageNUm: 8
+[  435.318205] RTW: LocPsPoll: 4
+[  435.318487] RTW: LocNullData: 5
+[  435.318777] RTW: LocQosNull: 6
+[  435.319056] RTW: _rtw_hal_set_fw_rsvd_page PageNum(7), pktlen(896)
+[  435.319827] RTW: _rtw_hal_set_fw_rsvd_page: Set RSVD page location to Fw ,TotalPacketLen(896), TotalPageNum(7)
+[  435.320726] RTW: RsvdPageLoc: ProbeRsp=0 PsPoll=4 Null=5 QoSNull=6 BTNull=0
+[  435.322080] RTW: wlan0: DL RSVD page success! DLBcnCount:1, poll:1
+[  435.327012] RTW: recv eapol packet 1/4
+[  435.327415] RTW: Receive unencrypted eapol key
+[  435.335345] RTW: send eapol packet 2/4
+[  435.335750] RTW: Respond unencrypted eapol key
+[  435.338718] RTW: rtw_phydm_update_ap_vendor_ie ODM_CMNINFO_HUAWEI_HWID:0 ATHEROS_HWID:0
+[  435.339456] RTW: rtw_phydm_update_ap_vendor_ie ODM_CMNINFO_BROADCOM_HWID:0 ODM_CMNINFO_RALINK_HWID:0
+[  435.340280] RTW: rtw_dfs_rd_en_decision(HB0) needed:0, lgd_sta_in_dfs:0, wlan0 mlme_act:7, excl_ifbmp:0x00
+[  435.341142] RTW: rtw_dfs_rd_en_decision(HB0) ld_sta:1, lg_sta:0, ap:0, mesh:0, 1,149,1,1, rd_freq:0~0
+[  435.341975] RTW: rtw_join_done_chk_ch(wlan0) union:149,1,1
+[  435.342009] RTW: recv eapol packet 3/4
+[  435.342510] RTW: =>mlmeext_joinbss_event_callback - End to Connection without 4-way
+[  435.342823] RTW: Receive unencrypted eapol key
+[  435.345706] RTW: send eapol packet 4/4
+[  435.346090] RTW: Respond unencrypted eapol key
+[  435.346798] RTW: cfg80211_rtw_add_key(wlan0) adding key for 3a:bd:ea:4b:07:94
+[  435.347464] RTW: cfg80211_rtw_add_key(wlan0) cipher=0xfac04
+[  435.347962] RTW: cfg80211_rtw_add_key(wlan0) key_len=16, key_index=0
+[  435.348527] RTW: cfg80211_rtw_add_key(wlan0) pairwise=1
+[  435.348992] RTW: cfg80211_rtw_add_key(wlan0) link_id=-1
+[  435.349462] RTW: cfg80211_rtw_add_key(wlan0) seq_len:6, seq:0x0
+[  435.349990] RTW: rtw_cfg80211_set_encryption
+[  435.350375] RTW: rtw_cfg80211_set_encryption(wlan0) set CCMP PTK idx:0, len:16
+[  435.351041] RTW: rtw_cfg80211_set_encryption, ret=0
+[  435.352118] RTW: set_stakey_hdl restore IGI from 0x35 to 0x1c
+[  435.352418] RTW: cfg80211_rtw_add_key(wlan0) cipher=0xfac04
+[  435.352682] RTW: set pairwise key camid:0, addr:3a:bd:ea:4b:07:94, kid:0, type:AES
+[  435.353166] RTW: cfg80211_rtw_add_key(wlan0) key_len=16, key_index=1
+[  435.354390] RTW: cfg80211_rtw_add_key(wlan0) pairwise=0
+[  435.354961] RTW: cfg80211_rtw_add_key(wlan0) link_id=-1
+[  435.355497] RTW: cfg80211_rtw_add_key(wlan0) seq_len:6, seq:0x0
+[  435.356054] RTW: rtw_cfg80211_set_encryption
+[  435.356465] RTW: rtw_cfg80211_set_encryption(wlan0) set CCMP GTK idx:1, len:16
+[  435.357125] RTW: ==> rtw_set_key algorithm(4),keyid(1),key_mask(0)
+[  435.357699] RTW: rtw_cfg80211_set_encryption, ret=0
+[  435.358236] RTW: set group key camid:1, addr:3a:bd:ea:4b:07:94, kid:1, type:AES
+[  435.358563] RTW: rtw_ndev_notifier_call(wlan0) state:4
+[  435.359583] RTW: cfg80211_rtw_change_station(wlan0) mac:3a:bd:ea:4b:07:94
+[  435.385011] RTW: rtw_issue_addbareq_cmd, p=0
+[  435.385534] RTW: BA_starting_seqctrl = 4 for TID=0
+[  435.386021] RTW: issue_addba_req(wlan0) ra=3a:bd:ea:4b:07:94 tid=0
+[  435.390106] RTW: OnAction_back
+[  435.390409] RTW: OnAction_back, action=1
+[  435.390771] RTW: agg_enable for TID=0
+[  436.289962] RTW: OnAction_back
+[  436.290321] RTW: OnAction_back, action=0
+[  436.290943] RTW: OnAction_back
+[  436.291309] RTW: OnAction_back, action=0
+[  436.291806] RTW: issue_addba_rsp_wait_ack(wlan0) ra=3a:bd:ea:4b:07:94 status:=0 tid=6 size:64, acked, 1/3 in 0 ms
+[  436.293280] RTW: issue_addba_rsp_wait_ack(wlan0) ra=3a:bd:ea:4b:07:94 status:=0 tid=0 size:64, acked, 1/3 in 0 ms
+[  436.806454] RTW: Turbo EDCA =0x5ea42b
+[  443.364867] RTW: cfg80211_rtw_get_channel(wlan0) link_id:0
+
+# udhcpc -i wlan0
+udhcpc: started, v1.38.0
+udhcpc: broadcasting discover
+udhcpc: broadcasting select for 192.168.99.215, server 192.168.99.151
+udhcpc: lease of 192.168.99.215 obtained from 192.168.99.151, lease time 3599
+deleting routers
+adding dns 192.168.99.151
+# ping -c3 baidu.com
+PING baidu.com (111.63.65.103): 56 data bytes
+64 bytes from 111.63.65.103: seq=0 ttl=47 time=41.667 ms
+64 bytes from 111.63.65.103: seq=1 ttl=47 time=47.879 ms
+64 bytes from 111.63.65.103: seq=2 ttl=47 time=46.645 ms
+
+--- baidu.com ping statistics ---
+3 packets transmitted, 3 packets received, 0% packet loss
+round-trip min/avg/max = 41.667/45.397/47.879 ms

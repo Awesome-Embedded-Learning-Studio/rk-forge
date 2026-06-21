@@ -1,0 +1,81 @@
+From 867959470ffcc5bed3e374af8d12d8cc08e264dd Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Fri, 19 Jun 2026 21:51:23 +0800
+Subject: [PATCH] spi: rockchip-sfc: gate each op on controller-idle (fix
+ imprecise external abort)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Production root-cause fix for the NAND write-reliability saga. Under write
+stress (dd to the UBIFS rootfs) the SFC produced an imprecise external abort
+(ARM FSR 0xc06), surfacing asynchronously in the writer's copy_from_user; the
+half-programmed page then read back ECC-uncorrectable → ubiprog 0xFF-fill →
+code corruption across reboots.
+
+Root cause: rockchip_sfc_exec_mem_op() issued each new op (SFC_CMD/SFC_CTRL
+posted AXI writes) with NO check that the controller was idle. If the SFC was
+left BUSY from a prior op (timed out / errored / FIFO not drained), the next
+command write was rejected by the AXI slave → async SLVERR → imprecise
+external abort. The mainline driver only resets reactively (on xfer_done
+timeout), never proactively before an op.
+
+Vendor's private rkflash/sfc.c gates every op: sfc_request() reads SFC_FSR/
+SFC_SR and calls sfc_reset() when the FIFO isn't empty or the controller is
+BUSY (sfc.c:90-101). Mirror that contract in exec_mem_op: before xfer_setup,
+clear sticky error status (SFC_ICLR) and, if the controller/FIFO isn't clean,
+reset it (rockchip_sfc_reset, which also clears SFC_ICLR). Never program a
+command into a non-idle SFC.
+
+This eliminates the posted-write rejection that surfaced as the imprecise
+external abort, and the consequent half-written / ECC-uncorrectable pages.
+
+ATK reference: vendor kernel-6.1 drivers/rkflash/sfc.c (sfc_request @ 90,
+sfc_reset @ 17).
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
+---
+ drivers/spi/spi-rockchip-sfc.c | 27 +++++++++++++++++++++++++++
+ 1 file changed, 27 insertions(+)
+
+diff --git a/drivers/spi/spi-rockchip-sfc.c b/drivers/spi/spi-rockchip-sfc.c
+index 105550526..1bcfebf66 100644
+--- a/drivers/spi/spi-rockchip-sfc.c
++++ b/drivers/spi/spi-rockchip-sfc.c
+@@ -784,6 +784,33 @@ static int rockchip_sfc_exec_mem_op(struct spi_mem *mem, const struct spi_mem_op
+ 			sfc->speed[cs], rockchip_sfc_clk_get_rate(sfc));
+ 	}
+ 
++	/*
++	 * Production write-reliability gate: never program a new op into an SFC
++	 * that isn't demonstrably idle + error-clear. A controller left BUSY
++	 * (a prior op timed out / errored / its FIFO not drained) rejects the
++	 * next posted SFC_CMD/SFC_CTRL write; the interconnect delivers that
++	 * rejection as an async SLVERR → imprecise external abort (0xc06) on a
++	 * later CPU store, and the half-programmed NAND page then reads back
++	 * ECC-uncorrectable — the root cause of the RW bit-flip / 0xFF-fill
++	 * saga. Vendor's private rkflash/sfc.c gates every op this way
++	 * (sfc_request() → sfc_reset() when !TXEMPTY || !RXEMPTY || BUSY);
++	 * mainline omits it. Clear sticky error status first, then reset if the
++	 * controller/FIFO isn't clean.
++	 */
++	writel_relaxed(0xFFFFFFFF, sfc->regbase + SFC_ICLR);
++	{
++		u32 fsr = readl_relaxed(sfc->regbase + SFC_FSR);
++		u32 sr = readl_relaxed(sfc->regbase + SFC_SR);
++
++		if (!(fsr & SFC_FSR_TX_IS_EMPTY) || !(fsr & SFC_FSR_RX_IS_EMPTY) ||
++		    (sr & SFC_SR_IS_BUSY)) {
++			dev_warn_ratelimited(sfc->dev,
++				"sfc not idle before op (fsr=%08x sr=%08x) — resetting\n",
++				fsr, sr);
++			rockchip_sfc_reset(sfc);
++		}
++	}
++
+ 	rockchip_sfc_adjust_op_work((struct spi_mem_op *)op);
+ 	rockchip_sfc_xfer_setup(sfc, mem, op, len);
+ 	if (len) {
+-- 
+2.43.0
+

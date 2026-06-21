@@ -1,0 +1,58 @@
+/*
+ * 主线 Linux 内核 FIT — NAND 真根版(RK3506B,从 rootfs 分区挂 UBIFS rootfs)。
+ * 与 rk3506-kernel.its 的区别: **不含 ramdisk 节点**。这样内核不会 unpack
+ * initramfs 去 exec /init,而是按 bootargs 的 root=ubi0:rootfs 直接 attach UBI、
+ * 挂 UBIFS 为根,再 exec /sbin/init(busybox init)。
+ *
+ * 兄弟镜像:
+ *   boot.img      ← rk3506-kernel.its      (zImage+dtb+initramfs)  fallback/调试 shell
+ *   boot-nand.img ← 本文件                 (zImage+dtb,无 ramdisk)  NAND UBIFS rootfs
+ * 同一份 rk3506b-aes.dtb(DT bootargs 已含 root=);ramdisk 缺省即走真根。
+ *
+ * 打包: vendor/explore uboot mkimage -f rk3506-kernel-nand.its -E -p 0x800 boot-nand.itb
+ */
+
+/dts-v1/;
+
+/ {
+	description = "Mainline Linux FIT for RK3506B (NAND UBIFS rootfs boot)";
+	#address-cells = <1>;
+
+	images {
+
+		kernel {
+			description = "Linux kernel (zImage, self-decompressing)";
+			data = /incbin/("zImage");
+			type = "kernel";
+			arch = "arm";
+			os = "linux";
+			compression = "none";
+			load = <0x02080000>;
+			entry = <0x02080000>;
+			hash {
+				algo = "sha256";
+			};
+		};
+
+		fdt {
+			description = "RK3506B AES board flat DT (bootargs: ubi.mtd=5 root=ubi0:rootfs)";
+			data = /incbin/("rk3506b-aes.dtb");
+			type = "flat_dt";
+			arch = "arm";
+			compression = "none";
+			load = <0x01e00000>;
+			hash {
+				algo = "sha256";
+			};
+		};
+	};
+
+	configurations {
+		default = "conf";
+		conf {
+			description = "Boot mainline Linux, mount NAND UBIFS rootfs";
+			kernel = "kernel";
+			fdt = "fdt";
+		};
+	};
+};

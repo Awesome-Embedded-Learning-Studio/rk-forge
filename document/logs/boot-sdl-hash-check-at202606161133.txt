@@ -1,0 +1,111 @@
+~ # 
+cat /proc/mtd
+dev:    size   erasesize  name
+mtd0: 00400000 00020000 "uboot"
+mtd1: 00100000 00020000 "misc"
+mtd2: 00040000 00020000 "vnvm"
+mtd3: 00e00000 00020000 "recovery"
+mtd4: 01000000 00020000 "boot"
+mtd5: 0ae00000 00020000 "rootfs"
+mtd6: 12ac0000 00020000 "userdata"
+~ # cat /sys/class/mtd/mtd5/bad_blocks 2>/dev/null ; cat /sys/class/mtd/mtd5/ecc
+_stats_corrected 2>/dev/null
+0
+~ # mtdrawdump -r /dev/mtd5 0x360000 | md5sum
+mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+mtdrawdump: off=0x360000 len=131072 mode=RAW(no-ECC) 0xFF=84271 (64.3%) non-0xFF=46801 first=0x0 last=0xc7ff ecc: uncorr=0 corrected=0 maxflip=0
+1311ae72d3052c83915999a9f641cec1  -
+~ # mtdrawdump -r /dev/mtd5 0x360000 | md5sum
+mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+mtdrawdump: off=0x360000 len=131072 mode=RAW(no-ECC) 0xFF=84271 (64.3%) non-0xFF=46801 first=0x0 last=0xc7ff ecc: uncorr=0 corrected=0 maxflip=0
+1311ae72d3052c83915999a9f641cec1  -
+~ # mtdrawdump -r /dev/mtd5 0x360000 | md5sum
+mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+mtdrawdump: off=0x360000 len=131072 mode=RAW(no-ECC) 0xFF=84271 (64.3%) non-0xFF=46801 first=0x0 last=0xc7ff ecc: uncorr=0 corrected=0 maxflip=0
+1311ae72d3052c83915999a9f641cec1  -
+~ # mtdrawdump -r /dev/mtd5 0x360000 >/dev/null
+mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+mtdrawdump: off=0x360000 len=131072 mode=RAW(no-ECC) 0xFF=84271 (64.3%) non-0xFF=46801 first=0x0 last=0xc7ff ecc: uncorr=0 corrected=0 maxflip=0
+~ # mtdrawdump    /dev/mtd5 0x360000 >/dev/null
+mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+[  671.562414] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[  671.563058] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[  671.563659] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+MEMREAD: Bad message
+mtdrawdump: off=0x360000 len=131072 mode=ECC 0xFF=84271 (64.3%) non-0xFF=46801 first=0x0 last=0xc7ff ecc: uncorr=3 corrected=0 maxflip=0
+~ # mtdrawdump -r /dev/mtd5 0x27E000 | md5sum
+mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+mtdrawdump: off=0x27e000 len=131072 mode=RAW(no-ECC) 0xFF=7678 (5.9%) non-0xFF=123394 first=0x0 last=0x1ffff ecc: uncorr=0 corrected=0 maxflip=0
+dd6eb43d8fe2ed6ef49d21f8c27c9e09  -
+~ # mtdrawdump -r /dev/mtd5 0x27E000 | md5sum
+mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+mtdrawdump: off=0x27e000 len=131072 mode=RAW(no-ECC) 0xFF=7678 (5.9%) non-0xFF=123394 first=0x0 last=0x1ffff ecc: uncorr=0 corrected=0 maxflip=0
+dd6eb43d8fe2ed6ef49d21f8c27c9e09  -
+~ # mtdrawdump    /dev/mtd5 0x27E000 >/dev/null
+mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+mtdrawdump: off=0x27e000 len=131072 mode=ECC 0xFF=7678 (5.9%) non-0xFF=123394 first=0x0 last=0x1ffff ecc: uncorr=0 corrected=0 maxflip=0
+~ # 
+
+------------- Scan ALL -------------
+~ # for peb in $(seq 0 1391); do
+>   s=$(mtdrawdump /dev/mtd5 $((peb*131072)) 2>&1 >/dev/null)
+>   u=$(echo "$s" | grep -o 'uncorr=[0-9]*' | cut -d= -f2)
+>   [ "${u:-0}" -gt 0 ] && echo "BAD peb=$peb $s"
+> done
+[ 1447.555479] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[ 1447.556255] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[ 1447.556855] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+BAD peb=3 mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+MEMREAD: Bad message
+mtdrawdump: off=0x60000 len=131072 mode=ECC 0xFF=120704 (92.1%) non-0xFF=10368 first=0x0 last=0x37ff ecc: uncorr=3 corrected=1 maxflip=0
+[ 1447.574696] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[ 1447.575474] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[ 1447.576075] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+BAD peb=4 mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+MEMREAD: Bad message
+mtdrawdump: off=0x80000 len=131072 mode=ECC 0xFF=120704 (92.1%) non-0xFF=10368 first=0x0 last=0x37ff ecc: uncorr=3 corrected=1 maxflip=0
+[ 1447.993751] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[ 1447.994386] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[ 1447.994990] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+BAD peb=27 mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+MEMREAD: Bad message
+mtdrawdump: off=0x360000 len=131072 mode=ECC 0xFF=84271 (64.3%) non-0xFF=46801 first=0x0 last=0xc7ff ecc: uncorr=3 corrected=0 maxflip=0
+[ 1448.029714] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+BAD peb=29 mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+MEMREAD: Bad message
+mtdrawdump: off=0x3a0000 len=131072 mode=ECC 0xFF=108795 (83.0%) non-0xFF=22277 first=0x0 last=0x67ff ecc: uncorr=1 corrected=1 maxflip=0
+~ # echo "=== SCAN DONE ==="
+=== SCAN DONE ===
+~ # for peb in $(seq 0 1391); do
+>   s=$(mtdrawdump /dev/mtd5 $((peb*131072)) 2>&1 >/dev/null)
+>   u=$(echo "$s" | grep -o 'uncorr=[0-9]*' | cut -d= -f2)
+>   [ "${u:-0}" -gt 0 ] && echo "BAD peb=$peb $s"
+> done
+[ 1485.248908] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[ 1485.249691] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[ 1485.250293] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+BAD peb=3 mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+MEMREAD: Bad message
+mtdrawdump: off=0x60000 len=131072 mode=ECC 0xFF=120704 (92.1%) non-0xFF=10368 first=0x0 last=0x37ff ecc: uncorr=3 corrected=1 maxflip=0
+[ 1485.268570] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[ 1485.269346] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[ 1485.269942] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+BAD peb=4 mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+MEMREAD: Bad message
+mtdrawdump: off=0x80000 len=131072 mode=ECC 0xFF=120704 (92.1%) non-0xFF=10368 first=0x0 last=0x37ff ecc: uncorr=3 corrected=1 maxflip=0
+[ 1485.687900] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[ 1485.688536] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+[ 1485.689137] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+BAD peb=27 mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+MEMREAD: Bad message
+mtdrawdump: off=0x360000 len=131072 mode=ECC 0xFF=84271 (64.3%) non-0xFF=46801 first=0x0 last=0xc7ff ecc: uncorr=3 corrected=0 maxflip=0
+[ 1485.723716] PROBE ECC_UNCOR status=0x20 ecc_bits=0x20
+BAD peb=29 mtdrawdump: /dev/mtd5 type=4 size=182452224 erasesize=131072 writesize=2048 oobsize=128
+MEMREAD: Bad message
+mtdrawdump: off=0x3a0000 len=131072 mode=ECC 0xFF=108795 (83.0%) non-0xFF=22277 first=0x0 last=0x67ff ecc: uncorr=1 corrected=1 maxflip=0
+~ # echo "=== SCAN DONE ==="
+=== SCAN DONE ===
+~ # 
+
+
+

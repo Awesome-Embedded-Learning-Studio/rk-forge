@@ -1,0 +1,101 @@
+# patches/linux_mainline/series — quilt-style ordered apply list.
+# One filename per line (relative to this dir). '#' = comment, blank lines OK.
+# Applied by scripts/apply-series.sh via `git am` (run from the linux tree).
+#
+# RK3506 pinctrl+clk are already mainline; this series is the board/DT/driver
+# delta on top of SoC support. Consolidated 2026-06-17 into 2 logical patches
+# (DT + SFC driver) from explore/linux (base v7.1 = 8cd9520d3); reproduces the
+# board-verified RW UBIFS rootfs (cold-reboot persistent, 3-cycle stress passed,
+# PEB 3/4 page-recovered). Earlier 6-patch additive series squashed (it had a
+# dead 80MHz patch immediately reversed to 50MHz + tuning split across patches).
+
+# Board DT: rk3506.dtsi sfc node (compatible rk3506-fspi + grf phandle) +
+# rk3506b-aes.dts (SFC enable + W25N04KV SPI-NAND + MTD partitions + 50MHz +
+# max-dll + persistent-rootfs bootargs) + Makefile entry.
+0001-ARM-dts-rockchip-rk3506b-aes-SFC-W25N04KV-SPI-NAND-R.patch
+# SFC driver: DLL sampling tuning (vendor port) + SFC_CTRL_WPEN per op +
+# per-transfer power-good gate (GRF_PMU+0x100 bit0). The RW-rootfs root-cause
+# fix — makes Linux SFC reads/writes reliable (vendor fspi parity). Rootfs is
+# then Linux-written by forge ubiprog so it survives cold reboots.
+0002-spi-rockchip-sfc-DLL-tuning-RK3506-power-good-gate-W.patch
+
+# DT 80MHz read speed (vendor EVB speed; +50% read, 100MHz unusable: 98MHz PLL tap no DLL window).
+# Loader weak write on rootfs PEB3/4 covered by ubiprog first-boot rewrite.
+0003-ARM-dts-rockchip-rk3506b-aes-bump-SFC-read-to-80MHz.patch
+0004-ARM-dts-rockchip-rk3506b-aes-add-Ethernet-gmac1-RMII.patch
+0005-ARM-dts-rockchip-rk3506b-aes-add-MMC-SD-SPI0.patch
+0006-ARM-dts-rockchip-rk3506b-aes-enable-2nd-Ethernet-gmac0.patch
+
+# Phase A2 (I2C×3 + UART2 via the RK3506 RMIO crossbar):
+# 0007 — pinctrl driver: port vendor rockchip_set_rmio() so mux values beyond the
+# iomux width route through the RMIO crossbar in grf_pmu (looked up via the
+# pinctrl node's rockchip,rmio phandle). Double-gated on RK3506; no-op on other
+# SoCs and on func<=width pins, so Ethernet/MMC/SPI (A1) are unaffected.
+0007-pinctrl-rockchip-rk3506-rmio-crossbar-mux.patch
+# 0008 — DT: i2c0/1/2 + uart2 SoC nodes (rk3399-i2c / dw-apb-uart fallbacks),
+# pinctrl gains rockchip,rmio=<&grf_pmu>, RMIO pad groups (rm_io13/14,24/25,4/5,
+# 26/27), board override enabling all four + GT911 touch on i2c2. Pair with
+# CONFIG_TOUCHSCREEN_GOODIX=y in boards/rk3506-evb/kernel.config.
+0008-ARM-dts-rockchip-rk3506b-aes-I2C-UART2-RMIO-GT911.patch
+
+# Phase E (Audio: ES8388 + SAI1 + DMA):
+# 0009 — sai of_match: add rockchip,rk3506-sai (driver has no per-SoC data, empty
+# .data like rk3576) + pl330 5-cell dmamux: extend of_dma_pl330_xlate to program
+# the RK3506 GRF DMA-request crossbar (dmas = <dmac chan mux_reg val …>) so sai1
+# DMA binds. Single-cell users (other SoCs) unaffected.
+0009-ASoC-dmaengine-rk3506-sai-pl330-dmamux.patch
+# 0010 — DT: sai1@ff310000 + dmac0/dmac1 (pl330 #dma-cells=5) + es8388@11 on i2c0
+# + simple-audio-card (vendor rockchip,multicodecs-card rewritten mainline). sai1
+# pinctrl sdo0-only (stereo) to avoid clashing i2c0 on PB5/6. Pair with SOUND=y +
+# SND_SOC_ES8328_I2C=y + SND_SIMPLE_CARD=y in kernel.config (re-enabled; trim no
+# longer cuts SOUND — the 9.2MiB badblock rationale was a misdiagnosis).
+0010-ARM-dts-rockchip-rk3506b-aes-ES8388-audio-sai1-dmac.patch
+
+# RW root-cause (production): the imprecise-external-abort / write-bit-flip saga.
+# 0011 — SFC write-reliability: gate every op on controller-idle. Mainline issued
+# each SFC_CMD/SFC_CTRL posted write with no idle check; a controller left BUSY
+# (prior op timed out/errored/FIFO undrained) rejected the next command → async
+# AXI SLVERR → imprecise external abort (0xc06) → half-written ECC-uncorrectable
+# page → ubiprog 0xFF → code corruption. Mirrors vendor rkflash/sfc.c sfc_request
+# (reset if !TXEMPTY/!RXEMPTY/BUSY) + clears sticky SFC_ICLR. The real fix behind
+# the saga's "powergood→fatal" todo (powergood was a no-op misadd; this is it).
+0011-spi-rockchip-sfc-op-idle-gate-fix-external-abort.patch
+
+# THE actual write-stress abort root cause (the 0xc06/0x008 saga). Not the SFC:
+# the DT had no reserved-memory, so the kernel handed OP-TEE's resident physical
+# pages (loader TOS @ 0x1000, ~0x60000) to user space; the secure world rejects
+# the access as an external abort — reproducible even on dd-to-tmpfs (no NAND).
+# The decoded abort phys (0x5000) lands inside OP-TEE; 'No reserved-memory node'
+# in the kernel log confirms the carve-out was missing. Mirrors vendor trust@0.
+# (0011 stays as harmless hardening, but this is the real fix.)
+0012-ARM-dts-rockchip-rk3506b-aes-reserve-OP-TEE-trust-memory.patch
+
+# Drop rockchip,sfc-no-dma → use DMA (align vendor rk3506 fspi, which has no no-dma).
+# The earlier no-dma was a stale debug workaround (nand-ecc-debug-handoff); "DMA reads
+# corrupt" was never proven. NB: DMA does NOT fix the PEB-3/4 -74 (that's loader marginal
+# write + read-nondeterminism, handled by ubiprog — notes/27); kept for vendor parity.
+0013-ARM-dts-rockchip-rk3506-drop-sfc-no-dma-use-DMA-align-vendor.patch
+
+# Phase B (USB: USB2PHY + DWC2 host):
+# 0014 — phy: inno-usb2: add rk3506 of_match. Split reg space as vendor uses it:
+# detection/power via rphy->grf (no driver change), analog tuning via an optional
+# ioremap'd phy_base (PHY's own 0xff2b0000 window). clkout (480M) not modelled —
+# DWC2 takes CRU clocks. Drops OTG iddig-force + chg_mode (no mainline struct
+# member, not needed for host). Pairs with CONFIG_PHY_ROCKCHIP_INNO_USB2=y.
+0014-phy-rockchip-inno-usb2-add-RK3506-support.patch
+# 0015 — DT: usb2phy@ff2b0000 (rk3506-usb2phy, rockchip,usbgrf=<&grf>, no
+# #clock-cells) + u2phy_otg0/1 + usb@ff740000/ff780000 (dwc2 snps,dwc2 fallback).
+# aes board enables both ports as dr_mode="host". dwc2 binds on the fallback, so
+# no dwc2 driver patch. Pairs with USB_SUPPORT (un-trimmed) + USB_DWC2_HOST=y.
+0015-ARM-dts-rockchip-rk3506b-aes-add-USB2PHY-DWC2.patch
+
+# Phase WiFi (RTL8733BU onboard, USB 0bda:b733 behind the CH334R hub):
+# 0016 — ONLY the 2-line realtek registration (source Kconfig + obj-$ line).
+# The driver drop itself (221 upstream source files) is NOT a patch — it's
+# materialized by scripts/fetch-rtl8733bu-driver.sh from wirenboard@pin + the
+# forge overlay under drivers/rtl8733bu/ (Kbuild Makefile + Kconfig + the
+# cfg80211 wdev-wrapper patch for 6.14+ ops drift). The drop is gitignored in
+# the kernel clone. Pair with CONFIG_CFG80211=y / WLAN_VENDOR_REALTEK=y /
+# RTL8733BU=m in kernel.config (re-enable WLAN in kernel-trim). Run the fetch
+# script BEFORE apply-series so rtl8733bu/Kconfig exists when 0016 sources it.
+0016-wifi-rtl8733bu-wire-realtek.patch

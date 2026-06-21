@@ -1,0 +1,9 @@
+# pins/rtl8733bu — source for the RTL8733BU driver drop (fetched by
+# scripts/fetch-rtl8733bu-driver.sh). Format: <git-url> <ref>
+# ref = branch / tag / SHA. Pin a SHA (or tag) for bit-reproducible releases;
+# a branch tracks the fork's ongoing 7.1 development.
+#
+# This is the forge-maintained fork (GPL-2.0-only): Realtek → wirenboard
+# v5.15.12-264_for6.18 → linux-7.1-port (static Kbuild + USB&&CFG80211 Kconfig
+# + cfg80211 wdev-ops wrappers). The fork IS the ready-to-build driver.
+https://github.com/Awesome-Embedded-Learning-Studio/rtl8733bu-linux-driver linux-7.1-port

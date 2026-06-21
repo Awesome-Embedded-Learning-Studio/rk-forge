@@ -1,7 +1,0 @@
-# patches/linux_mainline/series — quilt-style ordered apply list.
-# One filename per line (relative to this dir). '#' = comment, blank lines OK.
-# Applied by scripts/apply-series.sh via `git am` (run from third_party/linux_mainline).
-#
-# Since RK3506 pinctrl+clk are already in mainline, entries here are typically
-# board/DT/defconfig deltas on top of the SoC support — small and upstream-bound.
-# Add with: scripts/patch-maker.sh --component linux_mainline --since v7.0.12

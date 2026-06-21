@@ -9,7 +9,7 @@
 # Usage (run from INSIDE the component worktree):
 #   cd third_party/<component> && ../../scripts/apply-series.sh --component <name> [--check]
 #
-#   --component <linux_mainline|uboot>   which patches/<name>/series to apply
+#   --component <linux|uboot>   which patches/<name>/series to apply
 #   --check    dry-run: actually applies then reverts — verifies the WHOLE series
 #              applies in order, touching nothing. (git apply --check on patch N
 #              alone can't see patch N-1's effect, so we do a real apply+revert.)

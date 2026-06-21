@@ -1,0 +1,16 @@
+# package-file-aes.txt — RKAF manifest for forge's NAND update.img.
+#
+# Lists ONLY the partitions forge currently produces. afptool reads this + the
+# parameter to pack update.raw.img (each entry's flash_address comes from the
+# parameter's mtdparts). Omitted partitions (misc/vnvm/recovery/rootfs/userdata)
+# are simply NOT written on flash — NAND keeps its existing contents. This mirrors
+# the Windows RKDevTool flow where only uboot+boot rows were checked.
+#
+# Add rootfs.img / recovery.img rows when buildroot rootfs lands (notes/08 之后).
+
+# NAME		Relative path
+package-file	package-file
+bootloader	Image/MiniLoaderAll.bin
+parameter	Image/parameter.txt
+uboot		Image/uboot.img
+boot		Image/boot.img

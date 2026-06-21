@@ -22,11 +22,56 @@ Everything else — Linux kernel, U-Boot proper, the device tree — is **open a
 
 ## How rk-forge tracks this
 
-- `third_party/rkbin/` pins the exact blob commit (submodule gitlink).
-- `scripts/sdk-diff.sh` reports `rkbin` as the residue when comparing a vendor BSP
-  vs our mainline port — i.e. *how much closed firmware remains*.
+- `third_party/rkbin/` is a **checked-out, pinned submodule** (commit `ecb4fcb`) of
+  the public `github.com/rockchip-linux/rkbin`. It is the **default blob source**
+  for the loader (`scripts/pack-loader.sh`) and the uboot FIT's tee
+  (`scripts/pack-fit.sh`) — giving a fully-public, internally-consistent loader
+  (DDR v1.06 + usbplug v1.03 + SPL v1.12 + tee v2.40) that needs **zero**
+  vendor-sdk. This is the P1 "fully-public loader" conquest.
+- **Public rkbin is the sole blob source.** Board-test of the public loader has
+  confirmed it boots, so there is no longer an ATK-private fallback path.
+- [`document/sdk-diff.md`](document/sdk-diff.md) reports `rkbin` as the residue when comparing a
+  vendor BSP vs our mainline port — i.e. *how much closed firmware remains*.
 - Goal (future iteration): track / contribute to an open DDR-init effort so this
   table shrinks. Updates land here first.
+
+### The tee-version nuance (correcting the sfc-dll-saga takeaway)
+
+The verified-boot chain pairs SPL ↔ tee by hash. The saga's "tee v2.40 = Bad hash"
+was a **mixing** artifact: the ATK SPL v1.11 (built to verify v2.10) reading the
+public tee v2.40. A **fully-public** chain — public SPL v1.12 verifying public tee
+v2.40, both from the same rkbin release — is internally consistent and should
+verify. Board-test confirms. Never mix blob sources between `pack-loader.sh` and
+`pack-fit.sh` (inconsistent SPL↔tee → "optee Bad hash").
+
+## NAND packaging: closed binaries (not blobs, but not open)
+
+The "source → flashable update.img" pipeline (notes/09) now calls **one**
+stripped Rockchip ELF (`boot_merger`, for the loader idblock). The other two —
+`afptool` + `rkImageMaker` — were **replaced 2026-06-18** by the forge Python
+packer `scripts/rkfw-pack.py` (RKAF+RKFW format reverse-engineered from vendor
+output + community FORMAT.md / afptool-rs; verified by vendor unpack of the
+Python output). What remains:
+
+| Tool | Path | Role | Replaceable? |
+|---|---|---|---|
+| `boot_merger` | `reference/vendor-sdk/rkbin/tools/boot_merger` (ver 1.35) | wraps DDR+usbplug+SPL blobs into the RK idblock (loader) | Partial — the *blobs* are the hard dep; the packer has open reimplementations in some rkbin trees but not a clean drop-in |
+| ~~`afptool`~~ | ~~reference/vendor-sdk/.../afptool (v2.29)~~ | ~~packs the RKAF container (manifest + partition images) inside update.img~~ | **Replaced** (2026-06-18) by `scripts/rkfw-pack.py` — forge Python packer, format reverse-engineered from vendor output + community FORMAT.md/afptool-rs. |
+| ~~`rkImageMaker`~~ | ~~same dir (v2.29)~~ | ~~wraps RKAF with the RKFW header + loader → final update.img~~ | **Replaced** — `rkfw-pack.py` does RKAF + RKFW in one tool (same conquest). |
+
+`mkimage` (the FIT packer) is **open** and mainline — forge uses
+`third_party/src/uboot/tools/mkimage` (2026.07-rc4), not the vendor 2017.09
+copy. See `scripts/pack-*.sh`.
+
+### Loader byte-diff (honest edge)
+
+`scripts/pack-loader.sh` reproduces the loader via `boot_merger` from the public
+submodule. The build uses the public blobs (DDR v1.06 + usbplug v1.03 + SPL
+v1.12, 281024 B). It is NOT byte-identical to the ATK-shipped
+`rk3506-vendor-loader.bin` (270784 B): boot_merger embeds a build timestamp and
+emits a slightly different (~6 KB) idblock layout. Board-boot of the public
+forge-reproduced loader is confirmed; the shipped loader remains the regression
+baseline.
 
 ## Licensing
 

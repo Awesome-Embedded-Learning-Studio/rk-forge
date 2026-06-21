@@ -1,0 +1,146 @@
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xf-0x1-0x2, 0x4-0x1-0x2,status:a007
+rdtrn:0x15-0x2e-0x47(0x32)
+wrtrn:0x0-0x20-0x3f(0x3f)
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+Boot1 Release Time: Mar 11 2025 10:34:23, version: 1.03 NO FTL
+rom_version: 0x30303156
+chip_id:524b350600,0
+ChipType = 33
+sfc nor id: ff ef aa
+sfc_nand id: ef aa 23
+sfc_nand_density 100000
+sfc_nand_density ffc00
+UsbBoot ...4023
+powerOn 658559
+prog gpt: ffbdf 21
+SoftReset, 14098100 us
+
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+SRX
+get rd_skew=0x2e, wr_skew=0x20
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xa-0x1-0x2, 0x3f-0x0-0x2,status:a007
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g80d18cf0259-250930 #lxh (Oct 22 2025 - 15:21:58), fwver: v1.12
+Ram size: 20000000
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 12
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+SPL: A/B-slot: _a, successful: 0, tries-remain: 7
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256 Bad hash: 5c16697afca1db1b94ab5ca7861c29e7ab57be6f2c74eb996df43add1f1b641f
+ error!
+Bad hash value for 'hash' hash node in 'optee' image node
+Trying fit image at 0x3000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(93603ca22c...) + OK
+## Checking uboot 0x00200000 ... sha256(678f3fb19a...) + OK
+## Checking fdt 0x002a5010 ... sha256(178d2c6943...) + OK
+Jumping to U-Boot(0x00200000) via OP-TEE(0x00001000)
+Total: 85.886/127.920 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-958-g46dcf51e88a #chenjh (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 Thu Mar  6 10:17:27 CST 2025 arm, fwver: v2.10 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00200000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2017.09-g26c8833 #alientek (Mar 26 2026 - 11:32:53 +0800)
+
+Model: ALIENTEK RK3506 Board
+MPIDR: 0xf00
+PreSerial: 0, raw, 0xff0a0000
+DRAM:  512 MiB
+Sysmem: init
+Relocation Offset: 1ebef000
+Relocation fdt: 1dbfadf0 - 1dbfede0
+CR: M/C/I
+Using default environment
+
+DM: v2
+SPI Nand ID ef aa 23
+Bootdev(atags): mtd 1
+PartType: EFI
+boot mode: normal
+Failed to load DTB, ret=-2
+No valid DTB, ret=-22
+Failed to get kernel dtb, ret=-22
+Model: ALIENTEK RK3506 Board
+rockchip_set_serialno: could not find efuse/otp device
+CLK: (arm clk use pvtpll, rate = 1200M)
+  gpll 1500000 KHz
+  v0pll 1179648 KHz
+  v1pll 903168 KHz
+  clk_gpll_div 187500 KHz
+  clk_gpll_div_100m 93750 KHz
+  clk_v0pll_div 147456 KHz
+  clk_v1pll_div 129024 KHz
+  aclk_bus_root 187500 KHz
+  hclk_bus_root 147456 KHz
+  pclk_bus_root 93750 KHz
+  aclk_hsperi_root 147456 KHz
+  hclk_ksperi_root 93750 KHz
+Net:   No ethernet found.
+Hit key to stop autoboot('CTRL+C'):  0 
+## Booting FIT Image Sysmem Error: "RAMDISK" (0x01800000 - 0x01927600) alloc is overlap with existence "KERNEL" (0x01100000 - 0x01826204)
+
+sysmem_dump_all:
+    --------------------------------------------------------------------
+    memory.rgn[0].addr     = 0x00000000 - 0x20000000 (size: 0x20000000)
+
+    memory.total	   = 0x20000000 (512 MiB. 0 KiB)
+    --------------------------------------------------------------------
+    allocated.rgn[0].name  = "UBOOT"  
+		    .addr  = 0x1dbf8de0 - 0x1fa00000 (size: 0x01e07220)
+    allocated.rgn[1].name  = "STACK"  
+		    .addr  = 0x1d9f8de0 - 0x1dbf8de0 (size: 0x00200000)
+    allocated.rgn[2].name  = "FIT"  
+		    .addr  = 0x1d1a83c0 - 0x1d9f7dc4 (size: 0x0084fa04)
+    allocated.rgn[3].name  = "FDT"  
+		    .addr  = 0x00063000 - 0x0006a004 (size: 0x00007004)
+    allocated.rgn[4].name  = "KERNEL"  
+		    .addr  = 0x01100000 - 0x01826204 (size: 0x00726204)
+
+
+    framework malloc_r     =  16 MiB
+    framework malloc_f     =   0 KiB
+
+    allocated.total	   = 0x02f83e2c (47 MiB. 527 KiB)
+    --------------------------------------------------------------------
+    LMB.allocated[0].addr  = 0x00063000 - 0x0006a004 (size: 0x00007004)
+    LMB.allocated[1].addr  = 0x01100000 - 0x01826204 (size: 0x00726204)
+    LMB.allocated[2].addr  = 0x1d1a83c0 - 0x1d9f7e00 (size: 0x0084fa40)
+    LMB.allocated[3].addr  = 0x1d9f8de0 - 0x1fa00000 (size: 0x02007220)
+
+    reserved.core.total	   = 0x02f83e68 (47 MiB. 527 KiB)
+    --------------------------------------------------------------------
+
+ANDROID: reboot reason: "(none)"
+No valid android hdr
+Android image load failed
+Android boot failed, error -1.
+=> 

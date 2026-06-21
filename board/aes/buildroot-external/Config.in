@@ -1,0 +1,8 @@
+# rk-forge BR2_EXTERNAL Config.in.
+#
+# No user-selectable packages yet — this file exists (empty) only because buildroot
+# requires a Config.in in every BR2_EXTERNAL tree. Add `config BR2_PACKAGE_*` menus
+# here when custom packages land.
+config BR2_RKFORGE_PLACEHOLDER
+	bool
+	default y

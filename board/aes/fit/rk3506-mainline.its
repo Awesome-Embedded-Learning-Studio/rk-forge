@@ -1,0 +1,66 @@
+/*
+ * 方案 B: vendor SPL + 我们主线 U-Boot 的 FIT
+ * 结构 100% 复刻 vendor uboot.img(见 reference/vendor-sdk/u-boot/uboot.img 的 dumpimage),
+ * 唯一改动: uboot 节点的 data 换成主线 2026.07-rc4 的 u-boot-nodtb.bin,
+ *           load 改成 0x00800000(主线 CONFIG_TEXT_BASE; vendor 原是 0x00200000)。
+ * optee/fdt 节点 load/结构不动 — vendor SPL 已证明能跑这套布局。
+ * 用 vendor mkimage(2017.09) + -E 打包, 与 vendor SPL 字节级兼容。
+ */
+
+/dts-v1/;
+
+/ {
+	description = "FIT Image with ATF/OP-TEE/U-Boot/MCU";
+	#address-cells = <1>;
+
+	images {
+
+		uboot {
+			description = "U-Boot";
+			data = /incbin/("uboot-nodtb.bin");
+			type = "standalone";
+			arch = "arm";
+			os = "U-Boot";
+			compression = "none";
+			load = <0x00800000>;
+			hash {
+				algo = "sha256";
+			};
+		};
+
+		optee {
+			description = "OP-TEE";
+			data = /incbin/("tee.bin");
+			type = "firmware";
+			arch = "arm";
+			os = "op-tee";
+			compression = "none";
+			entry = <0x00001000>;
+			load = <0x00001000>;
+			hash {
+				algo = "sha256";
+			};
+		};
+
+		fdt {
+			description = "U-Boot dtb";
+			data = /incbin/("u-boot.dtb");
+			type = "flat_dt";
+			arch = "arm";
+			compression = "none";
+			hash {
+				algo = "sha256";
+			};
+		};
+	};
+
+	configurations {
+		default = "conf";
+		conf {
+			description = "rk3506-evb-mainline";
+			firmware = "optee";
+			loadables = "uboot";
+			fdt = "fdt";
+		};
+	};
+};

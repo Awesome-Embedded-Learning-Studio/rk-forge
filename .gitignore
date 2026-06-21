@@ -22,9 +22,33 @@ u-boot.itb
 
 # --- third_party ---
 # linux_mainline/uboot/rkbin are git submodules (tracked as gitlinks, see .gitmodules);
-# their working-dir dirties are ignored via `ignore = dirty` there. The vendor-sdk
-# reference clone is a LOCAL clone (not a submodule) used only for sdk-diff — fully ignored:
-/third_party/vendor-sdk/
+# their working-dir dirties are ignored via `ignore = dirty` there.
+# mainline exploration trees (linux/uboot/rkbin read during premise verification;
+# NOT yet formalized as submodules — see PLAN.md). Local plain clones, fully ignored:
+/third_party/src/
+
+# buildroot: upstream clone (local plain clone, fully ignored). forge's board
+# customization (defconfig + any package/overlay) lives OUTSIDE this tree, version-
+# controlled via BR2_EXTERNAL at board/aes/buildroot-external/ (see its
+# README for the checkout + build invocation). Same pattern as src.
+/third_party/buildroot/
+
+# --- reference ---
+# Active reference / extraction pool — NOT a build dependency, NOT a submodule.
+# vendor-sdk = local clone of the ATK-DLRK3506 BSP (linux 6.1.118), kept as a
+# knowledge source for sdk-diff + board-DT/config extraction. LOCAL clone, not
+# redistributable → fully ignored. Moved here from third_party/ on 2026-06-20 to
+# reflect that it is reference material, not a build input. See reference/README.md.
+/reference/vendor-sdk/
+/reference/verdor-sdk.gz
+
+# WiFi RTL8733BU firmware: LOCAL-only Realtek blobs (UNUSED at runtime — the
+# driver loads firmware from a built-in array; see firmware/rtl8733bu/README.md).
+# Gitignored (redistribution unverified). stage-rootfs.sh stages them best-effort;
+# absence is harmless. Decouples it from the ATK vendor-sdk path.
+/firmware/rtl8733bu/*
+!/firmware/rtl8733bu/README.md
+!/firmware/rtl8733bu/.gitkeep
 
 # (imx-forge template moved out of this repo to ~/imx-forge; no longer present to ignore)
 
@@ -36,5 +60,19 @@ u-boot.itb
 .cache/
 compile_commands.json
 
+# --- board/aes build outputs (reproducible via scripts/pack-*.sh + assemble-update.sh) ---
+# The .its are SOURCE (tracked); everything else under fit/ + all of out/ are
+# regenerated artifacts. tee.bin is a staged rkbin blob copy (pack-fit.sh re-stages it).
+/board/aes/out/
+/board/aes/out-gcc10-snapshot/
+/board/aes/fit/*.itb
+/board/aes/fit/*.bin
+/board/aes/fit/zImage
+/board/aes/fit/*.dtb
+/board/aes/fit/initramfs.cpio.gz
+
 # keep placeholder files tracked
 !**/.gitkeep
+
+*.bin
+*.img

@@ -1,0 +1,182 @@
+From b63b5e8e0c876c425babc5dd9d9deb971dc4db32 Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Fri, 19 Jun 2026 19:30:38 +0800
+Subject: [PATCH] ARM: dts: rockchip: rk3506b-aes: add ES8388 audio (sai1 +
+ dmac + codec)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Phase E (audio). SAI1 controller + pl330 DMA + ES8388 codec, all mainline
+drivers (the sai/pl330 driver deltas are in the preceding patch):
+
+  - SoC (rk3506.dtsi): dmac0@ff000000 + dmac1@ff008000 (arm,pl330,
+    #dma-cells=<5> for the rk3506 dmamux encoding); sai1@ff310000
+    (rk3506-sai/sai-v1, 5-cell dmas to dmac1, MCLK/HCLK_SAI1, sai1 pinctrl).
+    sai1 pinctrl uses lrck/sclk/sdi/sdo0 + mclk on bank0 PB0-PB4 (func1) —
+    stereo over sdo0 only, so the bank0 PB5/6 pads stay free for i2c0
+    (sdo1/2/3 would collide with i2c0's rm_io13/14).
+  - Board (rk3506b-aes.dts): es8388@11 on i2c0 (everest,es8388), sai1 + sound
+    enabled. Sound card rewritten as mainline simple-audio-card (vendor used
+    the private rockchip,multicodecs-card machine driver). es8388 mclk from the
+    cru MCLK_OUT_SAI1 gate.
+
+If mclk doesn't reach the codec (the GRF to-IO gate, a vendor
+"rockchip,clk-out" node mainline lacks), add the clk-out driver as a Phase E
+follow-up. Reference: vendor rk3502.dtsi (sai1/dmac) + rk3502-evb1-v10.dtsi
+(sound card + es8388) + rk3506b-alientek.dtsi.
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
+---
+ arch/arm/boot/dts/rockchip/rk3506.dtsi     | 66 ++++++++++++++++++++++
+ arch/arm/boot/dts/rockchip/rk3506b-aes.dts | 44 +++++++++++++++
+ 2 files changed, 110 insertions(+)
+
+diff --git a/arch/arm/boot/dts/rockchip/rk3506.dtsi b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+index 6330897c9..03d060a0d 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506.dtsi
++++ b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+@@ -187,6 +187,49 @@ uart2: serial@ff0c0000 {
+ 		status = "disabled";
+ 	};
+ 
++	dmac0: dma-controller@ff000000 {
++		compatible = "arm,pl330", "arm,primecell";
++		reg = <0xff000000 0x4000>;
++		interrupts = <GIC_SPI 116 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru ACLK_DMAC0>;
++		clock-names = "apb_pclk";
++		#dma-cells = <5>;
++		arm,pl330-periph-burst;
++	};
++
++	dmac1: dma-controller@ff008000 {
++		compatible = "arm,pl330", "arm,primecell";
++		reg = <0xff008000 0x4000>;
++		interrupts = <GIC_SPI 118 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru ACLK_DMAC1>;
++		clock-names = "apb_pclk";
++		#dma-cells = <5>;
++		arm,pl330-periph-burst;
++	};
++
++	sai1: sai@ff310000 {
++		compatible = "rockchip,rk3506-sai", "rockchip,sai-v1";
++		reg = <0xff310000 0x1000>;
++		interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru MCLK_SAI1>, <&cru HCLK_SAI1>;
++		clock-names = "mclk", "hclk";
++		/* 5-cell: <dmac chan mux_reg mux_val mux_reg mux_val> — the GRF
++		 * DMA request crossbar (programmed by the pl330 dmamux patch). */
++		dmas = <&dmac1 3  0xff2880a4 0x04000000 0x0 0x0>,
++		       <&dmac1 2  0xff2880a4 0x02000000 0x0 0x0>;
++		dma-names = "tx", "rx";
++		resets = <&cru SRST_M_SAI1>, <&cru SRST_H_SAI1>;
++		reset-names = "m", "h";
++		#sound-dai-cells = <0>;
++		pinctrl-names = "default";
++		/* sdo0 only (stereo) — sdo1/2/3 would clash with i2c0 on PB5/6/7. */
++		pinctrl-0 = <&sai1_lrck_pins &sai1_sclk_pins &sai1_sdi_pins
++			     &sai1_sdo0_pins &sai1_mclk_pins>;
++		status = "disabled";
++	};
++
+ 	mmc: mmc@ff480000 {
+ 		compatible = "rockchip,rk3506-dw-mshc", "rockchip,rk3288-dw-mshc";
+ 		reg = <0xff480000 0x4000>;
+@@ -643,5 +686,28 @@ rm_io27_uart2_rx: rm-io27-uart2-rx {
+ 				rockchip,pins = <1 RK_PC2 19 &pcfg_pull_up>;
+ 			};
+ 		};
++
++		sai1 {
++			/omit-if-no-ref/
++			sai1_mclk_pins: sai1-mclk-pins {
++				rockchip,pins = <0 RK_PB0 1 &pcfg_pull_none>;
++			};
++			/omit-if-no-ref/
++			sai1_sclk_pins: sai1-sclk-pins {
++				rockchip,pins = <0 RK_PB1 1 &pcfg_pull_none>;
++			};
++			/omit-if-no-ref/
++			sai1_lrck_pins: sai1-lrck-pins {
++				rockchip,pins = <0 RK_PB2 1 &pcfg_pull_none>;
++			};
++			/omit-if-no-ref/
++			sai1_sdi_pins: sai1-sdi-pins {
++				rockchip,pins = <0 RK_PB3 1 &pcfg_pull_none>;
++			};
++			/omit-if-no-ref/
++			sai1_sdo0_pins: sai1-sdo0-pins {
++				rockchip,pins = <0 RK_PB4 1 &pcfg_pull_none>;
++			};
++		};
+ 	};
+ };
+diff --git a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+index c20d1c8af..981d7c81b 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
++++ b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+@@ -150,6 +150,20 @@ &i2c0 {
+ 	status = "okay";
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&rm_io13_i2c0_scl &rm_io14_i2c0_sda>;
++
++	es8388: es8388@11 {
++		compatible = "everest,es8388";
++		reg = <0x11>;
++		#sound-dai-cells = <0>;
++		clocks = <&cru MCLK_OUT_SAI1>;
++		clock-names = "mclk";
++		/* es8328 set_sysclk accepts only 11.2896/12.288/22.5792/24.576 MHz (or 0);
++		 * pin the sai1 mclk composite (MCLK_SAI1) to 12.288 MHz, else the codec
++		 * rejects the default mclk rate with -EINVAL and the card won't probe. */
++		assigned-clocks = <&cru MCLK_SAI1>;
++		assigned-clock-rates = <12288000>;
++		status = "okay";
++	};
+ };
+ 
+ &i2c1 {
+@@ -180,6 +194,36 @@ &uart2 {
+ 	pinctrl-0 = <&rm_io26_uart2_tx &rm_io27_uart2_rx>;
+ };
+ 
++&sai1 {
++	status = "okay";
++};
++
++/*
++ * ES8388 audio: sai1 (I2S, stereo over sdo0) feeds the es8388 codec on i2c0.
++ * Sound card is mainline simple-audio-card (vendor used the private
++ * rockchip,multicodecs-card machine driver, rewritten here). mclk comes from
++ * the cru MCLK_OUT_SAI1 gate; the sai1_mclk pinctrl routes it to the codec.
++ * If mclk doesn't reach the codec (GRF to-IO gate not set), add the
++ * rockchip,clk-out driver (Phase E follow-up). Reference: vendor
++ * rk3502-evb1-v10.dtsi (sound card + es8388) + rk3506b-alientek.dtsi.
++ */
++/ {
++	sound {
++		compatible = "simple-audio-card";
++		simple-audio-card,name = "rockchip-es8388";
++		simple-audio-card,format = "i2s";
++		simple-audio-card,mclk-fs = <256>;
++
++		simple-audio-card,cpu {
++			sound-dai = <&sai1>;
++		};
++
++		simple-audio-card,codec {
++			sound-dai = <&es8388>;
++		};
++	};
++};
++
+ &pinctrl {
+ 	sdmmc {
+ 		/omit-if-no-ref/
+-- 
+2.43.0
+

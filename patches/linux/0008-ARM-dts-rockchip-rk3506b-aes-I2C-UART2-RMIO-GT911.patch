@@ -1,0 +1,223 @@
+From 8af1a27395193b8a12c86270f57712a4108ce05b Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Fri, 19 Jun 2026 18:40:01 +0800
+Subject: [PATCH] ARM: dts: rockchip: rk3506b-aes: add I2C0/1/2 + UART2 (RMIO)
+ + GT911 touch
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+I2C0/1/2 and UART2 on the ATK board reach the SoC only through the RK3506 RMIO
+crossbar (rm_io pads), whose mux support lands in the pinctrl driver in the
+preceding patch.
+
+  - SoC nodes (rk3506.dtsi): i2c0/1/2 @ ff040000/ff050000/ff060000
+    (rk3399-i2c fallback) + uart2 @ ff0c0000 (dw-apb-uart, PIO — no dmas, the
+    vendor 5-cell DMA encoding doesn't bind mainline pl330).
+  - The pinctrl node gains "rockchip,rmio = <&grf_pmu>" so the driver can
+    program the crossbar. RMIO pin groups reduced from vendor
+    rk3506-pinctrl-rmio.dtsi to the pads the AES board wires: rm_io13/14=i2c0,
+    rm_io24/25=i2c1, rm_io4/5=i2c2, rm_io26/27=uart2.
+  - Board override (rk3506b-aes.dts): enable all four + GT911 touch on i2c2
+    @0x14 (goodix). aliases i2c0/1/2 + serial2 for stable numbering.
+
+The rk3399-i2c fallback has soc_data.grf_offset = -1, so the driver needs
+neither rockchip,grf nor an i2c alias to probe (the aliases are kept only for
+deterministic /dev/i2c-N numbering). Multi_v7 already builds I2C + I2C_RK3X +
+I2C_CHARDEV, so the only config delta is CONFIG_TOUCHSCREEN_GOODIX (separate).
+
+ATK reference: vendor rk3506b-alientek.dtsi + rk3506-evb1-v10.dtsi (i2c2 pads)
++ rk3506-pinctrl-rmio.dtsi + rk3502.dtsi (SoC nodes).
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
+---
+ arch/arm/boot/dts/rockchip/rk3506.dtsi     | 97 ++++++++++++++++++++++
+ arch/arm/boot/dts/rockchip/rk3506b-aes.dts | 42 ++++++++++
+ 2 files changed, 139 insertions(+)
+
+diff --git a/arch/arm/boot/dts/rockchip/rk3506.dtsi b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+index 55d91e290..6330897c9 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506.dtsi
++++ b/arch/arm/boot/dts/rockchip/rk3506.dtsi
+@@ -37,8 +37,12 @@ aliases {
+ 		gpio3 = &gpio3;
+ 		gpio4 = &gpio4;
+ 		serial0 = &uart0;
++		serial2 = &uart2;
+ 		ethernet0 = &gmac0;
+ 		ethernet1 = &gmac1;
++		i2c0 = &i2c0;
++		i2c1 = &i2c1;
++		i2c2 = &i2c2;
+ 	};
+ 
+ 	clocks {
+@@ -139,6 +143,50 @@ spi0: spi@ff120000 {
+ 		status = "disabled";
+ 	};
+ 
++	i2c0: i2c@ff040000 {
++		compatible = "rockchip,rk3506-i2c", "rockchip,rk3399-i2c";
++		reg = <0xff040000 0x1000>;
++		interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		clocks = <&cru CLK_I2C0>, <&cru PCLK_I2C0>;
++		clock-names = "i2c", "pclk";
++		status = "disabled";
++	};
++
++	i2c1: i2c@ff050000 {
++		compatible = "rockchip,rk3506-i2c", "rockchip,rk3399-i2c";
++		reg = <0xff050000 0x1000>;
++		interrupts = <GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		clocks = <&cru CLK_I2C1>, <&cru PCLK_I2C1>;
++		clock-names = "i2c", "pclk";
++		status = "disabled";
++	};
++
++	i2c2: i2c@ff060000 {
++		compatible = "rockchip,rk3506-i2c", "rockchip,rk3399-i2c";
++		reg = <0xff060000 0x1000>;
++		interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		clocks = <&cru CLK_I2C2>, <&cru PCLK_I2C2>;
++		clock-names = "i2c", "pclk";
++		status = "disabled";
++	};
++
++	uart2: serial@ff0c0000 {
++		compatible = "rockchip,rk3506-uart", "snps,dw-apb-uart";
++		reg = <0xff0c0000 0x100>;
++		interrupts = <GIC_SPI 36 IRQ_TYPE_LEVEL_HIGH>;
++		reg-shift = <2>;
++		reg-io-width = <4>;
++		clocks = <&cru SCLK_UART2>, <&cru PCLK_UART2>;
++		clock-names = "baudclk", "apb_pclk";
++		status = "disabled";
++	};
++
+ 	mmc: mmc@ff480000 {
+ 		compatible = "rockchip,rk3506-dw-mshc", "rockchip,rk3288-dw-mshc";
+ 		reg = <0xff480000 0x4000>;
+@@ -334,6 +382,7 @@ pinctrl: pinctrl {
+ 		rockchip,grf = <&ioc_grf>;
+ 		rockchip,ioc1 = <&ioc1>;
+ 		rockchip,pmu = <&ioc_pmu>;
++		rockchip,rmio = <&grf_pmu>;	/* RMIO crossbar (rk3506 rm_io pads); see pinctrl RMIO patch */
+ 		#address-cells = <1>;
+ 		#size-cells = <1>;
+ 		ranges;
+@@ -546,5 +595,53 @@ spi0_csn1_pins: spi0-csn1-pins {
+ 					/* spi0_csn1 */ <0 RK_PB7 2 &pcfg_pull_none_drv_level_3>;
+ 			};
+ 		};
++
++		/* RMIO crossbar groups (mux values > iomux width route via grf_pmu).
++		 * Reduced from vendor rk3506-pinctrl-rmio.dtsi to the pads the AES
++		 * board actually wires: i2c0 on rm_io13/14, i2c1 on rm_io24/25,
++		 * i2c2 on rm_io4/5, uart2 on rm_io26/27. */
++		i2c0 {
++			/omit-if-no-ref/
++			rm_io13_i2c0_scl: rm-io13-i2c0-scl {
++				rockchip,pins = <0 RK_PB5 30 &pcfg_pull_none>;
++			};
++			/omit-if-no-ref/
++			rm_io14_i2c0_sda: rm-io14-i2c0-sda {
++				rockchip,pins = <0 RK_PB6 31 &pcfg_pull_none>;
++			};
++		};
++
++		i2c1 {
++			/omit-if-no-ref/
++			rm_io24_i2c1_scl: rm-io24-i2c1-scl {
++				rockchip,pins = <1 RK_PB1 32 &pcfg_pull_none>;
++			};
++			/omit-if-no-ref/
++			rm_io25_i2c1_sda: rm-io25-i2c1-sda {
++				rockchip,pins = <1 RK_PB2 33 &pcfg_pull_none>;
++			};
++		};
++
++		i2c2 {
++			/omit-if-no-ref/
++			rm_io4_i2c2_scl: rm-io4-i2c2-scl {
++				rockchip,pins = <0 RK_PA4 34 &pcfg_pull_none>;
++			};
++			/omit-if-no-ref/
++			rm_io5_i2c2_sda: rm-io5-i2c2-sda {
++				rockchip,pins = <0 RK_PA5 35 &pcfg_pull_none>;
++			};
++		};
++
++		uart2 {
++			/omit-if-no-ref/
++			rm_io26_uart2_tx: rm-io26-uart2-tx {
++				rockchip,pins = <1 RK_PB3 18 &pcfg_pull_none>;
++			};
++			/omit-if-no-ref/
++			rm_io27_uart2_rx: rm-io27-uart2-rx {
++				rockchip,pins = <1 RK_PC2 19 &pcfg_pull_up>;
++			};
++		};
+ 	};
+ };
+diff --git a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+index 6017be15f..c20d1c8af 100644
+--- a/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
++++ b/arch/arm/boot/dts/rockchip/rk3506b-aes.dts
+@@ -138,6 +138,48 @@ spidev@1 {
+ 	};
+ };
+ 
++/*
++ * I2C0/1/2 + UART2 — reach the board via the RK3506 RMIO crossbar (rm_io pads).
++ * The crossbar mux itself is in the pinctrl driver (RMIO patch); the pad groups
++ * (rm_io13/14=i2c0, rm_io24/25=i1c1, rm_io4/5=i2c2, rm_io26/27=uart2) live in
++ * rk3506.dtsi. i2c2 carries the GT911 capacitive touch (goodix, @0x14). PIO
++ * only — no dmas (the vendor 5-cell DMA encoding doesn't bind mainline pl330).
++ * Reference: vendor rk3506b-alientek.dtsi + rk3506-evb1-v10.dtsi (i2c2 pads).
++ */
++&i2c0 {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&rm_io13_i2c0_scl &rm_io14_i2c0_sda>;
++};
++
++&i2c1 {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&rm_io24_i2c1_scl &rm_io25_i2c1_sda>;
++};
++
++&i2c2 {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&rm_io4_i2c2_scl &rm_io5_i2c2_sda>;
++
++	touchscreen@14 {
++		compatible = "goodix,gt911";
++		reg = <0x14>;
++		interrupt-parent = <&gpio0>;
++		interrupts = <RK_PA6 IRQ_TYPE_LEVEL_LOW>;
++		irq-gpios = <&gpio0 RK_PA6 IRQ_TYPE_LEVEL_LOW>;
++		reset-gpios = <&gpio0 RK_PA7 GPIO_ACTIVE_HIGH>;
++		status = "okay";
++	};
++};
++
++&uart2 {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&rm_io26_uart2_tx &rm_io27_uart2_rx>;
++};
++
+ &pinctrl {
+ 	sdmmc {
+ 		/omit-if-no-ref/
+-- 
+2.43.0
+

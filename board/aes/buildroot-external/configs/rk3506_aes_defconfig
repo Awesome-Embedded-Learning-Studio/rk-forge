@@ -1,0 +1,78 @@
+# rk3506_aes_defconfig — minimal buildroot for rk-forge (external toolchain: /opt Arm GNU 15.2)
+# Goal: smallest rootfs that boots + busybox shell. No package migration, no frills.
+BR2_arm=y
+BR2_cortex_a7=y
+BR2_ARM_FPU_NEON_VFPV4=y
+
+# External toolchain = /opt Arm GNU 15.2 (gcc 15.2.1, glibc 2.42, headers 6.6.44)
+BR2_TOOLCHAIN_EXTERNAL=y
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y
+BR2_TOOLCHAIN_EXTERNAL_PATH="/opt/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf"
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX="$(ARCH)-none-linux-gnueabihf"
+BR2_TOOLCHAIN_EXTERNAL_GCC_15=y
+BR2_TOOLCHAIN_EXTERNAL_HEADERS_6_6=y
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM_GLIBC=y
+BR2_TOOLCHAIN_EXTERNAL_HAS_SSP=y
+# glibc 2.42 dropped Sun RPC from libc (moved to libtirpc); the toolchain's
+# sysroot has no rpc/rpc.h, so buildroot's check_glibc_rpc_feature rejects
+# INET_RPC. The Kconfig default is y for glibc, so we must disable it explicitly.
+# BR2_TOOLCHAIN_EXTERNAL_INET_RPC is not set
+BR2_TOOLCHAIN_EXTERNAL_LOCALE=y
+BR2_TOOLCHAIN_EXTERNAL_WCHAR=y
+BR2_TOOLCHAIN_EXTERNAL_THREADS=y
+BR2_TOOLCHAIN_EXTERNAL_THREADS_POSIX=y
+BR2_TOOLCHAIN_EXTERNAL_HAS_THREADS_DEBUG=y
+
+# Arm GNU toolchain ships a full language set: g++ + gfortran + OpenMP (no gdc).
+# buildroot's toolchain-external check_* (toolchain/helpers.mk) REQUIRES the
+# config to acknowledge every language the compiler actually provides, else it
+# errors at configure with "... support is not selected but is available in
+# external toolchain". C++ forces BR2_INSTALL_LIBSTDCPP (the check reads that
+# flag) → libstdc++ lands in the rootfs (~few MB, fine on the 174 MiB UBIFS).
+# Fortran/OpenMP here are capability declarations only — no runtime is installed
+# unless a package that needs them is built.
+BR2_TOOLCHAIN_EXTERNAL_CXX=y
+BR2_INSTALL_LIBSTDCPP=y
+BR2_TOOLCHAIN_EXTERNAL_FORTRAN=y
+BR2_TOOLCHAIN_EXTERNAL_OPENMP=y
+
+# Target
+BR2_TARGET_GENERIC_HOSTNAME="rk3506"
+BR2_TARGET_GENERIC_ISSUE="Welcome to rk-forge buildroot"
+BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS=y
+
+# busybox + init
+BR2_PACKAGE_BUSYBOX=y
+BR2_INIT_BUSYBOX=y
+
+# Output: cpio (for initramfs) + tar (for ubifs staging)
+BR2_TARGET_ROOTFS_CPIO=y
+BR2_TARGET_ROOTFS_TAR=y
+
+# Post-build: compile mtdrawdump + mtdbb (SFC/NAND forensics) into the rootfs.
+# buildroot's minimal rootfs doesn't ship them (the handcraft mk-rootfs.sh does);
+# the hook rebuilds them with TARGET_CC + -static, same flags as mk-rootfs.sh.
+BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_rkforge_PATH)/board/rk3506_aes/post-build.sh"
+
+# Overlay: tmpfs /var/log so syslogd writes RAM, not the UBIFS NAND (write churn
+# there trips bit-flips → CRC corruption across reboots; RW saga). See
+# overlay/etc/fstab.
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_rkforge_PATH)/overlay"
+
+# Audio test tooling (Phase E): aplay/alsamixer (alsa-utils) + mpg123 to play
+# the test mp3 (assets/sample-3s.mp3) over the ES8388/sai1 sound card. alsa-lib
+# is auto-selected. buildroot builds these (dynamic, glibc) into the rootfs.
+BR2_PACKAGE_ALSA_LIB=y
+BR2_PACKAGE_ALSA_UTILS=y
+BR2_PACKAGE_ALSA_UTILS_APLAY=y
+BR2_PACKAGE_ALSA_UTILS_AMIXER=y
+BR2_PACKAGE_ALSA_UTILS_SPEAKER_TEST=y
+BR2_PACKAGE_MPG123=y
+
+# WiFi (Phase WiFi): RTL8733BU is an out-of-tree =m driver loaded after
+# switch_root (see document/notes/29). Userspace needs nl80211 tooling for the
+# cfg80211 fullmac driver. libnl is auto-selected by iw/wpa_supplicant.
+BR2_PACKAGE_WPA_SUPPLICANT=y
+BR2_PACKAGE_WPA_SUPPLICANT_PASSPHRASE=y
+BR2_PACKAGE_IW=y
+BR2_PACKAGE_WIRELESS_TOOLS=y

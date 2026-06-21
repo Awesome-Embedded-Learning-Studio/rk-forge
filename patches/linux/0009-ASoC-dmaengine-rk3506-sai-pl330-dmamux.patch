@@ -1,0 +1,103 @@
+From 84ea4cb061fe6c543532ab8eaadf8e09cb4a6651 Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Fri, 19 Jun 2026 19:26:52 +0800
+Subject: [PATCH] ASoC/dmaengine: enable RK3506 SAI + pl330 dmamux
+
+Two small driver deltas to bring up SAI audio on RK3506 (Phase E):
+
+- rockchip_sai: add "rockchip,rk3506-sai" to the of_match table. The driver
+  carries no per-SoC data (the rk3576 entry has empty .data too; rk3506 uses
+  the same register layout, confirmed by the vendor "rockchip,sai-v1"
+  fallback compatible).
+
+- pl330: accept the RK3506 5-cell dmas encoding. RK3506 routes peripheral DMA
+  requests through a GRF crossbar; the vendor DT encodes it as
+  <dmac chan mux_reg0 mux_val0 mux_reg1 mux_val1>. Extend
+  of_dma_pl330_xlate to program the (up to two) mux reg/val pairs after
+  acquiring the channel. Single-cell users (every other SoC) are unaffected:
+  the reject gate widens from count!=1 to count<1, and the mux block runs
+  only when count==5.
+
+These unblock the SAI1 controller + its DMA path. The codec (es8388, already
+mainline via everest,es8388) and the sound card (rewritten as
+simple-audio-card) are DT-only and land in a separate patch.
+
+ATK reference: vendor kernel-6.1 drivers/dma/pl330.c (rk3506 dmamux in
+of_dma_pl330_xlate @ ~2371) + sound/soc/rockchip/rockchip_sai.c.
+
+Signed-off-by: CharlieChen114514 <725610365@qq.com>
+---
+ drivers/dma/pl330.c               | 33 +++++++++++++++++++++++++++++--
+ sound/soc/rockchip/rockchip_sai.c |  1 +
+ 2 files changed, 32 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/dma/pl330.c b/drivers/dma/pl330.c
+index 25ba84b18..b6a29f653 100644
+--- a/drivers/dma/pl330.c
++++ b/drivers/dma/pl330.c
+@@ -2141,19 +2141,48 @@ static struct dma_chan *of_dma_pl330_xlate(struct of_phandle_args *dma_spec,
+ {
+ 	int count = dma_spec->args_count;
+ 	struct pl330_dmac *pl330 = ofdma->of_dma_data;
++	struct dma_chan *chan;
+ 	unsigned int chan_id;
+ 
+ 	if (!pl330)
+ 		return NULL;
+ 
+-	if (count != 1)
++	if (count < 1)
+ 		return NULL;
+ 
+ 	chan_id = dma_spec->args[0];
+ 	if (chan_id >= pl330->num_peripherals)
+ 		return NULL;
+ 
+-	return dma_get_slave_channel(&pl330->peripherals[chan_id].chan);
++	chan = dma_get_slave_channel(&pl330->peripherals[chan_id].chan);
++
++	/*
++	 * RK3506 routes peripheral DMA requests through a GRF crossbar mux. The
++	 * vendor DT encodes it as extra dmas cells:
++	 *   <dmac chan  mux_reg0 mux_val0 mux_reg1 mux_val1>
++	 * Program whichever mux reg/val pairs are present so the request line
++	 * reaches the channel. Other SoCs keep the single-cell form (count == 1)
++	 * and skip this.
++	 */
++	if (chan && count == 5) {
++		int i;
++
++		for (i = 0; i < 2; i++) {
++			u32 reg = dma_spec->args[1 + i * 2];
++			u32 val = dma_spec->args[2 + i * 2];
++			void __iomem *r;
++
++			if (!reg)
++				continue;
++			r = ioremap(reg, 0x4);
++			if (r) {
++				writel(val, r);
++				iounmap(r);
++			}
++		}
++	}
++
++	return chan;
+ }
+ 
+ static int pl330_alloc_chan_resources(struct dma_chan *chan)
+diff --git a/sound/soc/rockchip/rockchip_sai.c b/sound/soc/rockchip/rockchip_sai.c
+index ed393e503..d751ac0cc 100644
+--- a/sound/soc/rockchip/rockchip_sai.c
++++ b/sound/soc/rockchip/rockchip_sai.c
+@@ -1513,6 +1513,7 @@ static const struct dev_pm_ops rockchip_sai_pm_ops = {
+ 
+ static const struct of_device_id rockchip_sai_match[] = {
+ 	{ .compatible = "rockchip,rk3576-sai", },
++	{ .compatible = "rockchip,rk3506-sai", },
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(of, rockchip_sai_match);
+-- 
+2.43.0
+
