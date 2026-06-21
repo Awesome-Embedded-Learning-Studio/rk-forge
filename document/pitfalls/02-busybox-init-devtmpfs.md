@@ -17,7 +17,7 @@ console::respawn:/bin/sh   # ← 这行是祸根
 
 机制在这里:我们的 bootargs 是 `console=ttyS0`,在这种配置下 `/dev/console` 和 `/dev/ttyS0` 指向的是**同一颗 UART**。inittab 里这两行 respawn 各起一个 sh,两个 sh 都 open 同一个 tty,于是你敲下去的字符就被轮流分发到两个进程里——`ls` 劈成 `l` 和 `s`。这跟波特率、接线、驱动一点关系都没有,纯属 init 配置。
 
-正解简单粗暴:inittab 只留一行。我把修复和原因都写进了 [inittab](../../third_party/bringup/rootfs/etc/inittab) 的注释里,就那一行 `ttyS0::respawn:/bin/sh`,顺手把"两行会劈字符"这事儿原样记下,省得以后有人手贱又加回去。
+正解简单粗暴:inittab 只留一行。我把修复和原因都写进了 [inittab](../../board/aes/rootfs/etc/inittab) 的注释里,就那一行 `ttyS0::respawn:/bin/sh`,顺手把"两行会劈字符"这事儿原样记下,省得以后有人手贱又加回去。
 
 ⚠️ `console=ttyS0` 下,inittab 的控制台 respawn 只能有一行 `ttyS0::respawn:/bin/sh`,千万别图省事再加一行 `console::respawn:/bin/sh`,不然你会收获一个非常诡异的 `~ # ~ #` 加输入劈半。
 
@@ -38,7 +38,7 @@ can't open /dev/ttyS0: No such file or directory
 
 有意思的是,同一份日志靠前还有一行 `[ 0.013236] devtmpfs: initialized`——说明 kernel 侧 devtmpfs 是活的,问题不在它起没起来,而在 switch_root 之后没人把它挂到新根上。
 
-正解是在 initramfs 的 `/init` 里、switch_root 之前,手动把 devtmpfs 挂到新根的 /dev。挂的位置很关键:得在真 rootfs 挂好之后、pivot 之前。我在 [initramfs/init](../../third_party/bringup/initramfs/init) 的 `switch_to_rootfs()` 里加了这几行:
+正解是在 initramfs 的 `/init` 里、switch_root 之前,手动把 devtmpfs 挂到新根的 /dev。挂的位置很关键:得在真 rootfs 挂好之后、pivot 之前。我在 [initramfs/init](../../board/aes/initramfs/init) 的 `switch_to_rootfs()` 里加了这几行:
 
 ```
 # Populate /dev on the real rootfs. CONFIG_DEVTMPFS_MOUNT only auto-mounts

@@ -1,4 +1,4 @@
-# pitfalls/06 — USB2PHY + DWC2 bring-up on RK3506 (Phase B)
+# 06 — USB2PHY + DWC2 bring-up on RK3506 (Phase B)
 
 Board-verified PASSED (boot-sdl-202606200858: both DWC2 controllers host-up,
 USB hub + mass-storage stick → `/dev/sba`). Three non-obvious traps below; the
@@ -9,7 +9,7 @@ first two cost a board flash each. Full driver/DT detail in notes/28.
 `CONFIG_USB_SUPPORT is not set`, and DWC2 / `PHY_ROCKCHIP_INNO_USB2` /
 `USB_STORAGE` are all absent (not even `# ... is not set`, just gone).
 
-**Root cause**: `boards/rk3506-evb/kernel-trim.config` carried
+**Root cause**: `board/rk3506-evb/kernel-trim.config` carried
 `# CONFIG_USB_SUPPORT is not set` (USB listed under "subsystems not needed yet"),
 and build-linux.sh merges fragments in order **multi_v7 → kernel.config →
 kernel-trim → kernel-compress**. Trim runs AFTER kernel.config, so it OVERRIDES

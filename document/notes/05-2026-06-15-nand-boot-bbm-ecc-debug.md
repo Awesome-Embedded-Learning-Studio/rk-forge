@@ -74,11 +74,11 @@ RK=third_party/explore/rkbin/bin/rk35
 make ARCH=arm CROSS_COMPILE=$TC -j$(nproc) ROCKCHIP_TPL=$RK/rk3506b_ddr_750MHz_v1.06.bin TEE=$RK/rk3506_tee_v2.40.bin
 
 # 打包方案 B FIT:
-cp u-boot-nodtb.bin u-boot.dtb third_party/bringup/fit/
-(cd third_party/bringup/fit && ../../vendor-sdk/u-boot/tools/mkimage -f rk3506-mainline.its -E rk3506-mainline.itb)
+cp u-boot-nodtb.bin u-boot.dtb board/aes/fit/
+(cd board/aes/fit && ../../vendor-sdk/u-boot/tools/mkimage -f rk3506-mainline.its -E rk3506-mainline.itb)
 
 # 拷 Windows:
-cp third_party/bringup/fit/rk3506-mainline.itb /mnt/d/DownloadFromInternet/rk3506-uboot-mainline-vendor-fit.itb
+cp board/aes/fit/rk3506-mainline.itb /mnt/d/DownloadFromInternet/rk3506-uboot-mainline-vendor-fit.itb
 ```
 
 ## 当前状态(2026-06-15)
@@ -92,6 +92,6 @@ cp third_party/bringup/fit/rk3506-mainline.itb /mnt/d/DownloadFromInternet/rk350
 
 - U-Boot spinand driver: `third_party/explore/uboot/drivers/mtd/nand/spi/core.c`
 - W25N04KV 配置: `third_party/explore/uboot/drivers/mtd/nand/spi/winbond.c:483`
-- 内核 FIT: `third_party/bringup/fit/rk3506-kernel.itb`(+ `.its`)
-- U-Boot FIT(方案 B): `third_party/bringup/fit/rk3506-mainline.itb`
+- 内核 FIT: `board/aes/fit/rk3506-kernel.itb`(+ `.its`)
+- U-Boot FIT(方案 B): `board/aes/fit/rk3506-mainline.itb`
 - 上板日志: `document/logs/boot-sdl-202606150723.txt`(mtd read corrupt)、`uboot-debug.txt`(dump)

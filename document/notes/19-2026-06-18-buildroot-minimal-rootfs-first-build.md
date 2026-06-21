@@ -10,7 +10,7 @@ buildroot 2026.08-dev（HEAD `67449130`）用外部工具链 `/opt` Arm GNU 15.2
 - **板上还没验**（下一步接 UBIFS 打包 + 烧板）。这次只到「buildroot 端到端能出活的 rootfs」。
 
 ## defconfig
-位置：`third_party/bringup/buildroot-external/configs/rk3506_aes_defconfig`（**BR2_EXTERNAL 树**，rk-forge 自有、进版本控制）。buildroot 本体是 loose 上游检出（`third_party/buildroot/`，gitignored，同 explore/vendor-sdk 模式），其定制通过 BR2_EXTERNAL 注入：`make BR2_EXTERNAL=.../buildroot-external rk3506_aes_defconfig`（已验认，`BR2_DEFCONFIG` 指向新位置 + 外部树注册）。见 `buildroot-external/README.md`。当初踩过的结构坑：`git add -A` 把 buildroot 当 embedded git 仓（gitlink）加进去——clone 拿不到内容；解法 = gitignore buildroot + defconfig 挪进 BR2_EXTERNAL。
+位置：`board/aes/buildroot-external/configs/rk3506_aes_defconfig`（**BR2_EXTERNAL 树**，rk-forge 自有、进版本控制）。buildroot 本体是 loose 上游检出（`third_party/buildroot/`，gitignored，同 explore/vendor-sdk 模式），其定制通过 BR2_EXTERNAL 注入：`make BR2_EXTERNAL=.../buildroot-external rk3506_aes_defconfig`（已验认，`BR2_DEFCONFIG` 指向新位置 + 外部树注册）。见 `buildroot-external/README.md`。当初踩过的结构坑：`git add -A` 把 buildroot 当 embedded git 仓（gitlink）加进去——clone 拿不到内容；解法 = gitignore buildroot + defconfig 挪进 BR2_EXTERNAL。
 
 关键决策：arm cortex-a7 / neon-vfpv4；external toolchain = `/opt` Arm GNU 15.2（与板上 boot+RW 验过的 toolchain 一致，见记忆 `self-run-build-and-copy`）；busybox + sysv init；输出 cpio（initramfs 用）+ tar（UBIFS staging 用）。**还没加 `BR2_TARGET_ROOTFS_UBIFS`**——选了走 tar→现有 `pack-ubifs.sh` 的路子，先复用已验过的 NAND 打包管线。
 

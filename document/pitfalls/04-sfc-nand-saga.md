@@ -8,7 +8,7 @@
 
 我想先把后面所有误判的根子讲在前面,因为它比单个坑更值钱。saga 一路下来,我的验证方法有个共同的盲区:**全程只换 rkbin 黑盒(loader),从没让 vendor 内核的 fspi 驱动上过板对比;而且每次说"我们的栈写可靠",全是同会话当场回读(mtdbb 写完立刻 cmp),从没跨重启验证过。**
 
-你想想这个盲区会导出什么:症状是"Linux 写 → reboot → 读 = 坏",而我把所有变量都攥在 rkbin 这一环上换(loader 换了三颗),自然就把锅全扣给 rkbin,得出"换 loader 都救不了 = rkbin 通病"。推翻这个结论,最后其实只需要一个把变量拆开的 A/B 实验(后面坑 #6 细讲):同一颗 loader、同一个内核、同一个分区,**只换 rootfs 的内容**,vendor rootfs 跨重启 0 ECC,我们 rootfs 跨重启炸 PEB 3/4。结论一下子翻转——问题压根不在 loader 版本,在 loader 对我们这份 rootfs 的写;解法也不是换 loader,而是干脆不让 loader 写 rootfs。三份旧文档([archive/](../archive/) 里那三个)分别记下了 saga 的三个错误阶段,文末有张演变表。
+你想想这个盲区会导出什么:症状是"Linux 写 → reboot → 读 = 坏",而我把所有变量都攥在 rkbin 这一环上换(loader 换了三颗),自然就把锅全扣给 rkbin,得出"换 loader 都救不了 = rkbin 通病"。推翻这个结论,最后其实只需要一个把变量拆开的 A/B 实验(后面坑 #6 细讲):同一颗 loader、同一个内核、同一个分区,**只换 rootfs 的内容**,vendor rootfs 跨重启 0 ECC,我们 rootfs 跨重启炸 PEB 3/4。结论一下子翻转——问题压根不在 loader 版本,在 loader 对我们这份 rootfs 的写;解法也不是换 loader,而是干脆不让 loader 写 rootfs。三份旧文档(`archive/` 里那三个)分别记下了 saga 的三个错误阶段,文末有张演变表。
 
 ## 读路径先治:SFC 80MHz 不调谐,采样全是 marginal
 
@@ -75,7 +75,7 @@ saga 主线之外,bootm 这边还埋了两颗独立的小雷,得单独说,因为
 
 第一颗是 FIT 暂存地址。我手动 `mtd read boot ${kernel_addr_r} 0 0xc00000; bootm`,结果 `ERROR: new format image overwritten - must RESET the board to recover`,板子必须复位。`${kernel_addr_r}` 是 0x02080000,正好是 kernel 的 load 地址;我把 FIT 暂存在这儿,bootm 解 FIT 的时候要把 kernel 节点 load 出来,load 的目的地正好压在 FIT 自己头上,自覆写。改把 FIT 暂存到 `0x04000000` 就没事了。现场在 [boot-sdl-2026-0615955.txt](../logs/boot-sdl-2026-0615955.txt)。
 
-第二颗是 `mtd read` 的长度。当前内核 FIT 有 7.36MB,你要是图省事读个 `0x600000`(6MB),FIT 被截断,bootm 解到一半 sha256 fail,kernel 损坏——而这个 sha256 fail 长得跟 SFC 读 corrupt 一模一样,极易被当成"写损坏 saga"的一部分。正解是读 `0x800000`(8MB)或干脆 `0x1000000`(16MB)读满分区。[BOARD-VALIDATION.md](../../third_party/bringup/nand-rootfs/BOARD-VALIDATION.md) 阶段③ 我把这事儿原样固化进验证手册了。
+第二颗是 `mtd read` 的长度。当前内核 FIT 有 7.36MB,你要是图省事读个 `0x600000`(6MB),FIT 被截断,bootm 解到一半 sha256 fail,kernel 损坏——而这个 sha256 fail 长得跟 SFC 读 corrupt 一模一样,极易被当成"写损坏 saga"的一部分。正解是读 `0x800000`(8MB)或干脆 `0x1000000`(16MB)读满分区。[BOARD-VALIDATION.md](../../board/aes/nand-rootfs/BOARD-VALIDATION.md) 阶段③ 我把这事儿原样固化进验证手册了。
 
 ⚠️ `mtd read boot 0x04000000 0 0x1000000; bootm 0x04000000`——FIT 暂存躲开 kernel load(0x02080000),读长度盖过 FIT 实际大小(7.36MB → 至少 0x800000)。这俩错了会伪装成写损坏,别被骗。
 
@@ -121,13 +121,13 @@ PEB 3/4 各 64 页,只有 3 页不可纠(填 0xFF),其余 61 页含 master 节�
 
 ## 三份旧文档,就是 saga 的三个错误阶段
 
-这场 saga 的弯路,原样留在了三份旧文档里,现在都归档在 [archive/](../archive/)、各带了一个 superseded banner。把它们摆成一张演变表,整条 saga 的认知推进就一目了然了:
+这场 saga 的弯路,原样留在了三份旧文档里,现在都归档在 `archive/`、各带了一个 superseded banner。把它们摆成一张演变表,整条 saga 的认知推进就一目了然了:
 
 | 文档 | 写于 | saga 阶段 | 核心结论 | 错在哪 / 被什么取代 |
 |---|---|---|---|---|
-| [SFC-WRITE-CORRUPTION-POSTMORTEM](../archive/SFC-WRITE-CORRUPTION-POSTMORTEM.md) | 06-16 中午 | 探针定位 loader 存量 | "坏数据是 loader 写的存量"(对)+"换 4762d6 就稳"(错) | "换版本就稳"被 A/B 推翻 |
-| [HANDOFF-LOADER-MARGINAL-WRITE](../archive/HANDOFF-LOADER-MARGINAL-WRITE.md) | 06-16 下午 | 最严重判死 | "三颗 loader 全边际,rkbin 通病,与版本无关,不可解" | 两个方法学盲点,被 A/B 推翻 |
-| [RW-WRITE-FIX-powergood-wpen](../archive/RW-WRITE-FIX-powergood-wpen.md) | 06-16 晚 | 推翻 HANDOFF | "真根因 = 缺 powergood+WPEN" | 不够(PEB 3/4 仍炸),被"Linux 落盘"收尾 |
+| SFC-WRITE-CORRUPTION-POSTMORTEM | 06-16 中午 | 探针定位 loader 存量 | "坏数据是 loader 写的存量"(对)+"换 4762d6 就稳"(错) | "换版本就稳"被 A/B 推翻 |
+| HANDOFF-LOADER-MARGINAL-WRITE | 06-16 下午 | 最严重判死 | "三颗 loader 全边际,rkbin 通病,与版本无关,不可解" | 两个方法学盲点,被 A/B 推翻 |
+| RW-WRITE-FIX-powergood-wpen | 06-16 晚 | 推翻 HANDOFF | "真根因 = 缺 powergood+WPEN" | 不够(PEB 3/4 仍炸),被"Linux 落盘"收尾 |
 | canonical(saga RW-SOLVED) | 06-16 深夜 | 最终态 | rootfs 由 Linux 落盘(ubiprog + 页级恢复),loader 还是同一颗 4762d6 | (当前真相) |
 
 ## saga 教训

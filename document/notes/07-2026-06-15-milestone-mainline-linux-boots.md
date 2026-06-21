@@ -45,9 +45,9 @@ cd third_party/explore/uboot
 TC=third_party/vendor-sdk/prebuilts/gcc/linux-x86/arm/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-
 RK=third_party/explore/rkbin/bin/rk35
 make ARCH=arm CROSS_COMPILE=$TC -j$(nproc) ROCKCHIP_TPL=$RK/rk3506b_ddr_750MHz_v1.06.bin TEE=$RK/rk3506_tee_v2.40.bin
-cp u-boot-nodtb.bin u-boot.dtb third_party/bringup/fit/
-(cd third_party/bringup/fit && ../../vendor-sdk/u-boot/tools/mkimage -f rk3506-mainline.its -E rk3506-mainline.itb)
-cp third_party/bringup/fit/rk3506-mainline.itb /mnt/d/DownloadFromInternet/rk3506-uboot-mainline-vendor-fit.itb
+cp u-boot-nodtb.bin u-boot.dtb board/aes/fit/
+(cd board/aes/fit && ../../vendor-sdk/u-boot/tools/mkimage -f rk3506-mainline.its -E rk3506-mainline.itb)
+cp board/aes/fit/rk3506-mainline.itb /mnt/d/DownloadFromInternet/rk3506-uboot-mainline-vendor-fit.itb
 ```
 (kernel FIT `rk3506-kernel.itb` 已在 bringup/fit/ 和 Windows 侧,复用即可。)
 
@@ -79,6 +79,6 @@ cp third_party/bringup/fit/rk3506-mainline.itb /mnt/d/DownloadFromInternet/rk350
 ## 关键文件
 
 - patches: `patches/uboot/0001-...patch`、`patches/linux_mainline/0001-...patch`(均含 series)
-- FIT 打包配方: `third_party/bringup/fit/rk3506-mainline.its`、`rk3506-kernel.its`
+- FIT 打包配方: `board/aes/fit/rk3506-mainline.its`、`rk3506-kernel.its`
 - 定型日志: `document/logs/boot-sdl-stage-end-of-kernel-uboot-202606151100.txt`
 - memory: `kernel-port-state`、`sfc-read-corruption-rootcause`、`mainline-uboot-bringup-state`、`uboot-build-flash-commands`

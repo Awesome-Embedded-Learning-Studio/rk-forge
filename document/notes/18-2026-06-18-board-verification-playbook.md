@@ -7,7 +7,7 @@
 scripts/build-linux.sh                    # 重编内核（慢，分钟级）
 scripts/pack-fit.sh                       # 重打 boot.img（FIT: zImage+dtb+initramfs）
 scripts/assemble-update.sh --provision    # 打 update.img（loader+uboot+boot+rootfs）
-cp third_party/bringup/out/update.img /mnt/d/DownloadFromInternet/<name>.img
+cp board/aes/out/update.img /mnt/d/DownloadFromInternet/<name>.img
 ```
 - 只改 DT：`build-linux.sh --just-dtb`（快，不重编内核）+ pack-fit + assemble
 - 只改 core.c/驱动：`build-linux.sh`（重编 .o）

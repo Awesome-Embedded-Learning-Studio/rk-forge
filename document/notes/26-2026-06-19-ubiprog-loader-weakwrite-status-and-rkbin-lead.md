@@ -65,7 +65,7 @@ vendor 没事,大概率是它的 loader(DT + loader blob 都对)。
 **要查的对照项**(我们 vs vendor/ATK):
 
 1. **RKBOOT .ini**(loader 组装单):
-   - 我们:`third_party/bringup/RKBOOT-RK3506B-aes.ini`(pack-loader.sh 的模板)+ 公开
+   - 我们:`board/aes/RKBOOT-RK3506B-aes.ini`(pack-loader.sh 的模板)+ 公开
      `third_party/rkbin/RKBOOT/RK3506BMINIALL.ini`。
    - vendor/ATK:rkbin-atk 里对应的 .ini(若有)+ vendor SDK 的 loader 组装。
    - 对照:DDR/SPL/usbplug/tee 各自的**版本**、**FlashData/FlashBoot/LOAD_ADDR/PATH**。
@@ -96,4 +96,4 @@ vendor 没事,大概率是它的 loader(DT + loader blob 都对)。
 - [[sfc-dll-saga-and-writepath]]:saga 主体,P5 闭环(loader 弱写位置无关证 + ubiprog 加固)。
 - [[rootfs-weakwrite-reexam]]:loader 弱写曾想翻案,被 trace v2 + datasheet §7.3.1 否回(>8 flip 不可纠)。
 - [[kill-vendor-sdk-roadmap]]:公开 rkbin vs rkbin-atk 的版本差异(SPL v1.12 vs v1.11 等)。
-- [24](24-…-reserved-memory):abort 真根因(reserved-memory),和本条独立。
+- 笔记 24:abort 真根因(reserved-memory),和本条独立。

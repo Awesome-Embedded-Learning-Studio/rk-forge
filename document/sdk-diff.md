@@ -24,12 +24,12 @@ vendor 东西:
 |---|---|---|
 | vendor idblock(DDR v1.06 + SPL + usbplug) | 闭源 blob + vendor SPL 代码 | **方案 A 未成**(自己的 SPL 在 DDR 后崩,见 [notes/02](notes/02-2026-06-14-mainline-bringup-handoff.md)、[notes/04](notes/04-2026-06-14-mainline-uboot-via-vendor-spl.md))。纯主线 boot 的硬阻塞 |
 | vendor `tee.bin`(OP-TEE v2.10) | 闭源 blob | rkbin SPL verified boot 锁的 hash,必须 v2.10(见 [pitfalls/01](pitfalls/01-rkbin-spl-contracts.md) 坑 #2) |
-| vendor mkimage 2017.09 | rkbin SPL 的 FIT 布局税 | 打 uboot FIT 必须用它(主线 mkimage 的 -E 布局 SPL 不认,见 [pitfalls/01](pitfalls/01-rkbin-spl-contracts.md) 坑 #3) |
+| ~~vendor mkimage 2017.09~~ | ~~rkbin SPL 的 FIT 布局税~~ | **已消除(P4)**:[scripts/fit-pack.py](../scripts/fit-pack.py)(纯 Python)复刻 vendor SPL 认的 -E 外部布局,替代 vendor mkimage 打 uboot FIT;主线 mkimage 仅留 `-l` 校验(见 [notes/20](notes/20-2026-06-19-mkimage-saga-handoff.md)) |
 | board DT(rk3506.dtsi / rk3506b-aes.dts) | **我们写的**,非残留 | rk-forge 的贡献点(上游化目标) |
 | ~~SFC 50MHz cap~~ | ~~主线 sfc 无 DLL 调谐的 workaround~~ | **已消除**:移植 vendor DLL 调谐,扫出 230-cell 采样窗(见 [pitfalls/04](pitfalls/04-sfc-nand-saga.md) 坑 #5) |
 | ~~spinand core.c hack~~ | — | **已消除** |
 
-→ 残留 = **vendor SPL/DDR/TEE blob + vendor mkimage 税**。论点**基本成立**:build 全换主线
+→ 残留 = **vendor SPL/DDR/TEE blob**(vendor mkimage 税已于 P4 消除,见上)。论点**基本成立**:build 全换主线
 (U-Boot + kernel 全主线源码 + patch,[notes/11](notes/11-2026-06-16-patch-verification-rw-rootfs.md) 干净
 上游逐字节验证过),但启动前段(DDR/secure)仍离不开 vendor blob——RK 平台的硬现实(rkbin)。
 
@@ -65,7 +65,7 @@ vendor 东西:
 
 1. **启动前段(DDR/secure)**:主线没法自己 init RK3506 DDR → 借 vendor blob。最大的"非主线"成分,方案 A(自己 SPL)未成。
 2. **板级外设接线**:主线 DT 现在覆盖了核心 + SPI-NAND;mmc/eth/usb/display/can 还没接(P3)。差的是 DT 节点 + 各自 bringup(时钟 / 电源 / io-domain / phy)。
-3. **vendor mkimage 税**:uboot FIT 必须用 vendor 2017.09 mkimage 打(rkbin SPL 的 -E 布局),kernel FIT 才能用主线 mkimage。是 rkbin SPL 的隐性税。
+3. ~~vendor mkimage 税~~(P4 已消除):uboot FIT 现由 [scripts/fit-pack.py](../scripts/fit-pack.py)(纯 Python)打,vendor-layout 兼容;不再依赖 vendor 2017.09 mkimage,kernel/boot FIT 也用同一 packer。
 
 ## 下一步优先级
 

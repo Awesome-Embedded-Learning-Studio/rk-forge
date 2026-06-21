@@ -23,7 +23,7 @@
 - `rk3506.dtsi` 加 `sfc: spi@ff488000`(主线 `rockchip,sfc` binding + `rockchip,sfc-no-dma` + clocks SCLK_FSPI/HCLK_FSPI)。
 - `rk3506b-aes.dts` 启用 `&sfc` + `flash@0`(compatible=spi-nand=W25N04KV,50MHz,rx4) + fixed-partitions(uboot/misc/vnvm/recovery/boot/rootfs/userdata,对齐 parameter,128KB 擦除块对齐,0–4MB loader 区留空)。
 
-**内核 config**(`boards/rk3506-evb/kernel.config`):+`CONFIG_SPI_ROCKCHIP_SFC=y` +`CONFIG_MTD_SPI_NAND=y`(UBI/UBIFS/squashfs/MTD_BLOCK/MTD_OF_PARTS 主线 multi_v7 已带)。
+**内核 config**(`board/rk3506-evb/kernel.config`):+`CONFIG_SPI_ROCKCHIP_SFC=y` +`CONFIG_MTD_SPI_NAND=y`(UBI/UBIFS/squashfs/MTD_BLOCK/MTD_OF_PARTS 主线 multi_v7 已带)。
 
 **`scripts/build-linux.sh`**:12 行 stub → 真 merge_config 流程(merge_config multi_v7 + kernel.config → olddefconfig → zImage + dtb,带 `--just-dtb` 快检)。
 

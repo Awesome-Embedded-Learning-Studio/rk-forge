@@ -1,4 +1,4 @@
-# pitfalls/07 — WiFi out-of-tree 驱动移植(RTL8733BU → Linux 7.1)
+# 07 — WiFi out-of-tree 驱动移植(RTL8733BU → Linux 7.1)
 
 > 把主线无驱动的板载 WiFi 芯片靠移植 out-of-tree 驱动跑通的完整坑集。按**故障域**组织,
 > 每条带板上证据(log 行号引 `document/logs/boot-sdl-202606201050.txt`)。完整执行过程见

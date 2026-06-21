@@ -4,7 +4,7 @@
 > 还原该域的坑 + 走过的弯路 + 被推翻的结论 + 每步板上证据(log 行),如实叙事。
 >
 > 与其他层分工:[notes/](../notes/) = raw 按天流水(取证源);本目录 = 回溯提炼的完整叙事
-> + canonical 结论;[tutorial/](../tutorial/) = 面向读者的成功路径;[archive/](../archive/) =
+> + canonical 结论;[tutorial/](../tutorial/) = 面向读者的成功路径;`archive/` =
 > 被本系列纠正的旧错结论(保留"走过的错路"痕迹,不误导)。
 
 ## 篇章划分

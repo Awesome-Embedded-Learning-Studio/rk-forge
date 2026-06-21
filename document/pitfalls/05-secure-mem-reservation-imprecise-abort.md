@@ -102,7 +102,7 @@ TMPFS-DONE                                  ← dd-tmpfs 100 圈零 abort
 
 ## 与 [04 SFC/NAND saga](04-sfc-nand-saga.md) 的关系
 
-- [04] 的 loader 弱写 saga **依然成立、独立**(见 notes [26](../notes/26-…-ubiprog-loader-weakwrite)):
+- [04] 的 loader 弱写 saga **依然成立、独立**(见 notes 26):
   abort 修了,ubiprog 首启照样读出 PEB 3/4/5/122/124 chip ECC -74。loader 弱写是 chip ECC 报的,
   和 host RAM 分配(OP-TEE)无关。
 - 本篇纠正的是:**RW saga 里"写 abort / code 损坏"那一支,真根因是 reserved-memory,不是 SFC

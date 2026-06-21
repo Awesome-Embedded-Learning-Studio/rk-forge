@@ -94,7 +94,7 @@ boot 链:SPL → 装 optee(0x1000)+uboot(0x200000)+fdt → 跳 optee(安全世�
 
 **地址坑(关键)**:主线 `CONFIG_TEXT_BASE=0x00800000`,vendor FIT 里 uboot@0x00200000,差 6MB。我们代码按 0x800000 链接,装到 0x200000 会崩(绝对寻址错)。**解法:ITS 里 uboot `load=0x00800000`**(匹配我们编译),optee(0x1000)/tee 不动。SPL 装我们 uboot 到 0x800000,optee NS 跳转地址由 SPL 按 loadable 的 load 设置 → 自洽。
 
-**产物**:`third_party/bringup/fit/rk3506-mainline.its`(手写,复刻 vendor 结构)+ `rk3506-mainline.itb`(547KB,vendor 2017.09 mkimage `-E` 打包)。dumpimage 对照:optee hash 值与 vendor **逐字节相同**(同一颗 tee.bin),结构/conf 全对。Windows 副本:`D:\DownloadFromInternet\rk3506-uboot-mainline-vendor-fit.itb`。
+**产物**:`board/aes/fit/rk3506-mainline.its`(手写,复刻 vendor 结构)+ `rk3506-mainline.itb`(547KB,vendor 2017.09 mkimage `-E` 打包)。dumpimage 对照:optee hash 值与 vendor **逐字节相同**(同一颗 tee.bin),结构/conf 全对。Windows 副本:`D:\DownloadFromInternet\rk3506-uboot-mainline-vendor-fit.itb`。
 
 **烧板(待用户操作,RKDevTool "下载镜像"模式)**:
 1. Loader = `rk3506-vendor-loader.bin`(vendor 原装,恢复 vendor SPL 到 boot 区 + 进下载模式)
@@ -119,7 +119,7 @@ boot 链:SPL → 装 optee(0x1000)+uboot(0x200000)+fdt → 跳 optee(安全世�
 方案 B(借 vendor SPL/DDR/usbplug,主线 U-Boot proper 走 vendor 格式 FIT)已**完整跑通**。boot 链:`bootrom → vendor idblock(vendor DDR v1.06 + vendor SPL 2017) → 读 NAND uboot 分区(我们 FIT) → 装 optee(0x1000)+uboot(0x800000)+fdt → OP-TEE → NS 跳 0x800000 → 主线 U-Boot 2026.07-rc4 提示符`。
 
 **关键产出(可复用)**:
-- `third_party/bringup/fit/rk3506-mainline.its` + `rk3506-mainline.itb`(vendor 格式 FIT 模板,uboot load=0x800000)
+- `board/aes/fit/rk3506-mainline.its` + `rk3506-mainline.itb`(vendor 格式 FIT 模板,uboot load=0x800000)
 - `arch/arm/dts/rk3506.dtsi` 加 OTP 节点(ff4f0000)
 - Windows:`D:\DownloadFromInternet\rk3506-uboot-mainline-vendor-fit.itb` + `rk3506-vendor-loader.bin`
 

@@ -9,7 +9,7 @@ rk-forge 的文档分四层,各司其职。原始过程素材(raw 笔记 + 板�
 | 教程 | [tutorial/](tutorial/) | 面向外部读者:结论性 how-to(成功路径)。每章"成功长这样"配真实 UART 抓取。 |
 | 踩坑日记 | [pitfalls/](pitfalls/) | 按**故障域分篇**(4 篇),还原真实时间线 + 弯路 + 被推翻的结论 + 每步板上 log 佐证,覆盖 12 条坑。 |
 | 过程笔记 | [notes/](notes/) | raw dated bringup 日记(含失败、噪音、半成品),honesty substrate,是踩坑日记的取证源。 |
-| 归档 | [archive/](archive/) | 被证伪/取代的旧结论文档,带 superseded banner + canonical 指针,保留"走过的错路"但不误导。 |
+| 归档 | `archive/` | 被证伪/取代的旧结论文档,带 superseded banner + canonical 指针,保留"走过的错路"但不误导。 |
 | 参考 | [sdk-diff.md](sdk-diff.md) | vendor SDK vs 主线移植的逐外设差距对照(活文档)。 |
 
 ## 板上日志(取证素材)

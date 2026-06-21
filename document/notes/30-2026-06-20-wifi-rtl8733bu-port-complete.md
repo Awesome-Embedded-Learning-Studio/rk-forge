@@ -126,15 +126,15 @@ cd third_party/buildroot && export BR2_EXTERNAL=$PWD/../bringup/buildroot-extern
 bash scripts/stage-rootfs.sh                        # 注入 .ko + 固件 + S99wifi
 bash scripts/pack-ubifs.sh
 bash scripts/assemble-update.sh --provision
-cp third_party/bringup/out/update.img /mnt/d/DownloadFromInternet/update-wifi-rtl8733bu.img
+cp board/aes/out/update.img /mnt/d/DownloadFromInternet/update-wifi-rtl8733bu.img
 ```
 
 ## 改动清单(未 commit)
-- **rk-forge 仓(tracked)**:[kernel.config](../../boards/rk3506-evb/kernel.config) +
-  [kernel-trim.config](../../boards/rk3506-evb/kernel-trim.config) +
-  [buildroot defconfig](../../third_party/bringup/buildroot-external/configs/rk3506_aes_defconfig) +
+- **rk-forge 仓(tracked)**:[kernel.config](../../board/rk3506-evb/kernel.config) +
+  [kernel-trim.config](../../board/rk3506-evb/kernel-trim.config) +
+  [buildroot defconfig](../../board/aes/buildroot-external/configs/rk3506_aes_defconfig) +
   [stage-rootfs.sh](../../scripts/stage-rootfs.sh) + 新建
-  [S99wifi](../../third_party/bringup/buildroot-external/overlay/etc/init.d/S99wifi)。
+  [S99wifi](../../board/aes/buildroot-external/overlay/etc/init.d/S99wifi)。
 - **explore/linux 内嵌 git**:`realtek/{Kconfig,Makefile}` 接线(2 行);`rtl8733bu/` 是
   **untracked vendor drop**(Kbuild Makefile + Kconfig 修复 + ioctl_cfg80211.c wdev wrapper 在里面)。
 - 还原了被 `make O=.` 污染成 7 行 wrapper 的内核顶层 `Makefile`(`git checkout -- Makefile`)。

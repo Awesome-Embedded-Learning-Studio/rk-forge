@@ -88,7 +88,7 @@ loaded via busybox `insmod` after switch_root, with ATK-provided firmware.
    or keep a local Kconfig sourced from there).
 5. Wire: `drivers/net/wireless/realtek/Makefile` += `obj-$(CONFIG_RTL8733BU) +=
    rtl8733bu/`; `realtek/Kconfig` += `source ".../rtl8733bu/Kconfig"`.
-6. `boards/rk3506-evb/kernel.config` += `CONFIG_RTL8733BU=m`, `CONFIG_CFG80211=y`
+6. `board/rk3506-evb/kernel.config` += `CONFIG_RTL8733BU=m`, `CONFIG_CFG80211=y`
    (flip from m). Build → now the error list comes from the STABLE in-tree path.
 
 ### Phase 2 — API port (6.8.x → our 7.1)

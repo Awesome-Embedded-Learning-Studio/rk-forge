@@ -138,7 +138,7 @@ mtdparts=:
 
 ## 八、板无关的第一里程碑(无需硬件即可推进 + 验证)
 
-把"主线 mkimage + boot_merger 产 loader + forge 脚本组装"做成可复现,产物落 `third_party/bringup/out/`,并**回程自检**:
+把"主线 mkimage + boot_merger 产 loader + forge 脚本组装"做成可复现,产物落 `board/aes/out/`,并**回程自检**:
 1. `scripts/` 加 bash:`pack-loader.sh`(调 boot_merger + RK3506BMINIALL.ini)、`pack-fit.sh`(主线 mkimage 打 uboot/boot FIT)、`assemble-update.sh`(afptool+rkImageMaker 产 update.img);
 2. 产物用 `rkImageMaker -unpack` + `afptool -unpack` 回剥,确认结构合法、各分区在位;
 3. 与 vendor 镜像对照(同结构、我们内容)→ **管线 owned 的板无关证据**。

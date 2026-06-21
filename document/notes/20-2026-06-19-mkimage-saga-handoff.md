@@ -63,8 +63,8 @@ vendor mkimage 的 SPL 兼容靠两样**非公开/重系统**的东西：① ATK
 - **`scripts/fit-pack.py`**（✅ 本次产出：纯 Python FIT `-E` packer，替 vendor mkimage。ITS 解析器 + mkimage-faithful DTB 编码器 + selftest）。
 - `scripts/pack-fit.sh` uboot.img 段（`python3 "$FIT_PACK" pack …`，已切）。
 - `scripts/rkfw-pack.py`（D 模式范本 = 手搓 FIT packer 的设计参考）。
-- `third_party/bringup/out/uboot.img`（609280 B；**历史基准** = 逆它的字节定位了 SPL 兼容布局。现已是 fit-pack.py 产出，selftest 对它跑=确定性检查）。
-- `third_party/bringup/fit/rk3506-mainline.its`（FIT 源：uboot/optee/fdt + sha256 hash）。
+- `board/aes/out/uboot.img`（609280 B；**历史基准** = 逆它的字节定位了 SPL 兼容布局。现已是 fit-pack.py 产出，selftest 对它跑=确定性检查）。
+- `board/aes/fit/rk3506-mainline.its`（FIT 源：uboot/optee/fdt + sha256 hash）。
 
 ## 手搓 FIT packer 的入门（b 方向）
 FIT `-E` = fdt（FIT structure：images{uboot,optee,fdt}+hash + configurations）+ external data（三段 blob，fdt 的 data property 指向 external offset/size）+ per-image sha256。SPL 验 optee 的 sha256（读 fdt hash + external optee data 算 sha256 比对）。Python 复现：① 构 fdt（可用 `libfdt` Python binding 或手写 fdt encoder）；② 拼 external data；③ 写 data property = offset/size；④ 算 sha256 填 hash。逆 `out/uboot.img` 字节对齐验证（像 rkfw-pack.py 对 update.img）。
