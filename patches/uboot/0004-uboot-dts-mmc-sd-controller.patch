@@ -1,0 +1,91 @@
+From d30a7d119aa9b2a54c2d0e8e18775c435f5fe388 Mon Sep 17 00:00:00 2001
+From: CharlieChen114514 <725610365@qq.com>
+Date: Sun, 21 Jun 2026 09:36:05 +0800
+Subject: [PATCH] uboot: dts: rk3506-evb enable mmc (SD card slot) for SD-card
+ boot
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The minimal rk3506.dtsi deferred all peripherals except console/SFC. SD-card
+boot (RKFW update-sd.img) needs U-Boot proper to see the dwmmc SD controller
+(mmc@ff480000) — without it 'mmc dev 0' reports 'No MMC device available'
+(SPL loads U-Boot from SD fine, but U-Boot's driver-model needs the DT node).
+
+Add the mmc@ff480000 node (compatible rk3506/rk3288-dw-mshc, clocks
+HCLK_SDMMC/CCLK_SRC_SDMMC, bus-width 4) + enable it in rk3506-evb.dts with
+broken-cd (card is present — we booted from it; skip GPIO card-detect). No
+pinctrl-0: the SPL already configured the SD pins to load U-Boot, inherited.
+
+Board-test pending: mmc dev 0 should now enumerate the SD (was 'No MMC device').
+---
+ arch/arm/dts/rk3506-evb.dts | 11 +++++++++++
+ arch/arm/dts/rk3506.dtsi    | 22 ++++++++++++++++++++--
+ 2 files changed, 31 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/dts/rk3506-evb.dts b/arch/arm/dts/rk3506-evb.dts
+index 48cdded1..ba1d7d9e 100644
+--- a/arch/arm/dts/rk3506-evb.dts
++++ b/arch/arm/dts/rk3506-evb.dts
+@@ -21,3 +21,14 @@
+ 		stdout-path = &uart0;
+ 	};
+ };
++
++/*
++ * SD card slot (mmc@ff480000) — enabled for SD-card boot (RKFW update-sd.img).
++ * The SPL already configured the SD pins to load U-Boot, so no pinctrl-0 here
++ * (pins are inherited). broken-cd: the card is present (we booted from it), so
++ * skip the GPIO card-detect and always treat the slot as populated.
++ */
++&mmc {
++	broken-cd;
++	status = "okay";
++};
+diff --git a/arch/arm/dts/rk3506.dtsi b/arch/arm/dts/rk3506.dtsi
+index 735f805d..41bf1c2b 100644
+--- a/arch/arm/dts/rk3506.dtsi
++++ b/arch/arm/dts/rk3506.dtsi
+@@ -5,12 +5,14 @@
+  * Minimal RK3506 SoC dtsi for rk-forge bring-up (U-Boot banner milestone).
+  * Ported/reduced from the ATK vendor SDK rk3506.dtsi. Only the nodes needed to
+  * reach the U-Boot banner are included: clocks, cru, grf/grf_pmu, ioc syscons,
+- * gic, arch timer, pinctrl (all 5 gpio banks + uart0 pins), uart0 console.
+- * All other peripherals (i2c/spi/pwm/sai/mmc-fspi/display/usb/...) deferred —
++ * gic, arch timer, pinctrl (all 5 gpio banks + uart0 pins), uart0 console,
++ * + mmc (SD card slot, enabled for SD-card boot — patch 0004).
++ * All other peripherals (i2c/spi/pwm/sai/fspi/display/usb/...) deferred —
+  * they are not required for SPL→U-Boot console. Add them in later iterations.
+  */
+ 
+ #include <dt-bindings/clock/rockchip,rk3506-cru.h>
++#include <dt-bindings/reset/rockchip,rk3506-cru.h>
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/interrupt-controller/irq.h>
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
+@@ -100,6 +102,22 @@
+ 		status = "disabled";
+ 	};
+ 
++	mmc: mmc@ff480000 {
++		compatible = "rockchip,rk3506-dw-mshc", "rockchip,rk3288-dw-mshc";
++		reg = <0xff480000 0x4000>;
++		interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru HCLK_SDMMC>, <&cru CCLK_SRC_SDMMC>;
++		clock-names = "biu", "ciu";
++		bus-width = <4>;
++		cap-sd-highspeed;
++		max-frequency = <150000000>;
++		fifo-depth = <0x100>;
++		resets = <&cru SRST_H_SDMMC>;
++		reset-names = "reset";
++		/* SD card slot — enabled per-board in rk3506-evb.dts for SD-card boot. */
++		status = "disabled";
++	};
++
+ 	ioc_grf: syscon@ff4d8000 {
+ 		compatible = "rockchip,rk3506-ioc-grf", "syscon";
+ 		reg = <0xff4d8000 0x8000>;
+-- 
+2.43.0
+

@@ -58,6 +58,7 @@ while [[ $# -gt 0 ]]; do
     --provision) VMODE=provision; shift;;
     --nand) VMODE=nand; shift;;
     --rescue) VMODE=rescue; shift;;
+    --sd) VMODE=sd; shift;;
     --loader) LOADER="$2"; shift 2;;
     --parameter) PARAMETER_OVERRIDE="$2"; shift 2;;
     --no-verify) VERIFY=0; shift;;
@@ -94,10 +95,39 @@ case "$VMODE" in
     PKGFILE="${BRINGUP}/package-file-aes.txt"
     UPDATE_OUT="${OUT_DIR}/update-rescue.img"
     VARIANT="RESCUE-SHELL" ;;
+  sd)
+    # SD-card boot variant: RKFW for the Rockchip SD tool (this board's ROM boots
+    # SD only from an RK-tool-written card — a raw dd image is not recognized).
+    # boot-sd.img = NO-RAMDISK kernel FIT (boot.img's provisioning initramfs
+    # would hijack root= → mount NAND UBIFS instead of the SD ext4; see log
+    # boot-sdl-202606210958). No initramfs → kernel honors root=/dev/mmcblk0p3
+    # and mounts the SD ext4 rootfs (GPT p3). rootfs = ext4 (rootfs.ext4 from
+    # pack-sd.sh, NOT ubi). SD-1 manual boot (mmc read + setenv root=);
+    # autoboot is SD-2 (separate uboot defconfig). See notes/32.
+    BOOT="${OUT_DIR}/boot-sd.img"
+    PKGFILE="${BRINGUP}/package-file-sd.txt"
+    ROOTFS="${OUT_DIR}/rootfs.ext4"
+    PARAMETER="${BRINGUP}/parameter-sd-aes.txt"
+    UPDATE_OUT="${OUT_DIR}/update-sd.img"
+    VARIANT="SD-CARD" ;;
 esac
 for f in "$LOADER" "$UBOOT" "$BOOT" "$PARAMETER" "$PKGFILE" ${ROOTFS:+"$ROOTFS"}; do
   [[ -r "$f" ]] || die "missing: $f (run \`forge pack\` first; for --nand the rootfs chain is stage-rootfs → pack-ubifs)"
 done
+
+# --sd: the ext4 rootfs image must FIT in the fixed-size rootfs GPT partition
+# (parameter-sd-aes.txt). A larger image would overflow/truncate → broken root.
+# (grow was removed from the rootfs partition: rkfw-pack's regex can't parse `-`,
+# leaving nand_addr=0xFFFFFFFF → RK tool writes no image → empty partition panic.)
+if [[ "$VMODE" == "sd" ]]; then
+  ROOTFS_PART_HEX=$(sed -nE 's/.*0x([0-9a-fA-F]+)@0x[0-9a-fA-F]+\(rootfs\).*/\1/p' "$PARAMETER")
+  [[ -n "$ROOTFS_PART_HEX" ]] || die "couldn't parse rootfs partition size from $PARAMETER"
+  ROOTFS_PART_SZ=$(( 0x$ROOTFS_PART_HEX * 512 ))
+  ROOTFS_SZ=$(stat -c%s "$ROOTFS")
+  (( ROOTFS_SZ <= ROOTFS_PART_SZ )) \
+    || die "rootfs.ext4 ($ROOTFS_SZ B) > rootfs partition ($ROOTFS_PART_SZ B). Shrink --rootfs-mib or grow the partition in $PARAMETER."
+  log_info "rootfs.ext4 ($ROOTFS_SZ B) fits rootfs partition ($ROOTFS_PART_SZ B)"
+fi
 
 # Pad boot.img to fill the boot partition. The loader only erases+writes the
 # blocks the image spans, so an unpadded image leaves [image, partition-end] at

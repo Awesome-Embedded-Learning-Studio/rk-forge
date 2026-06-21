@@ -145,6 +145,19 @@ def cmd_pack(args):
             nand_size, nand_addr = 0x2000, 0x0      # afptool hardcodes parameter's flash meta (not a real flash partition)
         else:
             nand_size, nand_addr = mtdparts.get(name, (0, 0xFFFFFFFF))
+            # A real flash partition with nand_addr=0xFFFFFFFF means it wasn't
+            # found in the parameter (typo) OR is a "grow" entry whose `-` size
+            # the regex can't parse. Either way the RK tool gets no write
+            # address → it builds the partition but writes NO image → the board
+            # panics ("no filesystem could mount root"). Fail loudly at pack
+            # time instead of letting an empty partition ship. (boot-sdl-202606211014)
+            if nand_addr == 0xFFFFFFFF:
+                sys.stderr.write(
+                    f"rkfw-pack: WARNING: partition '{name}' has no fixed flash "
+                    f"address (nand_addr=0xFFFFFFFF; not in parameter or is a "
+                    f"'grow' entry). The RK tool will likely NOT write its image "
+                    f"→ empty partition → board root-mount failure. Give it a "
+                    f"fixed 0x<size>@0x<offset> entry in the parameter.\n")
         padded = (size + PAGE - 1) // PAGE
         rec = (_cstr(name.encode(), 32) + _cstr(os.path.basename(rel).encode(), 60)
                + struct.pack('<IIIII', nand_size, pos, nand_addr, padded, size))

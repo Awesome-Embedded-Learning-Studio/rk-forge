@@ -1,0 +1,63 @@
+/*
+ * 主线 Linux 内核 FIT — SD 卡真根版(RK3506B,从 SD 的 ext4 rootfs 分区挂根)。
+ *
+ * 与 rk3506-kernel.its 的区别: **不含 ramdisk 节点**。这样内核不会 unpack
+ * initramfs 去 exec /init(那会拦截 root=,见 boot-sdl-202606210958 log——
+ * provisioning /init 反而去挂了 NAND UBIFS),而是按 bootargs 的
+ * root=/dev/mmcblk0p3 直接挂 SD 卡 GPT 第 3 分区(rootfs ext4),再 exec
+ * /sbin/init。bootargs 由 U-Boot 的 setenv 提供(override DT chosen)。
+ *
+ * 结构同 rk3506-kernel-nand.its(zImage+dtb 无 ramdisk)——FIT 本身媒体无关,
+ * 差别只在 bootargs(NAND:ubi0:rootfs;SD:mmcblk0p3)。独立一份只为命名诚实。
+ *
+ * 兄弟镜像:
+ *   boot.img      ← rk3506-kernel.its      (zImage+dtb+initramfs)  provisioning/rescue
+ *   boot-nand.img ← rk3506-kernel-nand.its (zImage+dtb,无 ramdisk) NAND UBIFS root
+ *   boot-sd.img   ← 本文件                 (zImage+dtb,无 ramdisk) SD ext4 root
+ *
+ * 打包: fit-pack.py pack --external-offset 0x800(Mode B,主线 U-Boot bootm 消费)
+ */
+/dts-v1/;
+
+/ {
+	description = "Mainline Linux FIT for RK3506B (SD ext4 rootfs boot)";
+	#address-cells = <1>;
+
+	images {
+
+		kernel {
+			description = "Linux kernel (zImage, self-decompressing)";
+			data = /incbin/("zImage");
+			type = "kernel";
+			arch = "arm";
+			os = "linux";
+			compression = "none";
+			load = <0x02080000>;
+			entry = <0x02080000>;
+			hash {
+				algo = "sha256";
+			};
+		};
+
+		fdt {
+			description = "RK3506B AES board flat DT (bootargs set by U-Boot: root=/dev/mmcblk0p3)";
+			data = /incbin/("rk3506b-aes.dtb");
+			type = "flat_dt";
+			arch = "arm";
+			compression = "none";
+			load = <0x01e00000>;
+			hash {
+				algo = "sha256";
+			};
+		};
+	};
+
+	configurations {
+		default = "conf";
+		conf {
+			description = "Boot mainline Linux, mount SD ext4 rootfs (mmcblk0p3)";
+			kernel = "kernel";
+			fdt = "fdt";
+		};
+	};
+};

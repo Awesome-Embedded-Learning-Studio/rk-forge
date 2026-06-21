@@ -1,0 +1,18 @@
+# package-file-sd.txt — RKAF manifest for the SD-card boot variant (update-sd.img).
+#
+# Same shape as package-file-nand.txt, but consumed by the Rockchip SD tool to
+# write a BOOTABLE SD card (this board's ROM boots SD only from an RK-tool card).
+# rootfs is the ext4 image (rootfs.ext4 from pack-sd.sh), staged as rootfs.img —
+# NOT the UBIFS used by the NAND variant. assemble-update.sh --sd stages it.
+#
+# The RK tool writes: idblock @ sector 0x40 (from the loader), then each image
+# into its GPT partition per parameter-sd-aes.txt (uboot@0x2000, boot@0x4000,
+# rootfs@0x10000). Result: a bootable SD → SPL → U-Boot → (manual) mmc read → Linux.
+
+# NAME		Relative path
+package-file	package-file
+bootloader	Image/MiniLoaderAll.bin
+parameter	Image/parameter.txt
+uboot		Image/uboot.img
+boot		Image/boot.img
+rootfs		Image/rootfs.img

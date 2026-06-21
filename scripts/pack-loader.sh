@@ -85,4 +85,18 @@ log_info "boot_merger …"
 
 cp "$WORK/loader.bin" "$OUT_DIR/MiniLoaderAll.bin"
 log_ok "loader → $OUT_DIR/MiniLoaderAll.bin ($(stat -c%s "$OUT_DIR/MiniLoaderAll.bin") B)"
+
+# Also capture the standalone idblock.img (what the boot ROM reads at SD/eMMC
+# sector 0x40). boot_merger emits it alongside loader.bin (ini CREATE_IDB=true +
+# IDB_PATH). loader.bin/MiniLoaderAll = idblock + the download-protocol tail
+# (rkdeveloptool/RKDevTool); the SD-card raw-write path (pack-sd.sh) wants the
+# bare idblock. NAND assemble-update.sh doesn't use it → capturing is free, no
+# impact on the NAND flow. If boot_merger didn't emit it, carve from loader.bin
+# later in pack-sd.sh (the idblock is the leading segment).
+if [[ -f "$WORK/idblock.img" ]]; then
+  cp "$WORK/idblock.img" "$OUT_DIR/idblock.img"
+  log_ok "idblock → $OUT_DIR/idblock.img ($(stat -c%s "$OUT_DIR/idblock.img") B, for SD/eMMC raw write)"
+else
+  log_warn "boot_merger produced no standalone idblock.img (pack-sd.sh will carve it from MiniLoaderAll.bin)"
+fi
 log_warn "NOT byte-identical to ATK-shipped loader (boot_merger metadata + idblock layout); board-boot unverified (notes/09 §五④, BLOBS.md)."
