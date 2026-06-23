@@ -83,3 +83,10 @@ site/.vitepress/dist/
 site/.vitepress/cache/
 site/.vitepress/.temp/
 *.tgz
+
+# --- 整站 PDF 导出产物(pandoc + WeasyPrint 输出;走 Release asset 分发,不提交进仓库) ---
+dist-pdf/
+
+# --- Python ---
+__pycache__/
+*.pyc
