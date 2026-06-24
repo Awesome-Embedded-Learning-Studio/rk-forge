@@ -82,21 +82,23 @@ stage_setup() {
   # apply the patch series into each tree, but only if it's still at the base
   # (unpatched). apply-series.sh commits via `git am`, so guard on HEAD==base.
   local linux_base uboot_base
-  # awk filters comment (#) + blank lines: pins/* has a multi-line header, so a
-  # bare '{print $2}' collects $2 from EVERY line (a multi-line blob) and breaks
-  # git rev-parse ("invalid object name 'pins/linux\nFormat'"). Latent bug — it
-  # made setup's patch-applied check always fall through to "skip apply" (base
-  # failed to resolve → HEAD != "" → else branch), masked only because the tree
-  # was already patched. A clean re-clone (at base) would mis-skip → unpatched build.
+  # pins ref may be an annotated tag (linux = v7.1). `git rev-parse <tag>` returns
+  # the TAG-OBJECT sha, but HEAD after `git clone --branch <tag>` is the COMMIT sha
+  # — the two never compare equal, so a bare rev-parse made this guard ALWAYS skip
+  # apply on a clean clone → unpatched tree → "No rule to make target
+  # rk3506b-aes.dtb" (issue #6: zImage builds fine since it needs no board DT).
+  # Peel the tag to its commit with ^{commit} (no-op for the uboot commit-sha pin).
+  # The awk filter also strips pins/* comments + blank lines (a bare $2 would collect
+  # a multi-line blob and break rev-parse).
   linux_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/linux")
   uboot_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/uboot")
-  if [[ "$(git -C "$LINUX_DIR" rev-parse HEAD)" == "$(git -C "$LINUX_DIR" rev-parse "$linux_base")" ]]; then
+  if [[ "$(git -C "$LINUX_DIR" rev-parse HEAD)" == "$(git -C "$LINUX_DIR" rev-parse "${linux_base}^{commit}")" ]]; then
     log_info "[setup] applying linux patch series"
     ( cd "$LINUX_DIR" && bash "${_SCRIPT_DIR}/apply-series.sh" --component linux )
   else
     log_info "[setup] linux tree already patched ($(git -C "$LINUX_DIR" describe --tags 2>/dev/null || git -C "$LINUX_DIR" rev-parse --short HEAD)) — skip apply"
   fi
-  if [[ "$(git -C "$UBOOT_DIR" rev-parse HEAD)" == "$(git -C "$UBOOT_DIR" rev-parse "$uboot_base")" ]]; then
+  if [[ "$(git -C "$UBOOT_DIR" rev-parse HEAD)" == "$(git -C "$UBOOT_DIR" rev-parse "${uboot_base}^{commit}")" ]]; then
     log_info "[setup] applying uboot patch series"
     ( cd "$UBOOT_DIR" && bash "${_SCRIPT_DIR}/apply-series.sh" --component uboot )
   else
