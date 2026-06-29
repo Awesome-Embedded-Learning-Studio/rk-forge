@@ -48,10 +48,20 @@ if [[ "$RECONFIGURE" == 1 || ! -f .config ]]; then
   make rk3506_aes_defconfig
 fi
 
+# Detect toolchain root from PATH (avoid hardcoding /opt/... in the defconfig).
+# This lets the user change toolchain location without editing config files.
+TC_GCC=$(command -v "arm-none-linux-gnueabihf-gcc" 2>/dev/null || true)
+if [[ -z "$TC_GCC" ]]; then
+  die "arm-none-linux-gnueabihf-gcc not found on PATH. Run: source scripts/env-setup.sh"
+fi
+BR2_TC_PATH=$(cd "$(dirname "$TC_GCC")/.." && pwd)
+log_info "detected toolchain: $BR2_TC_PATH"
+
 # WSL: buildroot dependencies.mk rejects PATH entries with spaces (/mnt/c/...).
 # forge_clean_path strips them; run make under the cleaned PATH.
-log_info "make (PATH cleaned of /mnt + whitespace)"
-PATH="$(forge_clean_path)" make
+# BR2_TOOLCHAIN_EXTERNAL_PATH overrides the defconfig's hardcoded default.
+log_info "make (PATH cleaned of /mnt + whitespace, BR2_TOOLCHAIN_EXTERNAL_PATH from env)"
+PATH="$(forge_clean_path)" make BR2_TOOLCHAIN_EXTERNAL_PATH="$BR2_TC_PATH"
 
 ROOTFS_TAR="$BUILDROOT/output/images/rootfs.tar"
 [[ -f "$ROOTFS_TAR" ]] || die "buildroot produced no rootfs.tar"
