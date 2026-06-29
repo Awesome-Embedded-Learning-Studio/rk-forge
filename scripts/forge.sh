@@ -8,9 +8,9 @@
 # rk-forge's answer to RK-SDK build.sh rebuilding everything every time).
 #
 # Usage:
-#   scripts/forge.sh setup      fetch source trees + WiFi driver + apply patch series
+#   scripts/forge.sh setup      init rkbin submodule + fetch source trees + WiFi driver + apply patch series
 #   scripts/forge.sh build      build the kernel (build-linux) + print uboot/buildroot cmds
-#   scripts/forge.sh pack       pack loader + FITs + stage/ubifs rootfs
+#   scripts/forge.sh pack       generate initramfs + pack loader + FITs + stage/ubifs rootfs
 #   scripts/forge.sh pack-sd    pack a bootable SD-card image (sd.img) — reuses the
 #                               NAND pack outputs (idblock/uboot.img/boot.img/rootfs)
 #                               then lays out GPT + ext4 rootfs. SD-1 manual boot.
@@ -75,6 +75,16 @@ run_stage() {
 
 # --- stages ------------------------------------------------------------------
 stage_setup() {
+  # init git submodules FIRST. third_party/rkbin is the project's only submodule
+  # (.gitmodules) but it's a HARD build dependency — the sole source of both
+  # boot_merger (pack-loader.sh) AND the DDR/usbplug/SPL/tee blob tuple
+  # (lib/rkbin.sh). A plain `git clone` (no --recursive) leaves the dir empty →
+  # pack-loader dies "boot_merger not found (init third_party/rkbin submodule)"
+  # (issue #8). fetch-deps.sh only covers the gitignored fetched-clones
+  # (linux/uboot/buildroot), NOT the submodule, so init it here explicitly.
+  # Idempotent + fast; --init covers every registered submodule (rkbin today).
+  log_info "[setup] init git submodules (third_party/rkbin — boot_merger + blob source)"
+  git -C "$PROJECT_ROOT" submodule update --init
   log_info "[setup] fetching source trees"
   bash "${_SCRIPT_DIR}/fetch-deps.sh" all
   log_info "[setup] fetching WiFi driver drop"
@@ -120,6 +130,14 @@ stage_build() {
 
 stage_pack() {
   mkdir -p "$OUT_DIR"
+  # build-initramfs FIRST: pack-fit incbin's the provisioning ramdisk into
+  # boot.img. Generated from tracked/pinned sources (busybox + ubiprog.c + /init)
+  # — the in-forge generator that replaced the never-committed hand-built blob
+  # (clean-clone blocker, issue #6/#8 class). See scripts/build-initramfs.sh.
+  run_stage build-initramfs \
+    "${BRINGUP}/initramfs/init" "${BRINGUP}/rootfs/ubiprog.c" \
+    "${_PROJECT_ROOT}/pins/busybox" "${_SCRIPT_DIR}/build-initramfs.sh" \
+    -- bash "${_SCRIPT_DIR}/build-initramfs.sh"
   run_stage pack-loader \
     "${BRINGUP}/RKBOOT-RK3506B-aes.ini" "${FORGE_RKBIN_DIR}/bin/rk35" \
     "${_SCRIPT_DIR}/pack-loader.sh" "${_SCRIPT_DIR}/lib/rkbin.sh" \
@@ -129,6 +147,7 @@ stage_pack() {
     "${BRINGUP}/fit/rk3506-kernel-nand.its" "${LINUX_DIR}/arch/arm/boot/zImage" \
     "${LINUX_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb" \
     "${UBOOT_DIR}/u-boot-nodtb.bin" "${UBOOT_DIR}/u-boot.dtb" \
+    "${BRINGUP}/fit/initramfs.cpio.gz" \
     "${_SCRIPT_DIR}/pack-fit.sh" \
     -- bash "${_SCRIPT_DIR}/pack-fit.sh"
   run_stage stage-rootfs \
@@ -188,7 +207,7 @@ stage_assemble() {
 }
 
 stage_status() {
-  for s in pack-loader pack-fit stage-rootfs pack-ubifs build-uboot-sd pack-fit-sd pack-sd assemble assemble-sd; do
+  for s in build-initramfs pack-loader pack-fit stage-rootfs pack-ubifs build-uboot-sd pack-fit-sd pack-sd assemble assemble-sd; do
     if [[ -f "${STATE_DIR}/${s}.fingerprint" ]]; then
       log_ok "$s: recorded"
     else

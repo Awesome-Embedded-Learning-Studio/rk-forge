@@ -1,10 +1,26 @@
-# initramfs(主线 Linux 交互 shell 用)
+# initramfs(首启置备 ramdisk)
 
-最小 initramfs:静态 busybox + /init,塞进 kernel FIT 当 ramdisk 节点。主线 Linux
-7.0.12 在 RK3506B 上跑 `/init` 进交互 shell(见 logs/boot-sdl-202606151234.txt,
-结尾 `~ #`)。无 rootfs/mmc/nand 依赖,纯 ramdisk。
+首启置备 initramfs:静态 busybox + `/init` + `ubiprog`,塞进 kernel FIT 当 ramdisk
+节点。首启时 `/init` 用 ubiprog 经内核可靠写路径重写 SPI-NAND rootfs 分区(绕开 rkbin
+loader 对部分擦除块的弱写),打 marker 后续启动直接 switch_root 到真正 buildroot
+rootfs。详见 `init` 注释 + document/notes/26。
 
-## 构建 busybox(静态,armhf)
+## 生成(真相源 = forge stage)
+
+**不要再手敲。** `scripts/build-initramfs.sh` 是这个 cpio 的唯一生成器,`forge pack`
+会作为 `build-initramfs` stage 自动跑(pack-fit 之前)。从 tracked/pinned 源全可复现:
+
+- busybox ← `pins/busybox`(上游 1.36.1 tarball,sha256 锁),用 forge 工具链(gcc 15.2)静态编
+- ubiprog ← `board/aes/rootfs/ubiprog.c`(tracked),静态编
+- /init  ← `board/aes/initramfs/init`(tracked)
+
+输出 `board/aes/fit/initramfs.cpio.gz`(pack-fit 读这个路径;.gitignore 正确忽略这个
+**生成产物**)。单独跑:`bash scripts/build-initramfs.sh`。
+
+下面的手敲食谱是**历史参考**(早先靠 vendor-sdk 的 busybox + ATK gcc 10.3 手搓),
+现在被生成器取代——别照它做,它漏了 ubiprog 且依赖 gitignored 的 vendor-sdk。
+
+## 构建 busybox(静态,armhf)——历史参考,勿用
 
 源码用 vendor buildroot 自带的 `busybox-1.36.1.tar.bz2`(无需外部下载):
 

@@ -64,7 +64,7 @@ rk-forge 服务**没人服务的 RK3506**：把最新主线 Linux 跑起来，�
 
 ```bash
 ./scripts/doctor.sh            # 检查 host 依赖 + armhf 交叉工具链（缺啥会给 apt 命令）
-source scripts/env-setup.sh    # 导出 ARCH=arm / CROSS_COMPILE=arm-linux-gnueabihf-
+source scripts/env-setup.sh    # 导出 ARCH=arm / CROSS_COMPILE=arm-none-linux-gnueabihf-
 bash scripts/forge.sh all      # setup → build → pack → assemble → board/aes/out/update.img
 ```
 
