@@ -25,6 +25,8 @@ source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + BUILDROOT + BRINGUP
 source "${_SCRIPT_DIR}/lib/log.sh"
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/host.sh"    # forge_warn_windows_path / forge_clean_path
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/toolchain.sh"  # TOOLCHAIN_BIN_DIR / CROSS_COMPILE (toolchain SoT)
 
 RECONFIGURE=0; CLEAN=0
 while [[ $# -gt 0 ]]; do
@@ -48,19 +50,21 @@ if [[ "$RECONFIGURE" == 1 || ! -f .config ]]; then
   make rk3506_aes_defconfig
 fi
 
-# Detect toolchain root from PATH (avoid hardcoding /opt/... in the defconfig).
-# This lets the user change toolchain location without editing config files.
-TC_GCC=$(command -v "arm-none-linux-gnueabihf-gcc" 2>/dev/null || true)
-if [[ -z "$TC_GCC" ]]; then
-  die "arm-none-linux-gnueabihf-gcc not found on PATH. Run: source scripts/env-setup.sh"
-fi
-BR2_TC_PATH=$(cd "$(dirname "$TC_GCC")/.." && pwd)
-log_info "detected toolchain: $BR2_TC_PATH"
+# Toolchain path: the defconfig hardcodes /opt/... because buildroot's Kconfig
+# state requires a concrete path. Override BR2_TOOLCHAIN_EXTERNAL_PATH at build
+# time from the project's single source of truth (config/toolchain.conf ->
+# TOOLCHAIN_BIN_DIR), so the toolchain location has ONE owner — the same knob
+# U-Boot/kernel builds and the future Python CLI use — instead of re-searching
+# PATH. NOTE: this relocates the *path* only; switching to a different gcc
+# version still needs the BR2_TOOLCHAIN_EXTERNAL_GCC_*/HEADERS_* symbols updated.
+BR2_TC_PATH=$(cd "${TOOLCHAIN_BIN_DIR}/.." && pwd)   # toolchain root (parent of bin/)
+[[ -x "${BR2_TC_PATH}/bin/${CROSS_COMPILE}gcc" ]] \
+  || die "toolchain root invalid: $BR2_TC_PATH (check config/toolchain.conf)"
+log_info "toolchain (from toolchain.conf): $BR2_TC_PATH"
 
 # WSL: buildroot dependencies.mk rejects PATH entries with spaces (/mnt/c/...).
 # forge_clean_path strips them; run make under the cleaned PATH.
-# BR2_TOOLCHAIN_EXTERNAL_PATH overrides the defconfig's hardcoded default.
-log_info "make (PATH cleaned of /mnt + whitespace, BR2_TOOLCHAIN_EXTERNAL_PATH from env)"
+log_info "make (PATH cleaned of /mnt + whitespace, BR2_TOOLCHAIN_EXTERNAL_PATH from toolchain.conf)"
 PATH="$(forge_clean_path)" make BR2_TOOLCHAIN_EXTERNAL_PATH="$BR2_TC_PATH"
 
 ROOTFS_TAR="$BUILDROOT/output/images/rootfs.tar"
