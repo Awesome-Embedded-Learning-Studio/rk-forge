@@ -8,13 +8,16 @@
 ./scripts/doctor.sh
 ```
 
-探测交叉工具链（`arm-linux-gnueabihf`）和构建依赖、检测 WSL2，缺什么就打印精确的 `sudo apt install ...`。**绝不自动安装**（保持脚本可被 Python 包裹）。
+探测 host 构建依赖 + 交叉工具链（`arm-none-linux-gnueabihf`，即 Arm GNU Toolchain）、检测 WSL2，缺什么就打印精确的 `sudo apt install ...`。**绝不自动安装**（保持脚本可被 Python 包裹）。
 
-全新 WSL2 环境通常需要：
+> **交叉工具链不是 apt 包装的**：本项目的交叉编译器是 **Arm GNU Toolchain 15.2.Rel1**（前缀 `arm-none-linux-gnueabihf-`），手动装到 `/opt`（路径以 [config/toolchain.conf](config/toolchain.conf) 为准，从 <https://developer.arm.com/downloads> 下载）。Debian 的 `gcc-arm-linux-gnueabihf` 是**另一把**工具链（前缀不同、gcc 版本不同），装了也不满足。下面的 apt 行只管 **host** 构建依赖。
+
+全新 WSL2 环境通常需要（**仅 host 依赖**）：
 
 ```bash
-sudo apt install gcc-arm-linux-gnueabihf device-tree-compiler bison flex cpio \
-  u-boot-tools libssl-dev libncurses-dev python3-pyelftools
+sudo apt install device-tree-compiler bison flex cpio libssl-dev libncurses-dev \
+  python3-pyelftools mtd-utils gdisk
+# mtd-utils → pack-ubifs 的 mkfs.ubifs/ubinize；gdisk → pack-sd 的 sgdisk
 ```
 
 > 本项目深度 WSL2 友好（Mirrored 网络模式可直通开发板，USB 设备直通用于烧录/串口）。
@@ -22,7 +25,7 @@ sudo apt install gcc-arm-linux-gnueabihf device-tree-compiler bison flex cpio \
 ## 2. 导出工具链环境（每个 shell）
 
 ```bash
-source scripts/env-setup.sh    # 设置 ARCH=arm, CROSS_COMPILE=arm-linux-gnueabihf-
+source scripts/env-setup.sh    # 设置 ARCH=arm, CROSS_COMPILE=arm-none-linux-gnueabihf-
 ```
 
 ## 3. 一条命令构建
@@ -34,7 +37,7 @@ bash scripts/forge.sh all      # setup → build → pack → assemble（默认 
 `forge` 是单一入口编排器，按 DAG 跑各 stage，输入没变的 stage 用内容哈希跳过。常用子命令：
 
 ```bash
-bash scripts/forge.sh setup            # 拉源码树 + WiFi 驱动 + 应用补丁库（git am）
+bash scripts/forge.sh setup            # 初始化 rkbin submodule + 拉源码树 + WiFi 驱动 + 应用补丁库（git am）
 bash scripts/forge.sh build            # 编 kernel（uboot / buildroot 单独触发，会打印命令）
 bash scripts/forge.sh pack             # 打 loader + FIT + stage/ubifs rootfs
 bash scripts/forge.sh pack-sd          # 打可启动 SD 卡镜像（复用 NAND pack 产物）

@@ -30,6 +30,21 @@ declare -A TARGET=(
   [buildroot]="$BUILDROOT"
 )
 
+# retry a git clone across transient network failures (huge repos over flaky
+# networks: observed the linux-stable full clone die mid-transfer with
+# `curl 56 GnuTLS recv error` / `fetch-pack: unexpected disconnect`). Retries
+# with linear backoff; returns the clone's exit code on final failure.
+git_clone_retry() {  # <clone-args...>
+  local tries=3 i=1
+  while (( i <= tries )); do
+    if git clone "$@" 2>/dev/null; then return 0; fi
+    (( i < tries )) && log_warn "git clone failed (attempt $i/$tries); retrying in $(( i * 3 ))s…"
+    (( i < tries )) && sleep $(( i * 3 ))
+    (( i++ ))
+  done
+  return 1
+}
+
 fetch_one() {  # <name>
   local name="$1" pin_file url ref target
   pin_file="${PROJECT_ROOT}/pins/${name}"
@@ -43,14 +58,18 @@ fetch_one() {  # <name>
     return 0
   fi
   mkdir -p "$(dirname "$target")"
-  # --branch works for tags/branches; for a bare SHA (not a named ref) it fails
-  # and we fall back to a default-branch clone + checkout.
-  if git clone --branch "$ref" "$url" "$target" 2>/dev/null; then
+  # --branch works for tags/branches → clone shallow (--depth 1): a full clone
+  # of linux-stable is multi-GB and routinely dies on flaky networks, and we
+  # don't need history (only the pinned ref the patch series applies onto).
+  # For a bare SHA (not a named ref) --branch fails → fall back to a full clone
+  # + checkout (also retried). Either path: no history is fine — apply-series
+  # `git am`s patches onto the resolved HEAD, which is present in a shallow clone.
+  if git_clone_retry --depth 1 --branch "$ref" "$url" "$target"; then
     :
   else
-    log_info "$name: '$ref' is not a named ref — full clone + checkout"
-    git clone "$url" "$target"
-    git -C "$target" checkout "$ref"
+    log_info "$name: '$ref' not a named ref (or shallow clone failed) — full clone + checkout (retried)"
+    git_clone_retry "$url" "$target" || die "$name: git clone failed after retries ($url)"
+    git -C "$target" checkout "$ref" || die "$name: checkout $ref failed (pin wrong?)"
   fi
   log_ok "$name @ $ref → $target"
 }

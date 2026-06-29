@@ -64,7 +64,7 @@ The pre-U-Boot stages (DDR / secure) still borrow the `rkbin` blob — a hard re
 
 ```bash
 ./scripts/doctor.sh            # check host deps + the armhf cross toolchain (prints the apt line if missing)
-source scripts/env-setup.sh    # export ARCH=arm / CROSS_COMPILE=arm-linux-gnueabihf-
+source scripts/env-setup.sh    # export ARCH=arm / CROSS_COMPILE=arm-none-linux-gnueabihf-
 bash scripts/forge.sh all      # setup → build → pack → assemble → board/aes/out/update.img
 ```
 

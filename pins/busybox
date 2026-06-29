@@ -1,0 +1,11 @@
+# pins/busybox — source tarball for the provisioning initramfs's static busybox.
+# Downloaded + sha256-verified by scripts/build-initramfs.sh (the initramfs
+# generator). Format: <url> <sha256>  (# = comment).
+#
+# 1.36.1 is the version the board-verified initramfs.cpio.gz was built from.
+# It builds CLEAN + static under the forge toolchain (Arm GNU gcc 15.2,
+# arm-none-linux-gnueabihf) — verified to produce a byte-size-identical busybox
+# (1414692 B) to the hand-built original, so the generator reproduces the
+# provisioning ramdisk without the ATK vendor-sdk gcc 10.3 the old manual
+# recipe (board/aes/initramfs/README.md) depended on.
+https://busybox.net/downloads/busybox-1.36.1.tar.bz2 b8cc24c9574d809e7279c3be349795c5d5ceb6fdf19ca709f80cde50e47de314
