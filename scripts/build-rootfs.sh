@@ -27,6 +27,8 @@ source "${_SCRIPT_DIR}/lib/log.sh"
 source "${_SCRIPT_DIR}/lib/host.sh"    # forge_warn_windows_path / forge_clean_path
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/toolchain.sh"  # TOOLCHAIN_BIN_DIR / CROSS_COMPILE (toolchain SoT)
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/progress.sh"   # forge_progress_run (live build progress when TTY)
 
 RECONFIGURE=0; CLEAN=0
 while [[ $# -gt 0 ]]; do
@@ -65,7 +67,7 @@ log_info "toolchain (from toolchain.conf): $BR2_TC_PATH"
 # WSL: buildroot dependencies.mk rejects PATH entries with spaces (/mnt/c/...).
 # forge_clean_path strips them; run make under the cleaned PATH.
 log_info "make (PATH cleaned of /mnt + whitespace, BR2_TOOLCHAIN_EXTERNAL_PATH from toolchain.conf)"
-PATH="$(forge_clean_path)" make BR2_TOOLCHAIN_EXTERNAL_PATH="$BR2_TC_PATH"
+PATH="$(forge_clean_path)" forge_progress_run buildroot make BR2_TOOLCHAIN_EXTERNAL_PATH="$BR2_TC_PATH"
 
 ROOTFS_TAR="$BUILDROOT/output/images/rootfs.tar"
 [[ -f "$ROOTFS_TAR" ]] || die "buildroot produced no rootfs.tar"

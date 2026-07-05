@@ -28,6 +28,8 @@ source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + LINUX_DIR/BOARD_CFG (co
 source "${_SCRIPT_DIR}/lib/log.sh"
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/toolchain.sh"
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/progress.sh"   # forge_progress_run (live build progress when TTY)
 
 APPLY=0; JUST_DTB=0
 while [[ $# -gt 0 ]]; do
@@ -73,7 +75,7 @@ if [[ "$JUST_DTB" == 1 ]]; then
   log_ok "dtb → arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
 else
   log_info "building zImage + dtbs …"
-  make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" zImage dtbs
+  forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" zImage dtbs
   make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" rockchip/rk3506b-aes.dtb
   log_ok "zImage → arch/arm/boot/zImage ; dtb → arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
 
