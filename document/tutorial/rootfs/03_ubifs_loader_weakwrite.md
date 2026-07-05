@@ -8,7 +8,9 @@ boot 是"把链路点亮"，rootfs 挂上是"能跑"，但这章要的是"我写
 
 ## 先把读路径治了：80MHz 不调谐，采样全是 marginal
 
-故事的起点其实是读，不是写。主线那两颗 SFC 驱动（linux 的 `spi-rockchip-sfc.c`、uboot 的 `rockchip_sfc.c`）明明定义了采样延迟线寄存器，却**从来不写它**——采样从没调谐过；而 vendor 同名驱动里有个 `rockchip_sfc_delay_lines_tuning`。80MHz 跑着、采样又不调谐，采样点落在 marginal 区，bit 翻不翻纯看脸，这就是"时好时坏"的来源。boot Ch3 里我们用 50MHz 降频绕过，这章我们把 vendor 的 DLL 调谐移植进主线驱动、上板扫窗。[boot-sdl-202606160948](../../logs/boot-sdl-202606160948.txt) 里这段输出看得人直呼内行：
+故事的起点其实是读，不是写。主线那两颗 SFC 驱动（linux 的 `spi-rockchip-sfc.c`、uboot 的 `rockchip_sfc.c`）明明定义了采样延迟线寄存器，却**从来不写它**——采样从没调谐过；而 vendor 同名驱动里有个 `rockchip_sfc_delay_lines_tuning`。80MHz 跑着、采样又不调谐，采样点落在 marginal 区，bit 翻不翻纯看脸，这就是"时好时坏"的来源。
+
+bringup 那会儿图快，先用一行 DT 降频到 50MHz 当过渡——50MHz 以下采样窗口大到不调谐也稳，读就干净了，但这是权宜不是终局。终局是把 vendor 那套 DLL 调谐搬进主线驱动、把读速拿回 80MHz：上板扫窗，[boot-sdl-202606160948](../../logs/boot-sdl-202606160948.txt) 里这段输出看得人直呼内行：
 
 ```
 rockchip_sfc: dll tuning target=50000000Hz real=100000000Hz cell_max=383 step=10 cs=0
@@ -16,7 +18,7 @@ rockchip_sfc:   dll window [0, 230] (230 cells)
 rockchip_sfc: dll ok best=[0,230] -> cell 92
 ```
 
-扫出 230-cell 的巨大采样窗口，读路径这才算根治。
+扫出 230-cell 的巨大采样窗口，读路径这才算根治。所以现在的定型链是 80MHz + DLL 调谐（DT 侧 0003、驱动侧 0002），不是 50MHz 降频；后来又试过 100MHz，DLL 扫出的窗口是 [0,0]，一个 cell 都不给——80MHz 是这颗 DLL 在这颗 SoC 上能稳的最高档，再往上挑不动了。
 
 ## RW 必崩的现场
 
@@ -46,6 +48,8 @@ rockchip_sfc: dll ok best=[0,230] -> cell 92
 
 这一对照，结论彻底钉死：我们内核的读路径没问题（vendor rootfs 在同内核下跨重启干干净净），**是同一颗 loader 写我们这份小 rootfs 时把 PEB 3/4/30/32 写弱了，写 vendor rootfs 时同位置写得稳稳的**。我们这份 4MB 的小 rootfs 把 UBIFS 的 master/journal 集中在了那几个 PEB，正好命中 loader 的弱写块；vendor 那份大 rootfs 元数据分散，没踩中。所以不是内核、不是硬件、不是 ECC 配置、更不是 Linux 写坏——**就是 loader 对我们这份 rootfs 的写**。
 
+后来上 trace v2 直接看 NAND 的 status register byte，rootfs PEB3/4 的 `pg=3,5 st=0x20`、`pg=4 st=0x10`，对照 W25N04KV datasheet §7.3.1：SR bit[5:4]=`10` 就是 ">8 flip 不可纠"，mainline 的 `ecc_get_status` 把它正确报成 `STATUS_ECC_UNCOR_ERROR`。loader 写弱这事儿从"逻辑推断"变成"看 SR 真值"，板上定死了。
+
 > 别把所有写崩都扣给 rkbin。验证 loader 写弱不弱，要做的是拆开变量的 A/B：同 loader + 同内核 + 同分区，只换 rootfs 内容。只换 rkbin 黑盒、又不让 vendor 驱动上板对比，你永远分不清是 loader 写弱还是你自己的读弱。
 
 ## 解法：别让 loader 写 rootfs，改由 Linux 落盘
@@ -70,13 +74,34 @@ ubiprog done: rewrote=65 recovered(page-level)=2 skipped(erased)=1325 failed=0
 
 PEB 3/4 各 64 页，只有 3 页不可纠（填 0xFF），其余 61 页含 master 节点都保住了。改完之后，RW 才算真正稳。
 
+## 插曲：一颗伪装成 SFC 的 abort
+
+ saga 走到这儿，你以为剩下的尾巴就是几颗小雷扫扫尾——结果有颗 abort 把我带进了第二轮弯路，专门值得拎出来一段，因为它伪装得太像 SFC 写路径的锅了。
+
+RW 收得差不多的那天晚上，板子突然报 `imprecise external abort (0xc06)`，断点都落在 `arm_copy_from_user` 读 dd 的 user buffer 那一行，触发 workload 是 `dd` 写 UBIFS rootfs 压测。看着活脱脱就是"SFC 写路径在压力下数据写错、abort 冒泡到用户态"——而彼时我们刚把 SFC 这摊折腾完，第一反应自然是把锅扣回 SFC。
+
+第一轮归因更激进：fault 落在用户 RAM 上，头号嫌就是 DDR 缺陷，跑去跑 stressapptest。结果被一句"vendor_sdk 爆炸写都没事"否决——同 DDR 芯片、同 DDR blob、同一块板，凭啥我们这栈就炸。第二轮转回 SFC，发现我们 `rockchip,sfc-no-dma`（forced PIO）、vendor 走 DMA，假设 PIO 喂不动 FIFO。两轮下来都合理、两轮都错。
+
+真因是 DT 里**没给 OP-TEE 留 reserved-memory**。RK3506B 跑 OP-TEE，OP-TEE 在物理 `0x1000`、占约 `0x60000`（rkbin `RKTRUST/RK3506TOS.ini` `ADDR=0x1000`），DT 漏了 carve-out，内核的 buddy allocator 就把这片当 free RAM 分给了 dd 的 user buffer——访问到 secure 区，external abort。两轮都找错地方，是因为 imprecise abort（0xc06/async）的 FAR 不可信，它打的是"abort 冒上来时 CPU 正在干的那个地址"，不是真凶总线事务的地址；按 FAR 找 DDR 当然找不到。
+
+一发判干净是个零成本判别器：把同样的压测换到 tmpfs 上跑（纯 RAM、零 NAND/SFC/UBI），照样 abort，fault 类型从 0xc06 变成同步的 0x008、pte 解出来正好落在 OP-TEE 区的物理 `0x5000`——同源、同根因，只是不同并发负载下精度不同。这一发直接判了"和 SFC 无关"，省掉继续 diff 816 行 SFC 驱动。命门其实在 boot log 里一行早被忽略的告警：`OF: reserved mem: No reserved-memory node in the DT`——从一开始就在那儿，两轮排查都从眼前溜过去了。
+
+解法是 patch 0012，根节点补一段对齐 vendor 的 `reserved-memory`：
+
+```dts
+reserved-memory {
+    #address-cells = <1>;
+    #size-cells = <1>;
+    ranges;
+    trust@0 { reg = <0x0 0x62000>; };   /* 罩住 OP-TEE [0x1000, 0x61000] */
+};
+```
+
+补上之后 tmpfs 100 圈零 abort、flash_stress 50/50 全过，0xc06 和 0x008 一起消失——没有独立的 SFC 二级问题。这条坑的完整还原见 [pitfalls/05](../../pitfalls/05-secure-mem-reservation-imprecise-abort.md)。值得记的不是"加一段 DT"，是它的方法论：imprecise 的 FAR 不能信，要定位就造 precise 复现（换更纯的 workload 比如 tmpfs）；任何"是不是外设"先 tmpfs 压一遍，零成本就能决定要不要去 diff 驱动。还有一条，ubiprog 的 loader 弱写 saga 依然独立成立——abort 修了之后，首启照样读出 PEB 3/4 chip ECC -74，因为 loader 写弱是 NAND 侧 SR 报的，跟 host RAM 分配无关，两件事不挨着。
+
 ## 几颗伪装弹，点到为止
 
-saga 主线之外还有几颗会伪装成"写损坏"把你带沟里的雷，这里点到、细节都在 pitfalls/04：`bootm` 把 kernel FIT 暂存到 `0x02080000`（kernel load 地址）会自覆盖，得暂存到 `0x04000000`；`mtd read` 读太短会截断 FIT、sha256 fail，长得跟读 corrupt 一模一样；内核太大（11.5MB gzip）会踩过出厂坏块 `0x920000`，解法是换 XZ 压缩压到 7.1MB，不是砍代码。还有一颗更阴的——写到一半板子 external abort，看着活脱脱 SFC 写路径的锅，真因却是 DT 没给 OP-TEE 留 reserved-memory，详见 [pitfalls/05](../../pitfalls/05-secure-mem-reservation-imprecise-abort.md)。
-
-## 这场 saga 教会我们什么
-
-整场 saga 最值钱的一句，不是某个具体修法，而是那句方法学：**别只换 rkbin 黑盒、用 A/B 把变量拆开**。这跟 [pitfalls/01](../../pitfalls/01-rkbin-spl-contracts.md) 恰好形成对照——那一篇是"rkbin SPL 定的契约，我们老老实实对齐"（合理的让步），这一篇是"别把所有问题都归给 rkbin 黑盒、用实验隔离变量"（方法学）。两篇合起来，才是跟 rkbin 这层闭源打交道的完整姿态。
+saga 主线之外还有几颗会伪装成"写损坏"把你带沟里的雷，这里点到、细节都在 pitfalls/04：`bootm` 把 kernel FIT 暂存到 `0x02080000`（kernel load 地址）会自覆盖，得暂存到 `0x04000000`；`mtd read` 读太短会截断 FIT、sha256 fail，长得跟读 corrupt 一模一样；内核太大（11.5MB gzip）会踩过 boot 分区里那块出厂就标坏的 `0x920000`，解法是换 XZ 压缩压到 7.1MB，不是砍代码（这块 PEB 是 loader 老实 skip 的出厂坏块，不是写毛的，别跟 saga 混为一谈）。
 
 ## 成功长这样
 

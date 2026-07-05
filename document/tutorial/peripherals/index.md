@@ -4,9 +4,9 @@ title: 外设
 
 <PageHeader icon="🔌" title="外设" description="把板子从「能启动」变成「能用」——网口、USB、WiFi、I2C/UART、音频" />
 
-boot + rootfs 走完，板子能持久 `login:` 了，但这只是"核心活"。一块板子要真正能用，还得把外设一个个点亮。好消息是：RK3506 这些外设的主线驱动**基本都在上游**（dwmac-rk、dw_mmc-rockchip、spi-rockchip、dwc2、pl330、ES8328……一个不缺），所以外设 bringup 的主体是"接线活"——把驱动用设备树接到引脚上、在 config 里打开、再上板验证。
+boot + rootfs 走完，板子能持久 `login:` 了，但这只是"核心活"。一块板子要真正能用，还得把外设一个个点亮。RK3506 这些外设的主线驱动基本都在上游——dwmac-rk、dw_mmc-rockchip、spi-rockchip、dwc2、pl330、ES8328，一个不缺——所以外设 bringup 的主体是接线活：把驱动用设备树接到引脚上、在 config 里打开、再上板验证。驱动我们一行不写，写的是 DT 和那几处 RK3506 缺的 of_match。
 
-我们分三层逐级坐实：**T1 驱动 probe**（dmesg / sysfs）→ **T2 设备就绪**（`/dev/*`、`/sys/class/net/*`）→ **T3 功能**（真 I/O）。有硬件就验 T3，没有就诚实标 `needs <gear>`，不装假通过。
+验证就一层层坐实：先 dmesg / sysfs 看 probe 起没起，再看 `/dev/*`、`/sys/class/net/*` 出来没，最后跑真 I/O。有硬件就验到功能层，没有的就诚实标 `needs <gear>`，不装假通过。
 
 <ChapterNav>
   <ChapterLink num="01" href="00_roadmap">路线图：把板子从"能启动"变成"能用"</ChapterLink>
