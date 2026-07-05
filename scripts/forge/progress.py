@@ -20,7 +20,11 @@ Wrap a live build (pipe through):
 
 Total denominator: file replay two-passes the log for an accurate %; stdin/live
 is indeterminate (count + rate + ETA-from-rate, no %). Pass --total N to
-override (e.g. from a `make -n` dry-run pre-scan).
+override (e.g. from a `make -n` dry-run pre-scan). NOTE: when passing BOTH a
+file and --total, put the file FIRST — `kind FILE --total N` works, but
+`kind --total N FILE` hits an argparse quirk (nargs='?' positional after an
+option-value) and is rejected as "unrecognized arguments". Stdin/live mode
+(the lib/progress.sh helper) passes no file, so this only affects manual demos.
 """
 import argparse
 import collections
