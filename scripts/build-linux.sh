@@ -92,7 +92,7 @@ else
   if [[ ! -f drivers/net/wireless/realtek/rtl8733bu/8733bu.ko ]]; then
     [[ -f Module.symvers ]] || cp vmlinux.symvers Module.symvers
     log_info "building rtl8733bu.ko (in-tree module.ko target; missing — full-rebuild case)"
-    make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" drivers/net/wireless/realtek/rtl8733bu/8733bu.ko
+    forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" drivers/net/wireless/realtek/rtl8733bu/8733bu.ko
     log_ok "rtl8733bu.ko → drivers/net/wireless/realtek/rtl8733bu/8733bu.ko"
   else
     log_info "rtl8733bu.ko present (skip module build)"

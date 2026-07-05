@@ -23,9 +23,13 @@
 # `pipefail` in the caller still catch real build failures. The progress.py
 # consumer is best-effort and never changes the build's success/failure.
 
+# Self-locate so this lib doesn't depend on the caller having set _SCRIPT_DIR
+# (matches lib/toolchain.sh's BASH_SOURCE pattern; safe under `set -u`).
+_PROGRESS_LIB_DIR=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
+
 forge_progress_run() {
   local kind="$1"; shift
-  local progress_py="${_SCRIPT_DIR}/forge/progress.py"
+  local progress_py="${_PROGRESS_LIB_DIR}/../forge/progress.py"
 
   # Non-interactive or disabled → plain make, preserve exit.
   if [[ "${FORGE_PROGRESS:-1}" != "1" ]] || [[ ! -t 1 ]] \
