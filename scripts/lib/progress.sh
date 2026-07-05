@@ -26,10 +26,11 @@
 # Self-locate so this lib doesn't depend on the caller having set _SCRIPT_DIR
 # (matches lib/toolchain.sh's BASH_SOURCE pattern; safe under `set -u`).
 _PROGRESS_LIB_DIR=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
+FORGE_PROGRESS_PY="${_PROGRESS_LIB_DIR}/../forge/progress.py"
 
 forge_progress_run() {
   local kind="$1"; shift
-  local progress_py="${_PROGRESS_LIB_DIR}/../forge/progress.py"
+  local progress_py="$FORGE_PROGRESS_PY"
 
   # Non-interactive or disabled → plain make, preserve exit.
   if [[ "${FORGE_PROGRESS:-1}" != "1" ]] || [[ ! -t 1 ]] \

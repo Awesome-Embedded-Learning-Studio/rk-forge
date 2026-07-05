@@ -35,6 +35,8 @@ source "${_SCRIPT_DIR}/lib/env.sh"     # PROJECT_ROOT + BRINGUP + SRC_DIR
 source "${_SCRIPT_DIR}/lib/log.sh"
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/toolchain.sh"   # CROSS_COMPILE / ARCH / TOOLCHAIN_BIN_DIR
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/progress.sh"    # forge_progress_run (live build progress when TTY)
 
 OUT_CPIO="${BRINGUP}/fit/initramfs.cpio.gz"
 CLEAN=0
@@ -99,7 +101,12 @@ build_busybox() {
     sed -i 's/^# CONFIG_STATIC is not set$/CONFIG_STATIC=y/' .config
     grep -q 'CONFIG_STATIC=y' .config || echo 'CONFIG_STATIC=y' >> .config
     log_info "building static busybox (gcc 15.2)…"
-    make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" >/dev/null
+    if [[ -t 1 ]] && [[ "${FORGE_PROGRESS:-1}" == "1" ]] && command -v python3 >/dev/null 2>&1; then
+      # TTY: progress bar (busybox is kbuild-style CC lines → kernel parser).
+      forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)"
+    else
+      make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" >/dev/null
+    fi
   )
   [[ -x "$bb" ]] || die "busybox build produced no binary ($BB_SRC)"
   file "$bb" | grep -q 'statically linked' || die "busybox is NOT static (CONFIG_STATIC=y?)"

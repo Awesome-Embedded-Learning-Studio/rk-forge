@@ -42,6 +42,8 @@ source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + UBOOT_DIR/OUT_DIR
 source "${_SCRIPT_DIR}/lib/log.sh"
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/toolchain.sh"
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/progress.sh"   # FORGE_PROGRESS_PY + forge_progress_run
 
 UBOOT_DIR_LOCAL="$UBOOT_DIR"; CLEAN=0; VARIANT="nand"
 while [[ $# -gt 0 ]]; do
@@ -120,9 +122,24 @@ log_info "make -j$(nproc) (binman combined-image failure tolerated; real dts/com
 # checked `[[ -e u-boot.dtb ]]`, which PASSED on a stale artifact — silently
 # swallowing a dts parse error. See git history.)
 BINMAN_NOISE='BINMAN |simple-bin|rockchip-tpl|external blob|external TPL|faked external|images are invalid|Error 103|binman_stamp|/binman/|rockchip-linux/rkbin'
-( cd "$BUILD_DIR" && make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" ) > "$BUILD_LOG" 2>&1 || true
-# show progress minus the tolerated binman noise (so the console isn't flooded)
-grep -vE "$BINMAN_NOISE" "$BUILD_LOG" || true
+UB_MAKE=( make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" )
+if [[ -t 1 ]] && [[ "${FORGE_PROGRESS:-1}" == "1" ]] && [[ -f "$FORGE_PROGRESS_PY" ]] && command -v python3 >/dev/null 2>&1; then
+  # TTY + progress: bar over the make output (kernel parser — U-Boot is kbuild),
+  # tee to BUILD_LOG so the real-error gate below still has the full log.
+  UB_TOTAL=$( ( cd "$BUILD_DIR" && "${UB_MAKE[@]}" -n ) 2>/dev/null \
+    | python3 "$FORGE_PROGRESS_PY" --count-only kernel 2>/dev/null || true )
+  if [[ "$UB_TOTAL" -gt 0 ]] 2>/dev/null; then
+    ( cd "$BUILD_DIR" && "${UB_MAKE[@]}" ) 2>&1 | tee "$BUILD_LOG" \
+      | python3 "$FORGE_PROGRESS_PY" kernel --total "$UB_TOTAL" || true
+  else
+    ( cd "$BUILD_DIR" && "${UB_MAKE[@]}" ) 2>&1 | tee "$BUILD_LOG" \
+      | python3 "$FORGE_PROGRESS_PY" kernel || true
+  fi
+else
+  # non-TTY / disabled: capture to log + show non-noise (original flow)
+  ( cd "$BUILD_DIR" && "${UB_MAKE[@]}" ) > "$BUILD_LOG" 2>&1 || true
+  grep -vE "$BINMAN_NOISE" "$BUILD_LOG" || true
+fi
 
 # Real-error gate: dtc (FATAL/Lexical/Syntax error), gcc (error:), or ld
 # (undefined reference). These never appear in the tolerated binman noise, so a
