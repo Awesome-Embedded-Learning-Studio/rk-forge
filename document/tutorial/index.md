@@ -6,7 +6,7 @@ title: 教程系列
 
 ## 学习路线图
 
-rk-forge 的 bring-up 弧线分五个阶段，按下面的顺序读最顺：先把板子**启动**起来，再让它**持久登录**（rootfs），接着把**外设**一个个点亮，然后补上 **SD 卡**这条第二条启动路，最后用 **forge 编排器**把整条链收成一个命令。
+rk-forge 的 bring-up 弧线分五个阶段，按下面的顺序读最顺。我们先把板子**启动**起来——主线 U-Boot 加一份板级设备树；再让它**持久登录**，rootfs 这条路把 buildroot、init 时序、UBIFS 与 loader 弱写 saga 一口气走完；接着把**外设**一个个点亮，Ethernet/SPI/MMC、USB、WiFi、I2C/UART、Audio 全上板；之后补 **SD 卡**这条第二条启动路，纯 SD 也能 boot；最后用 **forge 编排器**把整条构建链收成一个命令。
 
 <RoadMap>
   <RoadMapPhase icon="🚀" title="引导启动" subtitle="Boot" time="主线 U-Boot + Kernel" :difficulty="3" :num="1">
@@ -89,5 +89,5 @@ rk-forge 的 bring-up 弧线分五个阶段，按下面的顺序读最顺：先�
 </ChapterNav>
 
 ::: tip 遇到问题？
-RK3506 这条链踩了一路坑——rkbin SPL 的隐性契约、SPI-NAND 读写 saga、reserved-memory abort、USB2PHY、out-of-tree WiFi……全都老老实实记在 [踩坑日记](../pitfalls/) 的七篇里，每条挂着串口原文。提交 [GitHub Issue](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/issues) 也欢迎。
+RK3506 这条链踩了一路坑——rkbin SPL 的隐性契约、SPI-NAND 读写 saga、reserved-memory 那个把人骗过两次的 imprecise abort、USB2PHY 的两套寄存器、out-of-tree WiFi 搬进 7.1……全都老老实实记在 [踩坑日记](../pitfalls/) 的七篇里，每条挂着串口原文。提 [GitHub Issue](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/issues) 也欢迎。
 :::

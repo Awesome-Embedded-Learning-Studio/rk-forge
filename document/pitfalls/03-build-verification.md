@@ -30,6 +30,4 @@
 
 ⚠️ 验探针/字符串/符号在不在编译产物里,查未压缩的 `.o` 或 vmlinux,别查 zImage(XZ 压缩,strings 根本看不见)。清探针要三重确认:`git diff` 干净 + `.o` 重编 + 板侧 dmesg 不再打 PROBE。
 
-## 小结
-
-这两条坑凑一块儿,教训其实就一句话:构建和验证失败,不一定是代码错,很可能你看错了层——工具链路径看相对就是错(CROSS_COMPILE 要绝对),产物取证看 zImage 就是错(要看 `.o`)。接下来,终于要进到最硬的那篇了:SPI-NAND 读写和 loader 写弱 rootfs 的完整 saga。
+接下来终于进最硬的那篇:SPI-NAND 读写 + loader 写弱 rootfs 的完整 saga——中间还判过一次"rkbin 通病、不可解"的死结论,差点就信了。

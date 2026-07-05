@@ -53,6 +53,4 @@ mount -t devtmpfs none /mnt/dev 2>/dev/null
 
 ⚠️ initramfs 的 `/init` 在 switch_root 之前,一定记得 `mkdir -p /mnt/dev && mount -t devtmpfs none /mnt/dev`。别指望 `CONFIG_DEVTMPFS_MOUNT=y` 能帮你盖到真 rootfs,它只管 initramfs 自己那一亩三分地;新根的 /dev 要你自己挂。
 
-## 小结
-
-这两道门,一道是控制台归属(两个 respawn 抢同一颗 tty)、一道是新根 /dev 填充(devtmpfs 的挂载时机),看着不搭界,其实是同一类问题——bringup 阶段拿到 shell 的最后两公里,坑全在 init 时序上,跟驱动没关系。#4 这条我是靠源码注释留的证据(劈字符那现场当时没存 log,要复现就回放双 respawn 的 inittab);#11 倒是有完整的失败/成功对照 log,证据最硬。下一篇我们去看构建侧的两个方法论坑,然后才轮到最重的 SPI-NAND saga。
+劈字符那现场当时没存 log,要复现就回放双 respawn 的 inittab;`/dev/ttyS0` 那条倒是有完整的失败→成功对照([boot-sdl-202606162243](../logs/boot-sdl-202606162243.txt) 刷屏 → [boot-sdl-202606162254](../logs/boot-sdl-202606162254.txt) 干净落到 shell)。下一篇换个地方——构建侧的两个方法论坑:syncconfig 卡相对路径、strings 查 zImage 查错层。

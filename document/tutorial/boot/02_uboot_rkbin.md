@@ -1,12 +1,12 @@
 # Ch2 — U-Boot 与 rkbin：在闭源 blob 的咽喉上拔河
 
-> Ch1 把工具链钉死了，这一章我们往地基上放第一块砖：主线 U-Boot。但 RK3506 的 U-Boot 不是"编出来就能跑"那么简单——它前面卡着一颗闭源的 rkbin，方案 A 自己写 SPL 又崩在乱码里（Ch0 讲过）。所以这章其实是笔者和那颗闭源 blob 在板子的咽喉上拔河的全过程：三个它单方面定的隐性契约，加上 bringup 路上四个把我们按在地上摩擦的坑。挺过去，你才能在串口里看到主线 U-Boot 的 banner。
+> Ch1 把工具链钉死了，这一章往地基上放第一块砖：主线 U-Boot。但 RK3506 的 U-Boot 不是"编出来就能跑"那么简单——它前面卡着一颗闭源的 rkbin，方案 A 自己写 SPL 又崩在乱码里（Ch0 讲过）。所以这章其实是和那颗闭源 blob 在板子的咽喉上拔河的全过程：三个它单方面定的隐性契约，加上 bringup 路上四个把我们按在地上摩擦的坑。挺过去，串口里才能看到主线 U-Boot 的 banner。
 
 ## 前言：第一块砖，就撞上闭源咽喉
 
 工具链既然稳了，按计划下一步就是编 U-Boot。主线 U-Boot 对 RK3506 这颗 SoC 是有驱动的——pinctrl、clock、甚至 sdram 初始化的框架都在——但它**没有板级**：没有这块具体板子的 defconfig，没有设备树。这恰恰是 rk-forge 要补的，[patches/uboot/0001](../../../patches/uboot/0001-rockchip-rk3506-add-AES-RK3506B-board-support-DT-def.patch) 那个补丁干的就是这件事。
 
-编出来是一回事，跑起来是另一回事。RK3506 的启动链，U-Boot proper 是被 SPL 请出来的，而 SPL 这一环目前我们自己的写不出来（方案 A 崩了）。所以现阶段走的是方案 B：**借 vendor 的 DDR/SPL/OP-TEE blob 把链的前半段跑通，再把主线 U-Boot proper 装进 vendor 能认的 FIT 里**。诚实地讲，这不是纯主线 boot——前半段还在借厂商 blob。但它能让主线 U-Boot 在真板上真正跑起来，这是整条链的第一座里程碑，也是后面塞内核的前提。
+编出来是一回事，跑起来是另一回事。RK3506 的启动链，U-Boot proper 是被 SPL 请出来的，而 SPL 这一环目前我们自己的写不出来（方案 A 崩了）。所以现阶段走的是方案 B：**借 vendor 的 DDR/SPL/OP-TEE blob 把链的前半段跑通，再把主线 U-Boot proper 装进 vendor 能认的 FIT 里**。诚实地讲，这不是纯主线 boot——前半段还在借厂商 blob。但它能让主线 U-Boot 在真板上真正跑起来，后面塞内核才有底座。
 
 ## 这条链前段长什么样：rkbin 内部
 
@@ -26,7 +26,7 @@ BootROM 先从存储的扇区 `0x40` 把 idblock 读进来。idblock 里塞着�
 
 这报错极具误导性，笔者一开始真以为是 hash 算法的事。直到老老实实拿 `dumpimage` 把 vendor 那个已知能跑的 `uboot.img` 解开看结构：optee 是 `Firmware` 装在 `0x1000`、uboot 是 `Standalone` 装在 `0x200000`、fdt 是 Flat DT，`conf` 里 `firmware=optee, loadables=uboot, fdt=fdt`。再去翻 vendor 的 `fit_nodes.sh`，人家自己生成的节点里写的也是 `hash { algo = "sha256"; }`——**vendor 自己就用 sha256**。所以根本不是算法问题，是 vendor fork 的 FIT 节点结构、命名、conf 定义，和主线 binman 生成的那套对不上。
 
-正解不是换算法，而是**结构复刻**：手写一个 [`rk3506-mainline.its`](../../../board/aes/fit/rk3506-mainline.its)，100% 照搬 vendor 已经跑通的 FIT 结构，只把 uboot 节点里那块二进制换成主线编出来的 `u-boot-nodtb.bin`。这一步是整个方案 B 最有价值的发现——把一个模糊的"hash 问题"收敛成了可操作的"照着抄结构"。
+正解不是换算法，而是**结构复刻**：手写一个 [`rk3506-mainline.its`](../../../board/aes/fit/rk3506-mainline.its)，100% 照搬 vendor 已经跑通的 FIT 结构，只把 uboot 节点里那块二进制换成主线编出来的 `u-boot-nodtb.bin`。这一步把一个模糊的"hash 问题"收敛成了可操作的"照着抄结构"，是整个方案 B 最值钱的发现。
 
 ## 坑之二：TEXT_BASE 差了 6MB，还有 OP-TEE 到底跳哪里
 
@@ -81,6 +81,4 @@ Hit any key to stop autoboot: 0
 =>
 ```
 
-每一行都值回票价：`U-Boot 2026.07-rc4` 是主线版本，不是 vendor 的 2017；`SoC: RK3506B` 打印出来，说明 OTP 读到了、`misc_init_r` 那个坑已经填平；`DRAM: 512 MiB` 是借来的 vendor DDR blob 点亮的内存；最后停在 `=>`，意味着主线 U-Boot 从上电一路跑到了交互 shell。
-
-方案 B 的里程碑，到此达成。主线 U-Boot 在 RK3506B 真板上活了。诚实的边界还是要再强调一遍：它赖以运行的 DDR/SPL/OP-TEE 还是借的 vendor blob，这不是纯主线 boot。但有了这块能跑的 U-Boot 当底座，下一章我们就能往上面塞内核——看主线 Linux 认不认我们亲手写的那块板级设备树，能不能一路跑到 `Starting kernel`。我们 Ch3 见。
+每一行都值回票价：`U-Boot 2026.07-rc4` 是主线版本，不是 vendor 的 2017；`SoC: RK3506B` 打印出来，说明 OTP 读到了、`misc_init_r` 那个坑已经填平；`DRAM: 512 MiB` 是借来的 vendor DDR blob 点亮的内存；最后停在 `=>`，意味着主线 U-Boot 从上电一路跑到了交互 shell。诚实的边界还是要再强调一遍：它赖以运行的 DDR/SPL/OP-TEE 还是借的 vendor blob，这不是纯主线 boot。但有了这块能跑的 U-Boot 当底座，下一章就能往上面塞内核——看主线 Linux 认不认我们亲手写的那块板级设备树，能不能一路跑到 `Starting kernel`。我们 Ch3 见。

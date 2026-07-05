@@ -1,5 +1,7 @@
 # 01 — 跟 rkbin SPL 死磕:三个绕不开的隐性契约(chip tag / optee hash / FIT 布局)
 
+> **更新(2026-06-17,P1):坑 #2"tee 钉死 v2.10"是方案 B(借 vendor SPL)时期的规矩。当前默认链已是全公开 rkbin——SPL v1.12 + tee v2.40,板上验证启动([notes/13](../notes/13-2026-06-17-p1-rkbin-public-loader-conquest.md) + [blobs.md](../blobs.md))。"必须 v2.10"仅适用于继续走 vendor SPL 的链。坑 #3 的 vendor mkimage 也已由 [scripts/fit-pack.py](../../scripts/fit-pack.py) 消除(P4)。正文保持方案 B 时期原样(诚实历史)。**
+
 说实话,把 RK3506B 从 MaskROM 一路拽到主线 Linux 的 UART 提示符,最难的真不是写代码——主线 pinctrl、clock、SFC 驱动、主线 U-Boot 这些开源件早就齐活了。真正折磨人的,是夹在中间那颗闭源的 rkbin SPL:它在你拿到控制权之前,先替你把规矩定好了,而且一条都不写在文档里。这篇就是我跟这三条隐性契约死磕的完整记录——chip tag、optee 的 hash、还有 FIT 的字节布局,一个比一个阴,每一个都让我在串口前多坐了半天。
 
 先把环境摆清楚,方便你对照复现:板子是 RK3506B 的 aes 板,SPI-NAND 是 W25N04KV(4Gb、on-die ECC)挂在 SFC@0xff488000;U-Boot 跑主线 2026.07-rc4,内核主线 7.1;而那个甩不掉的 rkbin loader(MiniLoaderAll.bin)负责在 MaskROM 阶段把各分区写进 NAND。整条链子是 `ROM → rkbin → U-Boot → Linux`,rkbin 这一环闭源,后面所有别扭的根源都在它身上。

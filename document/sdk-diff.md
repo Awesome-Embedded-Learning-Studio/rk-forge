@@ -4,16 +4,17 @@
 > 与我们主线移植(linux 7.1 + U-Boot 2026.07-rc4)的差距。**不美化、不隐藏**:说清 BSP 有什么、
 > 主线有没有、差什么、还能不能 boot。本文随 bringup 推进持续更新。
 >
-> **2026-06-17 状态**:主线 7.1 + 主线 U-Boot 从 NAND 启动到 busybox 交互 shell,UBIFS rootfs
-> 跨冷重启 RW 持久。最新里程碑见 [pitfalls/04(RW saga)](pitfalls/04-sfc-nand-saga.md) 与
-> [notes/11](notes/11-2026-06-16-patch-verification-rw-rootfs.md)、[notes/12](notes/12-2026-06-17-kill-vendor-sdk-assessment.md)。
+> **状态(活文档)**:主线 7.1 + 主线 U-Boot 从 NAND/SD 启动到交互 shell,UBIFS rootfs 跨冷重启
+> RW 持久;外设(Ethernet 双口 / SPI / MMC-SD / USB / WiFi RTL8733BU / I2C / UART2 / Audio 数字链路)
+> 全部点亮、板上验证;rkbin 已切公开仓 submodule、toolchain 已切 ArmGNU 15.2、vendor-sdk 从 build 链
+> 消除。最新里程碑见 [pitfalls/04(RW saga)](pitfalls/04-sfc-nand-saga.md)、[notes/13(P1 rkbin)](notes/13-2026-06-17-p1-rkbin-public-loader-conquest.md)、[notes/20(mkimage saga)](notes/20-2026-06-19-mkimage-saga-handoff.md)。
 
 ## 一句话结论
 
-**主线 Linux 7.1 + 主线 U-Boot 在 RK3506B 从 NAND 启动到 busybox 交互 shell,UBIFS rootfs 跨冷
-重启 RW 持久——CPU 核心 + console + SPI-NAND 全主线打通。** 剩下的外设(mmc/eth/usb/display/can)
-主线驱动**都有**,差的只是"接线"(DT 节点 + config + bringup),不是写驱动。启动链前段仍**借 vendor
-blob**(DDR/SPL/tee,方案 A 未成),非纯主线 boot。
+**主线 Linux 7.1 + 主线 U-Boot 在 RK3506B 从 NAND 启动到交互 shell,UBIFS rootfs 跨冷重启 RW
+持久——CPU 核心 + console + SPI-NAND + 外设(Ethernet/MMC/USB/WIFI/I2C/UART/Audio)全主线打通。**
+启动链前段仍**借闭源 rkbin blob**(DDR/SPL/tee,方案 A 未成),非纯主线 boot——但 rkbin 来源已是
+公开仓 submodule,vendor-sdk 不再是依赖。
 
 ## "RK-SDK residue" 残留度量(PLAN 核心论点)
 
@@ -22,20 +23,22 @@ vendor 东西:
 
 | 残留项 | 性质 | 状态 |
 |---|---|---|
-| vendor idblock(DDR v1.06 + SPL + usbplug) | 闭源 blob + vendor SPL 代码 | **方案 A 未成**(自己的 SPL 在 DDR 后崩,见 [notes/02](notes/02-2026-06-14-mainline-bringup-handoff.md)、[notes/04](notes/04-2026-06-14-mainline-uboot-via-vendor-spl.md))。纯主线 boot 的硬阻塞 |
-| vendor `tee.bin`(OP-TEE v2.10) | 闭源 blob | rkbin SPL verified boot 锁的 hash,必须 v2.10(见 [pitfalls/01](pitfalls/01-rkbin-spl-contracts.md) 坑 #2) |
+| idblock(DDR v1.06 + SPL v1.12 + usbplug v1.03) | 闭源 blob(rkbin) | **方案 A 未成**(自己的 SPL 在 DDR 后崩,见 [notes/02](notes/02-2026-06-14-mainline-bringup-handoff.md)、[notes/04](notes/04-2026-06-14-mainline-uboot-via-vendor-spl.md))。纯主线 boot 的硬阻塞。**来源已于 P1 切到公开 rkbin submodule**([notes/13](notes/13-2026-06-17-p1-rkbin-public-loader-conquest.md) + [blobs.md](blobs.md)) |
+| tee.bin(OP-TEE v2.40) | 闭源 blob(rkbin) | ~~方案 B 借 vendor SPL 时必须 v2.10~~;**P1 起默认链用公开 rkbin tee v2.40**(SPL v1.12,板上验证,见 [notes/13](notes/13-2026-06-17-p1-rkbin-public-loader-conquest.md) + [blobs.md](blobs.md))。blob 仍闭源,但来源已是公开仓、不再绑 vendor-sdk |
 | ~~vendor mkimage 2017.09~~ | ~~rkbin SPL 的 FIT 布局税~~ | **已消除(P4)**:[scripts/fit-pack.py](../scripts/fit-pack.py)(纯 Python)复刻 vendor SPL 认的 -E 外部布局,替代 vendor mkimage 打 uboot FIT;主线 mkimage 仅留 `-l` 校验(见 [notes/20](notes/20-2026-06-19-mkimage-saga-handoff.md)) |
+| ~~vendor afptool / rkImageMaker~~ | ~~update.img 打包税~~ | **已消除(D)**:[scripts/rkfw-pack.py](../scripts/rkfw-pack.py)(纯 Python)替代 vendor afptool + rkImageMaker |
 | board DT(rk3506.dtsi / rk3506b-aes.dts) | **我们写的**,非残留 | rk-forge 的贡献点(上游化目标) |
-| ~~SFC 50MHz cap~~ | ~~主线 sfc 无 DLL 调谐的 workaround~~ | **已消除**:移植 vendor DLL 调谐,扫出 230-cell 采样窗(见 [pitfalls/04](pitfalls/04-sfc-nand-saga.md) 坑 #5) |
+| ~~SFC 50MHz cap~~ | ~~主线 sfc 无 DLL 调谐的 workaround~~ | **已消除**:移植 vendor DLL 调谐,80MHz 读稳、cell 130 / 窗口 [90,170](见 [pitfalls/04](pitfalls/04-sfc-nand-saga.md) 坑 #5) |
 | ~~spinand core.c hack~~ | — | **已消除** |
 
-→ 残留 = **vendor SPL/DDR/TEE blob**(vendor mkimage 税已于 P4 消除,见上)。论点**基本成立**:build 全换主线
+→ 残留 = **SPL/DDR/TEE blob**(均闭源 rkbin;来源已于 P1 切到公开仓 submodule,vendor-sdk 不再是
+依赖。vendor mkimage 税 P4 消除、afptool/rkImageMaker 税 D 消除)。论点**基本成立**:build 全换主线
 (U-Boot + kernel 全主线源码 + patch,[notes/11](notes/11-2026-06-16-patch-verification-rw-rootfs.md) 干净
-上游逐字节验证过),但启动前段(DDR/secure)仍离不开 vendor blob——RK 平台的硬现实(rkbin)。
+上游逐字节验证过),但启动前段(DDR/secure)仍离不开闭源 rkbin blob——RK 平台的硬现实。
 
 ## 子系统逐项对比
 
-图例:✅ 工作并验证 · ⚠️ 驱动在主线但未接进我们 DT · ❌ 主线缺/未做 · 🟡 借 vendor blob
+图例:✅ 工作并验证 · ⚠️ 驱动在主线但未接进我们 DT · ❌ 主线缺/未做 · 🟡 借闭源 blob
 
 | 子系统 | vendor BSP(6.1.118) | 主线移植(7.1) | 差距 / 闭合路径 |
 |---|---|---|---|
@@ -43,40 +46,46 @@ vendor 东西:
 | **clk / reset** | ✅ vendor clk | ✅ 主线 clk-rk3506 / rst-rk3506 | 无 |
 | **pinctrl / GPIO** | ✅ | ✅ 5 bank probe | 无 |
 | **UART console(uart0@ff0a0000)** | ✅ | ✅ ttyS0 1500000 | 无 |
-| **PSCI / SMP boot** | 🟡 vendor OP-TEE | 🟡 同一颗 tee v2.10 | blob 残留 |
+| **PSCI / SMP boot** | 🟡 vendor OP-TEE | 🟡 公开 rkbin tee v2.40(P1 起,SPL v1.12) | blob 残留(闭源 rkbin) |
 | **GIC / timer / iommu** | ✅ | ✅ | 无 |
 | **OTP(cpuid)** | ✅ | ✅ ff4f0000 | 无 |
-| **SPI NAND(W25N04KV) + SFC** | ✅ vendor 私有 sfc_nand | ✅ **主线 spi-nand + rockchip-sfc,DLL 调谐已移植,RW 通** | 已闭合([pitfalls/04](pitfalls/04-sfc-nand-saga.md));写侧加 powergood + WPEN |
+| **SPI NAND(W25N04KV) + SFC** | ✅ vendor 私有 sfc_nand | ✅ **主线 spi-nand + rockchip-sfc,DLL 调谐已移植,80MHz 读稳,RW 通** | 已闭合([pitfalls/04](pitfalls/04-sfc-nand-saga.md));写侧加 powergood + WPEN |
 | **UBIFS rootfs(busybox)** | ✅ | ✅ **RW 跨冷重启持久** | 已闭合(Linux 落盘 + 页级恢复,[pitfalls/04](pitfalls/04-sfc-nand-saga.md) 坑 #12) |
-| **MMC / SD(dw_mmc)** | ✅ MMC_DW_ROCKCHIP | ⚠️ 驱动主线有,**DT 无节点** | +DT `&sdmmc`/`&sdhci` + config + io-domain(P3) |
-| **Ethernet(STMMAC/dwmac)** | ✅ STMMAC_ETH + rk3506-ethernet.config | ⚠️ 驱动主线有,**DT 无节点** | +DT `&gmac` + phy + config(P3) |
-| **USB(DWC2 host/otg)** | ✅ USB_DWC2 + fragment | ⚠️ 驱动主线有,**DT 无节点** | +DT `&usb` + config(P3) |
-| **Display(DRM)** | ✅ rk3506-display.config | ⚠️ 主线 DRM rockchip | +DT + config(非 bringup 必需) |
+| **MMC / SD(dw_mmc)** | ✅ MMC_DW_ROCKCHIP | ✅ DT 已接(patch 0005),板验 | 已闭合(外设 A1) |
+| **Ethernet(STMMAC/dwmac)** | ✅ STMMAC_ETH + rk3506-ethernet.config | ✅ DT 已接(gmac1 patch 0004 + gmac0 patch 0006,YT8512 RMII),双口板验 | 已闭合(外设 A1) |
+| **SPI** | ✅ | ✅ DT 已接,SPI_ROCKCHIP=y | 已闭合(外设 A1) |
+| **USB(DWC2 host)** | ✅ USB_DWC2 + fragment | ✅ DT 已接(USB2PHY patch 0014 + DWC2 patch 0015),双 host 板验 | 已闭合(外设 B) |
+| **WiFi(RTL8733BU)** | ✅(vendor 私有驱动) | ✅ out-of-tree 移植到 7.1(forge fork + patch 0016),wlan0/wlan1 板验 | 已闭合(Phase WiFi) |
+| **I2C / UART2(RMIO)** | ✅ | ✅ RMIO 交叉开关(patch 0007),I2C×3 + UART2 板验 | 已闭合(外设 A2) |
+| **Audio(ES8388 + SAI1)** | ✅ | ✅ SAI of_match + PL330 5-cell dmamux(patch 0009/0010),数字链路板验 | 已闭合(Phase E);模拟输出待耳机线 |
+| **Display(DRM 800×1280 DSI)** | ✅ rk3506-display.config | ⚠️ 主线 DRM rockchip 在 | +DT + config(等 LCD 到位,非 bringup 必需) |
 | **CAN** | ✅ rk3506-can.config | ⚠️ | +DT + config |
-| **WiFi/BT · 4G/5G · AMP** | ✅ | ❌ | 产品特性 / RK 私有,主线无或后置 |
+| **BT · 4G/5G · AMP** | ✅ | ❌ | 产品特性 / RK 私有,主线无或后置 |
 
 ## 能否 boot?——分能力回答
 
 - **主线启动到 UART / userspace handoff**:✅ **能**。CPU 核心 + console 全主线。
-- **主线挂 RW rootfs + 进 shell**:✅ **能**(已达成)。UBIFS rootfs 跨冷重启持久,`/persist.log` 三轮 stress 全在。这条从"暂不能"到"能",是 [pitfalls/04 saga](pitfalls/04-sfc-nand-saga.md) 啃下来的。
-- **主线产品级(外设全可用)**:❌ **还不能**。mmc/eth/usb 都要逐个接 DT + bringup(P3)。但**全是接线活,无驱动原创**——主线驱动都在。
+- **主线挂 RW rootfs + 进 shell**:✅ **能**。UBIFS rootfs 跨冷重启持久,`/persist.log` 三轮 stress 全在。这条从"暂不能"到"能",是 [pitfalls/04 saga](pitfalls/04-sfc-nand-saga.md) 啃下来的。
+- **主线产品级(外设全可用)**:✅ **能**(已达成)。Ethernet 双口 / MMC-SD / SPI / USB / WiFi / I2C / UART2 / Audio 全部接 DT + 板上验证;Display 等屏幕到位再补。
 
 ## 主线 vs vendor 的"真差距"在哪
 
-1. **启动前段(DDR/secure)**:主线没法自己 init RK3506 DDR → 借 vendor blob。最大的"非主线"成分,方案 A(自己 SPL)未成。
-2. **板级外设接线**:主线 DT 现在覆盖了核心 + SPI-NAND;mmc/eth/usb/display/can 还没接(P3)。差的是 DT 节点 + 各自 bringup(时钟 / 电源 / io-domain / phy)。
-3. ~~vendor mkimage 税~~(P4 已消除):uboot FIT 现由 [scripts/fit-pack.py](../scripts/fit-pack.py)(纯 Python)打,vendor-layout 兼容;不再依赖 vendor 2017.09 mkimage,kernel/boot FIT 也用同一 packer。
+1. **启动前段(DDR/secure)**:主线没法自己 init RK3506 DDR → 借闭源 rkbin blob。最大的"非主线"成分,方案 A(自己 SPL)未成。来源已是公开 rkbin submodule,但 blob 本身闭源这块改不了。
+2. **板级外设接线**:已基本接完——核心 + SPI-NAND + Ethernet + MMC + USB + WiFi + I2C/UART + Audio 都在 DT 里、板上验过;只剩 Display(等屏幕)这类非必需项。
+3. ~~vendor mkimage 税~~(P4 已消除):uboot FIT 现由 [scripts/fit-pack.py](../scripts/fit-pack.py)(纯 Python)打,vendor-layout 兼容;update.img 由 [scripts/rkfw-pack.py](../scripts/rkfw-pack.py) 打。kernel/boot FIT 也用同一套 packer,不再依赖 vendor 2017.09 mkimage。
+4. ~~vendor afptool/rkImageMaker 税~~(D 已消除):assemble 链也纯 Python 化。
 
 ## 下一步优先级
 
-1. **RW 加固**:多轮 stress 确认 PEB 3/4 不衰减;ubiprog/init 固化进 patch;powergood 非致命→致命([pitfalls/04](pitfalls/04-sfc-nand-saga.md) 待办)。
-2. **P3 外设 DT**:MMC/SD → Ethernet → USB,逐个接 DT + 板验(主线驱动都在,接线活)。
-3. **P1 源码层零 vendor-sdk**:rkbin→公开仓 submodule + toolchain→bootlin + busybox→upstream([notes/12](notes/12-2026-06-17-kill-vendor-sdk-assessment.md))。
-4. **(远期)方案 A**:自己的 SPL/DDR → 消除 vendor blob 残留。
+1. ~~**RW 加固**~~:**已闭合**——ubiprog/init 固化、PEB 3/4 页级恢复、powergood/WPEN 移植、板上多轮 stress + 冷重启验过([pitfalls/04](pitfalls/04-sfc-nand-saga.md) 闭环)。
+2. ~~**P3 外设 DT**~~:**已闭合**——Ethernet 双口 / MMC-SD / SPI / USB / WiFi / I2C / UART2 / Audio 全部接 DT + 板验。
+3. ~~**P1 源码层零 vendor-sdk**~~:**已闭合**——rkbin→公开仓 submodule + toolchain→ArmGNU 15.2 + busybox→upstream buildroot([notes/13](notes/13-2026-06-17-p1-rkbin-public-loader-conquest.md))。
+4. **(远期)方案 A**:自己的 SPL/DDR → 消除闭源 rkbin blob 残留。这是唯一剩余的"非主线"硬阻塞。
 
 ## 证据
 
-- 主线 boot 日志:[boot-sdl-stage-end-of-kernel-uboot-202606151100](logs/boot-sdl-stage-end-of-kernel-uboot-202606151100.txt)(SMP/pinctrl/uart 起,外设未 probe)
+- 主线 boot 日志:[boot-sdl-stage-end-of-kernel-uboot-202606151100](logs/boot-sdl-stage-end-of-kernel-uboot-202606151100.txt)(SMP/pinctrl/uart 起)
 - RW 达成日志:[boot-sdl-202606162254](logs/boot-sdl-202606162254.txt)(recovery ×2,`/persist.log` c1/c2/c3)、[boot-sdl-202606162310](logs/boot-sdl-202606162310.txt)(页级恢复)
-- vendor defconfig:`reference/vendor-sdk/kernel-6.1/arch/arm/configs/rk3506_defconfig` + `rk3506-*.config` fragments
-- 主线 patch:`patches/linux_mainline/`、`patches/uboot/`(干净上游逐字节相同,见 [notes/11](notes/11-2026-06-16-patch-verification-rw-rootfs.md))
+- 全链(外设全绿):[boot-sdl-2026-06211109](logs/boot-sdl-2026-06211109.txt)(`rk3506 login: root`)
+- 主线 patch:`patches/linux/`、`patches/uboot/`(干净上游逐字节相同,见 [notes/11](notes/11-2026-06-16-patch-verification-rw-rootfs.md))
+- 闭源 blob 清单 + 公开仓来源:[blobs.md](blobs.md)
