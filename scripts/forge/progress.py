@@ -183,25 +183,52 @@ def term_width(fallback=120):
         return fallback
 
 
-def render_bar(parser, total, elapsed, log_path='', bar_width=28):
+# Braille spinner — one char that changes each frame so the redraw is visibly
+# alive during long silent phases. The vmlinux link (LD .tmp_vmlinux*) emits no
+# CC lines for minutes; without a heartbeat the frozen bar looks like a hang
+# and users Ctrl+C a build that's actually fine.
+_SPINNER = '⠋⠙⠹⠸⠼⠴⠦⠧'
+
+# Post-link phase labels: tell the user WHAT is slow in the tail the dry-run
+# pre-scan couldn't enumerate. The vmlinux link is the big one (minutes, silent).
+_FINAL_PHASES = [
+    (re.compile(r'LD\s+\S*vmlinux'), 'linking vmlinux (slowest step — minutes, normal)'),
+    (re.compile(r'SORTTAB|SYSMAP|kallsyms'), 'finalizing vmlinux symbols'),
+    (re.compile(r'CC\s+\S*boot/compressed'), 'building zImage decompressor'),
+    (re.compile(r'OBJCOPY|GZIP\b|XZ\b|LZ4\b'), 'packing zImage'),
+]
+
+
+def _finalizing_phase(raw):
+    """Map the latest raw make line to a post-link phase label (generic
+    fallback if nothing matches) — gives the user a reason for the silence
+    instead of a frozen bar."""
+    for rx, label in _FINAL_PHASES:
+        if rx.search(raw or ''):
+            return label
+    return 'finalizing post-link'
+
+
+def render_bar(parser, total, elapsed, log_path='', bar_width=28, last_raw=''):
     """Line 1 of the display: the progress bar + count + ETA + the tee'd log path.
 
     A dry-run --total can UNDERCOUNT a clean build: `make -n` halts at the
     vmlinux link because vmlinux.a is a recipe product dry-run never generates,
     so the post-link CCs it would drive (zImage decompressor, vdso,
     .vmlinux.export, asm-offsets dependents) are never enumerated — ~6% short
-    on a clean multi_v7 kernel tree (measured: dry-run 4875 vs real 5196). When
-    `done` runs PAST such a total, 'done/total (100%)' with a collapsing ETA
-    would mislead, so switch to a 'finalizing post-link' phase that labels the
-    tail honestly. (done == total is the normal accurate-100% finish; only the
-    strict-over case means the dry-run undercounted.)"""
+    on a clean multi_v7 kernel tree (measured: dry-run 4875 vs real 5196).
+
+    When `done` runs PAST such a total, the post-link tail is dominated by the
+    vmlinux link — a minutes-long silence with NO CC lines, which looks exactly
+    like a hang. So instead of a misleading 'done/total (100%)' with a collapsing
+    ETA, show a spinner + elapsed + a phase label: the spinner keeps the redraw
+    visibly alive, the phase says WHY it's slow. (done == total is the normal
+    accurate-100% finish, not this case.)"""
     done = parser.done
     if total and done > total:
-        # Dry-run denominator exhausted — the overrun is the post-link tail the
-        # pre-scan couldn't see. Cap the bar at full and label it; no fake ETA.
-        rate = done / elapsed if elapsed > 0.3 else 0.0
-        head = (f'{bar(100.0, bar_width)} {done} {parser.unit} '
-                f'{rate:.1f}/s finalizing post-link (beyond dry-run pre-scan)')
+        spinner = _SPINNER[int(elapsed * 8) % len(_SPINNER)]
+        head = (f'{bar(100.0, bar_width)} {spinner} {_finalizing_phase(last_raw)} '
+                f'· {done} {parser.unit} · {fmt_dur(elapsed)} elapsed')
     elif total:
         pct = min(done / total * 100, 100.0)
         rate = done / elapsed if elapsed > 0.3 else 0.0
@@ -223,7 +250,7 @@ def render_frame(parser, total, elapsed, log_path, last_raw):
     bar doesn't feel frozen / ninja-quiet during a long compile); the full
     output is tee'd to log_path by lib/progress.sh for later reference."""
     cols = term_width()
-    l1 = render_bar(parser, total, elapsed, log_path)
+    l1 = render_bar(parser, total, elapsed, log_path, last_raw=last_raw)
     if len(l1) > cols:
         l1 = l1[:cols - 1] + '…'
     l2 = ('  ' + last_raw) if last_raw else ''
@@ -351,6 +378,11 @@ def main():
                     sys.stderr.write(render_bar(parser, total, elapsed, args.log) + '\n')
             if args.speed:
                 time.sleep(args.speed / 1000.0)
+    except KeyboardInterrupt:
+        # Ctrl+C during a build: let finally redraw + restore the cursor, then
+        # exit quietly (no traceback). make, upstream in the pipe, gets the
+        # signal too and stops — that's the user's intent.
+        pass
     finally:
         parser.finalize()
         elapsed = time.monotonic() - start
