@@ -184,10 +184,26 @@ def term_width(fallback=120):
 
 
 def render_bar(parser, total, elapsed, log_path='', bar_width=28):
-    """Line 1 of the display: the progress bar + count + ETA + the tee'd log path."""
+    """Line 1 of the display: the progress bar + count + ETA + the tee'd log path.
+
+    A dry-run --total can UNDERCOUNT a clean build: `make -n` halts at the
+    vmlinux link because vmlinux.a is a recipe product dry-run never generates,
+    so the post-link CCs it would drive (zImage decompressor, vdso,
+    .vmlinux.export, asm-offsets dependents) are never enumerated — ~6% short
+    on a clean multi_v7 kernel tree (measured: dry-run 4875 vs real 5196). When
+    `done` runs PAST such a total, 'done/total (100%)' with a collapsing ETA
+    would mislead, so switch to a 'finalizing post-link' phase that labels the
+    tail honestly. (done == total is the normal accurate-100% finish; only the
+    strict-over case means the dry-run undercounted.)"""
     done = parser.done
-    if total:
-        pct = min(done / total * 100, 100.0) if total else 0.0
+    if total and done > total:
+        # Dry-run denominator exhausted — the overrun is the post-link tail the
+        # pre-scan couldn't see. Cap the bar at full and label it; no fake ETA.
+        rate = done / elapsed if elapsed > 0.3 else 0.0
+        head = (f'{bar(100.0, bar_width)} {done} {parser.unit} '
+                f'{rate:.1f}/s finalizing post-link (beyond dry-run pre-scan)')
+    elif total:
+        pct = min(done / total * 100, 100.0)
         rate = done / elapsed if elapsed > 0.3 else 0.0
         rem = max(total - done, 0)
         eta = (rem / rate) if rate else None
