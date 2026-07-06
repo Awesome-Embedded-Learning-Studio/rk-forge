@@ -134,8 +134,11 @@ if [[ -t 1 ]] && [[ "${FORGE_PROGRESS:-1}" == "1" ]] && [[ -f "$FORGE_PROGRESS_P
   # `{ make -k -n || true; }` — -k keeps the dry-run enumerating past sub-make
   # errors (else it truncates → undercount); || true swallows the non-zero exit
   # so pipefail doesn't zero the total (same as lib/progress.sh's pre-scan).
+  # buildmeter --count-only stderr is NOT silenced — on a TTY it shows the
+  # pre-scan spinner; it only writes stderr on a TTY (CI unaffected). The
+  # make-side ( ... ) 2>/dev/null still swallows make -n noise.
   UB_TOTAL=$( { ( cd "$BUILD_DIR" && "${UB_MAKE[@]}" -k -n ) 2>/dev/null || true; } \
-    | python3 "$FORGE_PROGRESS_PY" --count-only kernel 2>/dev/null || true )
+    | python3 "$FORGE_PROGRESS_PY" --count-only kernel || true )
   UB_BUF=""
   command -v stdbuf >/dev/null 2>&1 && UB_BUF="stdbuf -oL"
   if [[ "$UB_TOTAL" -gt 0 ]] 2>/dev/null; then

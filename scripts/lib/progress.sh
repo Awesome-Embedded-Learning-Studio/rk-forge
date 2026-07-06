@@ -64,8 +64,13 @@ forge_progress_run() {
   local total=0
   if [[ "${FORGE_PROGRESS_PRESCAN:-1}" == "1" ]]; then
     printf '[INFO] counting build units (make -n)…\n' >&2
+    # NOTE: buildmeter --count-only stderr is NOT silenced here — on a TTY it
+    # renders the pre-scan spinner (`⠙ scanning dry-run (make -n)…`), giving the
+    # 15-30s dry-run a heartbeat. It only writes stderr on a TTY, so CI / pipe
+    # / non-interactive is unaffected. The make-side 2>/dev/null above still
+    # swallows make -n's own noise.
     total=$({ "$@" -k -n 2>/dev/null || true; } \
-      | python3 "$progress_py" --count-only "$kind" 2>/dev/null) || total=0
+      | python3 "$progress_py" --count-only "$kind") || total=0
     if [[ "$total" -le 0 ]]; then
       printf '[INFO] pre-scan returned 0 — running indeterminate (no %% bar)\n' >&2
     fi
