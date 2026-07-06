@@ -83,12 +83,12 @@ find <tree> -name '*.o' -print -quit | grep -q . && echo "有 .o → 大概率�
 2. **增量检测（`find .o`）的假阳/假阴**——clean-ish 树（部分 .o）会被判"增量"→ 跳过预扫描。实际影响多大？
 3. **uboot/buildroot 的 dry-run 行为**——kernel 踩的 objtool 坑，uboot/buildroot 有没有类似的？需各 profile 实测。
 
-## 9. 产品形态（buildkit，Python-first）
+## 9. 产品形态（buildmeter，Python-first）
 
 **为什么 Python-first**（用户决策）：跨平台（Win/Mac/Linux）+ 绕开这轮打的全部 bash 怪癖（pipefail/exit-code、stdbuf 缓冲、`$buf` 引号、`set -u`）。Python subprocess 结构上消灭它们。
 
 ```
-buildkit/
+buildmeter/
   runner.py     # ★ subprocess 编排：
                 #   1. detect: find -name '*.o' → clean or 增量?
                 #   2. clean → 后台 make -n -k 预扫描（分母）；增量 → 跳过
@@ -96,21 +96,21 @@ buildkit/
                 #   4. tee log + 错误捕获
   engine.py     # 渲染器 + ringbuffer（从 rk-forge progress.py 抽）
   profiles/     # kernel(kbuild) / uboot(kbuild+binman noise) / buildroot(>>> pkg)
-  cli.py        # `python -m buildkit run kernel -- make ...`
+  cli.py        # `python -m buildmeter run kernel -- make ...`
   tests/        # replay fixture assert 计数（回归网）
 ```
 
 **分子（X）**：Python `Popen` 逐行 `readline()`（无需 stdbuf），数 CC 行 + 当前文件路径。
 **分母（Y）**：clean 模式 → `make -n -k`（`{...|| true}` 吞非零退出）；**已知欠 ~6%（vmlinux 断链）→ bar 超 total 时切 "finalizing post-link"、cap 100%（progress.py `done > total` 分支已落地，replay 3 场景验证：欠数→finalizing / 准确→100% / 过大→正常 bar）**；增量模式 → 无（indeterminate）。
-**rk-forge 关系**：rk-forge 现有 bash 版（forge-progress 分支，板上验证过）先不动；buildkit 独立成长，成熟后 rk-forge 可切。
+**rk-forge 关系**：rk-forge 现有 bash 版（forge-progress 分支，板上验证过）先不动；buildmeter 独立成长，成熟后 rk-forge 可切。
 
 ## 10. 决策清单（要拍的）
 
 - [x] 认 make-based 没银弹，first-use 准 % = 顺序 dry-run（15s 税）。
 - [x] 砍 learned-total（增量错 + 否决缓存）。
 - [x] clean vs 增量 自动切（`find .o` 检测）。
-- [x] Python-first（buildkit）。
+- [x] Python-first（buildmeter）。
 - [x] **`make -n -k` 在干净树欠数**：实测 **6.18%**（非 <2%），根因 vmlinux 断链（`-k` 修不了）。**认了。**
 - [x] **clean 模式 6% 欠数处理**：cap 100% + done 超 total 切 "finalizing post-link" 尾部（progress.py `done > total` 分支已落地，replay 3 场景验证通过）。
-- [ ] buildkit 仓库名 + 位置（AELS 新 repo？）。
-- [ ] rk-forge 的 bash forge-progress：收尾合并，还是等 buildkit 切换后弃？
+- [x] **buildmeter @ AELS org**（github.com/Awesome-Embedded-Learning-Studio/buildmeter），名字+位置 2026-07-06 定。"meter" 比 "kit" 准（这是 build 进度计量仪，非工具包）。
+- [ ] rk-forge 的 bash forge-progress：收尾合并，还是等 buildmeter 切换后弃？
