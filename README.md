@@ -77,6 +77,8 @@ bash scripts/forge.sh assemble --sd    # 出 SD 卡镜像（RKFW，本板 ROM �
 bash scripts/forge.sh clean --full     # 干净重建
 ```
 
+> **build 进度条**：`forge build` 跑时显示实时进度（[buildmeter](https://github.com/Awesome-Embedded-Learning-Studio/buildmeter)）—— 装了 `rich` 走华丽边框 Panel，没装走零依赖 ANSI bar。`FORGE_PROGRESS=0` 关闭。
+
 > **zsh 用户**：始终用 `bash scripts/forge.sh ...` 调用——lib 脚本依赖 `BASH_SOURCE`，在 zsh 下为空。
 
 烧录与上板引导见 [QUICK_START.md](QUICK_START.md) 与 [document/tutorial/boot/](document/tutorial/boot/)。
