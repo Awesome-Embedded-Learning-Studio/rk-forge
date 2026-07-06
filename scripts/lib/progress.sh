@@ -1,4 +1,5 @@
-# lib/progress.sh — pipe a long `make` through scripts/forge/progress.py when
+# lib/progress.sh — pipe a long `make` through buildmeter (third_party/buildmeter,
+# the standalone progress-meter package — formerly scripts/forge/progress.py) when
 # interactive, so a 72-minute build shows a live progress bar instead of an
 # endless scroll of CC/LD lines.
 #
@@ -26,7 +27,12 @@
 # Self-locate so this lib doesn't depend on the caller having set _SCRIPT_DIR
 # (matches lib/toolchain.sh's BASH_SOURCE pattern; safe under `set -u`).
 _PROGRESS_LIB_DIR=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
-FORGE_PROGRESS_PY="${_PROGRESS_LIB_DIR}/../forge/progress.py"
+# Points at buildmeter's script-style CLI entry (third_party/buildmeter
+# submodule). cli.py self-fixes sys.path so `python3 "$FORGE_PROGRESS_PY"` works
+# without PYTHONPATH. Same flag contract as the old progress.py (kind / --total /
+# --count-only / --log / --ignore-errors), so callers (build-uboot.sh's custom
+# block) need no business-logic change.
+FORGE_PROGRESS_PY="${_PROGRESS_LIB_DIR}/../../third_party/buildmeter/src/buildmeter/cli.py"
 
 forge_progress_run() {
   local kind="$1"; shift
