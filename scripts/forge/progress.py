@@ -183,9 +183,9 @@ def term_width(fallback=120):
         return fallback
 
 
-def render_line(parser, total, elapsed, bar_width=28):
+def render_bar(parser, total, elapsed, log_path='', bar_width=28):
+    """Line 1 of the display: the progress bar + count + ETA + the tee'd log path."""
     done = parser.done
-    cur = parser.current_label
     if total:
         pct = min(done / total * 100, 100.0) if total else 0.0
         rate = done / elapsed if elapsed > 0.3 else 0.0
@@ -196,11 +196,24 @@ def render_line(parser, total, elapsed, bar_width=28):
     else:
         rate = done / elapsed if elapsed > 0.3 else 0.0
         head = f'{done} {parser.unit} done  {rate:.1f}/s  elapsed {fmt_dur(elapsed)}'
-    line = head + (f' | {cur}' if cur else '')
+    if log_path:
+        head += f'  log: {log_path}'
+    return head
+
+
+def render_frame(parser, total, elapsed, log_path, last_raw):
+    """Two-line display: [bar + ETA + log path] over [latest raw make line].
+    The live raw line gives the 'it's alive' flow the bare bar lacked (so the
+    bar doesn't feel frozen / ninja-quiet during a long compile); the full
+    output is tee'd to log_path by lib/progress.sh for later reference."""
     cols = term_width()
-    if len(line) > cols:
-        line = line[:cols - 1] + '…'
-    return line
+    l1 = render_bar(parser, total, elapsed, log_path)
+    if len(l1) > cols:
+        l1 = l1[:cols - 1] + '…'
+    l2 = ('  ' + last_raw) if last_raw else ''
+    if len(l2) > cols:
+        l2 = l2[:cols - 1] + '…'
+    return l1, l2
 
 
 # --------------------------------------------------------------------------- #
@@ -224,6 +237,13 @@ def main():
     ap.add_argument('--count-only', action='store_true',
                     help="don't render; just count progress units in the input and "
                          "print the total to stdout (for the make -n pre-scan)")
+    ap.add_argument('--log', default='',
+                    help="path of the tee'd full build log (shown on the bar line); "
+                         "lib/progress.sh sets this when it tees make output to /tmp")
+    ap.add_argument('--ignore-errors', default='',
+                    help="regex of error signatures to IGNORE (tolerated noise); e.g. "
+                         "uboot passes its BINMAN_NOISE so 'Error 103'/'images are "
+                         "invalid' don't trigger a false error dump")
     args = ap.parse_args()
 
     # Pre-scan mode: feed the whole input through the parser, print the unit
@@ -273,6 +293,9 @@ def main():
     # without this, the bar freezes at e.g. 30% with the gcc/ld error swallowed).
     recent = collections.deque(maxlen=200)
     saw_error = False
+    ignore_re = re.compile(args.ignore_errors) if args.ignore_errors else None
+    last_raw = ''
+    lines_drawn = 0  # 0 = first frame; 2 = two lines already shown (redraw via cursor-up)
     if is_tty:
         sys.stderr.write(ESC + '[?25l')  # hide cursor
         sys.stderr.flush()
@@ -280,36 +303,52 @@ def main():
         for line in f:
             raw = strip_ansi(line.rstrip('\n'))
             recent.append(raw)
-            if ERR_RE.search(raw):
+            if ERR_RE.search(raw) and not (ignore_re and ignore_re.search(raw)):
                 saw_error = True
-            hit = parser.feed(line)
+            if raw.strip():
+                last_raw = raw
+            parser.feed(line)
             elapsed = time.monotonic() - start
-            if hit:
-                if is_tty:
-                    if (elapsed - last_render) >= 0.1:
-                        last_render = elapsed
-                        sys.stderr.write('\r' + ESC + '[K' + render_line(parser, total, elapsed))
-                        sys.stderr.flush()
-                else:
-                    fire = (snap_event_step and (parser.done - last_snap_done) >= snap_event_step) or \
-                           (snap_time_step and (elapsed - last_snap_time) >= snap_time_step)
-                    if fire:
-                        if snap_event_step:
-                            last_snap_done = parser.done
-                        last_snap_time = elapsed
-                        sys.stderr.write(render_line(parser, total, elapsed) + '\n')
+            if is_tty:
+                # Refresh on a time throttle (~10fps) so the live raw line keeps
+                # flowing — not just on progress hits (otherwise the bar feels
+                # frozen during buildroot's slow >>> pkg lines or a silent phase).
+                if (elapsed - last_render) >= 0.1:
+                    last_render = elapsed
+                    l1, l2 = render_frame(parser, total, elapsed, args.log, last_raw)
+                    if lines_drawn == 0:
+                        sys.stderr.write(l1 + '\n' + l2)
+                        lines_drawn = 2
+                    else:
+                        # cursor-up to line 1, clear both lines, redraw
+                        sys.stderr.write(ESC + '[1A\r' + ESC + '[K' + l1 + '\n' + ESC + '[K' + l2)
+                    sys.stderr.flush()
+            else:
+                # Non-TTY (CI / redirect): snapshot on milestones — bar line only
+                # (no raw tail) to keep CI logs readable, not line-by-line spam.
+                fire = (snap_event_step and (parser.done - last_snap_done) >= snap_event_step) or \
+                       (snap_time_step and (elapsed - last_snap_time) >= snap_time_step)
+                if fire:
+                    if snap_event_step:
+                        last_snap_done = parser.done
+                    last_snap_time = elapsed
+                    sys.stderr.write(render_bar(parser, total, elapsed, args.log) + '\n')
             if args.speed:
                 time.sleep(args.speed / 1000.0)
     finally:
         parser.finalize()
         elapsed = time.monotonic() - start
         if is_tty:
-            sys.stderr.write('\r' + ESC + '[K' + render_line(parser, total, elapsed) + '\n')
+            l1, l2 = render_frame(parser, total, elapsed, args.log, last_raw)
+            if lines_drawn == 0:
+                sys.stderr.write(l1 + '\n' + l2 + '\n')
+            else:
+                sys.stderr.write(ESC + '[1A\r' + ESC + '[K' + l1 + '\n' + ESC + '[K' + l2 + '\n')
             sys.stderr.write(ESC + '[?25h')  # show cursor
             sys.stderr.flush()
         else:
             # non-TTY (CI / redirect): one plain final summary line
-            sys.stderr.write(render_line(parser, total, elapsed) + '\n')
+            sys.stderr.write(render_bar(parser, total, elapsed, args.log) + '\n')
         # Surface make failures the bar would otherwise hide: dump the last N
         # raw lines if any matched an error signature.
         if saw_error:

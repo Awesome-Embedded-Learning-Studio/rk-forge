@@ -126,14 +126,21 @@ UB_MAKE=( make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" )
 if [[ -t 1 ]] && [[ "${FORGE_PROGRESS:-1}" == "1" ]] && [[ -f "$FORGE_PROGRESS_PY" ]] && command -v python3 >/dev/null 2>&1; then
   # TTY + progress: bar over the make output (kernel parser — U-Boot is kbuild),
   # tee to BUILD_LOG so the real-error gate below still has the full log.
+  # BINMAN_NOISE → --ignore-errors so the tolerated binman failures (Error 103 /
+  # images are invalid) don't trigger a false error dump at the end.
+  printf '[INFO] counting build units (make -n)…\n' >&2
   UB_TOTAL=$( ( cd "$BUILD_DIR" && "${UB_MAKE[@]}" -n ) 2>/dev/null \
     | python3 "$FORGE_PROGRESS_PY" --count-only kernel 2>/dev/null || true )
+  UB_BUF=""
+  command -v stdbuf >/dev/null 2>&1 && UB_BUF="stdbuf -oL"
   if [[ "$UB_TOTAL" -gt 0 ]] 2>/dev/null; then
-    ( cd "$BUILD_DIR" && "${UB_MAKE[@]}" ) 2>&1 | tee "$BUILD_LOG" \
-      | python3 "$FORGE_PROGRESS_PY" kernel --total "$UB_TOTAL" || true
+    ( cd "$BUILD_DIR" && $UB_BUF "${UB_MAKE[@]}" ) 2>&1 | tee "$BUILD_LOG" \
+      | python3 "$FORGE_PROGRESS_PY" kernel --total "$UB_TOTAL" --log "$BUILD_LOG" \
+        --ignore-errors "$BINMAN_NOISE" || true
   else
-    ( cd "$BUILD_DIR" && "${UB_MAKE[@]}" ) 2>&1 | tee "$BUILD_LOG" \
-      | python3 "$FORGE_PROGRESS_PY" kernel || true
+    ( cd "$BUILD_DIR" && $UB_BUF "${UB_MAKE[@]}" ) 2>&1 | tee "$BUILD_LOG" \
+      | python3 "$FORGE_PROGRESS_PY" kernel --log "$BUILD_LOG" \
+        --ignore-errors "$BINMAN_NOISE" || true
   fi
 else
   # non-TTY / disabled: capture to log + show non-noise (original flow)

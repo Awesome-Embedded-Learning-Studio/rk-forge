@@ -39,20 +39,29 @@ forge_progress_run() {
     return $?
   fi
 
-  # Pre-scan: dry-run to get the denominator (best-effort; on failure → 0 =
-  # indeterminate). `-n` is appended to the make args; make accepts it anywhere.
+  # stdbuf -oL makes `make` line-buffer its stdout. make block-buffers when
+  # stdout is a pipe (which it is here), and would starve the bar until EOF —
+  # the bar would only appear at the very end. Fall back to plain if stdbuf
+  # isn't available (coreutils; virtually always present on Linux).
+  local buf=""
+  if command -v stdbuf >/dev/null 2>&1; then buf="stdbuf -oL"; fi
+
+  # Pre-scan: dry-run for the denominator. Emit a status line first so the
+  # silent dry-run (can take tens of seconds on a big tree) doesn't look like a hang.
   local total=0
   if [[ "${FORGE_PROGRESS_PRESCAN:-1}" == "1" ]]; then
+    printf '[INFO] counting build units (make -n)…\n' >&2
     total=$("$@" -n 2>/dev/null | python3 "$progress_py" --count-only "$kind" 2>/dev/null) || total=0
   fi
 
-  # Real build, piped through progress.py. stderr from make is merged into the
-  # pipe (progress parses it; kbuild/buildroot emit CC/>>>  on stdout anyway).
-  # progress.py renders to stderr, so the bar is visible while stdout stays clean.
+  # Tee the full make output to a per-build log under /tmp (preserved for
+  # reference / debugging), pipe through progress.py for the live bar.
+  local logf="/tmp/forge-${kind}-${BASHPID:-$$}.log"
+  printf '[INFO] full build log → %s\n' >&2 "$logf"
   if [[ "$total" -gt 0 ]] 2>/dev/null; then
-    "$@" 2>&1 | python3 "$progress_py" "$kind" --total "$total"
+    $buf "$@" 2>&1 | tee "$logf" | python3 "$progress_py" "$kind" --total "$total" --log "$logf"
   else
-    "$@" 2>&1 | python3 "$progress_py" "$kind"
+    $buf "$@" 2>&1 | tee "$logf" | python3 "$progress_py" "$kind" --log "$logf"
   fi
   return "${PIPESTATUS[0]}"
 }
