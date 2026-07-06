@@ -77,6 +77,8 @@ bash scripts/forge.sh assemble --sd    # build an SD-card image (RKFW; this boar
 bash scripts/forge.sh clean --full     # clean rebuild
 ```
 
+> **Build progress:** `forge build` shows live progress ([buildmeter](https://github.com/Awesome-Embedded-Learning-Studio/buildmeter)) — a bordered color Panel if `rich` is installed, a zero-dependency ANSI bar otherwise. `FORGE_PROGRESS=0` disables it.
+
 > **zsh users:** always invoke as `bash scripts/forge.sh ...` — the lib scripts rely on `BASH_SOURCE`, which is empty under zsh.
 
 Flashing and on-board boot are in [QUICK_START.md](QUICK_START.md) and [document/tutorial/boot/](document/tutorial/boot/).

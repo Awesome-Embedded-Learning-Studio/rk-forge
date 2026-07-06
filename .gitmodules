@@ -1,8 +1,13 @@
-# Only rkbin is a real git submodule (closed DDR/TPL/SPL blobs — pinned at a
-# known-good commit). linux + uboot are fetched-clone trees under third_party/src/
-# (gitignored, managed by scripts/fetch-deps.sh against pins/), NOT submodules —
-# they carry our patch series, so a gitlink would drift. `ignore = dirty` keeps
-# rkbin build dirties from polluting the superproject status.
+# Real git submodules (pinned at known-good commits; init via forge.sh setup →
+# `git submodule update --init`, idempotent across all entries):
+#  - rkbin:   closed DDR/TPL/SPL blobs (Rockchip).
+#  - buildmeter: our standalone build-progress-meter Python package
+#    (github.com/Awesome-Embedded-Learning-Studio/buildmeter); scripts/lib/progress.sh
+#    invokes it via $FORGE_PROGRESS_PY (formerly scripts/forge/progress.py).
+# linux + uboot are fetched-clone trees under third_party/src/ (gitignored,
+# managed by scripts/fetch-deps.sh against pins/), NOT submodules — they carry
+# our patch series, so a gitlink would drift. `ignore = dirty` keeps build
+# dirties from polluting the superproject status.
 [submodule "third_party/rkbin"]
 	path = third_party/rkbin
 	url = https://github.com/rockchip-linux/rkbin.git
@@ -12,3 +17,7 @@
 # clone of a vendor SDK (e.g. 正点原子/ALIENTEK) used ONLY as a reference for
 # sdk-diff + board-DT/config extraction (an active extraction pool, not a build
 # input). Moved from third_party/ on 2026-06-20. See reference/README.md.
+[submodule "third_party/buildmeter"]
+	path = third_party/buildmeter
+	url = https://github.com/Awesome-Embedded-Learning-Studio/buildmeter
+	ignore = dirty

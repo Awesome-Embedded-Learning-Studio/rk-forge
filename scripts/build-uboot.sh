@@ -42,6 +42,8 @@ source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + UBOOT_DIR/OUT_DIR
 source "${_SCRIPT_DIR}/lib/log.sh"
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/toolchain.sh"
+# shellcheck disable=SC1091
+source "${_SCRIPT_DIR}/lib/progress.sh"   # FORGE_PROGRESS_PY + forge_progress_run
 
 UBOOT_DIR_LOCAL="$UBOOT_DIR"; CLEAN=0; VARIANT="nand"
 while [[ $# -gt 0 ]]; do
@@ -119,10 +121,40 @@ log_info "make -j$(nproc) (binman combined-image failure tolerated; real dts/com
 # failure dies hard. (The old version piped through grep + `|| true` + only
 # checked `[[ -e u-boot.dtb ]]`, which PASSED on a stale artifact — silently
 # swallowing a dts parse error. See git history.)
-BINMAN_NOISE='BINMAN |simple-bin|rockchip-tpl|external blob|external TPL|faked external|images are invalid|Error 103|binman_stamp|/binman/|rockchip-linux/rkbin'
-( cd "$BUILD_DIR" && make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" ) > "$BUILD_LOG" 2>&1 || true
-# show progress minus the tolerated binman noise (so the console isn't flooded)
-grep -vE "$BINMAN_NOISE" "$BUILD_LOG" || true
+BINMAN_NOISE='BINMAN |simple-bin|rockchip-tpl|ROCKCHIP_TPL=|binary and build with|One possible source|Required binary blob|See the documentation|external blob|external TPL|faked external|images are invalid|Error 103|binman_stamp|/binman/|rockchip-linux/rkbin|ddr\.bin'
+UB_MAKE=( make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" )
+if [[ -t 1 ]] && [[ "${FORGE_PROGRESS:-1}" == "1" ]] && [[ -f "$FORGE_PROGRESS_PY" ]] && command -v python3 >/dev/null 2>&1; then
+  # TTY + progress: bar over the make output (kernel parser — U-Boot is kbuild),
+  # tee to BUILD_LOG so the real-error gate below still has the full log.
+  # BINMAN_NOISE → --ignore-errors so the tolerated binman failures (the whole
+  # blob-missing block: Error 103 / images are invalid / Required binary blob /
+  # ROCKCHIP_TPL= / "binary and build with" / "One possible source" / ddr.bin)
+  # neither triggers a false error dump nor shows on the live raw line.
+  printf '[INFO] counting build units (make -n)…\n' >&2
+  # `{ make -k -n || true; }` — -k keeps the dry-run enumerating past sub-make
+  # errors (else it truncates → undercount); || true swallows the non-zero exit
+  # so pipefail doesn't zero the total (same as lib/progress.sh's pre-scan).
+  # buildmeter --count-only stderr is NOT silenced — on a TTY it shows the
+  # pre-scan spinner; it only writes stderr on a TTY (CI unaffected). The
+  # make-side ( ... ) 2>/dev/null still swallows make -n noise.
+  UB_TOTAL=$( { ( cd "$BUILD_DIR" && "${UB_MAKE[@]}" -k -n ) 2>/dev/null || true; } \
+    | python3 "$FORGE_PROGRESS_PY" --count-only kernel || true )
+  UB_BUF=""
+  command -v stdbuf >/dev/null 2>&1 && UB_BUF="stdbuf -oL"
+  if [[ "$UB_TOTAL" -gt 0 ]] 2>/dev/null; then
+    ( cd "$BUILD_DIR" && $UB_BUF "${UB_MAKE[@]}" ) 2>&1 | tee "$BUILD_LOG" \
+      | python3 "$FORGE_PROGRESS_PY" kernel --total "$UB_TOTAL" --log "$BUILD_LOG" \
+        --ignore-errors "$BINMAN_NOISE" || true
+  else
+    ( cd "$BUILD_DIR" && $UB_BUF "${UB_MAKE[@]}" ) 2>&1 | tee "$BUILD_LOG" \
+      | python3 "$FORGE_PROGRESS_PY" kernel --log "$BUILD_LOG" \
+        --ignore-errors "$BINMAN_NOISE" || true
+  fi
+else
+  # non-TTY / disabled: capture to log + show non-noise (original flow)
+  ( cd "$BUILD_DIR" && "${UB_MAKE[@]}" ) > "$BUILD_LOG" 2>&1 || true
+  grep -vE "$BINMAN_NOISE" "$BUILD_LOG" || true
+fi
 
 # Real-error gate: dtc (FATAL/Lexical/Syntax error), gcc (error:), or ld
 # (undefined reference). These never appear in the tolerated binman noise, so a
