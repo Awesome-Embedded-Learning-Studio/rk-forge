@@ -48,10 +48,18 @@ forge_progress_run() {
 
   # Pre-scan: dry-run for the denominator. Emit a status line first so the
   # silent dry-run (can take tens of seconds on a big tree) doesn't look like a hang.
+  # `{ make -n || true; }` swallows make's NON-ZERO EXIT: the kernel dry-run exits
+  # non-zero (a tools/objtool sub-make error during -n) but STILL prints every CC
+  # line on stdout — those are what we count. Without `|| true`, the caller's
+  # `set -o pipefail` would fail the pipe and zero the total → indeterminate bar.
   local total=0
   if [[ "${FORGE_PROGRESS_PRESCAN:-1}" == "1" ]]; then
     printf '[INFO] counting build units (make -n)…\n' >&2
-    total=$("$@" -n 2>/dev/null | python3 "$progress_py" --count-only "$kind" 2>/dev/null) || total=0
+    total=$({ "$@" -n 2>/dev/null || true; } \
+      | python3 "$progress_py" --count-only "$kind" 2>/dev/null) || total=0
+    if [[ "$total" -le 0 ]]; then
+      printf '[INFO] pre-scan returned 0 — running indeterminate (no %% bar)\n' >&2
+    fi
   fi
 
   # Tee the full make output to a per-build log under /tmp (preserved for
