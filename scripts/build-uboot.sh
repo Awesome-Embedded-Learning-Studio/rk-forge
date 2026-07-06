@@ -129,10 +129,10 @@ if [[ -t 1 ]] && [[ "${FORGE_PROGRESS:-1}" == "1" ]] && [[ -f "$FORGE_PROGRESS_P
   # BINMAN_NOISE → --ignore-errors so the tolerated binman failures (Error 103 /
   # images are invalid) don't trigger a false error dump at the end.
   printf '[INFO] counting build units (make -n)…\n' >&2
-  # `{ ... || true; }` — make -n may exit non-zero during dry-run (sub-make
-  # errors) but still print all CC lines; swallow the exit so pipefail doesn't
-  # zero the total (same fix as lib/progress.sh's pre-scan).
-  UB_TOTAL=$( { ( cd "$BUILD_DIR" && "${UB_MAKE[@]}" -n ) 2>/dev/null || true; } \
+  # `{ make -k -n || true; }` — -k keeps the dry-run enumerating past sub-make
+  # errors (else it truncates → undercount); || true swallows the non-zero exit
+  # so pipefail doesn't zero the total (same as lib/progress.sh's pre-scan).
+  UB_TOTAL=$( { ( cd "$BUILD_DIR" && "${UB_MAKE[@]}" -k -n ) 2>/dev/null || true; } \
     | python3 "$FORGE_PROGRESS_PY" --count-only kernel 2>/dev/null || true )
   UB_BUF=""
   command -v stdbuf >/dev/null 2>&1 && UB_BUF="stdbuf -oL"
