@@ -24,6 +24,11 @@
 #
 #   --force   re-run stages even if inputs are unchanged (skip the skip).
 #   --no-skip run every stage unconditionally (no content-hash skipping).
+#   --rootfs=buildroot|openwrt  rootfs/kernel profile (default: buildroot). The
+#                               openwrt profile makes OpenWrt build the kernel+rootfs
+#                               (musl, opkg/kmod); rk-forge still does the RK packing
+#                               (uboot/loader/fit-pack/rkfw-pack). Flags may appear
+#                               before OR after the subcommand.
 # Guard: ensure bash. The shebang handles the normal case; this catches an
 # explicit `sh scripts/forge.sh` or any non-bash invocation (lib/*.sh rely on
 # bash arrays + BASH_SOURCE). Re-exec ourselves under bash, preserving args.
@@ -41,19 +46,41 @@ source "${_SCRIPT_DIR}/lib/host.sh"    # forge_warn_windows_path (WSL PATH detec
 
 STATE_DIR="${OUT_DIR}/.forge-stage"
 FORCE=0; NO_SKIP=0; CLEAN_FULL=0; CMD=""
+ROOTFS_PROFILE="${ROOTFS_PROFILE:-buildroot}"   # buildroot (default) | openwrt
 
-# --- argument parse (flags + one subcommand + its passthrough) ---------------
+# --- argument parse (flags anywhere + one subcommand + its passthrough) ------
+# Flags (--force/--no-skip/--full/--rootfs) may appear BEFORE or AFTER the
+# subcommand (both `forge --rootfs=openwrt setup` and `forge setup --rootfs=openwrt`
+# work). The first non-flag token is the subcommand; the rest are its passthrough
+# (e.g. `assemble --nand`, `clean --full`).
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --force)   FORCE=1; shift;;
     --no-skip) NO_SKIP=1; shift;;
     --full)    CLEAN_FULL=1; shift;;
+    --rootfs)  ROOTFS_PROFILE="$2"; shift 2;;
+    --rootfs=*) ROOTFS_PROFILE="${1#--rootfs=}"; shift;;
     setup|build|pack|pack-sd|assemble|all|clean|status) CMD="$1"; shift; break;;
     -h|--help) sed -n '2,22p' "$0"; exit 0;;
     *) die "unknown arg: $1 (want a subcommand: setup|build|pack|pack-sd|assemble|all|clean|status)";;
   esac
 done
 [[ -n "$CMD" ]] || die "no subcommand (try: forge setup|build|pack|assemble|all|clean|status)"
+# Re-scan args AFTER the subcommand for flags (--rootfs may follow it), then the
+# first leftover non-flag is the assemble variant (--provision|--nand|--rescue|--sd).
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --force)   FORCE=1; shift;;
+    --no-skip) NO_SKIP=1; shift;;
+    --full)    CLEAN_FULL=1; shift;;
+    --rootfs)  ROOTFS_PROFILE="$2"; shift 2;;
+    --rootfs=*) ROOTFS_PROFILE="${1#--rootfs=}"; shift;;
+    *) break;;   # first non-flag → leave for ASSEMBLE_VARIANT
+  esac
+done
+# Validate ROOTFS_PROFILE AFTER both scans (flag may precede OR follow the subcommand).
+[[ "$ROOTFS_PROFILE" == "buildroot" || "$ROOTFS_PROFILE" == "openwrt" ]] \
+  || die "unknown --rootfs: $ROOTFS_PROFILE (want buildroot|openwrt)"
 ASSEMBLE_VARIANT="${1:---provision}"   # only meaningful for assemble/all
 
 # --- run_stage: run a stage unless its inputs are unchanged ------------------
@@ -81,55 +108,100 @@ stage_setup() {
   # (lib/rkbin.sh). A plain `git clone` (no --recursive) leaves the dir empty →
   # pack-loader dies "boot_merger not found (init third_party/rkbin submodule)"
   # (issue #8). fetch-deps.sh only covers the gitignored fetched-clones
-  # (linux/uboot/buildroot), NOT the submodule, so init it here explicitly.
+  # (linux/uboot/buildroot/openwrt), NOT the submodule, so init it here explicitly.
   # Idempotent + fast; --init covers every registered submodule (rkbin today).
   log_info "[setup] init git submodules (third_party/rkbin — boot_merger + blob source)"
   git -C "$PROJECT_ROOT" submodule update --init
-  log_info "[setup] fetching source trees"
-  bash "${_SCRIPT_DIR}/fetch-deps.sh" all
-  log_info "[setup] fetching WiFi driver drop"
-  bash "${_SCRIPT_DIR}/fetch-rtl8733bu-driver.sh"
+
+  # Fetch source trees per profile. The openwrt profile does NOT need the linux/
+  # buildroot trees or the rtl8733bu driver drop — OpenWrt builds its own kernel
+  # (its musl toolchain + quilt patches-7.1/) and wifi goes through OpenWrt's kmod
+  # package system. It only needs uboot (rk-forge's mainline U-Boot) + openwrt.
+  if [[ "$ROOTFS_PROFILE" == "openwrt" ]]; then
+    log_info "[setup] fetching source trees (openwrt profile: uboot + openwrt)"
+    bash "${_SCRIPT_DIR}/fetch-deps.sh" uboot
+    bash "${_SCRIPT_DIR}/fetch-deps.sh" openwrt
+  else
+    log_info "[setup] fetching source trees (buildroot profile: linux + uboot + buildroot)"
+    bash "${_SCRIPT_DIR}/fetch-deps.sh" all
+    log_info "[setup] fetching WiFi driver drop"
+    bash "${_SCRIPT_DIR}/fetch-rtl8733bu-driver.sh"
+  fi
+
   # apply the patch series into each tree, but only if it's still at the base
   # (unpatched). apply-series.sh commits via `git am`, so guard on HEAD==base.
-  local linux_base uboot_base
   # pins ref may be an annotated tag (linux = v7.1). `git rev-parse <tag>` returns
   # the TAG-OBJECT sha, but HEAD after `git clone --branch <tag>` is the COMMIT sha
-  # — the two never compare equal, so a bare rev-parse made this guard ALWAYS skip
-  # apply on a clean clone → unpatched tree → "No rule to make target
-  # rk3506b-aes.dtb" (issue #6: zImage builds fine since it needs no board DT).
-  # Peel the tag to its commit with ^{commit} (no-op for the uboot commit-sha pin).
-  # The awk filter also strips pins/* comments + blank lines (a bare $2 would collect
-  # a multi-line blob and break rev-parse).
+  # — peel the tag to its commit with ^{commit} (no-op for commit-sha pins like
+  # uboot/openwrt). The awk filter strips pins/* comments + blank lines.
+  local linux_base uboot_base openwrt_base
   linux_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/linux")
   uboot_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/uboot")
-  if [[ "$(git -C "$LINUX_DIR" rev-parse HEAD)" == "$(git -C "$LINUX_DIR" rev-parse "${linux_base}^{commit}")" ]]; then
-    log_info "[setup] applying linux patch series"
-    ( cd "$LINUX_DIR" && bash "${_SCRIPT_DIR}/apply-series.sh" --component linux )
-  else
-    log_info "[setup] linux tree already patched ($(git -C "$LINUX_DIR" describe --tags 2>/dev/null || git -C "$LINUX_DIR" rev-parse --short HEAD)) — skip apply"
+  openwrt_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/openwrt")
+
+  if [[ "$ROOTFS_PROFILE" != "openwrt" ]]; then
+    if [[ "$(git -C "$LINUX_DIR" rev-parse HEAD)" == "$(git -C "$LINUX_DIR" rev-parse "${linux_base}^{commit}")" ]]; then
+      log_info "[setup] applying linux patch series"
+      ( cd "$LINUX_DIR" && bash "${_SCRIPT_DIR}/apply-series.sh" --component linux )
+    else
+      log_info "[setup] linux tree already patched ($(git -C "$LINUX_DIR" describe --tags 2>/dev/null || git -C "$LINUX_DIR" rev-parse --short HEAD)) — skip apply"
+    fi
   fi
+
   if [[ "$(git -C "$UBOOT_DIR" rev-parse HEAD)" == "$(git -C "$UBOOT_DIR" rev-parse "${uboot_base}^{commit}")" ]]; then
     log_info "[setup] applying uboot patch series"
     ( cd "$UBOOT_DIR" && bash "${_SCRIPT_DIR}/apply-series.sh" --component uboot )
   else
     log_info "[setup] uboot tree already patched — skip apply"
   fi
-  log_ok "setup complete"
+
+  # openwrt overlay: a SMALL rk-forge delta (Device/aes + config tweaks) applied
+  # via git am. The KERNEL patches (0001-0016) are NOT applied here — OpenWrt's
+  # quilt applies patches-7.1/ at build time. apply-series.sh is component-agnostic.
+  if [[ "$ROOTFS_PROFILE" == "openwrt" ]]; then
+    if [[ "$(git -C "$OPENWRT_DIR" rev-parse HEAD)" == "$(git -C "$OPENWRT_DIR" rev-parse "${openwrt_base}^{commit}")" ]]; then
+      log_info "[setup] applying openwrt overlay (Device/aes + config)"
+      ( cd "$OPENWRT_DIR" && bash "${_SCRIPT_DIR}/apply-series.sh" --component openwrt )
+    else
+      log_info "[setup] openwrt tree already overlayed ($(git -C "$OPENWRT_DIR" rev-parse --short HEAD)) — skip apply"
+    fi
+  fi
+  log_ok "setup complete (profile=$ROOTFS_PROFILE)"
 }
 
 stage_build() {
   forge_warn_windows_path
-  log_info "[build] kernel (build-linux.sh — make is internally incremental)"
-  bash "${_SCRIPT_DIR}/build-linux.sh"
-  log_info "[build] U-Boot (build-uboot.sh — SOURCE_DATE_EPOCH → byte-reproducible)"
-  bash "${_SCRIPT_DIR}/build-uboot.sh"
-  log_info "[build] rootfs (build-rootfs.sh — buildroot + WSL clean PATH)"
-  bash "${_SCRIPT_DIR}/build-rootfs.sh"
-  log_ok "build complete (kernel + U-Boot + rootfs all automated)"
+  if [[ "$ROOTFS_PROFILE" == "openwrt" ]]; then
+    # openwrt profile: OpenWrt builds the kernel (zImage+aes.dtb) AND the rootfs
+    # (musl busybox+procd+kmod tree) in its own build_dir. Skip build-linux.sh —
+    # OpenWrt's kernel feeds pack-fit.sh via KERNEL_ARTIFACT_DIR (set in
+    # stage_pack). U-Boot is still rk-forge's mainline build (reused, board-verified).
+    log_info "[build] OpenWrt kernel+rootfs (build-openwrt.sh — OpenWrt builds the kernel)"
+    bash "${_SCRIPT_DIR}/build-openwrt.sh"
+    log_info "[build] U-Boot (build-uboot.sh — rk-forge mainline, reused)"
+    bash "${_SCRIPT_DIR}/build-uboot.sh"
+  else
+    log_info "[build] kernel (build-linux.sh — make is internally incremental)"
+    bash "${_SCRIPT_DIR}/build-linux.sh"
+    log_info "[build] U-Boot (build-uboot.sh — SOURCE_DATE_EPOCH → byte-reproducible)"
+    bash "${_SCRIPT_DIR}/build-uboot.sh"
+    log_info "[build] rootfs (build-rootfs.sh — buildroot + WSL clean PATH)"
+    bash "${_SCRIPT_DIR}/build-rootfs.sh"
+  fi
+  log_ok "build complete (profile=$ROOTFS_PROFILE)"
 }
 
 stage_pack() {
   mkdir -p "$OUT_DIR"
+  # openwrt profile: OpenWrt built the kernel in its build_dir — point
+  # KERNEL_ARTIFACT_DIR there so pack-fit.sh reads OpenWrt's zImage+aes.dtb.
+  # (buildroot profile leaves KERNEL_ARTIFACT_DIR at its default = LINUX_DIR.)
+  if [[ "$ROOTFS_PROFILE" == "openwrt" ]]; then
+    export KERNEL_ARTIFACT_DIR="$(find "$OPENWRT_DIR/build_dir/linux-rockchip_rk3506" -maxdepth 1 -name 'linux-*' -type d 2>/dev/null | head -1)"
+    [[ -n "$KERNEL_ARTIFACT_DIR" && -f "$KERNEL_ARTIFACT_DIR/arch/arm/boot/zImage" ]] \
+      || die "OpenWrt kernel build dir not found under $OPENWRT_DIR/build_dir/linux-rockchip_rk3506 (run: forge build --rootfs=openwrt)"
+    log_info "[pack] KERNEL_ARTIFACT_DIR=$KERNEL_ARTIFACT_DIR (OpenWrt kernel)"
+  fi
   # build-initramfs FIRST: pack-fit incbin's the provisioning ramdisk into
   # boot.img. Generated from tracked/pinned sources (busybox + ubiprog.c + /init)
   # — the in-forge generator that replaced the never-committed hand-built blob
@@ -142,19 +214,32 @@ stage_pack() {
     "${BRINGUP}/RKBOOT-RK3506B-aes.ini" "${FORGE_RKBIN_DIR}/bin/rk35" \
     "${_SCRIPT_DIR}/pack-loader.sh" "${_SCRIPT_DIR}/lib/rkbin.sh" \
     -- bash "${_SCRIPT_DIR}/pack-loader.sh"
+  # pack-fit reads zImage+aes.dtb from KERNEL_ARTIFACT_DIR (LINUX_DIR for buildroot,
+  # OpenWrt's build_dir for openwrt). FIT templates + load addrs are rk-forge's
+  # board-verified ones (NOT OpenWrt's 0x03200000/0x02000000 — those are for its uboot).
   run_stage pack-fit \
     "${BRINGUP}/fit/rk3506-mainline.its" "${BRINGUP}/fit/rk3506-kernel.its" \
-    "${BRINGUP}/fit/rk3506-kernel-nand.its" "${LINUX_DIR}/arch/arm/boot/zImage" \
-    "${LINUX_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb" \
+    "${BRINGUP}/fit/rk3506-kernel-nand.its" "${KERNEL_ARTIFACT_DIR}/arch/arm/boot/zImage" \
+    "${KERNEL_ARTIFACT_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb" \
     "${UBOOT_DIR}/u-boot-nodtb.bin" "${UBOOT_DIR}/u-boot.dtb" \
     "${BRINGUP}/fit/initramfs.cpio.gz" \
     "${_SCRIPT_DIR}/pack-fit.sh" \
     -- bash "${_SCRIPT_DIR}/pack-fit.sh"
-  run_stage stage-rootfs \
-    "${BUILDROOT}/output/images/rootfs.tar" \
-    "${LINUX_DIR}/drivers/net/wireless/realtek/rtl8733bu/8733bu.ko" \
-    "${_SCRIPT_DIR}/stage-rootfs.sh" \
-    -- bash "${_SCRIPT_DIR}/stage-rootfs.sh"
+  # stage-rootfs: buildroot extracts buildroot's rootfs.tar (+ 8733bu.ko); openwrt
+  # rsyncs OpenWrt's TARGET_DIR (kmod already in lib/modules/). stage-rootfs.sh
+  # branches on ROOTFS_PROFILE. The openwrt fingerprint input is the .openwrt-built
+  # marker (touched by build-openwrt.sh each successful build) so a re-build re-stages.
+  if [[ "$ROOTFS_PROFILE" == "openwrt" ]]; then
+    run_stage stage-rootfs \
+      "${OUT_DIR}/.openwrt-built" "${_SCRIPT_DIR}/stage-rootfs.sh" \
+      -- bash "${_SCRIPT_DIR}/stage-rootfs.sh"
+  else
+    run_stage stage-rootfs \
+      "${BUILDROOT}/output/images/rootfs.tar" \
+      "${LINUX_DIR}/drivers/net/wireless/realtek/rtl8733bu/8733bu.ko" \
+      "${_SCRIPT_DIR}/stage-rootfs.sh" \
+      -- bash "${_SCRIPT_DIR}/stage-rootfs.sh"
+  fi
   run_stage pack-ubifs \
     "${OUT_DIR}/rootfs" "${_SCRIPT_DIR}/pack-ubifs.sh" "${_PROJECT_ROOT}/config/forge.env" \
     -- bash "${_SCRIPT_DIR}/pack-ubifs.sh"
