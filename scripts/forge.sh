@@ -118,7 +118,14 @@ stage_setup() {
   # (its musl toolchain + quilt patches-7.1/) and wifi goes through OpenWrt's kmod
   # package system. It only needs uboot (rk-forge's mainline U-Boot) + openwrt.
   if [[ "$ROOTFS_PROFILE" == "openwrt" ]]; then
-    log_info "[setup] fetching source trees (openwrt profile: uboot + openwrt)"
+    log_info "[setup] fetching source trees (openwrt profile: linux + uboot + openwrt)"
+    # linux: fetched ONLY to git-archive v7.1 → dl/linux-7.1.tar.gz. czz8888's
+    # kernel-headers download URL is broken (GitHub archive name is v7.1.tar.gz,
+    # not linux-7.1.tar.gz — download.pl 404s). build-openwrt.sh regenerates the
+    # tarball via `git archive v7.1 | gzip -n` (hash matches czz8888's). OpenWrt
+    # then builds its OWN kernel from that tarball + quilt patches-7.1; rk-forge's
+    # patched linux tree is NOT used by the openwrt profile.
+    bash "${_SCRIPT_DIR}/fetch-deps.sh" linux
     bash "${_SCRIPT_DIR}/fetch-deps.sh" uboot
     bash "${_SCRIPT_DIR}/fetch-deps.sh" openwrt
   else

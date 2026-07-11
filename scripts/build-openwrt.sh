@@ -61,9 +61,34 @@ if [[ "$RECONFIGURE" == 1 || ! -f .config ]]; then
   PATH="$(forge_clean_path)" make defconfig
 fi
 
-# 3. build (toolchain → kernel → packages → rootfs). First time ~30-90min,
-#    1-2GB download (linux-7.1 tarball + toolchain + feeds). OpenWrt uses its
-#    OWN musl toolchain (NOT the rk-forge glibc one — see header note).
+# 3. ensure dl/linux-7.1.tar.gz exists. czz8888's kernel-headers download URL is
+#    broken (GitHub archive file is v7.1.tar.gz, not linux-7.1.tar.gz → download.pl
+#    404s on every mirror). Regenerate via `git archive v7.1 | gzip -n` from the
+#    rk-forge linux tree — the hash matches czz8888's LINUX_KERNEL_HASH exactly
+#    (both are the deterministic git-archive of tag v7.1). Requires the linux tree
+#    fetched by `forge setup --rootfs=openwrt`. (Hash from include/kernel-7.1.)
+ensure_linux_tarball() {
+  local tarball="$OPENWRT_DIR/dl/linux-7.1.tar.gz"
+  local expected="ad7f8010a17ecd9959c79cba639dfbbc9dccbbfb7323c5f1d04421368939f18f"
+  if [[ -f "$tarball" ]] && [[ "$(sha256sum "$tarball" | cut -d' ' -f1)" == "$expected" ]]; then
+    log_info "dl/linux-7.1.tar.gz present (hash OK) — skip regenerate"
+    return 0
+  fi
+  log_info "regenerating dl/linux-7.1.tar.gz via git archive v7.1 (czz8888 download URL is broken)"
+  [[ -d "$LINUX_DIR/.git" ]] \
+    || die "linux tree missing at $LINUX_DIR (run: forge setup --rootfs=openwrt)"
+  mkdir -p "$OPENWRT_DIR/dl"
+  ( cd "$LINUX_DIR" && git archive --format=tar --prefix=linux-7.1/ v7.1 | gzip -n ) > "$tarball" \
+    || die "git archive v7.1 failed"
+  [[ "$(sha256sum "$tarball" | cut -d' ' -f1)" == "$expected" ]] \
+    || die "generated linux-7.1.tar.gz hash mismatch (expected $expected)"
+  log_ok "dl/linux-7.1.tar.gz regenerated ($(stat -c%s "$tarball") B)"
+}
+ensure_linux_tarball
+
+# 4. build (toolchain → kernel → packages → rootfs). First time ~30-90min,
+#    downloads toolchain sources (the linux-7.1 tarball is local — see above).
+#    OpenWrt uses its OWN musl toolchain (NOT the rk-forge glibc one — see header).
 [[ "$CLEAN" == 1 ]] && { log_info "make clean"; PATH="$(forge_clean_path)" make clean >/dev/null; }
 log_info "make -j$(nproc) (PATH cleaned; OpenWrt own musl toolchain; ~30-90min first time)"
 PATH="$(forge_clean_path)" forge_progress_run kernel make -j"$(nproc)"
