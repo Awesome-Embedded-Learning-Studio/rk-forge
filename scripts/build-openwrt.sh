@@ -86,16 +86,41 @@ ensure_linux_tarball() {
 }
 ensure_linux_tarball
 
-# 4. build (toolchain → kernel → packages → rootfs). First time ~30-90min,
-#    downloads toolchain sources (the linux-7.1 tarball is local — see above).
-#    OpenWrt uses its OWN musl toolchain (NOT the rk-forge glibc one — see header).
+# 4. build in STAGES (not `make world`). `make world -jN` launches package/cleanup
+#    and target/compile as parallel make[2] jobs; on -j14 package/cleanup regenerates
+#    tmp/.packageinfo WHILE target/linux is reading it → a STABLE (not flaky) failure
+#    at "target/linux failed to build" with no detail. V=s -j14 target/linux/compile
+#    alone succeeds, confirming the kernel is fine — it's the world cross-stage race.
+#    Building each stage separately (still -j$(nproc) WITHIN a stage) sidesteps it.
+#    Stage order follows the world dependency chain in include/toplevel.mk.
 [[ "$CLEAN" == 1 ]] && { log_info "make clean"; PATH="$(forge_clean_path)" make clean >/dev/null; }
-log_info "make -j$(nproc) (PATH cleaned; OpenWrt own musl toolchain; ~30-90min first time)"
-PATH="$(forge_clean_path)" forge_progress_run kernel make -j"$(nproc)"
+build_stage() {  # <name> <make-targets...>
+  local name="$1"; shift
+  local logf="/tmp/forge-openwrt-${name//[^A-Za-z0-9]/-}-${BASHPID:-$$}.log"
+  log_info "[build] $name (-j$(nproc), V=s → $logf)"
+  # env -u LINUX_DIR: rk-forge's lib/env.sh exports LINUX_DIR=third_party/src/linux
+  # (the rk-forge PATCHED tree). OpenWrt's include/kernel.mk does
+  # `LINUX_DIR ?= $(KERNEL_BUILD_DIR)/linux-$(LINUX_VERSION)` — the env var wins
+  # via ?=, so OpenWrt would quilt-apply patches-7.1/ onto rk-forge's ALREADY-
+  # patched tree → patch rejects (0014/0016/0017/0018 fail). Unset it so OpenWrt
+  # extracts dl/linux-7.1.tar.gz into its OWN build_dir/linux-7.1 and patches there.
+  # V=s bypasses OpenWrt's cmd() (silent `make -s` + fd redirect) which false-
+  # fails under -jN. Full verbose output → per-stage log; tail only on failure.
+  PATH="$(forge_clean_path)" env -u LINUX_DIR make "$@" V=s -j"$(nproc)" >"$logf" 2>&1 \
+    || { log_warn "$name FAILED — last 30 lines:"; tail -30 "$logf" >&2; die "full log: $logf"; }
+  log_ok "$name done"
+}
+build_stage "tools + toolchain"      tools/install toolchain/install
+build_stage "target/linux (kernel)"  target/linux/compile
+build_stage "package (rootfs)"       package/compile package/install
+# target/linux/install builds the rootfs image (root.ext4 / root.squashfs) FROM
+# TARGET_DIR (build_dir/.../root-rockchip/), so it MUST run AFTER package/install
+# creates that dir — putting it in the kernel stage was the install failure.
+build_stage "target install + index" target/linux/install target/install package/index
 
 # 4. verify kernel artifacts (zImage + aes.dtb) — these feed pack-fit.sh via
 #    KERNEL_ARTIFACT_DIR (resolved by forge.sh stage_pack to this build dir).
-KDIR="$(find "$OPENWRT_DIR/build_dir/linux-rockchip_rk3506" -maxdepth 1 -name 'linux-*' -type d | head -1)"
+KDIR="$(find "$OPENWRT_DIR/build_dir" -type d -name 'linux-7.*' -path '*linux-rockchip_rk3506*' | head -1)"
 [[ -n "$KDIR" ]] || die "OpenWrt kernel build dir not found (build failed?)"
 ZIMAGE="$KDIR/arch/arm/boot/zImage"
 AES_DTB="$KDIR/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
@@ -103,7 +128,7 @@ for f in "$ZIMAGE" "$AES_DTB"; do
   [[ -f "$f" ]] || die "missing OpenWrt kernel artifact: $f (was the aes_nand device selected in .config?)"
 done
 # verify the rootfs tree (TARGET_DIR) for stage-rootfs.sh
-OW_TARGET_DIR="$(find "$OPENWRT_DIR/build_dir" -maxdepth 2 -name 'root-rk3506' -type d | head -1)"
+OW_TARGET_DIR="$(find "$OPENWRT_DIR/build_dir" -name 'root-rockchip' -type d | head -1)"
 [[ -n "$OW_TARGET_DIR" && -f "$OW_TARGET_DIR/bin/busybox" ]] \
   || die "OpenWrt TARGET_DIR missing/incomplete: ${OW_TARGET_DIR:-<not found>}"
 

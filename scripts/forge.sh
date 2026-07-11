@@ -46,7 +46,7 @@ source "${_SCRIPT_DIR}/lib/host.sh"    # forge_warn_windows_path (WSL PATH detec
 
 STATE_DIR="${OUT_DIR}/.forge-stage"
 FORCE=0; NO_SKIP=0; CLEAN_FULL=0; CMD=""
-ROOTFS_PROFILE="${ROOTFS_PROFILE:-buildroot}"   # buildroot (default) | openwrt
+export ROOTFS_PROFILE="${ROOTFS_PROFILE:-buildroot}"   # buildroot (default) | openwrt; exported so stage-rootfs.sh (subprocess) sees it
 
 # --- argument parse (flags anywhere + one subcommand + its passthrough) ------
 # Flags (--force/--no-skip/--full/--rootfs) may appear BEFORE or AFTER the
@@ -204,7 +204,7 @@ stage_pack() {
   # KERNEL_ARTIFACT_DIR there so pack-fit.sh reads OpenWrt's zImage+aes.dtb.
   # (buildroot profile leaves KERNEL_ARTIFACT_DIR at its default = LINUX_DIR.)
   if [[ "$ROOTFS_PROFILE" == "openwrt" ]]; then
-    export KERNEL_ARTIFACT_DIR="$(find "$OPENWRT_DIR/build_dir/linux-rockchip_rk3506" -maxdepth 1 -name 'linux-*' -type d 2>/dev/null | head -1)"
+    export KERNEL_ARTIFACT_DIR="$(find "$OPENWRT_DIR/build_dir" -type d -name 'linux-7.*' -path '*linux-rockchip_rk3506*' 2>/dev/null | head -1)"
     [[ -n "$KERNEL_ARTIFACT_DIR" && -f "$KERNEL_ARTIFACT_DIR/arch/arm/boot/zImage" ]] \
       || die "OpenWrt kernel build dir not found under $OPENWRT_DIR/build_dir/linux-rockchip_rk3506 (run: forge build --rootfs=openwrt)"
     log_info "[pack] KERNEL_ARTIFACT_DIR=$KERNEL_ARTIFACT_DIR (OpenWrt kernel)"

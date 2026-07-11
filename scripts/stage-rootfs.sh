@@ -53,7 +53,7 @@ if [[ "$ROOTFS_PROFILE" == "openwrt" ]]; then
   # selected kmod packages already installed under lib/modules/<ver>/ by OpenWrt's
   # package/install). rsync it — OpenWrt's own image recipes consume TARGET_DIR the
   # same way. No tarball round-trip. Path: build_dir/target-<arch>_musl/root-rk3506.
-  OW_TARGET_DIR="$(find "$OPENWRT_DIR/build_dir" -maxdepth 2 -name 'root-rk3506' -type d 2>/dev/null | head -1)"
+  OW_TARGET_DIR="$(find "$OPENWRT_DIR/build_dir" -name 'root-rockchip' -type d 2>/dev/null | head -1)"
   [[ -n "$OW_TARGET_DIR" && -f "$OW_TARGET_DIR/bin/busybox" ]] \
     || die "OpenWrt TARGET_DIR missing/incomplete: ${OW_TARGET_DIR:-<not found>} (run: forge build --rootfs=openwrt)"
   log_info "rsync OpenWrt TARGET_DIR → $ROOT"
