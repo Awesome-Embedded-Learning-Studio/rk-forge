@@ -18,7 +18,11 @@ U-Boot (not OpenWrt's own uboot flow):
   bootargs via ATAGS (parameter ATAG: 0x00200800); compat forwards them
   to DT.
 - HOTPLUG=y: kmod/uevent.
-- THUMB2_KERNEL disabled (ARM mode parity with rk-forge mainline kernel).
+
+THUMB2_KERNEL is left at y (OpenWrt default): kmod packages (.ko) are built
+thumb2, so turning the running kernel to ARM breaks version magic → kmodloader
+rejects them (8 modules failed on SD boot log). ARCH_MESON alone fixes the
+data abort; THUMB2 doesn't affect TEXT_OFFSET.
 
 Board-verified: boots to OpenWrt shell under rk-forge mainline U-Boot.
 ---
@@ -26,15 +30,6 @@ diff --git a/target/linux/rockchip/rk3506/config-7.1 b/target/linux/rockchip/rk3
 index 2c5f782..0624f3c 100644
 --- a/target/linux/rockchip/rk3506/config-7.1
 +++ b/target/linux/rockchip/rk3506/config-7.1
-@@ -428,7 +428,7 @@ CONFIG_HZ_300=y
- # CONFIG_HZ_1000 is not set
- CONFIG_HZ=300
- CONFIG_SCHED_HRTICK=y
--CONFIG_THUMB2_KERNEL=y
-+# CONFIG_THUMB2_KERNEL is not set
- CONFIG_ARM_PATCH_IDIV=y
- CONFIG_AEABI=y
- CONFIG_ARCH_SELECT_MEMORY_MODEL=y
 @@ -1217,7 +1217,6 @@ CONFIG_HAVE_PCI=y
  # Generic Driver Options
  #
