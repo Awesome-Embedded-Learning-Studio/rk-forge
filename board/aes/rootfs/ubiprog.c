@@ -145,11 +145,16 @@ static int block_is_erased(const uint8_t *buf, uint32_t len)
 
 int main(int argc, char **argv)
 {
-	if (argc < 2) {
-		fprintf(stderr, "usage: ubiprog <mtd-dev>   (e.g. /dev/mtd5)\n");
+	if (argc != 3) {
+		fprintf(stderr, "usage: ubiprog <mtd-dev> <image-file>\n"
+			"  FROM-SOURCE: erase the WHOLE partition, then write <image-file> through\n"
+			"  the kernel's reliable write path. PEBs past the image are erased to 0xFF.\n"
+			"  Kills cross-image residue (a prior larger rootfs left in mtd5) AND the\n"
+			"  loader's weak write — the image comes from RAM, never read from NAND.\n");
 		return 2;
 	}
 	const char *dev = argv[1];
+	const char *image_file = argv[2];
 	int fd = open(dev, O_RDWR);
 	if (fd < 0) { perror("open"); return 1; }
 
@@ -166,6 +171,56 @@ int main(int argc, char **argv)
 
 	/* Read→erase→write ONE block at a time (per-block read-modify-write never
 	 * touches any other block, so it's safe and uses only one PEB of RAM). */
+	/* FROM-SOURCE mode: the image comes from a FILE (in RAM, shipped inside the
+	 * provisioning initramfs), never read back from NAND. Erase the WHOLE
+	 * partition, then write the image through the kernel's reliable write path;
+	 * PEBs past the image are erased to 0xFF. This kills three failure modes:
+	 *   (1) cross-image residue — a prior larger rootfs (buildroot autoresize
+	 *       floods all 1392 PEBs) left in the tail, so UBIFS mounts a "new index
+	 *       + old carcass" mix → recovery needed → bad node → mount fail;
+	 *   (2) the loader's weak programming of some PEBs (data we'd otherwise
+	 *       trust from a NAND read that may be ECC-uncorrectable);
+	 *   (3) the lossy page-level 0xFF recovery (which corrupts UBIFS index
+	 *       znodes landing on an uncorrectable PEB).
+	 * The image bytes are rootfs.ubi.img as packed on the host. */
+	if (image_file) {
+		int img_fd = open(image_file, O_RDONLY);
+		if (img_fd < 0) { fprintf(stderr, "open %s: %s\n", image_file, strerror(errno)); return 1; }
+		off_t img_size = lseek(img_fd, 0, SEEK_END);
+		if (img_size < 0) { fprintf(stderr, "lseek %s: %s\n", image_file, strerror(errno)); close(img_fd); return 1; }
+		if ((uint64_t)img_size > (uint64_t)npeb * es) {
+			fprintf(stderr, "image %s (%lld B) > partition (%d PEBs = %lld B)\n",
+				image_file, (long long)img_size, npeb, (long long)npeb * (int)es);
+			close(img_fd); return 1;
+		}
+		fprintf(stderr, "ubiprog: FROM-SOURCE %s (%lld B); erasing whole partition (%d PEBs)\n",
+			image_file, (long long)img_size, npeb);
+		int wrote = 0, erased_tail = 0, failed_img = 0;
+		for (int peb = 0; peb < npeb; peb++) {
+			off_t off = (off_t)peb * es;
+			if ((uint64_t)off < (uint64_t)img_size) {
+				/* image PEB: read from file (tail of last PEB padded 0xFF), erase, write */
+				uint32_t want = ((uint64_t)img_size - off < es) ? (uint32_t)(img_size - off) : es;
+				memset(buf, 0xFF, es);
+				ssize_t got = pread(img_fd, buf, want, off);
+				if (got != (ssize_t)want) { fprintf(stderr, "  peb=%d image read short: %s\n", peb, strerror(errno)); failed_img++; continue; }
+				if (memerase_peb(fd, off, es) < 0 || memwrite_peb(fd, off, es, buf) < 0) { fprintf(stderr, "  peb=%d erase/write failed: %s\n", peb, strerror(errno)); failed_img++; continue; }
+				wrote++;
+			} else {
+				/* beyond image: erase only (→ 0xFF). Kills any prior residue. */
+				if (memerase_peb(fd, off, es) < 0) { fprintf(stderr, "  peb=%d tail erase failed: %s\n", peb, strerror(errno)); failed_img++; continue; }
+				erased_tail++;
+			}
+			if (((wrote + erased_tail) % 16) == 0)
+				fprintf(stderr, "  ... %d img PEBs written + %d tail erased\n", wrote, erased_tail);
+		}
+		close(img_fd);
+		free(buf);
+		fprintf(stderr, "ubiprog done (from-source): wrote=%d erased_tail=%d failed=%d (of %d PEBs; image %lld B)\n",
+			wrote, erased_tail, failed_img, npeb, (long long)img_size);
+		return failed_img ? 1 : 0;
+	}
+
 	int rewrote = 0, recovered = 0, skipped_erased = 0, failed = 0;
 
 	for (int peb = 0; peb < npeb; peb++) {

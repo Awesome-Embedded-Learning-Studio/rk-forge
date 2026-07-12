@@ -1,0 +1,2432 @@
+SoftReset, 18550760 us
+
+DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+SRX
+get rd_skew=0x2e, wr_skew=0x20
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xc-0x1-0x2, 0x0-0x1-0x2,status:a007
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g80d18cf0259-250930 #lxh (Oct 22 2025 - 15:21:58), fwver: v1.12
+Ram size: 20000000
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 12
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+SPL: A/B-slot: _a, successful: 0, tries-remain: 7
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(e2a712a533...) + OK
+## Checking uboot 0x00800000 ... sha256(8e8271d277...) + OK
+## Checking fdt 0x00873de8 ... sha256(c5bd3c40c9...) + OK
+Jumping to U-Boot(0x00800000) via OP-TEE(0x00001000)
+Total: 64.903/106.950 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-1038-gb204648dc #derrick.huang (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 2025年 12月 11日 星期四 11:51:18 CST arm, fwver: v2.40 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00800000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2026.07-rc4-g7e23760a5650 (Jun 21 2026 - 02:50:05 +0000)
+
+Model: Rockchip RK3506 Evaluation Board (ATK RK3506B)
+SoC:   RK3506B
+DRAM:  512 MiB
+Core:  38 devices, 20 uclasses, devicetree: separate
+MMC:   mmc@ff480000: 0
+Loading Environment from nowhere... OK
+In:    serial@ff0a0000
+Out:   serial@ff0a0000
+Err:   serial@ff0a0000
+Hit any key to stop autoboot: 0
+=> 
+=> setenv bootargs 'console=ttyS0,1500000'
+=> mtd read boot 0x04000000 0 0x1000000
+rockchip_sfc: dll tuning target=50000000Hz real=100000000Hz cell_max=383 step=10 cs=0
+rockchip_sfc:   dll window [0, 230] (230 cells)
+rockchip_sfc:   dll window [280, 373] (93 cells)
+rockchip_sfc: dll ok best=[0,230] -> cell 92 (real 100000000Hz)
+Reading 16777216 byte(s) (8192 page(s)) at offset 0x00000000
+=> bootm 0x04000000
+## Loading kernel (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel (zImage, self-decompressing)
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x04000800
+     Data Size:    8004304 Bytes = 7.6 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x02080000
+     Entry Point:  0x02080000
+     Hash algo:    sha256
+     Hash value:   20c4cbeeabbb875415b21995ad593e8ef0e22e9bcf5e1d992e1779c006ca06c1
+   Verifying Hash Integrity ... sha256+ OK
+## Loading ramdisk (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'ramdisk' ramdisk subimage
+     Description:  Minimal initramfs (static busybox shell)
+     Type:         RAMDisk Image
+     Compression:  gzip compressed
+     Data Start:   0x047a6da0
+     Data Size:    4694973 Bytes = 4.5 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x08000000
+     Entry Point:  unavailable
+     Hash algo:    sha256
+     Hash value:   9d3ba56b543623450475b52ea177ef01ac49c718b8051eed03939bdfca08cf03
+   Verifying Hash Integrity ... sha256+ OK
+   Loading ramdisk from 0x047a6da0 to 0x08000000
+WARNING: 'compression' nodes for ramdisks are deprecated, please fix your .its file!
+## Loading fdt (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'fdt' fdt subimage
+     Description:  RK3506B AES board flat DT
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x047a2ad0
+     Data Size:    17104 Bytes = 16.7 KiB
+     Architecture: ARM
+     Load Address: 0x01e00000
+     Hash algo:    sha256
+     Hash value:   cf2d15bbe54a49eddc8732f2ecf6e15c51c4063953446451c94fa2e3d7737faf
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x047a2ad0 to 0x01e00000
+   Booting using the fdt blob at 0x1e00000
+Working FDT set to 1e00000
+   Loading Kernel Image to 2080000
+   Loading Ramdisk to 1cae1000, end 1cf5b3bd ... OK
+   Loading Device Tree to 1cad9000, end 1cae02cf ... OK
+Working FDT set to 1cad9000
+No RNG device
+
+Starting kernel ...
+
+I/TC: Secondary CPU 1 initializing
+I/TC: Secondary CPU 1 switching to normal world boot
+I/TC: Secondary CPU 2 initializing
+I/TC: Secondary CPU 2 switching to normal world boot
+** 880 printk messages dropped **
+[    0.079811] device: 'broadcast': device_add
+[    0.079824] bus: 'clockevents': add device broadcast
+[    0.079848] PM: Adding info for clockevents:broadcast
+[    0.080413] workingset: timestamp_bits=14 (anon: 10) max_order=17 bucket_order=3 (anon: 7)
+[    0.081320] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.081410] fuse: init (API version 7.45)
+[    0.081478] device: 'fuse': device_add
+[    0.081554] PM: Adding info for No Bus:fuse
+[    0.194076] Freeing initrd memory: 4588K
+[    0.239412] Key type asymmetric registered
+[    0.239432] Asymmetric key parser 'x509' registered
+[    0.239888] io scheduler mq-deadline registered
+[    0.239908] io scheduler kyber registered
+[    0.239966] io scheduler bfq registered
+[    0.240112] bus: 'platform': add driver meson_gpio_intc
+[    0.240263] bus: 'platform': add driver simple-pm-bus
+[    0.240299] platform clocks: bus: 'platform': __driver_probe_device: matched device with driver simple-pm-bus
+[    0.240319] platform clocks: bus: 'platform': really_probe: probing driver simple-pm-bus with device
+[    0.240342] simple-pm-bus clocks: no pinctrl handle
+[    0.240393] simple-pm-bus clocks: driver: 'simple-pm-bus': driver_bound: bound to device
+[    0.240472] simple-pm-bus clocks: bus: 'platform': really_probe: bound device to driver simple-pm-bus
+[    0.240547] platform ff288000.syscon: bus: 'platform': __driver_probe_device: matched device with driver simple-pm-bus
+[    0.240561] platform ff288000.syscon: bus: 'platform': really_probe: probing driver simple-pm-bus with device
+[    0.240578] simple-pm-bus ff288000.syscon: no pinctrl handle
+[    0.240618] simple-pm-bus ff288000.syscon: probe with driver simple-pm-bus rejects match -19
+[    0.240673] platform ff910000.syscon: bus: 'platform': __driver_probe_device: matched device with driver simple-pm-bus
+[    0.240684] platform ff910000.syscon: bus: 'platform': really_probe: probing driver simple-pm-bus with device
+[    0.240698] simple-pm-bus ff910000.syscon: no pinctrl handle
+[    0.240728] simple-pm-bus ff910000.syscon: probe with driver simple-pm-bus rejects match -19
+[    0.240812] device class 'phy': registering
+[    0.240870] bus: 'platform': add driver phy-meson-usb2
+[    0.240977] bus: 'platform': add driver phy-meson-gxl-usb2
+[    0.241043] bus: 'platform': add driver phy-meson-g12a-usb2
+[    0.241112] bus: 'platform': add driver phy-g12a-usb3-pcie
+[    0.241170] bus: 'platform': add driver phy-meson-g12a-mipi-dphy-analog
+[    0.241227] bus: 'platform': add driver phy-axg-pcie
+[    0.241286] bus: 'platform': add driver phy-axg-mipi-pcie-analog
+[    0.241344] bus: 'platform': add driver phy-meson-axg-mipi-dphy
+[    0.241413] bus: 'platform': add driver inno-dsidphy
+[    0.241544] bus: 'platform': add driver rockchip-usb2phy
+[    0.241681] platform ff2b0000.usb2-phy: bus: 'platform': __driver_probe_device: matched device with driver rockchip-usb2phy
+[    0.241698] platform ff2b0000.usb2-phy: bus: 'platform': really_probe: probing driver rockchip-usb2phy with device
+[    0.241715] rockchip-usb2phy ff2b0000.usb2-phy: no pinctrl handle
+[    0.241781] device class 'extcon': registering
+[    0.241835] device: 'extcon0': device_add
+[    0.241938] PM: Adding info for No Bus:extcon0
+[    0.242112] device: 'phy-ff2b0000.usb2-phy.0': device_add
+[    0.242212] PM: Adding info for No Bus:phy-ff2b0000.usb2-phy.0
+[    0.242475] device: 'phy-ff2b0000.usb2-phy.1': device_add
+[    0.242552] PM: Adding info for No Bus:phy-ff2b0000.usb2-phy.1
+[    0.243238] rockchip-usb2phy ff2b0000.usb2-phy: driver: 'rockchip-usb2phy': driver_bound: bound to device
+[    0.243270] /usb@ff740000 Linked as a fwnode consumer to /usb2-phy@ff2b0000
+[    0.243289] /usb@ff740000 Dropping the fwnode link to /usb2-phy@ff2b0000/otg-port
+[    0.243305] /usb@ff780000 Linked as a fwnode consumer to /usb2-phy@ff2b0000
+[    0.243316] /usb@ff780000 Dropping the fwnode link to /usb2-phy@ff2b0000/host-port
+[    0.243381] device: 'platform:ff2b0000.usb2-phy--platform:ff780000.usb': device_add
+[    0.243511] devices_kset: Moving ff780000.usb to end of list
+[    0.243522] PM: Moving platform:ff780000.usb to end of list
+[    0.243531] platform ff780000.usb: Linked as a consumer to ff2b0000.usb2-phy
+[    0.243539] /usb@ff780000 Dropping the fwnode link to /usb2-phy@ff2b0000
+[    0.243568] device: 'platform:ff2b0000.usb2-phy--platform:ff740000.usb': device_add
+[    0.243631] devices_kset: Moving ff740000.usb to end of list
+[    0.243637] PM: Moving platform:ff740000.usb to end of list
+[    0.243644] platform ff740000.usb: Linked as a consumer to ff2b0000.usb2-phy
+[    0.243651] /usb@ff740000 Dropping the fwnode link to /usb2-phy@ff2b0000
+[    0.243720] rockchip-usb2phy ff2b0000.usb2-phy: bus: 'platform': really_probe: bound device to driver rockchip-usb2phy
+[    0.243897] bus: 'platform': add driver meson8-pinctrl
+[    0.244023] bus: 'platform': add driver meson8b-pinctrl
+[    0.244103] bus: 'platform': add driver rockchip-pwm
+[    0.244213] bus: 'platform': add driver leds-gpio
+[    0.244281] bus: 'platform': add driver of_fixed_factor_clk
+[    0.244344] bus: 'platform': add driver of_fixed_clk
+[    0.244403] bus: 'platform': add driver gated-fixed-clk
+[    0.244459] bus: 'platform': add driver gpio-clk
+[    0.244524] bus: 'platform': add driver meson8-ddr-clkc
+[    0.244588] bus: 'platform': add driver clk-rv1126
+[    0.244664] bus: 'platform': remove driver clk-rv1126
+[    0.244701] driver: 'clk-rv1126': driver_release
+[    0.244714] bus: 'platform': add driver clk-rk3506
+[    0.244780] bus: 'platform': remove driver clk-rk3506
+[    0.244803] driver: 'clk-rk3506': driver_release
+[    0.244815] bus: 'amba': add driver dma-pl330
+[    0.244836] amba ff000000.dma-controller: bus: 'amba': __driver_probe_device: matched device with driver dma-pl330
+[    0.244854] amba ff000000.dma-controller: bus: 'amba': really_probe: probing driver dma-pl330 with device
+[    0.244876] dma-pl330 ff000000.dma-controller: no pinctrl handle
+[    0.245320] device: 'dma0chan0': device_add
+[    0.245424] PM: Adding info for No Bus:dma0chan0
+[    0.245481] device: 'dma0chan1': device_add
+[    0.245527] PM: Adding info for No Bus:dma0chan1
+[    0.245559] device: 'dma0chan2': device_add
+[    0.245693] PM: Adding info for No Bus:dma0chan2
+[    0.245747] device: 'dma0chan3': device_add
+[    0.245795] PM: Adding info for No Bus:dma0chan3
+[    0.245828] device: 'dma0chan4': device_add
+[    0.245870] PM: Adding info for No Bus:dma0chan4
+[    0.245898] device: 'dma0chan5': device_add
+[    0.245938] PM: Adding info for No Bus:dma0chan5
+[    0.245967] device: 'dma0chan6': device_add
+[    0.246006] PM: Adding info for No Bus:dma0chan6
+[    0.246031] device: 'dma0chan7': device_add
+[    0.246070] PM: Adding info for No Bus:dma0chan7
+[    0.246098] device: 'dma0chan8': device_add
+[    0.246138] PM: Adding info for No Bus:dma0chan8
+[    0.246163] device: 'dma0chan9': device_add
+[    0.246231] PM: Adding info for No Bus:dma0chan9
+[    0.246265] device: 'dma0chan10': device_add
+[    0.246313] PM: Adding info for No Bus:dma0chan10
+[    0.246343] device: 'dma0chan11': device_add
+[    0.246383] PM: Adding info for No Bus:dma0chan11
+[    0.246445] dma-pl330 ff000000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    0.246457] dma-pl330 ff000000.dma-controller: 	DBUFF-32x8bytes Num_Chans-6 Num_Peri-12 Num_Events-12
+[    0.246485] dma-pl330 ff000000.dma-controller: driver: 'dma-pl330': driver_bound: bound to device
+[    0.246557] dma-pl330 ff000000.dma-controller: bus: 'amba': really_probe: bound device to driver dma-pl330
+[    0.246585] amba ff008000.dma-controller: bus: 'amba': __driver_probe_device: matched device with driver dma-pl330
+[    0.246599] amba ff008000.dma-controller: bus: 'amba': really_probe: probing driver dma-pl330 with device
+[    0.246618] dma-pl330 ff008000.dma-controller: no pinctrl handle
+[    0.247083] device: 'dma1chan0': device_add
+[    0.247168] PM: Adding info for No Bus:dma1chan0
+[    0.247216] device: 'dma1chan1': device_add
+[    0.247266] PM: Adding info for No Bus:dma1chan1
+[    0.247299] device: 'dma1chan2': device_add
+[    0.247339] PM: Adding info for No Bus:dma1chan2
+[    0.247366] device: 'dma1chan3': device_add
+[    0.247407] PM: Adding info for No Bus:dma1chan3
+[    0.247434] device: 'dma1chan4': device_add
+[    0.247498] PM: Adding info for No Bus:dma1chan4
+[    0.247533] device: 'dma1chan5': device_add
+[    0.247578] PM: Adding info for No Bus:dma1chan5
+[    0.247606] device: 'dma1chan6': device_add
+[    0.247648] PM: Adding info for No Bus:dma1chan6
+[    0.247673] device: 'dma1chan7': device_add
+[    0.247712] PM: Adding info for No Bus:dma1chan7
+[    0.247737] device: 'dma1chan8': device_add
+[    0.247775] PM: Adding info for No Bus:dma1chan8
+[    0.247799] device: 'dma1chan9': device_add
+[    0.247838] PM: Adding info for No Bus:dma1chan9
+[    0.247862] device: 'dma1chan10': device_add
+[    0.247902] PM: Adding info for No Bus:dma1chan10
+[    0.247926] device: 'dma1chan11': device_add
+[    0.247965] PM: Adding info for No Bus:dma1chan11
+[    0.247989] device: 'dma1chan12': device_add
+[    0.248027] PM: Adding info for No Bus:dma1chan12
+[    0.248052] device: 'dma1chan13': device_add
+[    0.248115] PM: Adding info for No Bus:dma1chan13
+[    0.248147] device: 'dma1chan14': device_add
+[    0.248189] PM: Adding info for No Bus:dma1chan14
+[    0.248216] device: 'dma1chan15': device_add
+[    0.248258] PM: Adding info for No Bus:dma1chan15
+[    0.248286] device: 'dma1chan16': device_add
+[    0.248324] PM: Adding info for No Bus:dma1chan16
+[    0.248351] device: 'dma1chan17': device_add
+[    0.248415] PM: Adding info for No Bus:dma1chan17
+[    0.248449] device: 'dma1chan18': device_add
+[    0.248491] PM: Adding info for No Bus:dma1chan18
+[    0.248519] device: 'dma1chan19': device_add
+[    0.248559] PM: Adding info for No Bus:dma1chan19
+[    0.248623] dma-pl330 ff008000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    0.248635] dma-pl330 ff008000.dma-controller: 	DBUFF-128x8bytes Num_Chans-8 Num_Peri-20 Num_Events-16
+[    0.248662] dma-pl330 ff008000.dma-controller: driver: 'dma-pl330': driver_bound: bound to device
+[    0.248736] dma-pl330 ff008000.dma-controller: bus: 'amba': really_probe: bound device to driver dma-pl330
+[    0.248805] bus: 'platform': add driver meson_msr
+[    0.249134] bus: 'platform': add driver meson_ee_pwrc
+[    0.249293] bus: 'platform': add driver pwm-regulator
+[    0.249373] bus: 'platform': add driver meson_reset
+[    0.249506] device: 'ptmx': device_add
+[    0.249559] PM: Adding info for No Bus:ptmx
+[    0.249911] Serial: 8250/16550 driver, 6 ports, IRQ sharing disabled
+[    0.249990] device: 'ttyS-serial_8250': device_add
+[    0.250029] bus: 'workqueue': add device ttyS-serial_8250
+[    0.250070] PM: Adding info for workqueue:ttyS-serial_8250
+[    0.250126] Registering platform device 'serial8250'. Parent at platform
+[    0.250136] device: 'serial8250': device_add
+[    0.250151] bus: 'platform': add device serial8250
+[    0.250184] PM: Adding info for platform:serial8250
+[    0.250253] device: 'serial8250:0': device_add
+[    0.250273] bus: 'serial-base': add device serial8250:0
+[    0.250331] PM: Adding info for serial-base:serial8250:0
+[    0.250367] serial-base serial8250:0: bus: 'serial-base': __driver_probe_device: matched device with driver ctrl
+[    0.250386] serial-base serial8250:0: bus: 'serial-base': really_probe: probing driver ctrl with device
+[    0.250412] ctrl serial8250:0: driver: 'ctrl': driver_bound: bound to device
+[    0.250439] ctrl serial8250:0: bus: 'serial-base': really_probe: bound device to driver ctrl
+[    0.250469] device: 'serial8250:0.0': device_add
+[    0.250489] bus: 'serial-base': add device serial8250:0.0
+[    0.250516] PM: Adding info for serial-base:serial8250:0.0
+[    0.250544] serial-base serial8250:0.0: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.250557] serial-base serial8250:0.0: bus: 'serial-base': really_probe: probing driver port with device
+[    0.250577] port serial8250:0.0: driver: 'port': driver_bound: bound to device
+[    0.250600] port serial8250:0.0: bus: 'serial-base': really_probe: bound device to driver port
+[    0.250716] device: 'ttyS0': device_add
+[    0.250801] PM: Adding info for No Bus:ttyS0
+[    0.251095] device: 'serial8250:0.1': device_add
+[    0.251125] bus: 'serial-base': add device serial8250:0.1
+[    0.251157] PM: Adding info for serial-base:serial8250:0.1
+[    0.251198] serial-base serial8250:0.1: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.251214] serial-base serial8250:0.1: bus: 'serial-base': really_probe: probing driver port with device
+[    0.251240] port serial8250:0.1: driver: 'port': driver_bound: bound to device
+[    0.251265] port serial8250:0.1: bus: 'serial-base': really_probe: bound device to driver port
+[    0.251344] device: 'ttyS1': device_add
+[    0.251447] PM: Adding info for No Bus:ttyS1
+[    0.251724] device: 'serial8250:0.2': device_add
+[    0.251755] bus: 'serial-base': add device serial8250:0.2
+[    0.251786] PM: Adding info for serial-base:serial8250:0.2
+[    0.251825] serial-base serial8250:0.2: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.251842] serial-base serial8250:0.2: bus: 'serial-base': really_probe: probing driver port with device
+[    0.251868] port serial8250:0.2: driver: 'port': driver_bound: bound to device
+[    0.251892] port serial8250:0.2: bus: 'serial-base': really_probe: bound device to driver port
+[    0.251983] device: 'ttyS2': device_add
+[    0.252065] PM: Adding info for No Bus:ttyS2
+[    0.252438] device: 'serial8250:0.3': device_add
+[    0.252471] bus: 'serial-base': add device serial8250:0.3
+[    0.252506] PM: Adding info for serial-base:serial8250:0.3
+[    0.252548] serial-base serial8250:0.3: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.252565] serial-base serial8250:0.3: bus: 'serial-base': really_probe: probing driver port with device
+[    0.252590] port serial8250:0.3: driver: 'port': driver_bound: bound to device
+[    0.252615] port serial8250:0.3: bus: 'serial-base': really_probe: bound device to driver port
+[    0.252709] device: 'ttyS3': device_add
+[    0.252790] PM: Adding info for No Bus:ttyS3
+[    0.253068] device: 'serial8250:0.4': device_add
+[    0.253099] bus: 'serial-base': add device serial8250:0.4
+[    0.253162] PM: Adding info for serial-base:serial8250:0.4
+[    0.253208] serial-base serial8250:0.4: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.253227] serial-base serial8250:0.4: bus: 'serial-base': really_probe: probing driver port with device
+[    0.253257] port serial8250:0.4: driver: 'port': driver_bound: bound to device
+[    0.253284] port serial8250:0.4: bus: 'serial-base': really_probe: bound device to driver port
+[    0.253382] device: 'ttyS4': device_add
+[    0.253467] PM: Adding info for No Bus:ttyS4
+[    0.253772] device: 'serial8250:0.5': device_add
+[    0.253801] bus: 'serial-base': add device serial8250:0.5
+[    0.253834] PM: Adding info for serial-base:serial8250:0.5
+[    0.253875] serial-base serial8250:0.5: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.253893] serial-base serial8250:0.5: bus: 'serial-base': really_probe: probing driver port with device
+[    0.253919] port serial8250:0.5: driver: 'port': driver_bound: bound to device
+[    0.253944] port serial8250:0.5: bus: 'serial-base': really_probe: bound device to driver port
+[    0.254038] device: 'ttyS5': device_add
+[    0.254118] PM: Adding info for No Bus:ttyS5
+[    0.254380] bus: 'platform': add driver serial8250
+[    0.254445] platform serial8250: bus: 'platform': __driver_probe_device: matched device with driver serial8250
+[    0.254463] platform serial8250: bus: 'platform': really_probe: probing driver serial8250 with device
+[    0.254482] serial8250 serial8250: no default pinctrl state
+[    0.254516] serial8250 serial8250: driver: 'serial8250': driver_bound: bound to device
+[    0.254546] serial8250 serial8250: bus: 'platform': really_probe: bound device to driver serial8250
+[    0.254598] bus: 'platform': add driver dw-apb-uart
+[    0.254636] platform ff0a0000.serial: bus: 'platform': __driver_probe_device: matched device with driver dw-apb-uart
+[    0.254648] platform ff0a0000.serial: bus: 'platform': really_probe: probing driver dw-apb-uart with device
+[    0.254709] dw-apb-uart ff0a0000.serial: no init pinctrl state
+[    0.254743] dw-apb-uart ff0a0000.serial: no sleep pinctrl state
+[    0.254751] dw-apb-uart ff0a0000.serial: no idle pinctrl state
+[    0.255071] device: 'ttyS0': device_unregister
+[    0.255377] PM: Removing info for No Bus:ttyS0
+[    0.255446] printk: legacy console [ttyS0] disabled
+[    0.255502] bus: 'serial-base': remove device serial8250:0.0
+[    0.255702] PM: Removing info for serial-base:serial8250:0.0
+[    0.255835] device: 'ff0a0000.serial:0': device_add
+[    0.255881] bus: 'serial-base': add device ff0a0000.serial:0
+[    0.255917] PM: Adding info for serial-base:ff0a0000.serial:0
+[    0.255975] serial-base ff0a0000.serial:0: bus: 'serial-base': __driver_probe_device: matched device with driver ctrl
+[    0.255993] serial-base ff0a0000.serial:0: bus: 'serial-base': really_probe: probing driver ctrl with device
+[    0.256018] ctrl ff0a0000.serial:0: driver: 'ctrl': driver_bound: bound to device
+[    0.256061] ctrl ff0a0000.serial:0: bus: 'serial-base': really_probe: bound device to driver ctrl
+[    0.256092] device: 'ff0a0000.serial:0.0': device_add
+[    0.256116] bus: 'serial-base': add device ff0a0000.serial:0.0
+[    0.256179] PM: Adding info for serial-base:ff0a0000.serial:0.0
+[    0.256234] serial-base ff0a0000.serial:0.0: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.256247] serial-base ff0a0000.serial:0.0: bus: 'serial-base': really_probe: probing driver port with device
+[    0.256272] port ff0a0000.serial:0.0: driver: 'port': driver_bound: bound to device
+[    0.256314] port ff0a0000.serial:0.0: bus: 'serial-base': really_probe: bound device to driver port
+[    0.256390] ff0a0000.serial: ttyS0 at MMIO 0xff0a0000 (irq = 39, base_baud = 1500000) is a 16550A
+[    0.256545] printk: legacy console [ttyS0] enabled
+[    0.399002] device: 'ttyS0': device_add
+[    0.399460] PM: Adding info for No Bus:ttyS0
+[    0.400184] dw-apb-uart ff0a0000.serial: driver: 'dw-apb-uart': driver_bound: bound to device
+[    0.401032] dw-apb-uart ff0a0000.serial: bus: 'platform': really_probe: bound device to driver dw-apb-uart
+[    0.401924] platform ff0c0000.serial: bus: 'platform': __driver_probe_device: matched device with driver dw-apb-uart
+[    0.402957] platform ff0c0000.serial: bus: 'platform': really_probe: probing driver dw-apb-uart with device
+[    0.403925] dw-apb-uart ff0c0000.serial: no init pinctrl state
+[    0.404485] dw-apb-uart ff0c0000.serial: no sleep pinctrl state
+[    0.405013] dw-apb-uart ff0c0000.serial: no idle pinctrl state
+[    0.405904] device: 'ttyS2': device_unregister
+[    0.406631] PM: Removing info for No Bus:ttyS2
+[    0.407149] bus: 'serial-base': remove device serial8250:0.2
+[    0.407799] PM: Removing info for serial-base:serial8250:0.2
+[    0.408416] device: 'ff0c0000.serial:0': device_add
+[    0.408893] bus: 'serial-base': add device ff0c0000.serial:0
+[    0.409513] PM: Adding info for serial-base:ff0c0000.serial:0
+[    0.410105] serial-base ff0c0000.serial:0: bus: 'serial-base': __driver_probe_device: matched device with driver ctrl
+[    0.411052] serial-base ff0c0000.serial:0: bus: 'serial-base': really_probe: probing driver ctrl with device
+[    0.411937] ctrl ff0c0000.serial:0: driver: 'ctrl': driver_bound: bound to device
+[    0.412698] ctrl ff0c0000.serial:0: bus: 'serial-base': really_probe: bound device to driver ctrl
+[    0.413520] device: 'ff0c0000.serial:0.0': device_add
+[    0.413999] bus: 'serial-base': add device ff0c0000.serial:0.0
+[    0.414546] PM: Adding info for serial-base:ff0c0000.serial:0.0
+[    0.415121] serial-base ff0c0000.serial:0.0: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.416118] serial-base ff0c0000.serial:0.0: bus: 'serial-base': really_probe: probing driver port with device
+[    0.417029] port ff0c0000.serial:0.0: driver: 'port': driver_bound: bound to device
+[    0.417754] port ff0c0000.serial:0.0: bus: 'serial-base': really_probe: bound device to driver port
+[    0.418648] ff0c0000.serial: ttyS2 at MMIO 0xff0c0000 (irq = 40, base_baud = 1500000) is a 16550A
+[    0.419524] device: 'ttyS2': device_add
+[    0.419975] PM: Adding info for No Bus:ttyS2
+[    0.420721] dw-apb-uart ff0c0000.serial: driver: 'dw-apb-uart': driver_bound: bound to device
+[    0.421568] dw-apb-uart ff0c0000.serial: bus: 'platform': really_probe: bound device to driver dw-apb-uart
+[    0.422724] bus: 'platform': add driver of_serial
+[    0.423403] bus: 'platform': add driver meson-rng
+[    0.423917] bus: 'platform': add driver smccc_trng
+[    0.424399] bus: 'platform': add driver rockchip-rng
+[    0.424932] device class 'drm': registering
+[    0.425390] bus: 'i2c': add driver sii902x
+[    0.426030] device: 'cache': device_add
+[    0.426422] device: 'index0': device_add
+[    0.426807] device: 'index1': device_add
+[    0.427184] device: 'index2': device_add
+[    0.427632] device: 'cache': device_add
+[    0.428017] device: 'index0': device_add
+[    0.428395] device: 'index1': device_add
+[    0.428769] device: 'index2': device_add
+[    0.429267] device: 'cache': device_add
+[    0.429659] device: 'index0': device_add
+[    0.430038] device: 'index1': device_add
+[    0.430414] device: 'index2': device_add
+[    0.431024] device: 'ram0': device_add
+[    0.431499] PM: Adding info for No Bus:ram0
+[    0.432292] device: '1:0': device_add
+[    0.432732] PM: Adding info for No Bus:1:0
+[    0.433584] device: 'ram1': device_add
+[    0.434038] PM: Adding info for No Bus:ram1
+[    0.434826] device: '1:1': device_add
+[    0.435239] PM: Adding info for No Bus:1:1
+[    0.436104] device: 'ram2': device_add
+[    0.436556] PM: Adding info for No Bus:ram2
+[    0.437309] device: '1:2': device_add
+[    0.437753] PM: Adding info for No Bus:1:2
+[    0.438567] device: 'ram3': device_add
+[    0.439103] PM: Adding info for No Bus:ram3
+[    0.439848] device: '1:3': device_add
+[    0.440257] PM: Adding info for No Bus:1:3
+[    0.441054] device: 'ram4': device_add
+[    0.441529] PM: Adding info for No Bus:ram4
+[    0.442340] device: '1:4': device_add
+[    0.442761] PM: Adding info for No Bus:1:4
+[    0.443527] device: 'ram5': device_add
+[    0.443977] PM: Adding info for No Bus:ram5
+[    0.444755] device: '1:5': device_add
+[    0.445167] PM: Adding info for No Bus:1:5
+[    0.445994] device: 'ram6': device_add
+[    0.446442] PM: Adding info for No Bus:ram6
+[    0.447233] device: '1:6': device_add
+[    0.447646] PM: Adding info for No Bus:1:6
+[    0.448412] device: 'ram7': device_add
+[    0.448862] PM: Adding info for No Bus:ram7
+[    0.449667] device: '1:7': device_add
+[    0.450117] PM: Adding info for No Bus:1:7
+[    0.450924] device: 'ram8': device_add
+[    0.451378] PM: Adding info for No Bus:ram8
+[    0.452133] device: '1:8': device_add
+[    0.452599] PM: Adding info for No Bus:1:8
+[    0.453409] device: 'ram9': device_add
+[    0.453886] PM: Adding info for No Bus:ram9
+[    0.454642] device: '1:9': device_add
+[    0.455052] PM: Adding info for No Bus:1:9
+[    0.455914] device: 'ram10': device_add
+[    0.456379] PM: Adding info for No Bus:ram10
+[    0.457174] device: '1:10': device_add
+[    0.457590] PM: Adding info for No Bus:1:10
+[    0.458357] device: 'ram11': device_add
+[    0.458841] PM: Adding info for No Bus:ram11
+[    0.459663] device: '1:11': device_add
+[    0.460143] PM: Adding info for No Bus:1:11
+[    0.460933] device: 'ram12': device_add
+[    0.461388] PM: Adding info for No Bus:ram12
+[    0.462131] device: '1:12': device_add
+[    0.462609] PM: Adding info for No Bus:1:12
+[    0.463394] device: 'ram13': device_add
+[    0.463884] PM: Adding info for No Bus:ram13
+[    0.464683] device: '1:13': device_add
+[    0.465101] PM: Adding info for No Bus:1:13
+[    0.465973] device: 'ram14': device_add
+[    0.466432] PM: Adding info for No Bus:ram14
+[    0.467273] device: '1:14': device_add
+[    0.467694] PM: Adding info for No Bus:1:14
+[    0.468698] device: 'ram15': device_add
+[    0.469235] PM: Adding info for No Bus:ram15
+[    0.470045] device: '1:15': device_add
+[    0.470469] PM: Adding info for No Bus:1:15
+[    0.471140] brd: module loaded
+[    0.471463] device: 'loop-control': device_add
+[    0.471919] PM: Adding info for No Bus:loop-control
+[    0.472885] device: 'loop0': device_add
+[    0.473349] PM: Adding info for No Bus:loop0
+[    0.474299] device: '7:0': device_add
+[    0.474725] PM: Adding info for No Bus:7:0
+[    0.475454] device: 'loop1': device_add
+[    0.475971] PM: Adding info for No Bus:loop1
+[    0.476932] device: '7:1': device_add
+[    0.477378] PM: Adding info for No Bus:7:1
+[    0.478105] device: 'loop2': device_add
+[    0.478560] PM: Adding info for No Bus:loop2
+[    0.479593] device: '7:2': device_add
+[    0.480046] PM: Adding info for No Bus:7:2
+[    0.480757] device: 'loop3': device_add
+[    0.481207] PM: Adding info for No Bus:loop3
+[    0.482138] device: '7:3': device_add
+[    0.482611] PM: Adding info for No Bus:7:3
+[    0.483327] device: 'loop4': device_add
+[    0.483806] PM: Adding info for No Bus:loop4
+[    0.484832] device: '7:4': device_add
+[    0.485257] PM: Adding info for No Bus:7:4
+[    0.486061] device: 'loop5': device_add
+[    0.486521] PM: Adding info for No Bus:loop5
+[    0.487490] device: '7:5': device_add
+[    0.487914] PM: Adding info for No Bus:7:5
+[    0.488659] device: 'loop6': device_add
+[    0.489173] PM: Adding info for No Bus:loop6
+[    0.490151] device: '7:6': device_add
+[    0.490575] PM: Adding info for No Bus:7:6
+[    0.491283] device: 'loop7': device_add
+[    0.491739] PM: Adding info for No Bus:loop7
+[    0.492788] device: '7:7': device_add
+[    0.493216] PM: Adding info for No Bus:7:7
+[    0.493680] loop: module loaded
+[    0.493988] device class 'mtd': registering
+[    0.494438] device: 'mtd-0': device_add
+[    0.494850] PM: Adding info for No Bus:mtd-0
+[    0.495332] bus: 'spi': add driver spi-nand
+[    0.495819] bus: 'spi': add driver spi-nor
+[    0.496226] device class 'ubi': registering
+[    0.496636] device: 'ubi_ctrl': device_add
+[    0.497045] PM: Adding info for No Bus:ubi_ctrl
+[    0.497777] device class 'spidev': registering
+[    0.498243] bus: 'spi': add driver spidev
+[    0.498660] bus: 'platform': add driver rockchip-spi
+[    0.499216] platform ff120000.spi: bus: 'platform': __driver_probe_device: matched device with driver rockchip-spi
+[    0.500152] platform ff120000.spi: bus: 'platform': really_probe: probing driver rockchip-spi with device
+[    0.501084] rockchip-spi ff120000.spi: no init pinctrl state
+[    0.501636] rockchip-spi ff120000.spi: no sleep pinctrl state
+[    0.502149] rockchip-spi ff120000.spi: no idle pinctrl state
+[    0.503000] rockchip-spi ff120000.spi: error -ENODEV: Failed to request optional TX DMA channel
+[    0.503795] rockchip-spi ff120000.spi: error -ENODEV: Failed to request optional RX DMA channel
+[    0.504587] device: 'spi0': device_add
+[    0.505080] PM: Adding info for No Bus:spi0
+[    0.505960] device: 'spi0.0': device_add
+[    0.506378] bus: 'spi': add device spi0.0
+[    0.506834] PM: Adding info for spi:spi0.0
+[    0.507284] spi spi0.0: bus: 'spi': __driver_probe_device: matched device with driver spidev
+[    0.508045] spi spi0.0: bus: 'spi': really_probe: probing driver spidev with device
+[    0.508736] spidev spi0.0: no pinctrl handle
+[    0.509242] device: 'spidev0.0': device_add
+[    0.509688] PM: Adding info for No Bus:spidev0.0
+[    0.510345] spidev spi0.0: driver: 'spidev': driver_bound: bound to device
+[    0.511036] spidev spi0.0: bus: 'spi': really_probe: bound device to driver spidev
+[    0.511820] device: 'spi0.1': device_add
+[    0.512218] bus: 'spi': add device spi0.1
+[    0.512779] PM: Adding info for spi:spi0.1
+[    0.513250] spi spi0.1: bus: 'spi': __driver_probe_device: matched device with driver spidev
+[    0.514013] spi spi0.1: bus: 'spi': really_probe: probing driver spidev with device
+[    0.514702] spidev spi0.1: no pinctrl handle
+[    0.515144] device: 'spidev0.1': device_add
+[    0.515638] PM: Adding info for No Bus:spidev0.1
+[    0.516343] spidev spi0.1: driver: 'spidev': driver_bound: bound to device
+[    0.517035] spidev spi0.1: bus: 'spi': really_probe: bound device to driver spidev
+[    0.517729] rockchip-spi ff120000.spi: driver: 'rockchip-spi': driver_bound: bound to device
+[    0.518529] rockchip-spi ff120000.spi: bus: 'platform': really_probe: bound device to driver rockchip-spi
+[    0.519702] bus: 'platform': add driver rockchip-sfc
+[    0.520211] platform ff488000.spi: bus: 'platform': __driver_probe_device: matched device with driver rockchip-sfc
+[    0.521135] platform ff488000.spi: bus: 'platform': really_probe: probing driver rockchip-sfc with device
+[    0.521994] rockchip-sfc ff488000.spi: no pinctrl handle
+[    0.522883] device: 'spi1': device_add
+[    0.523406] PM: Adding info for No Bus:spi1
+[    0.523903] device: 'spi1.0': device_add
+[    0.524293] bus: 'spi': add device spi1.0
+[    0.524742] PM: Adding info for spi:spi1.0
+[    0.525176] spi spi1.0: bus: 'spi': __driver_probe_device: matched device with driver spi-nand
+[    0.526012] spi spi1.0: bus: 'spi': really_probe: probing driver spi-nand with device
+[    0.526731] spi-nand spi1.0: no pinctrl handle
+[    0.527285] rockchip-sfc ff488000.spi: dll tuning: target=80000000Hz real=75000011Hz cell_max=383 step=10 cs=0
+[    0.528225] rockchip-sfc ff488000.spi:   dll window [100, 170] (70 cells)
+[    0.528870] rockchip-sfc ff488000.spi:   dll window [280, 360] (80 cells)
+[    0.529528] rockchip-sfc ff488000.spi: dll ok: best=[280,360] -> cell 320 (real 75000011Hz)
+[    0.530329] spi-nand spi1.0: Winbond SPI NAND was found.
+[    0.530805] spi-nand spi1.0: 512 MiB, block size: 128 KiB, page size: 2048, OOB size: 128
+[    0.531705] 7 fixed-partitions partitions found on MTD device spi1.0
+[    0.532360] Creating 7 MTD partitions on "spi1.0":
+[    0.532804] 0x000000400000-0x000000800000 : "uboot"
+[    0.535183] device: 'mtd0': device_add
+[    0.535701] PM: Adding info for No Bus:mtd0
+[    0.536371] device: 'mtd0': device_add
+[    0.536766] bus: 'nvmem': add device mtd0
+[    0.537156] PM: Adding info for nvmem:mtd0
+[    0.537645] device: 'mtd0ro': device_add
+[    0.538058] PM: Adding info for No Bus:mtd0ro
+[    0.538894] device: 'mtdblock0': device_add
+[    0.539462] PM: Adding info for No Bus:mtdblock0
+[    0.540794] device: '31:0': device_add
+[    0.541229] PM: Adding info for No Bus:31:0
+[    0.541735] 0x000000800000-0x000000900000 : "misc"
+[    0.542881] device: 'mtd1': device_add
+[    0.543345] PM: Adding info for No Bus:mtd1
+[    0.544001] device: 'mtd1': device_add
+[    0.544398] bus: 'nvmem': add device mtd1
+[    0.544789] PM: Adding info for nvmem:mtd1
+[    0.545247] device: 'mtd1ro': device_add
+[    0.545715] PM: Adding info for No Bus:mtd1ro
+[    0.546541] device: 'mtdblock1': device_add
+[    0.547065] PM: Adding info for No Bus:mtdblock1
+[    0.549287] device: '31:1': device_add
+[    0.549729] PM: Adding info for No Bus:31:1
+[    0.550274] 0x000000900000-0x000000940000 : "vnvm"
+[    0.550994] device: 'mtd2': device_add
+[    0.551450] PM: Adding info for No Bus:mtd2
+[    0.552098] device: 'mtd2': device_add
+[    0.552542] bus: 'nvmem': add device mtd2
+[    0.552947] PM: Adding info for nvmem:mtd2
+[    0.553421] device: 'mtd2ro': device_add
+[    0.553832] PM: Adding info for No Bus:mtd2ro
+[    0.554724] device: 'mtdblock2': device_add
+[    0.555244] PM: Adding info for No Bus:mtdblock2
+[    0.556985] device: '31:2': device_add
+[    0.557426] PM: Adding info for No Bus:31:2
+[    0.557931] 0x000000940000-0x000001740000 : "recovery"
+[    0.565121] device: 'mtd3': device_add
+[    0.565660] PM: Adding info for No Bus:mtd3
+[    0.566324] device: 'mtd3': device_add
+[    0.566719] bus: 'nvmem': add device mtd3
+[    0.567110] PM: Adding info for nvmem:mtd3
+[    0.567569] device: 'mtd3ro': device_add
+[    0.567979] PM: Adding info for No Bus:mtd3ro
+[    0.568794] device: 'mtdblock3': device_add
+[    0.569351] PM: Adding info for No Bus:mtdblock3
+[    0.572598] device: '31:3': device_add
+[    0.573041] PM: Adding info for No Bus:31:3
+[    0.573549] 0x000001740000-0x000002740000 : "boot"
+[    0.581564] device: 'mtd4': device_add
+[    0.582029] PM: Adding info for No Bus:mtd4
+[    0.582721] device: 'mtd4': device_add
+[    0.583116] bus: 'nvmem': add device mtd4
+[    0.583510] PM: Adding info for nvmem:mtd4
+[    0.583970] device: 'mtd4ro': device_add
+[    0.584376] PM: Adding info for No Bus:mtd4ro
+[    0.585238] device: 'mtdblock4': device_add
+[    0.585794] PM: Adding info for No Bus:mtdblock4
+[    0.589209] device: '31:4': device_add
+[    0.589645] PM: Adding info for No Bus:31:4
+[    0.590148] 0x000002740000-0x00000d540000 : "rootfs"
+[    0.670942] device: 'mtd5': device_add
+[    0.671412] PM: Adding info for No Bus:mtd5
+[    0.672058] device: 'mtd5': device_add
+[    0.672516] bus: 'nvmem': add device mtd5
+[    0.672909] PM: Adding info for nvmem:mtd5
+[    0.673374] device: 'mtd5ro': device_add
+[    0.673819] PM: Adding info for No Bus:mtd5ro
+[    0.674705] device: 'mtdblock5': device_add
+[    0.675194] PM: Adding info for No Bus:mtdblock5
+[    0.679251] device: '31:5': device_add
+[    0.679724] PM: Adding info for No Bus:31:5
+[    0.680242] 0x00000d540000-0x000020000000 : "userdata"
+[    0.818428] device: 'mtd6': device_add
+[    0.818899] PM: Adding info for No Bus:mtd6
+[    0.819572] device: 'mtd6': device_add
+[    0.819961] bus: 'nvmem': add device mtd6
+[    0.820352] PM: Adding info for nvmem:mtd6
+[    0.820858] device: 'mtd6ro': device_add
+[    0.821279] PM: Adding info for No Bus:mtd6ro
+[    0.822031] device: 'mtdblock6': device_add
+[    0.822579] PM: Adding info for No Bus:mtdblock6
+[    0.825892] device: '31:6': device_add
+[    0.826359] PM: Adding info for No Bus:31:6
+[    0.826878] spi-nand spi1.0: driver: 'spi-nand': driver_bound: bound to device
+[    0.827613] spi-nand spi1.0: bus: 'spi': really_probe: bound device to driver spi-nand
+[    0.828351] rockchip-sfc ff488000.spi: driver: 'rockchip-sfc': driver_bound: bound to device
+[    0.829245] rockchip-sfc ff488000.spi: bus: 'platform': really_probe: bound device to driver rockchip-sfc
+[    0.830292] PPP generic driver version 2.4.2
+[    0.830711] device class 'ppp': registering
+[    0.831140] device: 'ppp': device_add
+[    0.831561] PM: Adding info for No Bus:ppp
+[    0.832144] PPP BSD Compression module registered
+[    0.832632] PPP Deflate Compression module registered
+[    0.833108] bus: 'platform': add driver dwc2
+[    0.833719] platform ff740000.usb: bus: 'platform': __driver_probe_device: matched device with driver dwc2
+[    0.834589] platform ff740000.usb: bus: 'platform': really_probe: probing driver dwc2 with device
+[    0.835389] dwc2 ff740000.usb: no pinctrl handle
+[    0.836023] device: 'phy:phy-ff2b0000.usb2-phy.0--platform:ff740000.usb': device_add
+[    0.836814] devices_kset: Moving ff740000.usb to end of list
+[    0.837324] PM: Moving platform:ff740000.usb to end of list
+[    0.837822] dwc2 ff740000.usb: Linked as a consumer to phy-ff2b0000.usb2-phy.0
+[    0.838499] dwc2 ff740000.usb: supply vusb_d not found, using dummy regulator
+[    0.839346] device: 'regulator:regulator.0--platform:ff740000.usb': device_add
+[    0.840090] devices_kset: Moving ff740000.usb to end of list
+[    0.840599] PM: Moving platform:ff740000.usb to end of list
+[    0.841097] dwc2 ff740000.usb: Linked as a consumer to regulator.0
+[    0.841663] dwc2 ff740000.usb: supply vusb_a not found, using dummy regulator
+[    0.858116] dwc2 ff740000.usb: DWC OTG Controller
+[    0.858605] dwc2 ff740000.usb: new USB bus registered, assigned bus number 1
+[    0.859343] dwc2 ff740000.usb: irq 43, io mem 0xff740000
+[    0.860153] device: 'usb1': device_add
+[    0.860652] bus: 'usb': add device usb1
+[    0.861055] PM: Adding info for usb:usb1
+[    0.861762] usb usb1: bus: 'usb': __driver_probe_device: matched device with driver usb
+[    0.862584] usb usb1: bus: 'usb': really_probe: probing driver usb with device
+[    0.863370] device: '1-0:1.0': device_add
+[    0.863794] bus: 'usb': add device 1-0:1.0
+[    0.864182] PM: Adding info for usb:1-0:1.0
+[    0.864625] usb 1-0:1.0: bus: 'usb': __driver_probe_device: matched device with driver hub
+[    0.865369] usb 1-0:1.0: bus: 'usb': really_probe: probing driver hub with device
+[    0.866135] hub 1-0:1.0: USB hub found
+[    0.866570] hub 1-0:1.0: 1 port detected
+[    0.867009] device: 'usb1-port1': device_add
+[    0.867451] PM: Adding info for No Bus:usb1-port1
+[    0.867891] usb usb1-port1: adding component (ops 0xb0c72178)
+[    0.868553] hub 1-0:1.0: driver: 'hub': driver_bound: bound to device
+[    0.869257] hub 1-0:1.0: bus: 'usb': really_probe: bound device to driver hub
+[    0.869922] device: 'ep_81': device_add
+[    0.870326] PM: Adding info for No Bus:ep_81
+[    0.870724] usb usb1: driver: 'usb': driver_bound: bound to device
+[    0.871317] usb usb1: bus: 'usb': really_probe: bound device to driver usb
+[    0.871943] device: 'ep_00': device_add
+[    0.872563] PM: Adding info for No Bus:ep_00
+[    0.873100] dwc2 ff740000.usb: driver: 'dwc2': driver_bound: bound to device
+[    0.873815] dwc2 ff740000.usb: bus: 'platform': really_probe: bound device to driver dwc2
+[    0.874573] platform ff780000.usb: bus: 'platform': __driver_probe_device: matched device with driver dwc2
+[    0.875434] platform ff780000.usb: bus: 'platform': really_probe: probing driver dwc2 with device
+[    0.876303] dwc2 ff780000.usb: no pinctrl handle
+[    0.876871] device: 'phy:phy-ff2b0000.usb2-phy.1--platform:ff780000.usb': device_add
+[    0.877694] devices_kset: Moving ff780000.usb to end of list
+[    0.878207] PM: Moving platform:ff780000.usb to end of list
+[    0.878705] dwc2 ff780000.usb: Linked as a consumer to phy-ff2b0000.usb2-phy.1
+[    0.879442] dwc2 ff780000.usb: supply vusb_d not found, using dummy regulator
+[    0.880163] device: 'regulator:regulator.0--platform:ff780000.usb': device_add
+[    0.880889] devices_kset: Moving ff780000.usb to end of list
+[    0.881396] PM: Moving platform:ff780000.usb to end of list
+[    0.881893] dwc2 ff780000.usb: Linked as a consumer to regulator.0
+[    0.882499] dwc2 ff780000.usb: supply vusb_a not found, using dummy regulator
+[    0.898005] dwc2 ff780000.usb: DWC OTG Controller
+[    0.898491] dwc2 ff780000.usb: new USB bus registered, assigned bus number 2
+[    0.899238] dwc2 ff780000.usb: irq 44, io mem 0xff780000
+[    0.900048] device: 'usb2': device_add
+[    0.900510] bus: 'usb': add device usb2
+[    0.900910] PM: Adding info for usb:usb2
+[    0.901588] usb usb2: bus: 'usb': __driver_probe_device: matched device with driver usb
+[    0.902403] usb usb2: bus: 'usb': really_probe: probing driver usb with device
+[    0.903179] device: '2-0:1.0': device_add
+[    0.903602] bus: 'usb': add device 2-0:1.0
+[    0.903989] PM: Adding info for usb:2-0:1.0
+[    0.904430] usb 2-0:1.0: bus: 'usb': __driver_probe_device: matched device with driver hub
+[    0.905172] usb 2-0:1.0: bus: 'usb': really_probe: probing driver hub with device
+[    0.905923] hub 2-0:1.0: USB hub found
+[    0.906354] hub 2-0:1.0: 1 port detected
+[    0.906789] device: 'usb2-port1': device_add
+[    0.907263] PM: Adding info for No Bus:usb2-port1
+[    0.907710] usb usb2-port1: adding component (ops 0xb0c72178)
+[    0.908375] hub 2-0:1.0: driver: 'hub': driver_bound: bound to device
+[    0.909085] hub 2-0:1.0: bus: 'usb': really_probe: bound device to driver hub
+[    0.909750] device: 'ep_81': device_add
+[    0.910157] PM: Adding info for No Bus:ep_81
+[    0.910554] usb usb2: driver: 'usb': driver_bound: bound to device
+[    0.911185] usb usb2: bus: 'usb': really_probe: bound device to driver usb
+[    0.911814] device: 'ep_00': device_add
+[    0.912211] PM: Adding info for No Bus:ep_00
+[    0.913079] dwc2 ff780000.usb: driver: 'dwc2': driver_bound: bound to device
+[    0.913913] dwc2 ff780000.usb: bus: 'platform': really_probe: bound device to driver dwc2
+[    0.914846] bus: 'platform': add driver ohci-platform
+[    0.915478] bus: 'usb-serial': registered
+[    0.915982] device: 'ttyUSB-usbserial': device_add
+[    0.916457] bus: 'workqueue': add device ttyUSB-usbserial
+[    0.916980] PM: Adding info for workqueue:ttyUSB-usbserial
+[    0.917548] bus: 'usb': add driver option
+[    0.917983] usbcore: registered new interface driver option
+[    0.918489] bus: 'usb-serial': add driver option1
+[    0.919005] usbserial: USB Serial support registered for GSM modem (1-port)
+[    0.919735] bus: 'platform': add driver adc_keys
+[    0.920286] bus: 'platform': add driver aml-rtc
+[    0.920789] bus: 'i2c': add driver rtc-hym8563
+[    0.921223] bus: 'i2c': add driver rtc-pcf8563
+[    0.921644] i2c_dev: i2c /dev entries driver
+[    0.922029] device class 'i2c-dev': registering
+[    0.922527] bus: 'platform': add driver rk3x-i2c
+[    0.922988] platform ff040000.i2c: bus: 'platform': __driver_probe_device: matched device with driver rk3x-i2c
+[    0.923883] platform ff040000.i2c: bus: 'platform': really_probe: probing driver rk3x-i2c with device
+[    0.924768] rk3x-i2c ff040000.i2c: no init pinctrl state
+[    0.925274] rk3x-i2c ff040000.i2c: no sleep pinctrl state
+[    0.925832] rk3x-i2c ff040000.i2c: no idle pinctrl state
+[    0.926645] device: 'i2c-0': device_add
+[    0.927045] bus: 'i2c': add device i2c-0
+[    0.927415] PM: Adding info for i2c:i2c-0
+[    0.927820] device: 'i2c-0': device_add
+[    0.928250] PM: Adding info for No Bus:i2c-0
+[    0.929033] device: '0-0011': device_add
+[    0.929450] bus: 'i2c': add device 0-0011
+[    0.929844] PM: Adding info for i2c:0-0011
+[    0.930272] i2c 0-0011: Not linking /clock-controller@ff9a0000 - might never become dev
+[    0.930991] /i2c@ff040000/es8388@11 Dropping the fwnode link to /clock-controller@ff9a0000
+[    0.931765] rk3x-i2c ff040000.i2c: driver: 'rk3x-i2c': driver_bound: bound to device
+[    0.932574] rk3x-i2c ff040000.i2c: bus: 'platform': really_probe: bound device to driver rk3x-i2c
+[    0.933386] platform ff050000.i2c: bus: 'platform': __driver_probe_device: matched device with driver rk3x-i2c
+[    0.934273] platform ff050000.i2c: bus: 'platform': really_probe: probing driver rk3x-i2c with device
+[    0.935175] rk3x-i2c ff050000.i2c: no init pinctrl state
+[    0.935752] rk3x-i2c ff050000.i2c: no sleep pinctrl state
+[    0.936251] rk3x-i2c ff050000.i2c: no idle pinctrl state
+[    0.937073] device: 'i2c-1': device_add
+[    0.937476] bus: 'i2c': add device i2c-1
+[    0.937851] PM: Adding info for i2c:i2c-1
+[    0.938227] device: 'i2c-1': device_add
+[    0.938625] PM: Adding info for No Bus:i2c-1
+[    0.939399] rk3x-i2c ff050000.i2c: driver: 'rk3x-i2c': driver_bound: bound to device
+[    0.940166] rk3x-i2c ff050000.i2c: bus: 'platform': really_probe: bound device to driver rk3x-i2c
+[    0.940974] platform ff060000.i2c: bus: 'platform': __driver_probe_device: matched device with driver rk3x-i2c
+[    0.941863] platform ff060000.i2c: bus: 'platform': really_probe: probing driver rk3x-i2c with device
+[    0.942815] rk3x-i2c ff060000.i2c: no init pinctrl state
+[    0.943324] rk3x-i2c ff060000.i2c: no sleep pinctrl state
+[    0.943809] rk3x-i2c ff060000.i2c: no idle pinctrl state
+[    0.944600] device: 'i2c-2': device_add
+[    0.944999] bus: 'i2c': add device i2c-2
+[    0.945370] PM: Adding info for i2c:i2c-2
+[    0.945842] device: 'i2c-2': device_add
+[    0.946268] PM: Adding info for No Bus:i2c-2
+[    0.946953] device: '2-0014': device_add
+[    0.947358] bus: 'i2c': add device 2-0014
+[    0.947780] PM: Adding info for i2c:2-0014
+[    0.948216] device: 'platform:ff940000.gpio--i2c:2-0014': device_add
+[    0.948854] devices_kset: Moving 2-0014 to end of list
+[    0.949397] PM: Moving i2c:2-0014 to end of list
+[    0.949827] i2c 2-0014: Linked as a consumer to ff940000.gpio
+[    0.950341] /i2c@ff060000/touchscreen@14 Dropping the fwnode link to /pinctrl/gpio@ff940000
+[    0.951139] rk3x-i2c ff060000.i2c: driver: 'rk3x-i2c': driver_bound: bound to device
+[    0.951857] rk3x-i2c ff060000.i2c: Dropping the link to ff940000.gpio
+[    0.952478] device: 'platform:ff940000.gpio--platform:ff060000.i2c': device_unregister
+[    0.953466] rk3x-i2c ff060000.i2c: bus: 'platform': really_probe: bound device to driver rk3x-i2c
+[    0.954597] bus: 'platform': add driver syscon-reboot-mode
+[    0.955208] bus: 'platform': add driver rockchip-thermal
+[    0.955987] bus: 'platform': add driver amlogic_thermal
+[    0.956604] bus: 'platform': add driver dw_wdt
+[    0.957098] bus: 'platform': add driver cpufreq-dt
+[    0.957591] bus: 'platform': add driver pwrseq_simple
+[    0.958116] bus: 'platform': add driver pwrseq_emmc
+[    0.958654] bus: 'mmc_rpmb': registered
+[    0.959079] bus: 'mmc': add driver mmcblk
+[    0.959507] bus: 'platform': add driver dw_mmc
+[    0.960024] bus: 'platform': add driver dwmmc_rockchip
+[    0.960532] platform ff480000.mmc: probing driver dwmmc_rockchip asynchronously
+[    0.961235] platform ff480000.mmc: bus: 'platform': __driver_probe_device: matched device with driver dwmmc_rockchip
+[    0.962180] platform ff480000.mmc: bus: 'platform': really_probe: probing driver dwmmc_rockchip with device
+[    0.962439] bus: 'platform': add driver gtdt-arm-mmio-timer
+[    0.963268] dwmmc_rockchip ff480000.mmc: no init pinctrl state
+[    0.963611] bus: 'platform': add driver arch-timer-mmio
+[    0.964093] dwmmc_rockchip ff480000.mmc: no sleep pinctrl state
+[    0.964600] bus: 'platform': add driver extcon-usb-gpio
+[    0.965033] dwmmc_rockchip ff480000.mmc: no idle pinctrl state
+[    0.965563] bus: 'amba': add driver pl353-smc
+[    0.966265] device: 'wakeup0': device_add
+[    0.966540] bus: 'platform': add driver meson-saradc
+[    0.967384] dwmmc_rockchip ff480000.mmc: IDMAC supports 32-bit address mode.
+[    0.967485] bus: 'platform': add driver rockchip-saradc
+[    0.968079] dwmmc_rockchip ff480000.mmc: Using internal DMA controller.
+[    0.968678] bus: 'platform': add driver rockchip-otp
+[    0.969179] dwmmc_rockchip ff480000.mmc: Version ID is 270a
+[    0.969777] device: 'timer': device_add
+[    0.970129] dwmmc_rockchip ff480000.mmc: DW MMC controller at irq 48,32 bit host data width,256 deep fifo
+[    0.970470] PM: Adding info for No Bus:timer
+[    0.971339] device: 'regulator:regulator.1--platform:ff480000.mmc': device_add
+[    0.972390] devices_kset: Moving ff480000.mmc to end of list
+[    0.972906] PM: Moving platform:ff480000.mmc to end of list
+[    0.973403] dwmmc_rockchip ff480000.mmc: Linked as a consumer to regulator.1
+[    0.974364] device: 'regulator:regulator.2--platform:ff480000.mmc': device_add
+[    0.974401] device: 'snd-soc-dummy': device_add
+[    0.975118] devices_kset: Moving ff480000.mmc to end of list
+[    0.975439] bus: 'faux': add device snd-soc-dummy
+[    0.976068] PM: Moving platform:ff480000.mmc to end of list
+[    0.976468] faux snd-soc-dummy: bus: 'faux': __driver_probe_device: matched device with driver faux_driver
+[    0.976913] dwmmc_rockchip ff480000.mmc: Linked as a consumer to regulator.2
+[    0.978369] faux snd-soc-dummy: bus: 'faux': really_probe: probing driver faux_driver with device
+[    0.978477] dwmmc_rockchip ff480000.mmc: Got CD GPIO
+[    0.979219] faux_driver snd-soc-dummy: no default pinctrl state
+[    0.979703] device: 'mmc0': device_add
+[    0.980223] faux_driver snd-soc-dummy: driver: 'faux_driver': driver_bound: bound to device
+[    0.980555] PM: Adding info for No Bus:mmc0
+[    0.981255] faux_driver snd-soc-dummy: bus: 'faux': really_probe: bound device to driver faux_driver
+[    0.982457] bus: 'platform': add driver soc-audio
+[    0.982994] bus: 'platform': add driver hdmi-audio-codec
+[    0.983537] bus: 'platform': add driver rockchip-sai
+[    0.984021] platform ff310000.sai: bus: 'platform': __driver_probe_device: matched device with driver rockchip-sai
+[    0.984943] platform ff310000.sai: bus: 'platform': really_probe: probing driver rockchip-sai with device
+[    0.985934] rockchip-sai ff310000.sai: no init pinctrl state
+[    0.986489] rockchip-sai ff310000.sai: no sleep pinctrl state
+[    0.987005] rockchip-sai ff310000.sai: no idle pinctrl state
+[    0.987979] rockchip-sai ff310000.sai: using zero-initialized flat cache, this may cause unexpected behavior
+[    0.989082] rockchip-sai ff310000.sai: driver: 'rockchip-sai': driver_bound: bound to device
+[    0.989922] rockchip-sai ff310000.sai: bus: 'platform': really_probe: bound device to driver rockchip-sai
+[    0.990897] bus: 'platform': add driver rockchip-spdif
+[    0.992057] xt_time: kernel timezone is -0000
+[    0.992373] mmc_host mmc0: Bus speed = 400000Hz (req 400000Hz, actual 400000HZ div = 0)
+[    0.992855] NET: Registered PF_INET6 protocol family
+[    0.995218] Segment Routing with IPv6
+[    0.995725] In-situ OAM (IOAM) with IPv6
+[    0.996259] NET: Registered PF_PACKET protocol family
+[    0.996767] can: controller area network core
+[    0.997241] NET: Registered PF_CAN protocol family
+[    0.998017] device: 'rfcomm-rfcomm': device_add
+[    0.998491] bus: 'workqueue': add device rfcomm-rfcomm
+[    0.999079] PM: Adding info for workqueue:rfcomm-rfcomm
+[    0.999615] Bluetooth: RFCOMM TTY layer initialized
+[    1.000072] Bluetooth: RFCOMM socket layer initialized
+[    1.000555] Bluetooth: RFCOMM ver 1.11
+[    1.000906] Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+[    1.001387] Bluetooth: BNEP socket layer initialized
+[    1.001881] Registering SWP/SWPB emulation handler
+[    1.006543] dwmmc_rockchip ff480000.mmc: driver: 'dwmmc_rockchip': driver_bound: bound to device
+[    1.007439] dwmmc_rockchip ff480000.mmc: bus: 'platform': really_probe: bound device to driver dwmmc_rockchip
+[    1.008464] dwmmc_rockchip ff480000.mmc: driver dwmmc_rockchip async attach completed: 0
+[    1.010288] device: 'cpu_dma_latency': device_add
+[    1.010792] PM: Adding info for No Bus:cpu_dma_latency
+[    1.033955] bus: 'platform': add driver gpio-keys
+[    1.034555] Extended deferred probe timeout by 10 secs
+[    1.035445] faux_driver regulatory: Direct firmware load for regulatory.db failed with error -2
+[    1.036304] cfg80211: failed to load regulatory.db
+[    1.036352] bus: 'amba': add driver amba-proxy
+[    1.037202] Extended deferred probe timeout by 10 secs
+[    1.037672] clk: Disabling unused clocks
+[    1.038289] PM: genpd: Disabling unused power domains
+[    1.038773] ALSA device list:
+[    1.039090]   No soundcards found.
+[    1.039665] dw-apb-uart ff0a0000.serial: forbid DMA for kernel console
+[    1.040787] Freeing unused kernel image (initmem) memory: 524K
+[    1.041319] Kernel memory protection not selected by kernel config.
+[    1.041885] Run /init as init process
+[    1.042215]   with arguments:
+[    1.042519]     /init
+[    1.042740]   with environment:
+[    1.043022]     HOME=/
+[    1.043236]     TERM=linux
+
+===== rk-forge provisioning initramfs =====
+[    1.073975] ubi0: attaching mtd5
+[    1.202313] random: crng init done
+[    1.219661] ubi0: scanning is finished
+[    1.242801] ubi0: volume 0 ("rootfs") re-sized from 74 to 1308 LEBs
+[    1.243416] device: 'ubi0': device_add
+[    1.243855] PM: Adding info for No Bus:ubi0
+[    1.244513] device: 'ubi0_0': device_add
+[    1.244953] PM: Adding info for No Bus:ubi0_0
+[    1.245824] ubi0: attached mtd5 (name "rootfs", size 174 MiB)
+[    1.246370] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    1.246982] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    1.247583] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    1.248197] ubi0: good PEBs: 1392, bad PEBs: 0, corrupted PEBs: 0
+[    1.248738] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    1.249412] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 222252659
+[    1.250218] ubi0: available PEBs: 0, total reserved PEBs: 1392, PEBs reserved for bad PEB handling: 80
+[    1.251079] ubi0: background thread "ubi_bgt0d" started, PID 68
+[    1.254545] device: 'ubifs_0_0': device_add
+[    1.255045] PM: Adding info for No Bus:ubifs_0_0
+[    1.258566] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[    1.259436] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 70
+[    1.332899] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[    1.333593] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    1.334473] UBIFS (ubi0:0): FS size: 164687872 bytes (157 MiB, 1297 LEBs), max 1400 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    1.335536] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[    1.336108] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID CBC3C414-9609-4129-A3A5-54C3F7AA73B6, small LPT model
+[    1.338984] usb 2-1: new high-speed USB device number 2 using dwc2
+[init] rootfs mounts but has no marker → will provision
+[    1.444448] UBIFS (ubi0:0): un-mount UBI device 0
+[    1.444937] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" stops
+[    1.451749] device: 'ubifs_0_0': device_unregister
+[    1.452342] PM: Removing info for No Bus:ubifs_0_0
+[    1.452840] device: 'ubifs_0_0': device_create_release
+[    1.456816] ubi0: detaching mtd5
+[    1.457704] device: 'ubi0_0': device_unregister
+[    1.458391] PM: Removing info for No Bus:ubi0_0
+[    1.459165] PM: Removing info for No Bus:ubi0
+[    1.460027] ubi0: mtd5 is detached
+[init] decompressing /rootfs.ubi.img.gz → /tmp/rootfs.ubi.img…
+[    1.526223] device: '2-1': device_add
+[    1.526699] bus: 'usb': add device 2-1
+[    1.527081] PM: Adding info for usb:2-1
+[    1.527690] usb 2-1: bus: 'usb': __driver_probe_device: matched device with driver usb
+[    1.528416] usb 2-1: bus: 'usb': really_probe: probing driver usb with device
+[    1.532390] usb 2-1: no default pinctrl state
+[    1.533114] device: '2-1:1.0': device_add
+[    1.533537] bus: 'usb': add device 2-1:1.0
+[    1.533921] PM: Adding info for usb:2-1:1.0
+[    1.534342] usb 2-1:1.0: bus: 'usb': __driver_probe_device: matched device with driver hub
+[    1.535083] usb 2-1:1.0: bus: 'usb': really_probe: probing driver hub with device
+[    1.539062] hub 2-1:1.0: no default pinctrl state
+[    1.539599] hub 2-1:1.0: USB hub found
+[    1.540116] hub 2-1:1.0: 4 ports detected
+[    1.540648] device: 'ep_81': device_add
+[    1.541091] PM: Adding info for No Bus:ep_81
+[    1.541766] device: '2-1-port1': device_add
+[    1.542230] PM: Adding info for No Bus:2-1-port1
+[    1.542742] usb 2-1-port1: adding component (ops 0xb0c72178)
+[    1.543348] device: '2-1-port2': device_add
+[    1.543800] PM: Adding info for No Bus:2-1-port2
+[    1.544245] usb 2-1-port2: adding component (ops 0xb0c72178)
+[    1.544831] device: '2-1-port3': device_add
+[    1.545276] PM: Adding info for No Bus:2-1-port3
+[    1.545766] usb 2-1-port3: adding component (ops 0xb0c72178)
+[    1.546346] device: '2-1-port4': device_add
+[    1.546798] PM: Adding info for No Bus:2-1-port4
+[    1.547251] usb 2-1-port4: adding component (ops 0xb0c72178)
+[    1.548293] hub 2-1:1.0: driver: 'hub': driver_bound: bound to device
+[    1.549114] hub 2-1:1.0: bus: 'usb': really_probe: bound device to driver hub
+[    1.549800] usb 2-1: driver: 'usb': driver_bound: bound to device
+[    1.550488] usb 2-1: bus: 'usb': really_probe: bound device to driver usb
+[    1.551169] device: 'ep_00': device_add
+[    1.551587] PM: Adding info for No Bus:ep_00
+[    1.835711] usb 2-1.3: new high-speed USB device number 3 using dwc2
+[init] FIRST BOOT: ubiprog from-source rewriting /dev/mtd5 (9961472 B)…
+ubiprog: /dev/mtd5  size=182452224  erasesize=131072  PEBs=1392  writesize=2048
+ubiprog: FROM-SOURCE /tmp/rootfs.ubi.img (9961472 B); erasing whole partition (1392 PEBs)
+[    1.930022] device: '2-1.3': device_add
+[    1.930523] bus: 'usb': add device 2-1.3
+[    1.930929] PM: Adding info for usb:2-1.3
+[    1.931564] usb 2-1.3: bus: 'usb': __driver_probe_device: matched device with driver usb
+[    1.932361] usb 2-1.3: bus: 'usb': really_probe: probing driver usb with device
+[    1.933058] usb 2-1.3: no default pinctrl state
+[    1.933679] device: '2-1.3:1.0': device_add
+[    1.934147] bus: 'usb': add device 2-1.3:1.0
+[    1.934567] PM: Adding info for usb:2-1.3:1.0
+[    1.935292] device: 'ep_81': device_add
+[    1.935784] PM: Adding info for No Bus:ep_81
+[    1.936218] device: 'ep_02': device_add
+[    1.936628] PM: Adding info for No Bus:ep_02
+[    1.937036] device: 'ep_82': device_add
+[    1.937437] PM: Adding info for No Bus:ep_82
+[    1.937835] device: '2-1.3:1.1': device_add
+[    1.938275] bus: 'usb': add device 2-1.3:1.1
+[    1.938689] PM: Adding info for usb:2-1.3:1.1
+[    1.939446] device: 'ep_03': device_add
+[    1.939910] PM: Adding info for No Bus:ep_03
+[    1.940375] device: 'ep_83': device_add
+[    1.940812] PM: Adding info for No Bus:ep_83
+[    1.941217] device: '2-1.3:1.2': device_add
+[    1.941640] bus: 'usb': add device 2-1.3:1.2
+[    1.942046] PM: Adding info for usb:2-1.3:1.2
+[    1.942812] device: 'ep_84': device_add
+[    1.943307] PM: Adding info for No Bus:ep_84
+[    1.943744] device: 'ep_05': device_add
+[    1.944157] PM: Adding info for No Bus:ep_05
+[    1.944567] device: 'ep_06': device_add
+[    1.944971] PM: Adding info for No Bus:ep_06
+[    1.945379] device: 'ep_87': device_add
+[    1.945839] PM: Adding info for No Bus:ep_87
+[    1.946257] device: 'ep_08': device_add
+[    1.946664] PM: Adding info for No Bus:ep_08
+[    1.947079] usb 2-1.3: driver: 'usb': driver_bound: bound to device
+[    1.947769] usb 2-1.3: bus: 'usb': really_probe: bound device to driver usb
+[    1.948456] device: 'ep_00': device_add
+[    1.948874] PM: Adding info for No Bus:ep_00
+  ... 16 img PEBs written + 0 tail erased
+  ... 32 img PEBs written + 0 tail erased
+  ... 48 img PEBs written + 0 tail erased
+  ... 64 img PEBs written + 0 tail erased
+  ... 76 img PEBs written + 4 tail erased
+  ... 76 img PEBs written + 20 tail erased
+  ... 76 img PEBs written + 36 tail erased
+  ... 76 img PEBs written + 52 tail erased
+  ... 76 img PEBs written + 68 tail erased
+  ... 76 img PEBs written + 84 tail erased
+  ... 76 img PEBs written + 100 tail erased
+  ... 76 img PEBs written + 116 tail erased
+  ... 76 img PEBs written + 132 tail erased
+  ... 76 img PEBs written + 148 tail erased
+  ... 76 img PEBs written + 164 tail erased
+  ... 76 img PEBs written + 180 tail erased
+  ... 76 img PEBs written + 196 tail erased
+  ... 76 img PEBs written + 212 tail erased
+  ... 76 img PEBs written + 228 tail erased
+  ... 76 img PEBs written + 244 tail erased
+  ... 76 img PEBs written + 260 tail erased
+  ... 76 img PEBs written + 276 tail erased
+  ... 76 img PEBs written + 292 tail erased
+  ... 76 img PEBs written + 308 tail erased
+  ... 76 img PEBs written + 324 tail erased
+  ... 76 img PEBs written + 340 tail erased
+  ... 76 img PEBs written + 356 tail erased
+  ... 76 img PEBs written + 372 tail erased
+  ... 76 img PEBs written + 388 tail erased
+  ... 76 img PEBs written + 404 tail erased
+  ... 76 img PEBs written + 420 tail erased
+  ... 76 img PEBs written + 436 tail erased
+  ... 76 img PEBs written + 452 tail erased
+  ... 76 img PEBs written + 468 tail erased
+  ... 76 img PEBs written + 484 tail erased
+  ... 76 img PEBs written + 500 tail erased
+  ... 76 img PEBs written + 516 tail erased
+  ... 76 img PEBs written + 532 tail erased
+  ... 76 img PEBs written + 548 tail erased
+  ... 76 img PEBs written + 564 tail erased
+  ... 76 img PEBs written + 580 tail erased
+  ... 76 img PEBs written + 596 tail erased
+  ... 76 img PEBs written + 612 tail erased
+  ... 76 img PEBs written + 628 tail erased
+  ... 76 img PEBs written + 644 tail erased
+  ... 76 img PEBs written + 660 tail erased
+  ... 76 img PEBs written + 676 tail erased
+  ... 76 img PEBs written + 692 tail erased
+  ... 76 img PEBs written + 708 tail erased
+  ... 76 img PEBs written + 724 tail erased
+  ... 76 img PEBs written + 740 tail erased
+  ... 76 img PEBs written + 756 tail erased
+  ... 76 img PEBs written + 772 tail erased
+  ... 76 img PEBs written + 788 tail erased
+  ... 76 img PEBs written + 804 tail erased
+  ... 76 img PEBs written + 820 tail erased
+  ... 76 img PEBs written + 836 tail erased
+  ... 76 img PEBs written + 852 tail erased
+  ... 76 img PEBs written + 868 tail erased
+  ... 76 img PEBs written + 884 tail erased
+  ... 76 img PEBs written + 900 tail erased
+  ... 76 img PEBs written + 916 tail erased
+  ... 76 img PEBs written + 932 tail erased
+  ... 76 img PEBs written + 948 tail erased
+  ... 76 img PEBs written + 964 tail erased
+  ... 76 img PEBs written + 980 tail erased
+  ... 76 img PEBs written + 996 tail erased
+  ... 76 img PEBs written + 1012 tail erased
+  ... 76 img PEBs written + 1028 tail erased
+  ... 76 img PEBs written + 1044 tail erased
+  ... 76 img PEBs written + 1060 tail erased
+  ... 76 img PEBs written + 1076 tail erased
+  ... 76 img PEBs written + 1092 tail erased
+  ... 76 img PEBs written + 1108 tail erased
+  ... 76 img PEBs written + 1124 tail erased
+  ... 76 img PEBs written + 1140 tail erased
+  ... 76 img PEBs written + 1156 tail erased
+  ... 76 img PEBs written + 1172 tail erased
+  ... 76 img PEBs written + 1188 tail erased
+  ... 76 img PEBs written + 1204 tail erased
+  ... 76 img PEBs written + 1220 tail erased
+  ... 76 img PEBs written + 1236 tail erased
+  ... 76 img PEBs written + 1252 tail erased
+  ... 76 img PEBs written + 1268 tail erased
+  ... 76 img PEBs written + 1284 tail erased
+  ... 76 img PEBs written + 1300 tail erased
+  ... 76 img PEBs written + 1316 tail erased
+ubiprog done (from-source): wrote=76 erased_tail=1316 failed=0 (of 1392 PEBs; image 9961472 B)
+[    7.448396] ubi0: attaching mtd5
+[    7.590608] ubi0: scanning is finished
+[    7.613811] ubi0: volume 0 ("rootfs") re-sized from 74 to 1308 LEBs
+[    7.614427] device: 'ubi0': device_add
+[    7.614869] PM: Adding info for No Bus:ubi0
+[    7.615490] device: 'ubi0_0': device_add
+[    7.616007] PM: Adding info for No Bus:ubi0_0
+[    7.616993] ubi0: attached mtd5 (name "rootfs", size 174 MiB)
+[    7.617539] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    7.618151] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    7.618753] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    7.619401] ubi0: good PEBs: 1392, bad PEBs: 0, corrupted PEBs: 0
+[    7.619952] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    7.620590] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 222252659
+[    7.621387] ubi0: available PEBs: 0, total reserved PEBs: 1392, PEBs reserved for bad PEB handling: 80
+[    7.622273] ubi0: background thread "ubi_bgt0d" started, PID 82
+[    7.625873] device: 'ubifs_0_0': device_add
+[    7.626392] PM: Adding info for No Bus:ubifs_0_0
+[    7.629865] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[    7.630706] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 84
+[    7.704506] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[    7.705209] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    7.706145] UBIFS (ubi0:0): FS size: 164687872 bytes (157 MiB, 1297 LEBs), max 1400 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    7.707232] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[    7.707772] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID CBC3C414-9609-4129-A3A5-54C3F7AA73B6, small LPT model
+[init] provisioning complete → switch_root
+[    8.501113] init: Console is alive
+[    8.924502] kmodloader: loading kernel modules from /etc/modules-boot.d/*
+[    9.064809] crc32c_cryptoapi: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    9.074019] scsi_common: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    9.077031] ehci_fsl: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    9.078725] ehci_platform: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    9.080486] fsl_mph_dr_of: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    9.084058] crc32c_cryptoapi: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    9.085631] ehci_fsl: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    9.087150] ehci_platform: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    9.088666] fsl_mph_dr_of: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    9.090232] scsi_common: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    9.091785] kmodloader: 8 modules could not be probed
+[    9.092677] kmodloader: - crc32c-cryptoapi - 0
+[    9.093401] kmodloader: - ehci-fsl - 0
+[    9.094032] kmodloader: - ehci-platform - 0
+[    9.094694] kmodloader: - fsl-mph-dr-of - 0
+[    9.095426] kmodloader: - scsi_common - 0
+[    9.096187] kmodloader: dependency not loaded scsi_common
+[    9.096995] kmodloader: - scsi_mod - 1
+[    9.097636] kmodloader: dependency not loaded scsi_mod
+[    9.098402] kmodloader: dependency not loaded scsi_common
+[    9.099267] kmodloader: - sd_mod - 2
+[    9.099898] kmodloader: dependency not loaded scsi_mod
+[    9.100653] kmodloader: dependency not loaded scsi_common
+[    9.101446] kmodloader: - usb-storage - 2
+[    9.111934] init: - preinit -
+Cannot parse config file '/etc/fw_env.config': No such file or directory
+Failed to find NVMEM device
+Press the [f] key and hit [enter] to enter failsafe mode
+Press the [1], [2], [3] or [4] key and hit [enter] to select the debug level
+[   14.680959] mount_root: mounting /dev/root with options 
+[   14.684543] urandom-seed: Seed file not found (/etc/urandom.seed)
+[   14.712579] procd: - early -
+[   15.328809] procd: - ubus -
+[   15.387691] procd: - init -
+Please press Enter to activate this console.
+[   15.769983] kmodloader: loading kernel modules from /etc/modules.d/*
+[   15.771491] crc32c_cryptoapi: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.773797] scsi_common: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.775759] ehci_fsl: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.777424] ehci_platform: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.779260] fsl_mph_dr_of: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.786875] nf_flow_table: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.788448] nft_hash: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.789954] nft_numgen: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.791404] nft_quota: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.792936] nft_redir: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.794386] pppox: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.795948] crc32c_cryptoapi: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.797428] ehci_fsl: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.798862] ehci_platform: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.800405] fsl_mph_dr_of: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.802036] nf_flow_table: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.803592] nft_hash: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.804994] nft_numgen: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.806471] nft_quota: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.807922] nft_redir: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.809407] pppox: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.810775] scsi_common: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[   15.812336] kmodloader: 17 modules could not be probed
+[   15.813111] kmodloader: - crc32c-cryptoapi - 0
+[   15.813768] kmodloader: - ehci-fsl - 0
+[   15.814356] kmodloader: - ehci-platform - 0
+[   15.814966] kmodloader: - fsl-mph-dr-of - 0
+[   15.815651] kmodloader: - nf_flow_table - 0
+[   15.816347] kmodloader: dependency not loaded nf_flow_table
+[   15.817116] kmodloader: - nf_flow_table_inet - 1
+[   15.817789] kmodloader: dependency not loaded nf_flow_table
+[   15.818524] kmodloader: - nft_flow_offload - 1
+[   15.819252] kmodloader: - nft_hash - 0
+[   15.819845] kmodloader: - nft_numgen - 0
+[   15.820440] kmodloader: - nft_quota - 0
+[   15.821032] kmodloader: - nft_redir - 0
+[   15.821628] kmodloader: dependency not loaded pppox
+[   15.822370] kmodloader: - pppoe - 1
+[   15.822970] kmodloader: - pppox - 0
+[   15.823539] kmodloader: - scsi_common - 0
+[   15.824145] kmodloader: dependency not loaded scsi_common
+[   15.824865] kmodloader: - scsi_mod - 1
+[   15.825441] kmodloader: dependency not loaded scsi_mod
+[   15.826257] kmodloader: dependency not loaded scsi_common
+[   15.827009] kmodloader: - sd_mod - 2
+[   15.827583] kmodloader: dependency not loaded scsi_mod
+[   15.828283] kmodloader: dependency not loaded scsi_common
+[   15.829088] kmodloader: - usb-storage - 2
+[   16.132783] urngd: v1.0.2 started.
+
+login[518]: root login on 'ttyS0'
+
+
+BusyBox v1.36.1 (2026-07-11 04:07:08 UTC) built-in shell (ash)
+
+  _______                     ________        __
+ |       |.-----.-----.-----.|  |  |  |.----.|  |_
+ |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
+ |_______||   __|_____|__|__||________||__|  |____|
+          |__| W I R E L E S S   F R E E D O M
+ -----------------------------------------------------
+ OpenWrt 24.10-SNAPSHOT, r0-31d15c0
+ -----------------------------------------------------
+=== WARNING! =====================================
+There is no root password defined on this device!
+Use the "passwd" command to set up a new password
+in order to prevent unauthorized SSH logins.
+--------------------------------------------------
+root@OpenWrt:~# DDR d27ac532c4 typ 25/03/11-14:46:28,fwver: v1.06
+tREFI:4x, sr_idle:93, pd_idle:13
+PHY drv:clk:40,ca:48,DQ:40,odt:240
+vrefinner:50%, vrefout:50%
+dram drv:40,odt:120
+sr_dq:0, sr_ca:0, sr_clk:0
+rg:0xf-0x1-0x2, 0x5-0x1-0x2,status:a007
+rdtrn:0x15-0x2f-0x49(0x34)
+wrtrn:0x1-0x20-0x3e(0x3d)
+DDR3, 750MHz
+BW=16 Col=10 Bk=8 CS0 Row=15 CS=1 Size=512MB
+out
+U-Boot SPL board init
+U-Boot SPL 2017.09-g80d18cf0259-250930 #lxh (Oct 22 2025 - 15:21:58), fwver: v1.12
+Ram size: 20000000
+sfc cmd=03H(6BH-x4)
+SPI Nand ID ef aa 23
+unrecognized JEDEC id bytes: ff, ef, aa
+Trying to boot from MMC1
+Card did not respond to voltage select!
+mmc_init: -95, time 13
+spl: mmc init failed with error: -95
+Trying to boot from MTD1
+SPL: A/B-slot: _a, successful: 0, tries-remain: 7
+Trying fit image at 0x2000 sector
+## Verified-boot: 0
+## Checking optee 0x00001000 ... sha256(e2a712a533...) + OK
+## Checking uboot 0x00800000 ... sha256(8e8271d277...) + OK
+## Checking fdt 0x00873de8 ... sha256(c5bd3c40c9...) + OK
+Jumping to U-Boot(0x00800000) via OP-TEE(0x00001000)
+Total: 64.856/110.815 ms
+
+I/TC: 
+I/TC: OP-TEE version: 3.13.0-1038-gb204648dc #derrick.huang (gcc version 10.2.1 20201103 (GNU Toolchain for the A-profile Architecture 10.2-2020.11 (arm-10.16))) #2 2025年 12月 11日 星期四 11:51:18 CST arm, fwver: v2.40 
+I/TC: Status: cluster=0xc00, core=0xe100, bootcpu=0
+I/TC: Next entry point address: 0x00800000
+I/TC: OP-TEE memory size: TEEOS 0x5e000 TA 0x1000 SHM 0x1000
+I/TC: Primary CPU initializing
+I/TC: Primary CPU switching to normal world boot
+
+
+U-Boot 2026.07-rc4-g7e23760a5650 (Jun 21 2026 - 02:50:05 +0000)
+
+Model: Rockchip RK3506 Evaluation Board (ATK RK3506B)
+SoC:   RK3506B
+DRAM:  512 MiB
+Core:  38 devices, 20 uclasses, devicetree: separate
+MMC:   mmc@ff480000: 0
+Loading Environment from nowhere... OK
+In:    serial@ff0a0000
+Out:   serial@ff0a0000
+Err:   serial@ff0a0000
+Hit any key to stop autoboot: 0
+rockchip_sfc: dll tuning target=50000000Hz real=100000000Hz cell_max=383 step=10 cs=0
+rockchip_sfc:   dll window [0, 230] (230 cells)
+rockchip_sfc:   dll window [270, 373] (103 cells)
+rockchip_sfc: dll ok best=[0,230] -> cell 92 (real 100000000Hz)
+Reading 16777216 byte(s) (8192 page(s)) at offset 0x00000000
+## Loading kernel (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel (zImage, self-decompressing)
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x04000800
+     Data Size:    8004304 Bytes = 7.6 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x02080000
+     Entry Point:  0x02080000
+     Hash algo:    sha256
+     Hash value:   20c4cbeeabbb875415b21995ad593e8ef0e22e9bcf5e1d992e1779c006ca06c1
+   Verifying Hash Integrity ... sha256+ OK
+## Loading ramdisk (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'ramdisk' ramdisk subimage
+     Description:  Minimal initramfs (static busybox shell)
+     Type:         RAMDisk Image
+     Compression:  gzip compressed
+     Data Start:   0x047a6da0
+     Data Size:    4694973 Bytes = 4.5 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x08000000
+     Entry Point:  unavailable
+     Hash algo:    sha256
+     Hash value:   9d3ba56b543623450475b52ea177ef01ac49c718b8051eed03939bdfca08cf03
+   Verifying Hash Integrity ... sha256+ OK
+   Loading ramdisk from 0x047a6da0 to 0x08000000
+WARNING: 'compression' nodes for ramdisks are deprecated, please fix your .its file!
+## Loading fdt (any) from FIT Image at 04000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'fdt' fdt subimage
+     Description:  RK3506B AES board flat DT
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x047a2ad0
+     Data Size:    17104 Bytes = 16.7 KiB
+     Architecture: ARM
+     Load Address: 0x01e00000
+     Hash algo:    sha256
+     Hash value:   cf2d15bbe54a49eddc8732f2ecf6e15c51c4063953446451c94fa2e3d7737faf
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x047a2ad0 to 0x01e00000
+   Booting using the fdt blob at 0x1e00000
+Working FDT set to 1e00000
+   Loading Kernel Image to 2080000
+   Loading Ramdisk to 1cae1000, end 1cf5b3bd ... OK
+   Loading Device Tree to 1cad9000, end 1cae02cf ... OK
+Working FDT set to 1cad9000
+No RNG device
+
+Starting kernel ...
+
+I/TC: Secondary CPU 1 initializing
+I/TC: Secondary CPU 1 switching to normal world boot
+I/TC: Secondary CPU 2 initializing
+I/TC: Secondary CPU 2 switching to normal world boot
+** 880 printk messages dropped **
+[    0.075678] device: 'broadcast': device_add
+[    0.075693] bus: 'clockevents': add device broadcast
+[    0.075718] PM: Adding info for clockevents:broadcast
+[    0.076484] workingset: timestamp_bits=14 (anon: 10) max_order=17 bucket_order=3 (anon: 7)
+[    0.077310] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.077417] fuse: init (API version 7.45)
+[    0.077511] device: 'fuse': device_add
+[    0.077584] PM: Adding info for No Bus:fuse
+[    0.192112] Freeing initrd memory: 4588K
+[    0.234761] Key type asymmetric registered
+[    0.234778] Asymmetric key parser 'x509' registered
+[    0.235236] io scheduler mq-deadline registered
+[    0.235256] io scheduler kyber registered
+[    0.235360] io scheduler bfq registered
+[    0.235507] bus: 'platform': add driver meson_gpio_intc
+[    0.235654] bus: 'platform': add driver simple-pm-bus
+[    0.235689] platform clocks: bus: 'platform': __driver_probe_device: matched device with driver simple-pm-bus
+[    0.235709] platform clocks: bus: 'platform': really_probe: probing driver simple-pm-bus with device
+[    0.235731] simple-pm-bus clocks: no pinctrl handle
+[    0.235780] simple-pm-bus clocks: driver: 'simple-pm-bus': driver_bound: bound to device
+[    0.235860] simple-pm-bus clocks: bus: 'platform': really_probe: bound device to driver simple-pm-bus
+[    0.235932] platform ff288000.syscon: bus: 'platform': __driver_probe_device: matched device with driver simple-pm-bus
+[    0.235945] platform ff288000.syscon: bus: 'platform': really_probe: probing driver simple-pm-bus with device
+[    0.235961] simple-pm-bus ff288000.syscon: no pinctrl handle
+[    0.236000] simple-pm-bus ff288000.syscon: probe with driver simple-pm-bus rejects match -19
+[    0.236053] platform ff910000.syscon: bus: 'platform': __driver_probe_device: matched device with driver simple-pm-bus
+[    0.236064] platform ff910000.syscon: bus: 'platform': really_probe: probing driver simple-pm-bus with device
+[    0.236077] simple-pm-bus ff910000.syscon: no pinctrl handle
+[    0.236107] simple-pm-bus ff910000.syscon: probe with driver simple-pm-bus rejects match -19
+[    0.236188] device class 'phy': registering
+[    0.236247] bus: 'platform': add driver phy-meson-usb2
+[    0.236350] bus: 'platform': add driver phy-meson-gxl-usb2
+[    0.236414] bus: 'platform': add driver phy-meson-g12a-usb2
+[    0.236480] bus: 'platform': add driver phy-g12a-usb3-pcie
+[    0.236537] bus: 'platform': add driver phy-meson-g12a-mipi-dphy-analog
+[    0.236593] bus: 'platform': add driver phy-axg-pcie
+[    0.236651] bus: 'platform': add driver phy-axg-mipi-pcie-analog
+[    0.236707] bus: 'platform': add driver phy-meson-axg-mipi-dphy
+[    0.236774] bus: 'platform': add driver inno-dsidphy
+[    0.236903] bus: 'platform': add driver rockchip-usb2phy
+[    0.237037] platform ff2b0000.usb2-phy: bus: 'platform': __driver_probe_device: matched device with driver rockchip-usb2phy
+[    0.237053] platform ff2b0000.usb2-phy: bus: 'platform': really_probe: probing driver rockchip-usb2phy with device
+[    0.237069] rockchip-usb2phy ff2b0000.usb2-phy: no pinctrl handle
+[    0.237136] device class 'extcon': registering
+[    0.237187] device: 'extcon0': device_add
+[    0.237322] PM: Adding info for No Bus:extcon0
+[    0.237498] device: 'phy-ff2b0000.usb2-phy.0': device_add
+[    0.237564] PM: Adding info for No Bus:phy-ff2b0000.usb2-phy.0
+[    0.237706] device: 'phy-ff2b0000.usb2-phy.1': device_add
+[    0.237770] PM: Adding info for No Bus:phy-ff2b0000.usb2-phy.1
+[    0.238410] rockchip-usb2phy ff2b0000.usb2-phy: driver: 'rockchip-usb2phy': driver_bound: bound to device
+[    0.238443] /usb@ff740000 Linked as a fwnode consumer to /usb2-phy@ff2b0000
+[    0.238461] /usb@ff740000 Dropping the fwnode link to /usb2-phy@ff2b0000/otg-port
+[    0.238478] /usb@ff780000 Linked as a fwnode consumer to /usb2-phy@ff2b0000
+[    0.238488] /usb@ff780000 Dropping the fwnode link to /usb2-phy@ff2b0000/host-port
+[    0.238523] device: 'platform:ff2b0000.usb2-phy--platform:ff780000.usb': device_add
+[    0.238709] devices_kset: Moving ff780000.usb to end of list
+[    0.238722] PM: Moving platform:ff780000.usb to end of list
+[    0.238732] platform ff780000.usb: Linked as a consumer to ff2b0000.usb2-phy
+[    0.238742] /usb@ff780000 Dropping the fwnode link to /usb2-phy@ff2b0000
+[    0.238776] device: 'platform:ff2b0000.usb2-phy--platform:ff740000.usb': device_add
+[    0.238857] devices_kset: Moving ff740000.usb to end of list
+[    0.238864] PM: Moving platform:ff740000.usb to end of list
+[    0.238871] platform ff740000.usb: Linked as a consumer to ff2b0000.usb2-phy
+[    0.238877] /usb@ff740000 Dropping the fwnode link to /usb2-phy@ff2b0000
+[    0.238944] rockchip-usb2phy ff2b0000.usb2-phy: bus: 'platform': really_probe: bound device to driver rockchip-usb2phy
+[    0.239105] bus: 'platform': add driver meson8-pinctrl
+[    0.239224] bus: 'platform': add driver meson8b-pinctrl
+[    0.239300] bus: 'platform': add driver rockchip-pwm
+[    0.239404] bus: 'platform': add driver leds-gpio
+[    0.239471] bus: 'platform': add driver of_fixed_factor_clk
+[    0.239532] bus: 'platform': add driver of_fixed_clk
+[    0.239589] bus: 'platform': add driver gated-fixed-clk
+[    0.239646] bus: 'platform': add driver gpio-clk
+[    0.239709] bus: 'platform': add driver meson8-ddr-clkc
+[    0.239805] bus: 'platform': add driver clk-rv1126
+[    0.239893] bus: 'platform': remove driver clk-rv1126
+[    0.239929] driver: 'clk-rv1126': driver_release
+[    0.239943] bus: 'platform': add driver clk-rk3506
+[    0.240012] bus: 'platform': remove driver clk-rk3506
+[    0.240038] driver: 'clk-rk3506': driver_release
+[    0.240051] bus: 'amba': add driver dma-pl330
+[    0.240071] amba ff000000.dma-controller: bus: 'amba': __driver_probe_device: matched device with driver dma-pl330
+[    0.240089] amba ff000000.dma-controller: bus: 'amba': really_probe: probing driver dma-pl330 with device
+[    0.240111] dma-pl330 ff000000.dma-controller: no pinctrl handle
+[    0.240555] device: 'dma0chan0': device_add
+[    0.240635] PM: Adding info for No Bus:dma0chan0
+[    0.240684] device: 'dma0chan1': device_add
+[    0.240730] PM: Adding info for No Bus:dma0chan1
+[    0.240762] device: 'dma0chan2': device_add
+[    0.240801] PM: Adding info for No Bus:dma0chan2
+[    0.240828] device: 'dma0chan3': device_add
+[    0.240868] PM: Adding info for No Bus:dma0chan3
+[    0.240894] device: 'dma0chan4': device_add
+[    0.240932] PM: Adding info for No Bus:dma0chan4
+[    0.240960] device: 'dma0chan5': device_add
+[    0.241000] PM: Adding info for No Bus:dma0chan5
+[    0.241027] device: 'dma0chan6': device_add
+[    0.241094] PM: Adding info for No Bus:dma0chan6
+[    0.241127] device: 'dma0chan7': device_add
+[    0.241171] PM: Adding info for No Bus:dma0chan7
+[    0.241200] device: 'dma0chan8': device_add
+[    0.241240] PM: Adding info for No Bus:dma0chan8
+[    0.241266] device: 'dma0chan9': device_add
+[    0.241303] PM: Adding info for No Bus:dma0chan9
+[    0.241328] device: 'dma0chan10': device_add
+[    0.241369] PM: Adding info for No Bus:dma0chan10
+[    0.241393] device: 'dma0chan11': device_add
+[    0.241432] PM: Adding info for No Bus:dma0chan11
+[    0.241491] dma-pl330 ff000000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    0.241503] dma-pl330 ff000000.dma-controller: 	DBUFF-32x8bytes Num_Chans-6 Num_Peri-12 Num_Events-12
+[    0.241532] dma-pl330 ff000000.dma-controller: driver: 'dma-pl330': driver_bound: bound to device
+[    0.241605] dma-pl330 ff000000.dma-controller: bus: 'amba': really_probe: bound device to driver dma-pl330
+[    0.241629] amba ff008000.dma-controller: bus: 'amba': __driver_probe_device: matched device with driver dma-pl330
+[    0.241643] amba ff008000.dma-controller: bus: 'amba': really_probe: probing driver dma-pl330 with device
+[    0.241663] dma-pl330 ff008000.dma-controller: no pinctrl handle
+[    0.242185] device: 'dma1chan0': device_add
+[    0.242269] PM: Adding info for No Bus:dma1chan0
+[    0.242318] device: 'dma1chan1': device_add
+[    0.242370] PM: Adding info for No Bus:dma1chan1
+[    0.242402] device: 'dma1chan2': device_add
+[    0.242476] PM: Adding info for No Bus:dma1chan2
+[    0.242514] device: 'dma1chan3': device_add
+[    0.242560] PM: Adding info for No Bus:dma1chan3
+[    0.242590] device: 'dma1chan4': device_add
+[    0.242632] PM: Adding info for No Bus:dma1chan4
+[    0.242659] device: 'dma1chan5': device_add
+[    0.242700] PM: Adding info for No Bus:dma1chan5
+[    0.242725] device: 'dma1chan6': device_add
+[    0.242766] PM: Adding info for No Bus:dma1chan6
+[    0.242792] device: 'dma1chan7': device_add
+[    0.242832] PM: Adding info for No Bus:dma1chan7
+[    0.242857] device: 'dma1chan8': device_add
+[    0.242895] PM: Adding info for No Bus:dma1chan8
+[    0.242921] device: 'dma1chan9': device_add
+[    0.242960] PM: Adding info for No Bus:dma1chan9
+[    0.242985] device: 'dma1chan10': device_add
+[    0.243025] PM: Adding info for No Bus:dma1chan10
+[    0.243050] device: 'dma1chan11': device_add
+[    0.243111] PM: Adding info for No Bus:dma1chan11
+[    0.243144] device: 'dma1chan12': device_add
+[    0.243188] PM: Adding info for No Bus:dma1chan12
+[    0.243215] device: 'dma1chan13': device_add
+[    0.243256] PM: Adding info for No Bus:dma1chan13
+[    0.243282] device: 'dma1chan14': device_add
+[    0.243323] PM: Adding info for No Bus:dma1chan14
+[    0.243349] device: 'dma1chan15': device_add
+[    0.243389] PM: Adding info for No Bus:dma1chan15
+[    0.243414] device: 'dma1chan16': device_add
+[    0.243452] PM: Adding info for No Bus:dma1chan16
+[    0.243504] device: 'dma1chan17': device_add
+[    0.243552] PM: Adding info for No Bus:dma1chan17
+[    0.243581] device: 'dma1chan18': device_add
+[    0.243623] PM: Adding info for No Bus:dma1chan18
+[    0.243649] device: 'dma1chan19': device_add
+[    0.243711] PM: Adding info for No Bus:dma1chan19
+[    0.243774] dma-pl330 ff008000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    0.243787] dma-pl330 ff008000.dma-controller: 	DBUFF-128x8bytes Num_Chans-8 Num_Peri-20 Num_Events-16
+[    0.243816] dma-pl330 ff008000.dma-controller: driver: 'dma-pl330': driver_bound: bound to device
+[    0.243889] dma-pl330 ff008000.dma-controller: bus: 'amba': really_probe: bound device to driver dma-pl330
+[    0.243958] bus: 'platform': add driver meson_msr
+[    0.244206] bus: 'platform': add driver meson_ee_pwrc
+[    0.244349] bus: 'platform': add driver pwm-regulator
+[    0.244418] bus: 'platform': add driver meson_reset
+[    0.244551] device: 'ptmx': device_add
+[    0.244603] PM: Adding info for No Bus:ptmx
+[    0.244903] Serial: 8250/16550 driver, 6 ports, IRQ sharing disabled
+[    0.244979] device: 'ttyS-serial_8250': device_add
+[    0.245014] bus: 'workqueue': add device ttyS-serial_8250
+[    0.245055] PM: Adding info for workqueue:ttyS-serial_8250
+[    0.245113] Registering platform device 'serial8250'. Parent at platform
+[    0.245123] device: 'serial8250': device_add
+[    0.245140] bus: 'platform': add device serial8250
+[    0.245175] PM: Adding info for platform:serial8250
+[    0.245245] device: 'serial8250:0': device_add
+[    0.245268] bus: 'serial-base': add device serial8250:0
+[    0.245365] PM: Adding info for serial-base:serial8250:0
+[    0.245412] serial-base serial8250:0: bus: 'serial-base': __driver_probe_device: matched device with driver ctrl
+[    0.245431] serial-base serial8250:0: bus: 'serial-base': really_probe: probing driver ctrl with device
+[    0.245458] ctrl serial8250:0: driver: 'ctrl': driver_bound: bound to device
+[    0.245484] ctrl serial8250:0: bus: 'serial-base': really_probe: bound device to driver ctrl
+[    0.245539] device: 'serial8250:0.0': device_add
+[    0.245564] bus: 'serial-base': add device serial8250:0.0
+[    0.245594] PM: Adding info for serial-base:serial8250:0.0
+[    0.245626] serial-base serial8250:0.0: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.245640] serial-base serial8250:0.0: bus: 'serial-base': really_probe: probing driver port with device
+[    0.245661] port serial8250:0.0: driver: 'port': driver_bound: bound to device
+[    0.245682] port serial8250:0.0: bus: 'serial-base': really_probe: bound device to driver port
+[    0.245753] device: 'ttyS0': device_add
+[    0.245834] PM: Adding info for No Bus:ttyS0
+[    0.246145] device: 'serial8250:0.1': device_add
+[    0.246179] bus: 'serial-base': add device serial8250:0.1
+[    0.246245] PM: Adding info for serial-base:serial8250:0.1
+[    0.246292] serial-base serial8250:0.1: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.246309] serial-base serial8250:0.1: bus: 'serial-base': really_probe: probing driver port with device
+[    0.246335] port serial8250:0.1: driver: 'port': driver_bound: bound to device
+[    0.246359] port serial8250:0.1: bus: 'serial-base': really_probe: bound device to driver port
+[    0.246482] device: 'ttyS1': device_add
+[    0.246572] PM: Adding info for No Bus:ttyS1
+[    0.246851] device: 'serial8250:0.2': device_add
+[    0.246881] bus: 'serial-base': add device serial8250:0.2
+[    0.246912] PM: Adding info for serial-base:serial8250:0.2
+[    0.246949] serial-base serial8250:0.2: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.246966] serial-base serial8250:0.2: bus: 'serial-base': really_probe: probing driver port with device
+[    0.246991] port serial8250:0.2: driver: 'port': driver_bound: bound to device
+[    0.247016] port serial8250:0.2: bus: 'serial-base': really_probe: bound device to driver port
+[    0.247108] device: 'ttyS2': device_add
+[    0.247191] PM: Adding info for No Bus:ttyS2
+[    0.247488] device: 'serial8250:0.3': device_add
+[    0.247518] bus: 'serial-base': add device serial8250:0.3
+[    0.247549] PM: Adding info for serial-base:serial8250:0.3
+[    0.247589] serial-base serial8250:0.3: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.247605] serial-base serial8250:0.3: bus: 'serial-base': really_probe: probing driver port with device
+[    0.247628] port serial8250:0.3: driver: 'port': driver_bound: bound to device
+[    0.247654] port serial8250:0.3: bus: 'serial-base': really_probe: bound device to driver port
+[    0.247749] device: 'ttyS3': device_add
+[    0.247860] PM: Adding info for No Bus:ttyS3
+[    0.248150] device: 'serial8250:0.4': device_add
+[    0.248182] bus: 'serial-base': add device serial8250:0.4
+[    0.248212] PM: Adding info for serial-base:serial8250:0.4
+[    0.248251] serial-base serial8250:0.4: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.248268] serial-base serial8250:0.4: bus: 'serial-base': really_probe: probing driver port with device
+[    0.248295] port serial8250:0.4: driver: 'port': driver_bound: bound to device
+[    0.248320] port serial8250:0.4: bus: 'serial-base': really_probe: bound device to driver port
+[    0.248378] device: 'ttyS4': device_add
+[    0.248456] PM: Adding info for No Bus:ttyS4
+[    0.248822] device: 'serial8250:0.5': device_add
+[    0.248857] bus: 'serial-base': add device serial8250:0.5
+[    0.248891] PM: Adding info for serial-base:serial8250:0.5
+[    0.248933] serial-base serial8250:0.5: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.248952] serial-base serial8250:0.5: bus: 'serial-base': really_probe: probing driver port with device
+[    0.248979] port serial8250:0.5: driver: 'port': driver_bound: bound to device
+[    0.249003] port serial8250:0.5: bus: 'serial-base': really_probe: bound device to driver port
+[    0.249101] device: 'ttyS5': device_add
+[    0.249183] PM: Adding info for No Bus:ttyS5
+[    0.249446] bus: 'platform': add driver serial8250
+[    0.249511] platform serial8250: bus: 'platform': __driver_probe_device: matched device with driver serial8250
+[    0.249528] platform serial8250: bus: 'platform': really_probe: probing driver serial8250 with device
+[    0.249547] serial8250 serial8250: no default pinctrl state
+[    0.249579] serial8250 serial8250: driver: 'serial8250': driver_bound: bound to device
+[    0.249607] serial8250 serial8250: bus: 'platform': really_probe: bound device to driver serial8250
+[    0.249699] bus: 'platform': add driver dw-apb-uart
+[    0.249742] platform ff0a0000.serial: bus: 'platform': __driver_probe_device: matched device with driver dw-apb-uart
+[    0.249759] platform ff0a0000.serial: bus: 'platform': really_probe: probing driver dw-apb-uart with device
+[    0.249851] dw-apb-uart ff0a0000.serial: no init pinctrl state
+[    0.249887] dw-apb-uart ff0a0000.serial: no sleep pinctrl state
+[    0.249895] dw-apb-uart ff0a0000.serial: no idle pinctrl state
+[    0.250187] device: 'ttyS0': device_unregister
+[    0.250491] PM: Removing info for No Bus:ttyS0
+[    0.250563] printk: legacy console [ttyS0] disabled
+[    0.250622] bus: 'serial-base': remove device serial8250:0.0
+[    0.250760] PM: Removing info for serial-base:serial8250:0.0
+[    0.250873] device: 'ff0a0000.serial:0': device_add
+[    0.250916] bus: 'serial-base': add device ff0a0000.serial:0
+[    0.250950] PM: Adding info for serial-base:ff0a0000.serial:0
+[    0.251003] serial-base ff0a0000.serial:0: bus: 'serial-base': __driver_probe_device: matched device with driver ctrl
+[    0.251020] serial-base ff0a0000.serial:0: bus: 'serial-base': really_probe: probing driver ctrl with device
+[    0.251045] ctrl ff0a0000.serial:0: driver: 'ctrl': driver_bound: bound to device
+[    0.251089] ctrl ff0a0000.serial:0: bus: 'serial-base': really_probe: bound device to driver ctrl
+[    0.251119] device: 'ff0a0000.serial:0.0': device_add
+[    0.251144] bus: 'serial-base': add device ff0a0000.serial:0.0
+[    0.251171] PM: Adding info for serial-base:ff0a0000.serial:0.0
+[    0.251210] serial-base ff0a0000.serial:0.0: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.251223] serial-base ff0a0000.serial:0.0: bus: 'serial-base': really_probe: probing driver port with device
+[    0.251245] port ff0a0000.serial:0.0: driver: 'port': driver_bound: bound to device
+[    0.251283] port ff0a0000.serial:0.0: bus: 'serial-base': really_probe: bound device to driver port
+[    0.251382] ff0a0000.serial: ttyS0 at MMIO 0xff0a0000 (irq = 39, base_baud = 1500000) is a 16550A
+[    0.251511] printk: legacy console [ttyS0] enabled
+[    0.393891] device: 'ttyS0': device_add
+[    0.394344] PM: Adding info for No Bus:ttyS0
+[    0.395070] dw-apb-uart ff0a0000.serial: driver: 'dw-apb-uart': driver_bound: bound to device
+[    0.395997] dw-apb-uart ff0a0000.serial: bus: 'platform': really_probe: bound device to driver dw-apb-uart
+[    0.396901] platform ff0c0000.serial: bus: 'platform': __driver_probe_device: matched device with driver dw-apb-uart
+[    0.397839] platform ff0c0000.serial: bus: 'platform': really_probe: probing driver dw-apb-uart with device
+[    0.398840] dw-apb-uart ff0c0000.serial: no init pinctrl state
+[    0.399403] dw-apb-uart ff0c0000.serial: no sleep pinctrl state
+[    0.399933] dw-apb-uart ff0c0000.serial: no idle pinctrl state
+[    0.400742] device: 'ttyS2': device_unregister
+[    0.401447] PM: Removing info for No Bus:ttyS2
+[    0.402028] bus: 'serial-base': remove device serial8250:0.2
+[    0.402657] PM: Removing info for serial-base:serial8250:0.2
+[    0.403281] device: 'ff0c0000.serial:0': device_add
+[    0.403755] bus: 'serial-base': add device ff0c0000.serial:0
+[    0.404289] PM: Adding info for serial-base:ff0c0000.serial:0
+[    0.404852] serial-base ff0c0000.serial:0: bus: 'serial-base': __driver_probe_device: matched device with driver ctrl
+[    0.405908] serial-base ff0c0000.serial:0: bus: 'serial-base': really_probe: probing driver ctrl with device
+[    0.406817] ctrl ff0c0000.serial:0: driver: 'ctrl': driver_bound: bound to device
+[    0.407537] ctrl ff0c0000.serial:0: bus: 'serial-base': really_probe: bound device to driver ctrl
+[    0.408353] device: 'ff0c0000.serial:0.0': device_add
+[    0.408881] bus: 'serial-base': add device ff0c0000.serial:0.0
+[    0.409440] PM: Adding info for serial-base:ff0c0000.serial:0.0
+[    0.410019] serial-base ff0c0000.serial:0.0: bus: 'serial-base': __driver_probe_device: matched device with driver port
+[    0.410977] serial-base ff0c0000.serial:0.0: bus: 'serial-base': really_probe: probing driver port with device
+[    0.411876] port ff0c0000.serial:0.0: driver: 'port': driver_bound: bound to device
+[    0.412667] port ff0c0000.serial:0.0: bus: 'serial-base': really_probe: bound device to driver port
+[    0.413534] ff0c0000.serial: ttyS2 at MMIO 0xff0c0000 (irq = 40, base_baud = 1500000) is a 16550A
+[    0.414343] device: 'ttyS2': device_add
+[    0.414775] PM: Adding info for No Bus:ttyS2
+[    0.415619] dw-apb-uart ff0c0000.serial: driver: 'dw-apb-uart': driver_bound: bound to device
+[    0.416471] dw-apb-uart ff0c0000.serial: bus: 'platform': really_probe: bound device to driver dw-apb-uart
+[    0.417544] bus: 'platform': add driver of_serial
+[    0.418212] bus: 'platform': add driver meson-rng
+[    0.418827] bus: 'platform': add driver smccc_trng
+[    0.419333] bus: 'platform': add driver rockchip-rng
+[    0.419879] device class 'drm': registering
+[    0.420337] bus: 'i2c': add driver sii902x
+[    0.420905] device: 'cache': device_add
+[    0.421302] device: 'index0': device_add
+[    0.421690] device: 'index1': device_add
+[    0.422164] device: 'index2': device_add
+[    0.422629] device: 'cache': device_add
+[    0.423016] device: 'index0': device_add
+[    0.423396] device: 'index1': device_add
+[    0.423770] device: 'index2': device_add
+[    0.424191] device: 'cache': device_add
+[    0.424569] device: 'index0': device_add
+[    0.424949] device: 'index1': device_add
+[    0.425421] device: 'index2': device_add
+[    0.426076] device: 'ram0': device_add
+[    0.426530] PM: Adding info for No Bus:ram0
+[    0.427315] device: '1:0': device_add
+[    0.427731] PM: Adding info for No Bus:1:0
+[    0.428546] device: 'ram1': device_add
+[    0.429095] PM: Adding info for No Bus:ram1
+[    0.429880] device: '1:1': device_add
+[    0.430294] PM: Adding info for No Bus:1:1
+[    0.431049] device: 'ram2': device_add
+[    0.431496] PM: Adding info for No Bus:ram2
+[    0.432340] device: '1:2': device_add
+[    0.432753] PM: Adding info for No Bus:1:2
+[    0.433510] device: 'ram3': device_add
+[    0.433958] PM: Adding info for No Bus:ram3
+[    0.434714] device: '1:3': device_add
+[    0.435127] PM: Adding info for No Bus:1:3
+[    0.436014] device: 'ram4': device_add
+[    0.436468] PM: Adding info for No Bus:ram4
+[    0.437222] device: '1:4': device_add
+[    0.437629] PM: Adding info for No Bus:1:4
+[    0.438378] device: 'ram5': device_add
+[    0.438916] PM: Adding info for No Bus:ram5
+[    0.439670] device: '1:5': device_add
+[    0.440080] PM: Adding info for No Bus:1:5
+[    0.440838] device: 'ram6': device_add
+[    0.441282] PM: Adding info for No Bus:ram6
+[    0.442100] device: '1:6': device_add
+[    0.442518] PM: Adding info for No Bus:1:6
+[    0.443283] device: 'ram7': device_add
+[    0.443731] PM: Adding info for No Bus:ram7
+[    0.444515] device: '1:7': device_add
+[    0.444929] PM: Adding info for No Bus:1:7
+[    0.445764] device: 'ram8': device_add
+[    0.446214] PM: Adding info for No Bus:ram8
+[    0.446966] device: '1:8': device_add
+[    0.447409] PM: Adding info for No Bus:1:8
+[    0.448169] device: 'ram9': device_add
+[    0.448611] PM: Adding info for No Bus:ram9
+[    0.449447] device: '1:9': device_add
+[    0.449866] PM: Adding info for No Bus:1:9
+[    0.450634] device: 'ram10': device_add
+[    0.451120] PM: Adding info for No Bus:ram10
+[    0.451869] device: '1:10': device_add
+[    0.452347] PM: Adding info for No Bus:1:10
+[    0.453141] device: 'ram11': device_add
+[    0.453599] PM: Adding info for No Bus:ram11
+[    0.454414] device: '1:11': device_add
+[    0.454845] PM: Adding info for No Bus:1:11
+[    0.455684] device: 'ram12': device_add
+[    0.456145] PM: Adding info for No Bus:ram12
+[    0.456939] device: '1:12': device_add
+[    0.457359] PM: Adding info for No Bus:1:12
+[    0.458148] device: 'ram13': device_add
+[    0.458607] PM: Adding info for No Bus:ram13
+[    0.459526] device: '1:13': device_add
+[    0.459951] PM: Adding info for No Bus:1:13
+[    0.460753] device: 'ram14': device_add
+[    0.461240] PM: Adding info for No Bus:ram14
+[    0.462055] device: '1:14': device_add
+[    0.462478] PM: Adding info for No Bus:1:14
+[    0.463366] device: 'ram15': device_add
+[    0.463858] PM: Adding info for No Bus:ram15
+[    0.464703] device: '1:15': device_add
+[    0.465131] PM: Adding info for No Bus:1:15
+[    0.465870] brd: module loaded
+[    0.466200] device: 'loop-control': device_add
+[    0.466655] PM: Adding info for No Bus:loop-control
+[    0.467559] device: 'loop0': device_add
+[    0.468017] PM: Adding info for No Bus:loop0
+[    0.469019] device: '7:0': device_add
+[    0.469445] PM: Adding info for No Bus:7:0
+[    0.470139] device: 'loop1': device_add
+[    0.470586] PM: Adding info for No Bus:loop1
+[    0.471568] device: '7:1': device_add
+[    0.472063] PM: Adding info for No Bus:7:1
+[    0.472804] device: 'loop2': device_add
+[    0.473258] PM: Adding info for No Bus:loop2
+[    0.474220] device: '7:2': device_add
+[    0.474639] PM: Adding info for No Bus:7:2
+[    0.475454] device: 'loop3': device_add
+[    0.475913] PM: Adding info for No Bus:loop3
+[    0.476877] device: '7:3': device_add
+[    0.477332] PM: Adding info for No Bus:7:3
+[    0.478034] device: 'loop4': device_add
+[    0.478487] PM: Adding info for No Bus:loop4
+[    0.479535] device: '7:4': device_add
+[    0.479984] PM: Adding info for No Bus:7:4
+[    0.480697] device: 'loop5': device_add
+[    0.481153] PM: Adding info for No Bus:loop5
+[    0.482153] device: '7:5': device_add
+[    0.482608] PM: Adding info for No Bus:7:5
+[    0.483311] device: 'loop6': device_add
+[    0.483795] PM: Adding info for No Bus:loop6
+[    0.484763] device: '7:6': device_add
+[    0.485189] PM: Adding info for No Bus:7:6
+[    0.486012] device: 'loop7': device_add
+[    0.486470] PM: Adding info for No Bus:loop7
+[    0.487452] device: '7:7': device_add
+[    0.487874] PM: Adding info for No Bus:7:7
+[    0.488334] loop: module loaded
+[    0.488693] device class 'mtd': registering
+[    0.489169] device: 'mtd-0': device_add
+[    0.489591] PM: Adding info for No Bus:mtd-0
+[    0.490077] bus: 'spi': add driver spi-nand
+[    0.490504] bus: 'spi': add driver spi-nor
+[    0.490899] device class 'ubi': registering
+[    0.491322] device: 'ubi_ctrl': device_add
+[    0.491733] PM: Adding info for No Bus:ubi_ctrl
+[    0.492529] device class 'spidev': registering
+[    0.493028] bus: 'spi': add driver spidev
+[    0.493450] bus: 'platform': add driver rockchip-spi
+[    0.493947] platform ff120000.spi: bus: 'platform': __driver_probe_device: matched device with driver rockchip-spi
+[    0.494874] platform ff120000.spi: bus: 'platform': really_probe: probing driver rockchip-spi with device
+[    0.495853] rockchip-spi ff120000.spi: no init pinctrl state
+[    0.496413] rockchip-spi ff120000.spi: no sleep pinctrl state
+[    0.496929] rockchip-spi ff120000.spi: no idle pinctrl state
+[    0.497765] rockchip-spi ff120000.spi: error -ENODEV: Failed to request optional TX DMA channel
+[    0.498559] rockchip-spi ff120000.spi: error -ENODEV: Failed to request optional RX DMA channel
+[    0.499407] device: 'spi0': device_add
+[    0.499881] PM: Adding info for No Bus:spi0
+[    0.500679] device: 'spi0.0': device_add
+[    0.501091] bus: 'spi': add device spi0.0
+[    0.501552] PM: Adding info for spi:spi0.0
+[    0.502069] spi spi0.0: bus: 'spi': __driver_probe_device: matched device with driver spidev
+[    0.502842] spi spi0.0: bus: 'spi': really_probe: probing driver spidev with device
+[    0.503534] spidev spi0.0: no pinctrl handle
+[    0.503981] device: 'spidev0.0': device_add
+[    0.504420] PM: Adding info for No Bus:spidev0.0
+[    0.505065] spidev spi0.0: driver: 'spidev': driver_bound: bound to device
+[    0.505812] spidev spi0.0: bus: 'spi': really_probe: bound device to driver spidev
+[    0.506604] device: 'spi0.1': device_add
+[    0.507003] bus: 'spi': add device spi0.1
+[    0.507484] PM: Adding info for spi:spi0.1
+[    0.507926] spi spi0.1: bus: 'spi': __driver_probe_device: matched device with driver spidev
+[    0.508759] spi spi0.1: bus: 'spi': really_probe: probing driver spidev with device
+[    0.509466] spidev spi0.1: no pinctrl handle
+[    0.509918] device: 'spidev0.1': device_add
+[    0.510357] PM: Adding info for No Bus:spidev0.1
+[    0.511041] spidev spi0.1: driver: 'spidev': driver_bound: bound to device
+[    0.511735] spidev spi0.1: bus: 'spi': really_probe: bound device to driver spidev
+[    0.512484] rockchip-spi ff120000.spi: driver: 'rockchip-spi': driver_bound: bound to device
+[    0.513300] rockchip-spi ff120000.spi: bus: 'platform': really_probe: bound device to driver rockchip-spi
+[    0.514406] bus: 'platform': add driver rockchip-sfc
+[    0.514910] platform ff488000.spi: bus: 'platform': __driver_probe_device: matched device with driver rockchip-sfc
+[    0.515882] platform ff488000.spi: bus: 'platform': really_probe: probing driver rockchip-sfc with device
+[    0.516745] rockchip-sfc ff488000.spi: no pinctrl handle
+[    0.517542] device: 'spi1': device_add
+[    0.518018] PM: Adding info for No Bus:spi1
+[    0.518531] device: 'spi1.0': device_add
+[    0.519016] bus: 'spi': add device spi1.0
+[    0.519514] PM: Adding info for spi:spi1.0
+[    0.519970] spi spi1.0: bus: 'spi': __driver_probe_device: matched device with driver spi-nand
+[    0.520746] spi spi1.0: bus: 'spi': really_probe: probing driver spi-nand with device
+[    0.521450] spi-nand spi1.0: no pinctrl handle
+[    0.522047] rockchip-sfc ff488000.spi: dll tuning: target=80000000Hz real=75000011Hz cell_max=383 step=10 cs=0
+[    0.523002] rockchip-sfc ff488000.spi:   dll window [100, 170] (70 cells)
+[    0.523649] rockchip-sfc ff488000.spi:   dll window [280, 360] (80 cells)
+[    0.524257] rockchip-sfc ff488000.spi: dll ok: best=[280,360] -> cell 320 (real 75000011Hz)
+[    0.525056] spi-nand spi1.0: Winbond SPI NAND was found.
+[    0.525592] spi-nand spi1.0: 512 MiB, block size: 128 KiB, page size: 2048, OOB size: 128
+[    0.526491] 7 fixed-partitions partitions found on MTD device spi1.0
+[    0.527073] Creating 7 MTD partitions on "spi1.0":
+[    0.527504] 0x000000400000-0x000000800000 : "uboot"
+[    0.529986] device: 'mtd0': device_add
+[    0.530449] PM: Adding info for No Bus:mtd0
+[    0.531103] device: 'mtd0': device_add
+[    0.531499] bus: 'nvmem': add device mtd0
+[    0.531888] PM: Adding info for nvmem:mtd0
+[    0.532416] device: 'mtd0ro': device_add
+[    0.532841] PM: Adding info for No Bus:mtd0ro
+[    0.533655] device: 'mtdblock0': device_add
+[    0.534144] PM: Adding info for No Bus:mtdblock0
+[    0.538908] device: '31:0': device_add
+[    0.539347] PM: Adding info for No Bus:31:0
+[    0.539849] 0x000000800000-0x000000900000 : "misc"
+[    0.540919] device: 'mtd1': device_add
+[    0.541372] PM: Adding info for No Bus:mtd1
+[    0.542066] device: 'mtd1': device_add
+[    0.542467] bus: 'nvmem': add device mtd1
+[    0.542894] PM: Adding info for nvmem:mtd1
+[    0.543363] device: 'mtd1ro': device_add
+[    0.543776] PM: Adding info for No Bus:mtd1ro
+[    0.544603] device: 'mtdblock1': device_add
+[    0.545095] PM: Adding info for No Bus:mtdblock1
+[    0.546564] device: '31:1': device_add
+[    0.547023] PM: Adding info for No Bus:31:1
+[    0.547556] 0x000000900000-0x000000940000 : "vnvm"
+[    0.548281] device: 'mtd2': device_add
+[    0.548785] PM: Adding info for No Bus:mtd2
+[    0.549452] device: 'mtd2': device_add
+[    0.549844] bus: 'nvmem': add device mtd2
+[    0.550238] PM: Adding info for nvmem:mtd2
+[    0.550694] device: 'mtd2ro': device_add
+[    0.551103] PM: Adding info for No Bus:mtd2ro
+[    0.551908] device: 'mtdblock2': device_add
+[    0.552444] PM: Adding info for No Bus:mtdblock2
+[    0.553846] device: '31:2': device_add
+[    0.554283] PM: Adding info for No Bus:31:2
+[    0.554786] 0x000000940000-0x000001740000 : "recovery"
+[    0.561937] device: 'mtd3': device_add
+[    0.562433] PM: Adding info for No Bus:mtd3
+[    0.563085] device: 'mtd3': device_add
+[    0.563481] bus: 'nvmem': add device mtd3
+[    0.563873] PM: Adding info for nvmem:mtd3
+[    0.564332] device: 'mtd3ro': device_add
+[    0.564738] PM: Adding info for No Bus:mtd3ro
+[    0.565643] device: 'mtdblock3': device_add
+[    0.566160] PM: Adding info for No Bus:mtdblock3
+[    0.567540] device: '31:3': device_add
+[    0.567978] PM: Adding info for No Bus:31:3
+[    0.568481] 0x000001740000-0x000002740000 : "boot"
+[    0.576479] device: 'mtd4': device_add
+[    0.576985] PM: Adding info for No Bus:mtd4
+[    0.577682] device: 'mtd4': device_add
+[    0.578082] bus: 'nvmem': add device mtd4
+[    0.578472] PM: Adding info for nvmem:mtd4
+[    0.578988] device: 'mtd4ro': device_add
+[    0.579407] PM: Adding info for No Bus:mtd4ro
+[    0.580219] device: 'mtdblock4': device_add
+[    0.580707] PM: Adding info for No Bus:mtdblock4
+[    0.582143] device: '31:4': device_add
+[    0.582584] PM: Adding info for No Bus:31:4
+[    0.583087] 0x000002740000-0x00000d540000 : "rootfs"
+[    0.663122] device: 'mtd5': device_add
+[    0.663588] PM: Adding info for No Bus:mtd5
+[    0.664243] device: 'mtd5': device_add
+[    0.664640] bus: 'nvmem': add device mtd5
+[    0.665031] PM: Adding info for nvmem:mtd5
+[    0.665549] device: 'mtd5ro': device_add
+[    0.665968] PM: Adding info for No Bus:mtd5ro
+[    0.666876] device: 'mtdblock5': device_add
+[    0.667393] PM: Adding info for No Bus:mtdblock5
+[    0.672271] device: '31:5': device_add
+[    0.672711] PM: Adding info for No Bus:31:5
+[    0.673215] 0x00000d540000-0x000020000000 : "userdata"
+[    0.810542] device: 'mtd6': device_add
+[    0.811012] PM: Adding info for No Bus:mtd6
+[    0.811648] device: 'mtd6': device_add
+[    0.812117] bus: 'nvmem': add device mtd6
+[    0.812520] PM: Adding info for nvmem:mtd6
+[    0.812990] device: 'mtd6ro': device_add
+[    0.813404] PM: Adding info for No Bus:mtd6ro
+[    0.814177] device: 'mtdblock6': device_add
+[    0.814668] PM: Adding info for No Bus:mtdblock6
+[    0.816012] device: '31:6': device_add
+[    0.816475] PM: Adding info for No Bus:31:6
+[    0.816989] spi-nand spi1.0: driver: 'spi-nand': driver_bound: bound to device
+[    0.817721] spi-nand spi1.0: bus: 'spi': really_probe: bound device to driver spi-nand
+[    0.818458] rockchip-sfc ff488000.spi: driver: 'rockchip-sfc': driver_bound: bound to device
+[    0.819348] rockchip-sfc ff488000.spi: bus: 'platform': really_probe: bound device to driver rockchip-sfc
+[    0.820354] PPP generic driver version 2.4.2
+[    0.820767] device class 'ppp': registering
+[    0.821193] device: 'ppp': device_add
+[    0.821587] PM: Adding info for No Bus:ppp
+[    0.822230] PPP BSD Compression module registered
+[    0.822671] PPP Deflate Compression module registered
+[    0.823139] bus: 'platform': add driver dwc2
+[    0.823747] platform ff740000.usb: bus: 'platform': __driver_probe_device: matched device with driver dwc2
+[    0.824614] platform ff740000.usb: bus: 'platform': really_probe: probing driver dwc2 with device
+[    0.825470] dwc2 ff740000.usb: no pinctrl handle
+[    0.826093] device: 'phy:phy-ff2b0000.usb2-phy.0--platform:ff740000.usb': device_add
+[    0.826887] devices_kset: Moving ff740000.usb to end of list
+[    0.827395] PM: Moving platform:ff740000.usb to end of list
+[    0.827893] dwc2 ff740000.usb: Linked as a consumer to phy-ff2b0000.usb2-phy.0
+[    0.828570] dwc2 ff740000.usb: supply vusb_d not found, using dummy regulator
+[    0.829382] device: 'regulator:regulator.0--platform:ff740000.usb': device_add
+[    0.830119] devices_kset: Moving ff740000.usb to end of list
+[    0.830626] PM: Moving platform:ff740000.usb to end of list
+[    0.831122] dwc2 ff740000.usb: Linked as a consumer to regulator.0
+[    0.831686] dwc2 ff740000.usb: supply vusb_a not found, using dummy regulator
+[    0.847695] dwc2 ff740000.usb: DWC OTG Controller
+[    0.848184] dwc2 ff740000.usb: new USB bus registered, assigned bus number 1
+[    0.848924] dwc2 ff740000.usb: irq 43, io mem 0xff740000
+[    0.849746] device: 'usb1': device_add
+[    0.850210] bus: 'usb': add device usb1
+[    0.850639] PM: Adding info for usb:usb1
+[    0.851382] usb usb1: bus: 'usb': __driver_probe_device: matched device with driver usb
+[    0.852161] usb usb1: bus: 'usb': really_probe: probing driver usb with device
+[    0.852945] device: '1-0:1.0': device_add
+[    0.853370] bus: 'usb': add device 1-0:1.0
+[    0.853757] PM: Adding info for usb:1-0:1.0
+[    0.854200] usb 1-0:1.0: bus: 'usb': __driver_probe_device: matched device with driver hub
+[    0.854941] usb 1-0:1.0: bus: 'usb': really_probe: probing driver hub with device
+[    0.855697] hub 1-0:1.0: USB hub found
+[    0.856134] hub 1-0:1.0: 1 port detected
+[    0.856570] device: 'usb1-port1': device_add
+[    0.857018] PM: Adding info for No Bus:usb1-port1
+[    0.857458] usb usb1-port1: adding component (ops 0xb0c72178)
+[    0.858101] hub 1-0:1.0: driver: 'hub': driver_bound: bound to device
+[    0.858779] hub 1-0:1.0: bus: 'usb': really_probe: bound device to driver hub
+[    0.859438] device: 'ep_81': device_add
+[    0.859844] PM: Adding info for No Bus:ep_81
+[    0.860240] usb usb1: driver: 'usb': driver_bound: bound to device
+[    0.860832] usb usb1: bus: 'usb': really_probe: bound device to driver usb
+[    0.861456] device: 'ep_00': device_add
+[    0.861844] PM: Adding info for No Bus:ep_00
+[    0.862380] dwc2 ff740000.usb: driver: 'dwc2': driver_bound: bound to device
+[    0.863087] dwc2 ff740000.usb: bus: 'platform': really_probe: bound device to driver dwc2
+[    0.863844] platform ff780000.usb: bus: 'platform': __driver_probe_device: matched device with driver dwc2
+[    0.864702] platform ff780000.usb: bus: 'platform': really_probe: probing driver dwc2 with device
+[    0.865777] dwc2 ff780000.usb: no pinctrl handle
+[    0.866359] device: 'phy:phy-ff2b0000.usb2-phy.1--platform:ff780000.usb': device_add
+[    0.867147] devices_kset: Moving ff780000.usb to end of list
+[    0.867656] PM: Moving platform:ff780000.usb to end of list
+[    0.868154] dwc2 ff780000.usb: Linked as a consumer to phy-ff2b0000.usb2-phy.1
+[    0.868887] dwc2 ff780000.usb: supply vusb_d not found, using dummy regulator
+[    0.869608] device: 'regulator:regulator.0--platform:ff780000.usb': device_add
+[    0.870330] devices_kset: Moving ff780000.usb to end of list
+[    0.870838] PM: Moving platform:ff780000.usb to end of list
+[    0.871335] dwc2 ff780000.usb: Linked as a consumer to regulator.0
+[    0.871895] dwc2 ff780000.usb: supply vusb_a not found, using dummy regulator
+[    0.885691] dwc2 ff780000.usb: DWC OTG Controller
+[    0.886178] dwc2 ff780000.usb: new USB bus registered, assigned bus number 2
+[    0.886848] dwc2 ff780000.usb: irq 44, io mem 0xff780000
+[    0.887637] device: 'usb2': device_add
+[    0.888122] bus: 'usb': add device usb2
+[    0.888524] PM: Adding info for usb:usb2
+[    0.889305] usb usb2: bus: 'usb': __driver_probe_device: matched device with driver usb
+[    0.890044] usb usb2: bus: 'usb': really_probe: probing driver usb with device
+[    0.890812] device: '2-0:1.0': device_add
+[    0.891232] bus: 'usb': add device 2-0:1.0
+[    0.891615] PM: Adding info for usb:2-0:1.0
+[    0.892116] usb 2-0:1.0: bus: 'usb': __driver_probe_device: matched device with driver hub
+[    0.892866] usb 2-0:1.0: bus: 'usb': really_probe: probing driver hub with device
+[    0.893561] hub 2-0:1.0: USB hub found
+[    0.893979] hub 2-0:1.0: 1 port detected
+[    0.894409] device: 'usb2-port1': device_add
+[    0.894854] PM: Adding info for No Bus:usb2-port1
+[    0.895334] usb usb2-port1: adding component (ops 0xb0c72178)
+[    0.896008] hub 2-0:1.0: driver: 'hub': driver_bound: bound to device
+[    0.896655] hub 2-0:1.0: bus: 'usb': really_probe: bound device to driver hub
+[    0.897313] device: 'ep_81': device_add
+[    0.897717] PM: Adding info for No Bus:ep_81
+[    0.898116] usb usb2: driver: 'usb': driver_bound: bound to device
+[    0.898779] usb usb2: bus: 'usb': really_probe: bound device to driver usb
+[    0.899411] device: 'ep_00': device_add
+[    0.899807] PM: Adding info for No Bus:ep_00
+[    0.900257] dwc2 ff780000.usb: driver: 'dwc2': driver_bound: bound to device
+[    0.900954] dwc2 ff780000.usb: bus: 'platform': really_probe: bound device to driver dwc2
+[    0.901865] bus: 'platform': add driver ohci-platform
+[    0.902751] bus: 'usb-serial': registered
+[    0.903188] device: 'ttyUSB-usbserial': device_add
+[    0.903646] bus: 'workqueue': add device ttyUSB-usbserial
+[    0.904164] PM: Adding info for workqueue:ttyUSB-usbserial
+[    0.904720] bus: 'usb': add driver option
+[    0.905144] usbcore: registered new interface driver option
+[    0.905699] bus: 'usb-serial': add driver option1
+[    0.906165] usbserial: USB Serial support registered for GSM modem (1-port)
+[    0.906889] bus: 'platform': add driver adc_keys
+[    0.907435] bus: 'platform': add driver aml-rtc
+[    0.907933] bus: 'i2c': add driver rtc-hym8563
+[    0.908364] bus: 'i2c': add driver rtc-pcf8563
+[    0.908851] i2c_dev: i2c /dev entries driver
+[    0.909241] device class 'i2c-dev': registering
+[    0.909677] bus: 'platform': add driver rk3x-i2c
+[    0.910132] platform ff040000.i2c: bus: 'platform': __driver_probe_device: matched device with driver rk3x-i2c
+[    0.911028] platform ff040000.i2c: bus: 'platform': really_probe: probing driver rk3x-i2c with device
+[    0.911942] rk3x-i2c ff040000.i2c: no init pinctrl state
+[    0.912544] rk3x-i2c ff040000.i2c: no sleep pinctrl state
+[    0.913038] rk3x-i2c ff040000.i2c: no idle pinctrl state
+[    0.913838] device: 'i2c-0': device_add
+[    0.914239] bus: 'i2c': add device i2c-0
+[    0.914612] PM: Adding info for i2c:i2c-0
+[    0.914987] device: 'i2c-0': device_add
+[    0.915451] PM: Adding info for No Bus:i2c-0
+[    0.916165] device: '0-0011': device_add
+[    0.916576] bus: 'i2c': add device 0-0011
+[    0.916966] PM: Adding info for i2c:0-0011
+[    0.917383] i2c 0-0011: Not linking /clock-controller@ff9a0000 - might never become dev
+[    0.918100] /i2c@ff040000/es8388@11 Dropping the fwnode link to /clock-controller@ff9a0000
+[    0.918930] rk3x-i2c ff040000.i2c: driver: 'rk3x-i2c': driver_bound: bound to device
+[    0.919693] rk3x-i2c ff040000.i2c: bus: 'platform': really_probe: bound device to driver rk3x-i2c
+[    0.920498] platform ff050000.i2c: bus: 'platform': __driver_probe_device: matched device with driver rk3x-i2c
+[    0.921386] platform ff050000.i2c: bus: 'platform': really_probe: probing driver rk3x-i2c with device
+[    0.922354] rk3x-i2c ff050000.i2c: no init pinctrl state
+[    0.922870] rk3x-i2c ff050000.i2c: no sleep pinctrl state
+[    0.923358] rk3x-i2c ff050000.i2c: no idle pinctrl state
+[    0.924146] device: 'i2c-1': device_add
+[    0.924546] bus: 'i2c': add device i2c-1
+[    0.924916] PM: Adding info for i2c:i2c-1
+[    0.925357] device: 'i2c-1': device_add
+[    0.925814] PM: Adding info for No Bus:i2c-1
+[    0.926596] rk3x-i2c ff050000.i2c: driver: 'rk3x-i2c': driver_bound: bound to device
+[    0.927370] rk3x-i2c ff050000.i2c: bus: 'platform': really_probe: bound device to driver rk3x-i2c
+[    0.928181] platform ff060000.i2c: bus: 'platform': __driver_probe_device: matched device with driver rk3x-i2c
+[    0.929128] platform ff060000.i2c: bus: 'platform': really_probe: probing driver rk3x-i2c with device
+[    0.930022] rk3x-i2c ff060000.i2c: no init pinctrl state
+[    0.930530] rk3x-i2c ff060000.i2c: no sleep pinctrl state
+[    0.931014] rk3x-i2c ff060000.i2c: no idle pinctrl state
+[    0.931812] device: 'i2c-2': device_add
+[    0.932305] bus: 'i2c': add device i2c-2
+[    0.932695] PM: Adding info for i2c:i2c-2
+[    0.933076] device: 'i2c-2': device_add
+[    0.933480] PM: Adding info for No Bus:i2c-2
+[    0.934174] device: '2-0014': device_add
+[    0.934582] bus: 'i2c': add device 2-0014
+[    0.934973] PM: Adding info for i2c:2-0014
+[    0.935472] device: 'platform:ff940000.gpio--i2c:2-0014': device_add
+[    0.936125] devices_kset: Moving 2-0014 to end of list
+[    0.936585] PM: Moving i2c:2-0014 to end of list
+[    0.937001] i2c 2-0014: Linked as a consumer to ff940000.gpio
+[    0.937512] /i2c@ff060000/touchscreen@14 Dropping the fwnode link to /pinctrl/gpio@ff940000
+[    0.938305] rk3x-i2c ff060000.i2c: driver: 'rk3x-i2c': driver_bound: bound to device
+[    0.939075] rk3x-i2c ff060000.i2c: Dropping the link to ff940000.gpio
+[    0.939654] device: 'platform:ff940000.gpio--platform:ff060000.i2c': device_unregister
+[    0.940629] rk3x-i2c ff060000.i2c: bus: 'platform': really_probe: bound device to driver rk3x-i2c
+[    0.941759] bus: 'platform': add driver syscon-reboot-mode
+[    0.942464] bus: 'platform': add driver rockchip-thermal
+[    0.943169] bus: 'platform': add driver amlogic_thermal
+[    0.943730] bus: 'platform': add driver dw_wdt
+[    0.944198] bus: 'platform': add driver cpufreq-dt
+[    0.944700] bus: 'platform': add driver pwrseq_simple
+[    0.945231] bus: 'platform': add driver pwrseq_emmc
+[    0.945886] bus: 'mmc_rpmb': registered
+[    0.946253] bus: 'mmc': add driver mmcblk
+[    0.946657] bus: 'platform': add driver dw_mmc
+[    0.947157] bus: 'platform': add driver dwmmc_rockchip
+[    0.947662] platform ff480000.mmc: probing driver dwmmc_rockchip asynchronously
+[    0.948371] platform ff480000.mmc: bus: 'platform': __driver_probe_device: matched device with driver dwmmc_rockchip
+[    0.949378] platform ff480000.mmc: bus: 'platform': really_probe: probing driver dwmmc_rockchip with device
+[    0.949564] bus: 'platform': add driver gtdt-arm-mmio-timer
+[    0.950457] dwmmc_rockchip ff480000.mmc: no init pinctrl state
+[    0.950826] bus: 'platform': add driver arch-timer-mmio
+[    0.951303] dwmmc_rockchip ff480000.mmc: no sleep pinctrl state
+[    0.951809] bus: 'platform': add driver extcon-usb-gpio
+[    0.952278] dwmmc_rockchip ff480000.mmc: no idle pinctrl state
+[    0.952849] bus: 'amba': add driver pl353-smc
+[    0.953339] device: 'wakeup0': device_add
+[    0.953690] bus: 'platform': add driver meson-saradc
+[    0.954517] dwmmc_rockchip ff480000.mmc: IDMAC supports 32-bit address mode.
+[    0.954635] bus: 'platform': add driver rockchip-saradc
+[    0.955204] dwmmc_rockchip ff480000.mmc: Using internal DMA controller.
+[    0.955859] bus: 'platform': add driver rockchip-otp
+[    0.956261] dwmmc_rockchip ff480000.mmc: Version ID is 270a
+[    0.956879] device: 'timer': device_add
+[    0.957238] dwmmc_rockchip ff480000.mmc: DW MMC controller at irq 48,32 bit host data width,256 deep fifo
+[    0.957582] PM: Adding info for No Bus:timer
+[    0.958452] device: 'regulator:regulator.1--platform:ff480000.mmc': device_add
+[    0.959511] devices_kset: Moving ff480000.mmc to end of list
+[    0.960023] PM: Moving platform:ff480000.mmc to end of list
+[    0.960521] dwmmc_rockchip ff480000.mmc: Linked as a consumer to regulator.1
+[    0.961223] device: 'regulator:regulator.2--platform:ff480000.mmc': device_add
+[    0.961533] device: 'snd-soc-dummy': device_add
+[    0.962063] devices_kset: Moving ff480000.mmc to end of list
+[    0.962352] bus: 'faux': add device snd-soc-dummy
+[    0.962786] PM: Moving platform:ff480000.mmc to end of list
+[    0.963244] faux snd-soc-dummy: bus: 'faux': __driver_probe_device: matched device with driver faux_driver
+[    0.963692] dwmmc_rockchip ff480000.mmc: Linked as a consumer to regulator.2
+[    0.965152] faux snd-soc-dummy: bus: 'faux': really_probe: probing driver faux_driver with device
+[    0.965263] dwmmc_rockchip ff480000.mmc: Got CD GPIO
+[    0.966011] faux_driver snd-soc-dummy: no default pinctrl state
+[    0.966469] device: 'mmc0': device_add
+[    0.967010] faux_driver snd-soc-dummy: driver: 'faux_driver': driver_bound: bound to device
+[    0.967325] PM: Adding info for No Bus:mmc0
+[    0.968021] faux_driver snd-soc-dummy: bus: 'faux': really_probe: bound device to driver faux_driver
+[    0.969239] bus: 'platform': add driver soc-audio
+[    0.969778] bus: 'platform': add driver hdmi-audio-codec
+[    0.970313] bus: 'platform': add driver rockchip-sai
+[    0.970801] platform ff310000.sai: bus: 'platform': __driver_probe_device: matched device with driver rockchip-sai
+[    0.971725] platform ff310000.sai: bus: 'platform': really_probe: probing driver rockchip-sai with device
+[    0.972721] rockchip-sai ff310000.sai: no init pinctrl state
+[    0.973270] rockchip-sai ff310000.sai: no sleep pinctrl state
+[    0.973786] rockchip-sai ff310000.sai: no idle pinctrl state
+[    0.974733] rockchip-sai ff310000.sai: using zero-initialized flat cache, this may cause unexpected behavior
+[    0.975830] rockchip-sai ff310000.sai: driver: 'rockchip-sai': driver_bound: bound to device
+[    0.976671] rockchip-sai ff310000.sai: bus: 'platform': really_probe: bound device to driver rockchip-sai
+[    0.977649] bus: 'platform': add driver rockchip-spdif
+[    0.978879] xt_time: kernel timezone is -0000
+[    0.979644] NET: Registered PF_INET6 protocol family
+[    0.981049] mmc_host mmc0: Bus speed = 400000Hz (req 400000Hz, actual 400000HZ div = 0)
+[    0.981717] Segment Routing with IPv6
+[    0.982263] In-situ OAM (IOAM) with IPv6
+[    0.982776] NET: Registered PF_PACKET protocol family
+[    0.983298] can: controller area network core
+[    0.983774] NET: Registered PF_CAN protocol family
+[    0.984557] device: 'rfcomm-rfcomm': device_add
+[    0.985027] bus: 'workqueue': add device rfcomm-rfcomm
+[    0.985601] PM: Adding info for workqueue:rfcomm-rfcomm
+[    0.986132] Bluetooth: RFCOMM TTY layer initialized
+[    0.986588] Bluetooth: RFCOMM socket layer initialized
+[    0.987073] Bluetooth: RFCOMM ver 1.11
+[    0.987423] Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+[    0.987904] Bluetooth: BNEP socket layer initialized
+[    0.988399] Registering SWP/SWPB emulation handler
+[    0.995152] dwmmc_rockchip ff480000.mmc: driver: 'dwmmc_rockchip': driver_bound: bound to device
+[    0.996144] dwmmc_rockchip ff480000.mmc: bus: 'platform': really_probe: bound device to driver dwmmc_rockchip
+[    0.996764] device: 'cpu_dma_latency': device_add
+[    0.997151] dwmmc_rockchip ff480000.mmc: driver dwmmc_rockchip async attach completed: 0
+[    0.997522] PM: Adding info for No Bus:cpu_dma_latency
+[    1.021359] bus: 'platform': add driver gpio-keys
+[    1.022062] Extended deferred probe timeout by 10 secs
+[    1.022914] faux_driver regulatory: Direct firmware load for regulatory.db failed with error -2
+[    1.023711] cfg80211: failed to load regulatory.db
+[    1.024215] bus: 'amba': add driver amba-proxy
+[    1.024677] Extended deferred probe timeout by 10 secs
+[    1.025142] clk: Disabling unused clocks
+[    1.025815] PM: genpd: Disabling unused power domains
+[    1.026297] ALSA device list:
+[    1.026570]   No soundcards found.
+[    1.027124] dw-apb-uart ff0a0000.serial: forbid DMA for kernel console
+[    1.028241] Freeing unused kernel image (initmem) memory: 524K
+[    1.028834] Kernel memory protection not selected by kernel config.
+[    1.029408] Run /init as init process
+[    1.029738]   with arguments:
+[    1.030003]     /init
+[    1.030211]   with environment:
+[    1.030491]     HOME=/
+[    1.030704]     TERM=linux
+
+===== rk-forge provisioning initramfs =====
+[    1.060848] ubi0: attaching mtd5
+[    1.175355] usb 2-1: new high-speed USB device number 2 using dwc2
+[    1.218697] random: crng init done
+[    1.352984] ubi0: scanning is finished
+[    1.357040] device: 'ubi0': device_add
+[    1.357511] PM: Adding info for No Bus:ubi0
+[    1.358172] device: 'ubi0_0': device_add
+[    1.358772] PM: Adding info for No Bus:ubi0_0
+[    1.359707] device: '2-1': device_add
+[    1.359923] ubi0: attached mtd5 (name "rootfs", size 174 MiB)
+[    1.360174] bus: 'usb': add device 2-1
+[    1.360578] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    1.360938] PM: Adding info for usb:2-1
+[    1.361510] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    1.362145] usb 2-1: bus: 'usb': __driver_probe_device: matched device with driver usb
+[    1.362482] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    1.363147] usb 2-1: bus: 'usb': really_probe: probing driver usb with device
+[    1.363744] ubi0: good PEBs: 1392, bad PEBs: 0, corrupted PEBs: 0
+[    1.364393] usb 2-1: no default pinctrl state
+[    1.364899] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    1.366011] ubi0: max/mean erase counter: 2/0, WL threshold: 4096, image sequence number: 222252659
+[    1.366110] device: '2-1:1.0': device_add
+[    1.366825] ubi0: available PEBs: 0, total reserved PEBs: 1392, PEBs reserved for bad PEB handling: 80
+[    1.367221] bus: 'usb': add device 2-1:1.0
+[    1.368044] ubi0: background thread "ubi_bgt0d" started, PID 67
+[    1.368377] PM: Adding info for usb:2-1:1.0
+[    1.369439] usb 2-1:1.0: bus: 'usb': __driver_probe_device: matched device with driver hub
+[    1.370231] usb 2-1:1.0: bus: 'usb': really_probe: probing driver hub with device
+[    1.370961] hub 2-1:1.0: no default pinctrl state
+[    1.371484] hub 2-1:1.0: USB hub found
+[    1.371636] device: 'ubifs_0_0': device_add
+[    1.372072] hub 2-1:1.0: 4 ports detected
+[    1.372336] PM: Adding info for No Bus:ubifs_0_0
+[    1.372707] device: 'ep_81': device_add
+[    1.373399] PM: Adding info for No Bus:ep_81
+[    1.373524] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[    1.374029] device: '2-1-port1': device_add
+[    1.374521] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 69
+[    1.374741] PM: Adding info for No Bus:2-1-port1
+[    1.375813] usb 2-1-port1: adding component (ops 0xb0c72178)
+[    1.376409] device: '2-1-port2': device_add
+[    1.376858] PM: Adding info for No Bus:2-1-port2
+[    1.377303] usb 2-1-port2: adding component (ops 0xb0c72178)
+[    1.377871] device: '2-1-port3': device_add
+[    1.378313] PM: Adding info for No Bus:2-1-port3
+[    1.378792] usb 2-1-port3: adding component (ops 0xb0c72178)
+[    1.379379] device: '2-1-port4': device_add
+[    1.379826] PM: Adding info for No Bus:2-1-port4
+[    1.380304] usb 2-1-port4: adding component (ops 0xb0c72178)
+[    1.381437] hub 2-1:1.0: driver: 'hub': driver_bound: bound to device
+[    1.382193] hub 2-1:1.0: bus: 'usb': really_probe: bound device to driver hub
+[    1.382886] usb 2-1: driver: 'usb': driver_bound: bound to device
+[    1.383498] usb 2-1: bus: 'usb': really_probe: bound device to driver usb
+[    1.384170] device: 'ep_00': device_add
+[    1.384594] PM: Adding info for No Bus:ep_00
+[    1.388927] UBIFS (ubi0:0): recovery needed
+[    1.462835] UBIFS (ubi0:0): recovery completed
+[    1.463339] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[    1.464003] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    1.464879] UBIFS (ubi0:0): FS size: 164687872 bytes (157 MiB, 1297 LEBs), max 1400 LEBs, journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    1.466050] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[    1.466636] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID CBC3C414-9609-4129-A3A5-54C3F7AA73B6, small LPT model
+[init] rootfs already provisioned → switch_root
+[    1.574412] init: Console is alive
+[    1.619841] kmodloader: loading kernel modules from /etc/modules-boot.d/*
+[    1.628510] crc32c_cryptoapi: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    1.631537] scsi_common: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    1.633795] ehci_fsl: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    1.635490] ehci_platform: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    1.637140] fsl_mph_dr_of: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    1.639424] crc32c_cryptoapi: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    1.640881] ehci_fsl: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    1.642386] ehci_platform: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    1.643843] fsl_mph_dr_of: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    1.645274] scsi_common: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    1.646863] kmodloader: 8 modules could not be probed
+[    1.647596] kmodloader: - crc32c-cryptoapi - 0
+[    1.648274] kmodloader: - ehci-fsl - 0
+[    1.648944] kmodloader: - ehci-platform - 0
+[    1.649604] kmodloader: - fsl-mph-dr-of - 0
+[    1.650226] kmodloader: - scsi_common - 0
+[    1.650812] kmodloader: dependency not loaded scsi_common
+[    1.651505] kmodloader: - scsi_mod - 1
+[    1.652149] kmodloader: dependency not loaded scsi_mod
+[    1.652873] kmodloader: dependency not loaded scsi_common
+[    1.653576] kmodloader: - sd_mod - 2
+[    1.654118] kmodloader: dependency not loaded scsi_mod
+[    1.654787] kmodloader: dependency not loaded scsi_common
+[    1.655635] kmodloader: - usb-storage - 2
+[    1.659557] init: - preinit -
+[    1.665481] usb 2-1.3: new high-speed USB device number 3 using dwc2
+[    1.767086] device: '2-1.3': device_add
+[    1.767656] bus: 'usb': add device 2-1.3
+[    1.768146] PM: Adding info for usb:2-1.3
+[    1.769108] usb 2-1.3: bus: 'usb': __driver_probe_device: matched device with driver usb
+[    1.769960] usb 2-1.3: bus: 'usb': really_probe: probing driver usb with device
+[    1.770738] usb 2-1.3: no default pinctrl state
+[    1.771809] device: '2-1.3:1.0': device_add
+[    1.772462] bus: 'usb': add device 2-1.3:1.0
+[    1.772984] PM: Adding info for usb:2-1.3:1.0
+[    1.775243] device: 'ep_81': device_add
+[    1.775887] PM: Adding info for No Bus:ep_81
+[    1.776395] device: 'ep_02': device_add
+[    1.776909] PM: Adding info for No Bus:ep_02
+[    1.777423] device: 'ep_82': device_add
+[    1.777955] PM: Adding info for No Bus:ep_82
+[    1.778455] device: '2-1.3:1.1': device_add
+[    1.779088] bus: 'usb': add device 2-1.3:1.1
+[    1.779633] PM: Adding info for usb:2-1.3:1.1
+[    1.780861] device: 'ep_03': device_add
+[    1.781366] PM: Adding info for No Bus:ep_03
+[    1.781833] device: 'ep_83': device_add
+[    1.784403] PM: Adding info for No Bus:ep_83
+[    1.784877] device: '2-1.3:1.2': device_add
+[    1.785458] bus: 'usb': add device 2-1.3:1.2
+[    1.785964] PM: Adding info for usb:2-1.3:1.2
+[    1.789289] device: 'ep_84': device_add
+[    1.789802] PM: Adding info for No Bus:ep_84
+[    1.790278] device: 'ep_05': device_add
+[    1.790757] PM: Adding info for No Bus:ep_05
+[    1.791225] device: 'ep_06': device_add
+[    1.791684] PM: Adding info for No Bus:ep_06
+[    1.793133] device: 'ep_87': device_add
+[    1.793647] PM: Adding info for No Bus:ep_87
+[    1.794118] device: 'ep_08': device_add
+[    1.794591] PM: Adding info for No Bus:ep_08
+[    1.795090] usb 2-1.3: driver: 'usb': driver_bound: bound to device
+[    1.796165] usb 2-1.3: bus: 'usb': really_probe: bound device to driver usb
+[    1.796927] device: 'ep_00': device_add
+[    1.797409] PM: Adding info for No Bus:ep_00
+Cannot parse config file '/etc/fw_env.config': No such file or directory
+Failed to find NVMEM device
+Press the [f] key and hit [enter] to enter failsafe mode
+Press the [1], [2], [3] or [4] key and hit [enter] to select the debug level
+[    6.242217] mount_root: mounting /dev/root with options 
+[    6.245553] urandom-seed: Seed file not found (/etc/urandom.seed)
+[    6.275702] procd: - early -
+[    6.888522] procd: - ubus -
+[    6.947434] procd: - init -
+Please press Enter to activate this console.
+[    7.319333] kmodloader: loading kernel modules from /etc/modules.d/*
+[    7.320795] crc32c_cryptoapi: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.323110] scsi_common: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.324965] ehci_fsl: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.326690] ehci_platform: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.328340] fsl_mph_dr_of: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.336023] nf_flow_table: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.337589] nft_hash: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.339128] nft_numgen: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.340570] nft_quota: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.342107] nft_redir: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.343587] pppox: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.345045] crc32c_cryptoapi: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.346595] ehci_fsl: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.348030] ehci_platform: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.349546] fsl_mph_dr_of: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.351159] nf_flow_table: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.352725] nft_hash: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.354114] nft_numgen: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.355625] nft_quota: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.357085] nft_redir: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.358479] pppox: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.359939] scsi_common: version magic '7.1 SMP preempt mod_unload ARMv7 thumb2 p2v8 ' should be '7.1 SMP preempt mod_unload ARMv7 p2v8 '
+[    7.361447] kmodloader: 17 modules could not be probed
+[    7.362322] kmodloader: - crc32c-cryptoapi - 0
+[    7.363001] kmodloader: - ehci-fsl - 0
+[    7.363575] kmodloader: - ehci-platform - 0
+[    7.364178] kmodloader: - fsl-mph-dr-of - 0
+[    7.364782] kmodloader: - nf_flow_table - 0
+[    7.365493] kmodloader: dependency not loaded nf_flow_table
+[    7.366282] kmodloader: - nf_flow_table_inet - 1
+[    7.366960] kmodloader: dependency not loaded nf_flow_table
+[    7.367693] kmodloader: - nft_flow_offload - 1
+[    7.368328] kmodloader: - nft_hash - 0
+[    7.369034] kmodloader: - nft_numgen - 0
+[    7.369644] kmodloader: - nft_quota - 0
+[    7.370229] kmodloader: - nft_redir - 0
+[    7.370804] kmodloader: dependency not loaded pppox
+[    7.371462] kmodloader: - pppoe - 1
+[    7.372080] kmodloader: - pppox - 0
+[    7.372685] kmodloader: - scsi_common - 0
+[    7.373302] kmodloader: dependency not loaded scsi_common
+[    7.374016] kmodloader: - scsi_mod - 1
+[    7.374589] kmodloader: dependency not loaded scsi_mod
+[    7.375275] kmodloader: dependency not loaded scsi_common
+[    7.376086] kmodloader: - sd_mod - 2
+[    7.376660] kmodloader: dependency not loaded scsi_mod
+[    7.377356] kmodloader: dependency not loaded scsi_common
+[    7.378072] kmodloader: - usb-storage - 2
+[    7.665332] urngd: v1.0.2 started.

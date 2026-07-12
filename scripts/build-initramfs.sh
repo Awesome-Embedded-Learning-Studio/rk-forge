@@ -131,6 +131,15 @@ pack_cpio() {
   done
   # /init (the provisioning script)
   cp "$INIT_SRC" "$root/init"; chmod +x "$root/init"
+  # FROM-SOURCE rootfs image: embed rootfs.ubi.img (gzipped). ubiprog re-writes
+  # mtd5 from this RAM copy on first boot — kills cross-image residue (a prior
+  # larger rootfs left in mtd5) AND the loader's weak write. Requires build-
+  # initramfs to run AFTER pack-ubifs (DAG order in forge.sh stage_pack).
+  ROOTFS_UBI="${OUT_DIR}/rootfs.ubi.img"
+  [[ -f "$ROOTFS_UBI" ]] \
+    || die "missing $ROOTFS_UBI (build-initramfs runs after pack-ubifs; run: forge pack)"
+  log_info "embedding rootfs.ubi.img → rootfs.ubi.img.gz (gzip) for from-source ubiprog"
+  gzip -c "$ROOTFS_UBI" > "$root/rootfs.ubi.img.gz"
 
   mkdir -p "$(dirname "$OUT_CPIO")"
   log_info "packing cpio.gz → $OUT_CPIO"

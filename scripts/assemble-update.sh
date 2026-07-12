@@ -69,7 +69,7 @@ done
 
 LOADER="${LOADER:-${OUT_DIR}/MiniLoaderAll.bin}"  # --loader overrides (e.g. ATK release rk3506_spl_loader_v1.06.111.bin)
 UBOOT="${OUT_DIR}/uboot.img"
-PARAMETER="${PARAMETER_OVERRIDE:-${BRINGUP}/parameter-nand-aes.txt}"
+PARAMETER="${PARAMETER_OVERRIDE:-${BRINGUP}/parameter-nand-aes-vendorlayout.txt}"
 ROOTFS=""
 case "$VMODE" in
   provision)

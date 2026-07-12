@@ -209,33 +209,16 @@ stage_pack() {
       || die "OpenWrt kernel build dir not found under $OPENWRT_DIR/build_dir/linux-rockchip_rk3506 (run: forge build --rootfs=openwrt)"
     log_info "[pack] KERNEL_ARTIFACT_DIR=$KERNEL_ARTIFACT_DIR (OpenWrt kernel)"
   fi
-  # build-initramfs FIRST: pack-fit incbin's the provisioning ramdisk into
-  # boot.img. Generated from tracked/pinned sources (busybox + ubiprog.c + /init)
-  # — the in-forge generator that replaced the never-committed hand-built blob
-  # (clean-clone blocker, issue #6/#8 class). See scripts/build-initramfs.sh.
-  run_stage build-initramfs \
-    "${BRINGUP}/initramfs/init" "${BRINGUP}/rootfs/ubiprog.c" \
-    "${_PROJECT_ROOT}/pins/busybox" "${_SCRIPT_DIR}/build-initramfs.sh" \
-    -- bash "${_SCRIPT_DIR}/build-initramfs.sh"
   run_stage pack-loader \
     "${BRINGUP}/RKBOOT-RK3506B-aes.ini" "${FORGE_RKBIN_DIR}/bin/rk35" \
     "${_SCRIPT_DIR}/pack-loader.sh" "${_SCRIPT_DIR}/lib/rkbin.sh" \
     -- bash "${_SCRIPT_DIR}/pack-loader.sh"
-  # pack-fit reads zImage+aes.dtb from KERNEL_ARTIFACT_DIR (LINUX_DIR for buildroot,
-  # OpenWrt's build_dir for openwrt). FIT templates + load addrs are rk-forge's
-  # board-verified ones (NOT OpenWrt's 0x03200000/0x02000000 — those are for its uboot).
-  run_stage pack-fit \
-    "${BRINGUP}/fit/rk3506-mainline.its" "${BRINGUP}/fit/rk3506-kernel.its" \
-    "${BRINGUP}/fit/rk3506-kernel-nand.its" "${KERNEL_ARTIFACT_DIR}/arch/arm/boot/zImage" \
-    "${KERNEL_ARTIFACT_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb" \
-    "${UBOOT_DIR}/u-boot-nodtb.bin" "${UBOOT_DIR}/u-boot.dtb" \
-    "${BRINGUP}/fit/initramfs.cpio.gz" \
-    "${_SCRIPT_DIR}/pack-fit.sh" \
-    -- bash "${_SCRIPT_DIR}/pack-fit.sh"
-  # stage-rootfs: buildroot extracts buildroot's rootfs.tar (+ 8733bu.ko); openwrt
-  # rsyncs OpenWrt's TARGET_DIR (kmod already in lib/modules/). stage-rootfs.sh
-  # branches on ROOTFS_PROFILE. The openwrt fingerprint input is the .openwrt-built
-  # marker (touched by build-openwrt.sh each successful build) so a re-build re-stages.
+  # stage-rootfs + pack-ubifs run BEFORE build-initramfs: the provisioning
+  # initramfs embeds rootfs.ubi.img.gz (for from-source ubiprog), so it needs
+  # rootfs.ubi.img packed first. stage-rootfs.sh branches on ROOTFS_PROFILE:
+  # buildroot extracts rootfs.tar (+ 8733bu.ko); openwrt rsyncs TARGET_DIR
+  # (kmod already in lib/modules/). The openwrt fingerprint input is the
+  # .openwrt-built marker (touched by build-openwrt.sh) so a re-build re-stage.
   if [[ "$ROOTFS_PROFILE" == "openwrt" ]]; then
     run_stage stage-rootfs \
       "${OUT_DIR}/.openwrt-built" "${_SCRIPT_DIR}/stage-rootfs.sh" \
@@ -250,6 +233,30 @@ stage_pack() {
   run_stage pack-ubifs \
     "${OUT_DIR}/rootfs" "${_SCRIPT_DIR}/pack-ubifs.sh" "${_PROJECT_ROOT}/config/forge.env" \
     -- bash "${_SCRIPT_DIR}/pack-ubifs.sh"
+  # build-initramfs AFTER pack-ubifs: the provisioning ramdisk now embeds
+  # rootfs.ubi.img.gz so ubiprog can re-flash mtd5 from RAM on first boot
+  # (from-source: kills cross-image residue + the loader's weak write). The
+  # rootfs.ubi.img input re-triggers this stage when the rootfs changes.
+  # Generated from tracked/pinned sources (busybox + ubiprog.c + /init) — the
+  # in-forge generator that replaced the never-committed hand-built blob
+  # (clean-clone blocker, issue #6/#8 class).
+  run_stage build-initramfs \
+    "${BRINGUP}/initramfs/init" "${BRINGUP}/rootfs/ubiprog.c" \
+    "${_PROJECT_ROOT}/pins/busybox" "${OUT_DIR}/rootfs.ubi.img" \
+    "${_SCRIPT_DIR}/build-initramfs.sh" \
+    -- bash "${_SCRIPT_DIR}/build-initramfs.sh"
+  # pack-fit reads zImage+aes.dtb from KERNEL_ARTIFACT_DIR (LINUX_DIR for buildroot,
+  # OpenWrt's build_dir for openwrt) and incbin's initramfs.cpio.gz from
+  # build-initramfs above. FIT templates + load addrs are rk-forge's board-verified
+  # ones (NOT OpenWrt's 0x03200000/0x02000000 — those are for its uboot).
+  run_stage pack-fit \
+    "${BRINGUP}/fit/rk3506-mainline.its" "${BRINGUP}/fit/rk3506-kernel.its" \
+    "${BRINGUP}/fit/rk3506-kernel-nand.its" "${KERNEL_ARTIFACT_DIR}/arch/arm/boot/zImage" \
+    "${KERNEL_ARTIFACT_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb" \
+    "${UBOOT_DIR}/u-boot-nodtb.bin" "${UBOOT_DIR}/u-boot.dtb" \
+    "${BRINGUP}/fit/initramfs.cpio.gz" \
+    "${_SCRIPT_DIR}/pack-fit.sh" \
+    -- bash "${_SCRIPT_DIR}/pack-fit.sh"
 }
 
 # SD-card image (parallel to NAND — second boot media, dev/recovery). Reuses the
@@ -293,7 +300,7 @@ stage_assemble() {
   fi
   run_stage assemble \
     "${OUT_DIR}/boot.img" "${OUT_DIR}/rootfs.ubi.img" "${OUT_DIR}/uboot.img" \
-    "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/parameter-nand-aes.txt" \
+    "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/parameter-nand-aes-vendorlayout.txt" \
     "${_SCRIPT_DIR}/assemble-update.sh" \
     -- bash "${_SCRIPT_DIR}/assemble-update.sh" "$ASSEMBLE_VARIANT"
 }

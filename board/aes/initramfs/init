@@ -83,8 +83,19 @@ else
 fi
 
 # --- first boot: rewrite the rootfs through the reliable kernel write path ---
-echo "[init] FIRST BOOT: ubiprog rewriting /dev/mtd5 (data blocks only)…"
-if ! ubiprog /dev/mtd5; then
+IMG=/rootfs.ubi.img.gz
+IMG_RAW=/tmp/rootfs.ubi.img
+if [ ! -f "$IMG" ]; then
+	echo "[init] *** no embedded rootfs image ($IMG) — cannot provision ***"
+	rescue
+fi
+echo "[init] decompressing $IMG → $IMG_RAW…"
+if ! gunzip -c "$IMG" > "$IMG_RAW"; then
+	echo "[init] gunzip failed"
+	rescue
+fi
+echo "[init] FIRST BOOT: ubiprog from-source rewriting /dev/mtd5 ($(stat -c %s "$IMG_RAW") B)…"
+if ! ubiprog /dev/mtd5 "$IMG_RAW"; then
 	echo "[init] ubiprog FAILED (rc=$?)"
 	rescue
 fi
