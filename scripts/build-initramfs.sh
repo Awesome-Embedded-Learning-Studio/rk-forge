@@ -131,15 +131,23 @@ pack_cpio() {
   done
   # /init (the provisioning script)
   cp "$INIT_SRC" "$root/init"; chmod +x "$root/init"
-  # FROM-SOURCE rootfs image: embed rootfs.ubi.img (gzipped). ubiprog re-writes
-  # mtd5 from this RAM copy on first boot — kills cross-image residue (a prior
-  # larger rootfs left in mtd5) AND the loader's weak write. Requires build-
+  # FROM-SOURCE rootfs image: embed rootfs.ubi.img (gzipped) ONLY for the
+  # openwrt profile. ubiprog re-writes mtd5 from this RAM copy on first boot
+  # (kills cross-image residue + the loader's weak write). Requires build-
   # initramfs to run AFTER pack-ubifs (DAG order in forge.sh stage_pack).
-  ROOTFS_UBI="${OUT_DIR}/rootfs.ubi.img"
-  [[ -f "$ROOTFS_UBI" ]] \
-    || die "missing $ROOTFS_UBI (build-initramfs runs after pack-ubifs; run: forge pack)"
-  log_info "embedding rootfs.ubi.img → rootfs.ubi.img.gz (gzip) for from-source ubiprog"
-  gzip -c "$ROOTFS_UBI" > "$root/rootfs.ubi.img.gz"
+  #
+  # buildroot profile: rootfs is too big (glibc ~23MB ubifs → boot.img would
+  # exceed the 16MB boot partition), so DON'T embed — buildroot falls back to
+  # ubiprog's legacy read-modify-write (no image-file arg), board-verified.
+  if [[ "${ROOTFS_PROFILE:-}" == "openwrt" ]]; then
+    ROOTFS_UBI="${OUT_DIR}/rootfs.ubi.img"
+    [[ -f "$ROOTFS_UBI" ]] \
+      || die "missing $ROOTFS_UBI (build-initramfs runs after pack-ubifs; run: forge pack)"
+    log_info "embedding rootfs.ubi.img → rootfs.ubi.img.gz (openwrt from-source)"
+    gzip -c "$ROOTFS_UBI" > "$root/rootfs.ubi.img.gz"
+  else
+    log_info "buildroot profile — NOT embedding image (ubiprog read-modify-write)"
+  fi
 
   mkdir -p "$(dirname "$OUT_CPIO")"
   log_info "packing cpio.gz → $OUT_CPIO"

@@ -145,16 +145,19 @@ static int block_is_erased(const uint8_t *buf, uint32_t len)
 
 int main(int argc, char **argv)
 {
-	if (argc != 3) {
-		fprintf(stderr, "usage: ubiprog <mtd-dev> <image-file>\n"
-			"  FROM-SOURCE: erase the WHOLE partition, then write <image-file> through\n"
-			"  the kernel's reliable write path. PEBs past the image are erased to 0xFF.\n"
-			"  Kills cross-image residue (a prior larger rootfs left in mtd5) AND the\n"
-			"  loader's weak write — the image comes from RAM, never read from NAND.\n");
+	if (argc < 2 || argc > 3) {
+		fprintf(stderr, "usage: ubiprog <mtd-dev> [<image-file>]\n"
+			"  <image-file>  FROM-SOURCE (OpenWrt, small rootfs): erase the WHOLE\n"
+			"                partition, write <image-file> via the kernel's reliable\n"
+			"                path. PEBs past the image → 0xFF. Image from RAM, never\n"
+			"                NAND — kills cross-image residue + loader weak write.\n"
+			"  no image      LEGACY read-modify-write (buildroot, big rootfs that\n"
+			"                doesn't fit the boot partition): re-write each non-erased\n"
+			"                block from its (possibly weak) NAND read. Lossy on bad PEBs.\n");
 		return 2;
 	}
 	const char *dev = argv[1];
-	const char *image_file = argv[2];
+	const char *image_file = (argc >= 3) ? argv[2] : NULL;
 	int fd = open(dev, O_RDWR);
 	if (fd < 0) { perror("open"); return 1; }
 

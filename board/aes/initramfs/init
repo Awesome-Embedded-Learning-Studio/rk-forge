@@ -83,21 +83,33 @@ else
 fi
 
 # --- first boot: rewrite the rootfs through the reliable kernel write path ---
+# Two modes (build-initramfs.sh decides which by embedding or not embedding
+# /rootfs.ubi.img.gz, based on ROOTFS_PROFILE):
+#   - from-source: image embedded (openwrt — small rootfs fits the boot
+#     partition). ubiprog erases the WHOLE mtd5 + writes the RAM image.
+#     Kills cross-image residue + the loader's weak write.
+#   - read-modify-write: no image embedded (buildroot — rootfs too big for
+#     boot). ubiprog re-writes each non-erased block from its NAND read.
+#     Legacy saga path (P5 hardening + page recovery), board-verified.
 IMG=/rootfs.ubi.img.gz
-IMG_RAW=/tmp/rootfs.ubi.img
-if [ ! -f "$IMG" ]; then
-	echo "[init] *** no embedded rootfs image ($IMG) — cannot provision ***"
-	rescue
-fi
-echo "[init] decompressing $IMG → $IMG_RAW…"
-if ! gunzip -c "$IMG" > "$IMG_RAW"; then
-	echo "[init] gunzip failed"
-	rescue
-fi
-echo "[init] FIRST BOOT: ubiprog from-source rewriting /dev/mtd5 ($(stat -c %s "$IMG_RAW") B)…"
-if ! ubiprog /dev/mtd5 "$IMG_RAW"; then
-	echo "[init] ubiprog FAILED (rc=$?)"
-	rescue
+if [ -f "$IMG" ]; then
+	IMG_RAW=/tmp/rootfs.ubi.img
+	echo "[init] decompressing $IMG → $IMG_RAW…"
+	if ! gunzip -c "$IMG" > "$IMG_RAW"; then
+		echo "[init] gunzip failed"
+		rescue
+	fi
+	echo "[init] FIRST BOOT: ubiprog from-source rewriting /dev/mtd5 ($(stat -c %s "$IMG_RAW") B)…"
+	if ! ubiprog /dev/mtd5 "$IMG_RAW"; then
+		echo "[init] ubiprog FAILED (rc=$?)"
+		rescue
+	fi
+else
+	echo "[init] FIRST BOOT: ubiprog read-modify-write /dev/mtd5 (no embedded image — buildroot mode)…"
+	if ! ubiprog /dev/mtd5; then
+		echo "[init] ubiprog FAILED (rc=$?)"
+		rescue
+	fi
 fi
 
 # Re-attach, mount, stamp the marker so future boots skip the rewrite.
