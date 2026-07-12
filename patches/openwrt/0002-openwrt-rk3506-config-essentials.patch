@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rk-forge <noreply@rk-forge.local>
+Date: Sat, 12 Jul 2026 09:30:00 +0800
+Subject: [PATCH] openwrt: rk3506: config-7.1 essentials for rk-forge mainline uboot
+
+czz8888's config-7.1 (from its HZHY MiniEVM target) is missing options
+rk-forge's aes board needs when booting under the rk-forge mainline
+U-Boot (not OpenWrt's own uboot flow):
+
+- ARCH_MESON=y: lift TEXT_OFFSET so kernel page tables / zrel clear the
+  OP-TEE secure RAM (0x0-0x5f000) — without it, data abort at "Starting
+  kernel...". rk-forge's buildroot kernel uses the same trick.
+- RD_GZIP/XZ/LZ4/LZO=y: decompress the provisioning initramfs (gzip).
+- MTD_OF_PARTS=y: materialize the DT fixed-partitions as /dev/mtd0..6.
+- DEVTMPFS=y + DEVTMPFS_MOUNT=y: auto-populate /dev so ubiprog can open
+  /dev/mtd5 and switch_root finds /dev/ttyS0.
+- ATAGS=y + ARM_ATAG_DTB_COMPAT: rk-forge's mainline uboot passes
+  bootargs via ATAGS (parameter ATAG: 0x00200800); compat forwards them
+  to DT.
+- HOTPLUG=y: kmod/uevent.
+- THUMB2_KERNEL disabled (ARM mode parity with rk-forge mainline kernel).
+
+Board-verified: boots to OpenWrt shell under rk-forge mainline U-Boot.
+---
+diff --git a/target/linux/rockchip/rk3506/config-7.1 b/target/linux/rockchip/rk3506/config-7.1
+index 2c5f782..0624f3c 100644
+--- a/target/linux/rockchip/rk3506/config-7.1
++++ b/target/linux/rockchip/rk3506/config-7.1
+@@ -428,7 +428,7 @@ CONFIG_HZ_300=y
+ # CONFIG_HZ_1000 is not set
+ CONFIG_HZ=300
+ CONFIG_SCHED_HRTICK=y
+-CONFIG_THUMB2_KERNEL=y
++# CONFIG_THUMB2_KERNEL is not set
+ CONFIG_ARM_PATCH_IDIV=y
+ CONFIG_AEABI=y
+ CONFIG_ARCH_SELECT_MEMORY_MODEL=y
+@@ -1217,7 +1217,6 @@ CONFIG_HAVE_PCI=y
+ # Generic Driver Options
+ #
+ # CONFIG_UEVENT_HELPER is not set
+-# CONFIG_DEVTMPFS is not set
+ CONFIG_STANDALONE=y
+ CONFIG_PREVENT_FIRMWARE_BUILD=y
+ 
+@@ -5717,3 +5716,17 @@ CONFIG_ARCH_USE_MEMTEST=y
+ CONFIG_PHY_ROCKCHIP_INNO_USB2=y
+ CONFIG_SND_SOC_ROCKCHIP_SAI=y
+ CONFIG_CRYPTO_CRC32C=m
++CONFIG_ARCH_MESON=y
++CONFIG_RD_GZIP=y
++CONFIG_RD_XZ=y
++CONFIG_RD_LZ4=y
++CONFIG_RD_LZO=y
++CONFIG_MTD_OF_PARTS=y
++
++# rk-forge RK3506 必备(buildroot kernel.config 有,czz8888 config-7.1 漏的)
++CONFIG_ATAGS=y
++CONFIG_ARM_ATAG_DTB_COMPAT=y
++CONFIG_ARM_ATAG_DTB_COMPAT_CMDLINE_FROM_BOOTLOADER=y
++CONFIG_HOTPLUG=y
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y

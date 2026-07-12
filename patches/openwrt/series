@@ -1,5 +1,6 @@
 0001-openwrt-rk3506-add-aes-nand-device.patch
-# 0002-openwrt-rk3506-config-disable-psci.patch
+0002-openwrt-rk3506-config-essentials.patch
+# 0003-openwrt-rk3506-config-disable-psci.patch  (CONDITIONAL backup, renamed from 0002)
 # CONDITIONAL — do NOT enable unless the OpenWrt-built kernel hangs at
 # "Starting kernel..." under the rk-forge mainline U-Boot. rk-forge's OWN kernel
 # boots fine with CONFIG_ARM_PSCI=y (rk-forge's mainline uboot loads NO OP-TEE →
