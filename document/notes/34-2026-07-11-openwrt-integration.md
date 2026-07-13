@@ -36,12 +36,11 @@ OpenWrt **自建 kernel + rootfs**(保住 opkg/LuCI/kmod 完整体验,vermagic �
 
 ## 验证状态
 
-- ✅ buildroot profile pack + assemble 不回归(update.img 41MB,round-trip OK)
-- ✅ openwrt setup:fetch czz8888(94M)+ overlay git-am apply(31d15c0b → f922d63)
-- ✅ aes_nand device 注册 + defconfig 选通(`CONFIG_TARGET_rockchip_rk3506_DEVICE_aes_nand=y`,targetinfo 4708B 完整)
-- ✅ feeds update+install(packages/luci/routing/telephony)
-- ✅ **全量 build 成功**(OpenWrt kernel zImage 7.27MB + aes.dtb + musl rootfs 9.3MB)
-- ✅ **forge pack/assemble 出 update.img(27.9MB)**,round-trip 自检过(6 分区:loader/parameter/uboot/boot/rootfs)
+- ✅ buildroot profile pack + assemble 不回归(initramfs 1.2MB,boot.img 9.4MB,round-trip OK)
+- ✅ openwrt setup/build 全链路(zImage 7.27MB + aes.dtb + musl rootfs 9.3MB)
+- ✅ **NAND 板验通**(update-openwrt-fromsrc-20260712.img):ubiprog from-source(erase 全 mtd5 + 写 RAM image,wrote≈76 erased_tail≈1316)→ OpenWrt shell
+- ✅ **OpenWrt on SD 板验通**(update-openwrt-sd-thumb2-20260712.img):`forge assemble --rootfs=openwrt --sd`(复用 pack-sd,零新代码)→ kmodloader 0 failed + procd + OpenWrt 24.10 shell
+- ✅ **差异化 provisioning**(b8dea9e):openwrt from-source(内嵌 image)/ buildroot read-modify-write(rootfs 23MB 超 boot 16MB)
 
 ## 待办
 
