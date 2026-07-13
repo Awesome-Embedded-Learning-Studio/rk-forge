@@ -23,7 +23,12 @@ source "${PROJECT_ROOT}/config/forge.env"
 export BRINGUP="${PROJECT_ROOT}/${BRINGUP_DIR}"
 export OUT_DIR="${PROJECT_ROOT}/${OUT_DIR}"                 # was relative → absolute
 export LINUX_DIR="${PROJECT_ROOT}/${LINUX_TREE}"
+# kernel artifacts (zImage + dtb) source for pack-fit.sh. Defaults to LINUX_DIR
+# (buildroot profile builds the kernel there); the openwrt profile overrides this
+# to OpenWrt's build dir (OpenWrt builds the kernel — see build-openwrt.sh).
+export KERNEL_ARTIFACT_DIR="${KERNEL_ARTIFACT_DIR:-$LINUX_DIR}"
 export UBOOT_DIR="${PROJECT_ROOT}/${UBOOT_TREE}"
+export OPENWRT_DIR="${PROJECT_ROOT}/${OPENWRT_TREE}"
 export BUILDROOT="${PROJECT_ROOT}/${BUILDROOT_DIR}"
 export BOARD_CFG="${PROJECT_ROOT}/${BOARD_CFG_DIR}"
 export ASSETS="${PROJECT_ROOT}/${ASSETS_DIR}"

@@ -1,0 +1,40 @@
+From bf7c06e88a5b0bd96f4a8417c70b962a6b41a1ad Mon Sep 17 00:00:00 2001
+From: rk-forge <noreply@rk-forge.local>
+Date: Sat, 11 Jul 2026 12:07:08 +0800
+Subject: [PATCH] openwrt: rk3506: add aes (SPI-NAND) device for rk-forge
+
+rk-forge integrates OpenWrt as a rootfs profile (--rootfs=openwrt). The aes
+board (RK3506B, SPI-NAND) is rk-forge's target. rk-forge does its own RK
+packing (fit-pack.py + rkfw-pack.py + mainline U-Boot), so Device/aes_nand
+sets IMAGES:= and BOOT_FLOW:= to skip OpenWrt's rk3506-img BOOT_FLOW.
+---
+ target/linux/rockchip/image/rk3506.mk | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/target/linux/rockchip/image/rk3506.mk b/target/linux/rockchip/image/rk3506.mk
+index d7b34f7..dcfe676 100644
+--- a/target/linux/rockchip/image/rk3506.mk
++++ b/target/linux/rockchip/image/rk3506.mk
+@@ -56,3 +56,19 @@ define Device/hzhy_mini_evm_nand
+   BOOT_SCRIPT := rk3506
+ endef
+ TARGET_DEVICES += hzhy_mini_evm_nand
++
++define Device/aes_nand
++  $(Device/rk3506)
++  DEVICE_VENDOR := AES
++  DEVICE_MODEL := RK3506B aes (SPI-NAND)
++  DEVICE_DTS := rockchip/rk3506b-aes
++  DEVICE_PACKAGES := kmod-usb2 kmod-usb-storage
++  # rk-forge does its own FIT/update.img packaging (fit-pack.py + rkfw-pack.py +
++  # the board-verified mainline U-Boot). Do NOT invoke OpenWrt's rk3506-img
++  # BOOT_FLOW (it needs the OpenWrt u-boot idbloader+u-boot.itb we don't use).
++  # rootfs tree comes from OpenWrt's TARGET_DIR via stage-rootfs.sh; kernel
++  # artifacts (zImage + aes.dtb) feed pack-fit.sh via KERNEL_ARTIFACT_DIR.
++  IMAGES :=
++  BOOT_FLOW :=
++endef
++TARGET_DEVICES += aes_nand
+-- 
+2.43.0
+

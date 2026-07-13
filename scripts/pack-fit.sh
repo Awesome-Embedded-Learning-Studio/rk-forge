@@ -76,8 +76,9 @@ else
   UBOOT_BIN="${UBOOT_DIR}/u-boot-nodtb.bin"
   UBOOT_DTB="${UBOOT_DIR}/u-boot.dtb"
   UBOOT_FIT="uboot.img"
-  ZIMAGE="${LINUX_DIR}/arch/arm/boot/zImage"
-  KERN_DTB="${LINUX_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
+  KERNEL_ARTIFACT_DIR="${KERNEL_ARTIFACT_DIR:-$LINUX_DIR}"   # openwrt profile overrides this to OpenWrt's build_dir (set by forge.sh stage_pack)
+  ZIMAGE="${KERNEL_ARTIFACT_DIR}/arch/arm/boot/zImage"
+  KERN_DTB="${KERNEL_ARTIFACT_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
   INITRAMFS="${BRINGUP}/fit/initramfs.cpio.gz"
   need "$UBOOT_BIN"; need "$UBOOT_DTB"; need "$ZIMAGE"; need "$KERN_DTB"; need "$INITRAMFS"
 fi

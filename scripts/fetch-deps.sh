@@ -12,9 +12,12 @@
 #          + scripts/fetch-rtl8733bu-driver.sh                    (WiFi driver drop)
 #   uboot  → scripts/apply-series.sh --component uboot            (3 board patches)
 #   buildroot → no patches (BR2_EXTERNAL at bringup/buildroot-external/)
+#   openwrt → kernel patches are quilt patches-7.1/ (applied by OpenWrt at build
+#          time, NOT git-am'd here); a small rk-forge overlay (Device/aes + config)
+#          is applied via apply-series.sh --component openwrt
 #
 # Usage:
-#   scripts/fetch-deps.sh [linux|uboot|buildroot|all]   (default: all)
+#   scripts/fetch-deps.sh [linux|uboot|buildroot|openwrt|all]   (default: all)
 # Idempotent: trees already present are skipped (rm -rf to refetch @ the pin).
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -28,6 +31,7 @@ declare -A TARGET=(
   [linux]="$LINUX_DIR"
   [uboot]="$UBOOT_DIR"
   [buildroot]="$BUILDROOT"
+  [openwrt]="$OPENWRT_DIR"
 )
 
 # retry a git clone across transient network failures (huge repos over flaky
@@ -76,9 +80,12 @@ fetch_one() {  # <name>
 
 WHAT="${1:-all}"
 case "$WHAT" in
-  linux|uboot|buildroot) fetch_one "$WHAT" ;;
+  linux|uboot|buildroot|openwrt) fetch_one "$WHAT" ;;
+  # `all` covers the buildroot-profile deps (linux+uboot+buildroot). openwrt is
+  # NOT in `all` — it's a large optional tree fetched only for the openwrt
+  # profile (stage_setup fetches it via `fetch-deps openwrt` when --rootfs=openwrt).
   all) for n in linux uboot buildroot; do fetch_one "$n"; done ;;
   -h|--help) sed -n '2,24p' "$0"; exit 0;;
-  *) die "unknown arg: $WHAT (want: linux|uboot|buildroot|all)";;
+  *) die "unknown arg: $WHAT (want: linux|uboot|buildroot|openwrt|all)";;
 esac
-log_info "next: apply-series.sh for linux/uboot + fetch-rtl8733bu-driver.sh for the WiFi driver"
+log_info "next: apply-series.sh for linux/uboot (+openwrt if --rootfs=openwrt) + fetch-rtl8733bu-driver.sh"

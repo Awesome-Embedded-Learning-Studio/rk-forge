@@ -1,0 +1,11 @@
+0001-openwrt-rk3506-add-aes-nand-device.patch
+0002-openwrt-rk3506-config-essentials.patch
+# 0003-openwrt-rk3506-config-disable-psci.patch  (CONDITIONAL backup, renamed from 0002)
+# CONDITIONAL — do NOT enable unless the OpenWrt-built kernel hangs at
+# "Starting kernel..." under the rk-forge mainline U-Boot. rk-forge's OWN kernel
+# boots fine with CONFIG_ARM_PSCI=y (rk-forge's mainline uboot loads NO OP-TEE →
+# PSCI SMC gets no response → graceful degrade; aes is single-core so the
+# enable-method="psci" path is never taken). OpenWrt's 31d15c0 hang was its OWN
+# uboot image flow loading the OP-TEE TOS blob + enabling PSCI firmware. We
+# reuse rk-forge's mainline uboot (no OP-TEE) → very likely no hang. Board-verify
+# FIRST; only flip these config lines if it actually hangs.
