@@ -70,7 +70,7 @@ sai1: sai@ff310000 {
 
 ES8328 的 I2C 驱动 `SND_SOC_ES8328_I2C` 是个**隐藏 tristate**——它在 menuconfig 里平时根本看不见，得它依赖的 `SOUND`、`SND_SOC` 都先开起来才会冒出来。笔者第一次满世界 `.config` 搜它搜不到，以为是 patch 漏了，其实只是 menuconfig 把它折叠起来了。
 
-codec 的 `set_sysclk` 只认 **11.2896 / 12.288 / 22.5792 / 24.576 MHz** 这四档（或 0），喂别的频率 HAL 直接 `-EINVAL`、声卡 probe 失败。我们选 12.288 MHz——它等于 256 × 48000，正好是 48kHz 播放的经典 MCLK。落 DT 就是上面 es8388 节点里那行 `assigned-clock-rates = <12288000>`，把 sai1 的 mclk composite 钉死，否则 codec 拿到默认 mclk 就翻脸。`mclk-fs = <256>` 那行也是配套的，声卡侧按这个比算 mclk。
+codec 的 `set_sysclk` 只认 **11.2896 / 12.288 / 22.5792 / 24.576 MHz** 这四档（或 0），喂别的频率 HAL 直接 `-EINVAL`、声卡 probe 失败。我们选 12.288 MHz——它等于 256 × 48000，正好是 48kHz 播放的经典 MCLK。落 DT 就是上面 es8388 节点里那行 `assigned-clock-rates = <12288000>`，把 sai1 的 mclk composite 固定住，否则 codec 拿到默认 mclk 就翻脸。`mclk-fs = <256>` 那行也是配套的，声卡侧按这个比算 mclk。
 
 SAI1 的 pinctrl 跟 i2c0 在 bank0 的 PB5/6/7 上物理冲突——SAI 的 sdo1/2/3 和 i2c0 的 rm_io13/14 抢同一组 pad。解法是 SAI1 只用 sdo0（stereo 单线就够），把 sdo1/2/3 让给 i2c0。所以 DT 里 sai1 pinctrl 只引 mclk/sclk/lrck/sdi/sdo0，落在 PB0-PB4。
 

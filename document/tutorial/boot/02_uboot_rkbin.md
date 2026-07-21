@@ -1,6 +1,6 @@
 # Ch2 — U-Boot 与 rkbin：在闭源 blob 的咽喉上拔河
 
-> Ch1 把工具链钉死了，这一章往地基上放第一块砖：主线 U-Boot。但 RK3506 的 U-Boot 不是"编出来就能跑"那么简单——它前面卡着一颗闭源的 rkbin，方案 A 自己写 SPL 又崩在乱码里（Ch0 讲过）。所以这章其实是和那颗闭源 blob 在板子的咽喉上拔河的全过程：三个它单方面定的隐性契约，加上 bringup 路上四个把我们按在地上摩擦的坑。挺过去，串口里才能看到主线 U-Boot 的 banner。
+> Ch1 把工具链敲定了，这一章往地基上放第一块砖：主线 U-Boot。但 RK3506 的 U-Boot 不是"编出来就能跑"那么简单——它前面卡着一颗闭源的 rkbin，方案 A 自己写 SPL 又崩在乱码里（Ch0 讲过）。所以这章其实是和那颗闭源 blob 在板子的咽喉上拔河的全过程：三个它单方面定的隐性契约，加上 bringup 路上四个把我们按在地上摩擦的坑。挺过去，串口里才能看到主线 U-Boot 的 banner。
 
 ## 前言：第一块砖，就撞上闭源咽喉
 
@@ -30,7 +30,7 @@ BootROM 先从存储的扇区 `0x40` 把 idblock 读进来。idblock 里塞着�
 
 ## 坑之二：TEXT_BASE 差了 6MB，还有 OP-TEE 到底跳哪里
 
-结构照抄，但有一处不能照抄，一照抄就崩。主线 `u-boot-nodtb.bin` 是按 `CONFIG_TEXT_BASE=0x00800000` 链接的，而 vendor FIT 里 uboot 的 load 写的是 `0x00200000`——差了整整 6MB。代码按 `0x800000` 链接，你却把它装到 `0x200000`，所有绝对寻址全错，必崩。所以 ITS 里 uboot 的 `load` 得改成主线的 `0x800000`，不能盲抄 vendor 的 `0x200000`。
+结构照抄，但有一处不能照抄，一照抄就崩。主线 `u-boot-nodtb.bin` 是按 `CONFIG_TEXT_BASE=0x00800000` 链接的，而 vendor FIT 里 uboot 的 load 写的是 `0x00200000`——差了整整 6MB。代码按 `0x800000` 链接，咱们却把它装到 `0x200000`，所有绝对寻址全错，必崩。所以 ITS 里 uboot 的 `load` 得改成主线的 `0x800000`，不能盲抄 vendor 的 `0x200000`。
 
 但这又引出一个让人睡不着觉的悬念。vendor 的链是 `SPL → optee(0x1000) → 降 NS → 跳 uboot`，那 OP-TEE 跑完到底跳去哪个地址？如果它从 SPL 传进来的 loadable 信息里取地址（这是标准做法），那 SPL 把我们的 uboot 装到 `0x800000`，OP-TEE 就跳 `0x800000`，自洽；可如果 OP-TEE 把跳转地址硬编码成 vendor 原来的 `0x200000`，那我们 `0x800000` 的代码就跳空了，崩。问题是——`tee.bin` 是 rkbin 预编译的 blob，源码根本不在我们手里，这个跳转地址事先没法确定，只能上板试。
 
@@ -48,13 +48,13 @@ banner 都出来了还崩，这种最磨人。顺着 `misc_init_r` 往里挖，�
 
 把上面这些加上打包烧录时踩的，归拢一下，其实就是闭源 rkbin SPL 给我们立的三个规矩——详见 [pitfalls/01](../../pitfalls/01-rkbin-spl-contracts.md)，这里浓缩讲。
 
-**第一个规矩是 chip tag**。打包出来的 `update.img` 头里有一个 chip tag，烧录前工具会拿它跟 loader 里写死的 `CHIP_NAME` 比对，对不上当场拒烧。坑在于：RK3506B 这颗 loader 的真实名字其实是 `RK350F`，对，不是 RK3506——你要是手滑硬编一个 `-RK3506`，tag 就对不上，工具翻脸不认人（[`RKBOOT-RK3506B-aes.ini`](../../../board/aes/RKBOOT-RK3506B-aes.ini) 第 13 行 `NAME=RK350F` 就是铁证）。正解是**永远从 loader 动态读这个 tag**：`RK$(dd if=loader bs=1 count=4 skip=21 | rev)`，别图省事硬编。
+**第一个规矩是 chip tag**。打包出来的 `update.img` 头里有一个 chip tag，烧录前工具会拿它跟 loader 里写死的 `CHIP_NAME` 比对，对不上当场拒烧。坑在于：RK3506B 这颗 loader 的真实名字其实是 `RK350F`，对，不是 RK3506——咱们要是手滑硬编一个 `-RK3506`，tag 就对不上，工具翻脸不认人（[`RKBOOT-RK3506B-aes.ini`](../../../board/aes/RKBOOT-RK3506B-aes.ini) 第 13 行 `NAME=RK350F` 就是铁证）。正解是**永远从 loader 动态读这个 tag**：`RK$(dd if=loader bs=1 count=4 skip=21 | rev)`，别图省事硬编。
 
-**第二个规矩是 OP-TEE 的 hash**。整条 FIT 里，uboot 是 loadable、不被校验；fdt 也不被锁；**唯一被 SPL verified-boot 拿 sha256 锁死的，就是 optee 节点那颗 tee.bin**。方案 B 阶段我们借的是 vendor SPL，它锁的 hash 对应 tee v2.10（`93603ca22c...`）。你要是把 tee 换成公开仓里的 v2.40，hash 算出来变成 `616f8152...`，SPL 当场报 `optee Bad hash`——[boot-sdl-202606152121](../../logs/boot-sdl-202606152121.txt) 里这个过程记得一清二楚。所以当时 tee 必须钉死 v2.10。
+**第二个规矩是 OP-TEE 的 hash**。整条 FIT 里，uboot 是 loadable、不被校验；fdt 也不被锁；**唯一被 SPL verified-boot 拿 sha256 锁死的，就是 optee 节点那颗 tee.bin**。方案 B 阶段我们借的是 vendor SPL，它锁的 hash 对应 tee v2.10（`93603ca22c...`）。咱们要是把 tee 换成公开仓里的 v2.40，hash 算出来变成 `616f8152...`，SPL 当场报 `optee Bad hash`——[boot-sdl-202606152121](../../logs/boot-sdl-202606152121.txt) 里这个过程记得一清二楚。所以当时 tee 必须锁定在 v2.10。
 
 > 这里笔者得诚实交代一句后续：后来我们把整条 loader 都换成公开 rkbin（SPL v1.12 + tee v2.40），那条全公开的链自洽、板上能跑——所以"必须 v2.10"是方案 B 那条借 vendor SPL 的链的规矩，不是普适真理。但那是打包纯化阶段的事了，方案 B 当时锁的就是 v2.10。
 
-**第三个规矩是 FIT 的字节布局**。就算你 tee 用对了 v2.10，只要这个 FIT 是用主线 `mkimage -E` 打的，optee 照样 Bad hash——只不过这次 hash 变成 `7b78fe4e...`（[boot-sdl-202606152144](../../logs/boot-sdl-202606152144.txt)）。原因很阴：主线 mkimage 和 vendor mkimage 都叫 `-E`（external data），但两者的外部数据**字节布局不一样**，vendor SPL 按它自己那套布局硬读 optee 节点，读错位了，sha256 算的是错位的字节，当然不等于期望值。所以 uboot FIT 必须用 vendor 那颗 2017.09 的 mkimage 打。这是 rkbin SPL 收的一笔"隐性税"。
+**第三个规矩是 FIT 的字节布局**。就算咱们 tee 用对了 v2.10，只要这个 FIT 是用主线 `mkimage -E` 打的，optee 照样 Bad hash——只不过这次 hash 变成 `7b78fe4e...`（[boot-sdl-202606152144](../../logs/boot-sdl-202606152144.txt)）。原因很阴：主线 mkimage 和 vendor mkimage 都叫 `-E`（external data），但两者的外部数据**字节布局不一样**，vendor SPL 按它自己那套布局硬读 optee 节点，读错位了，sha256 算的是错位的字节，当然不等于期望值。所以 uboot FIT 必须用 vendor 那颗 2017.09 的 mkimage 打。这是 rkbin SPL 收的一笔"隐性税"。
 
 > 同样诚实一句：后来我们用纯 Python 写了 [fit-pack.py](../../../scripts/fit-pack.py)，把 vendor mkimage 那套 SPL 兼容布局字节级复刻了出来，才算彻底摆脱了 vendor mkimage。但方案 B 那会儿，老老实实用 vendor mkimage 是最快的路。
 
@@ -64,7 +64,7 @@ banner 都出来了还崩，这种最磨人。顺着 `misc_init_r` 往里挖，�
 
 讲完规矩，说说怎么把东西真的弄进板子。forge 现在的打包分几步：[pack-loader.sh](../../../scripts/pack-loader.sh) 用 Rockchip 的 `boot_merger` 从公开 rkbin 把 loader/idblock 打出来（DDR + usbplug + SPL），[pack-fit.sh](../../../scripts/pack-fit.sh) 打 uboot 的 FIT，最后 assemble 成一个完整的 `update.img`。诚实地讲，方案 B 那会儿是 vendor mkimage + boot_merger + 手写 ITS 混着上的，后来才一点点纯化成 fit-pack.py + 全公开 rkbin——纯化是另一条弧线，这章讲的是 bringup 过程，混着用没毛病。
 
-烧录有两条路，走哪条取决于板子从哪儿启动。这块 RK3506B 实测是 **SPI-NAND 优先**启动的（[notes/01](../../notes/01-2026-06-14-vendor-uboot-build-flow.md) Stage 3 验证过）——SD 卡你裸写一个镜像进去，bootrom 根本不选，转头就去起 NAND 里的出厂 vendor。所以主线落地走的是 NAND：用 RKDevTool 把 `update.img` 烧进板载 SPI-NAND（chip tag 对了才烧得下去，这就是上面第一个规矩）。SD 卡这条呢，是作为开发和恢复用的第二媒体，[flash-sd.sh](../../../scripts/flash-sd.sh) 用 `dd` 把 sd.img 写进卡——这脚本是一堆安全检查裹出来的：拒绝写挂载着的设备、拒绝写系统盘、拒绝分区节点、写之前还非要你手敲一遍设备名确认，生怕你把宿主盘抹了。WSL2 用户记得 SD 卡得先走 `usbipd-win` 透传进来。
+烧录有两条路，走哪条取决于板子从哪儿启动。这块 RK3506B 实测是 **SPI-NAND 优先**启动的（[notes/01](../../notes/01-2026-06-14-vendor-uboot-build-flow.md) Stage 3 验证过）——SD 卡咱们裸写一个镜像进去，bootrom 根本不选，转头就去起 NAND 里的出厂 vendor。所以主线落地走的是 NAND：用 RKDevTool 把 `update.img` 烧进板载 SPI-NAND（chip tag 对了才烧得下去，这就是上面第一个规矩）。SD 卡这条呢，是作为开发和恢复用的第二媒体，[flash-sd.sh](../../../scripts/flash-sd.sh) 用 `dd` 把 sd.img 写进卡——这脚本是一堆安全检查裹出来的：拒绝写挂载着的设备、拒绝写系统盘、拒绝分区节点、写之前还非要咱们手敲一遍设备名确认，生怕咱们把宿主盘抹了。WSL2 用户记得 SD 卡得先走 `usbipd-win` 透传进来。
 
 ## 成功长这样
 

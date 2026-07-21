@@ -1,6 +1,6 @@
 # 04 — SPI-NAND 那场写崩 saga:从"rw 必崩"到 RW 达成,中间还判过一次死
 
-前面几篇坑加起来,都不及这一篇折腾。RK3506B 这块板,boot 链通到 kernel、通到 init、眼看 rootfs 都挂上了,结果一做"写完重启还在不在"——RW 直接必崩,一崩就是好几天。最折磨人的还不是崩本身,是这条 saga 中间产生过一个"rkbin 通病、不可解"的判死结论,我差点就信了、差点转头去拆 rkbin;最后是被一个干净到不能再干净的 A/B 实验推翻的。这篇就是这段 saga 的完整还原,含走过的弯路、含被推翻的结论、含每一步的板上串口证据。
+前面几篇坑加起来,都不及这一篇折腾。RK3506B 这块板,boot 链通到 kernel、通到 init、眼看 rootfs 都挂上了,结果一做"写完重启还在不在"——RW 直接必崩,一崩就是好几天。最折磨人的还不是崩本身,是这条 saga 中间产生过一个"rkbin 通病、不可解"的判死结论,笔者差点就信了、差点转头去拆 rkbin;最后是被一个干净到不能再干净的 A/B 实验推翻的。这篇就是这段 saga 的完整还原,含走过的弯路、含被推翻的结论、含每一步的板上串口证据。
 
 先把舞台搭清楚:RK3506B aes 板,NAND 是 W25N04KV(4Gb、on-die ECC),挂在 SFC@0xff488000(VER_5);软件侧是主线 Linux 7.1 + 主线 U-Boot 2026.07-rc4,而那个甩不掉的 vendor rkbin loader(MiniLoaderAll.bin)负责在 MaskROM 烧录阶段把各分区写进 NAND。整条 RW 的悲剧,就出在"谁往 NAND 里写 rootfs"这件事上。
 
@@ -14,7 +14,7 @@
 
 故事的起点其实是读,不是写。主线 U-Boot 的 `mtd read`(非 raw)去读 kernel.itb,出来的字节是坏的——FIT magic 第三字节从 `fe` 翻成了 `de`,bootm 当场 `Wrong Image Type`;连着多读几次,还会退化到全 `0xee`(SFC 直接 latch-up)。`mtd read.raw` 更诡异,时好时坏,非确定性。
 
-这种"时好时坏"最折磨人,我一开始是往 NAND 侧怀疑的,而且连换三个方向:先怀疑片内 on-die ECC 把 vendor 软件 ECC 的 page"纠正"错了,hack `spinand_ondie_ecc_prepare_io_req` 总关 ECC,仍 corrupt;再查 continuous read、rdesc_ecc,排除;又试 DMA(走 sfc-no-dma 的 PIO),还是 corrupt。三个方向全否,根因根本不在 NAND 侧。
+这种"时好时坏"最折磨人,笔者一开始是往 NAND 侧怀疑的,而且连换三个方向:先怀疑片内 on-die ECC 把 vendor 软件 ECC 的 page"纠正"错了,hack `spinand_ondie_ecc_prepare_io_req` 总关 ECC,仍 corrupt;再查 continuous read、rdesc_ecc,排除;又试 DMA(走 sfc-no-dma 的 PIO),还是 corrupt。三个方向全否,根因根本不在 NAND 侧。
 
 真正的病根,是主线那两颗 SFC 驱动(linux 的 `spi-rockchip-sfc.c`、uboot 的 `rockchip_sfc.c`)**明明定义了 `SFC_DLL_CTRL0`(0x3C)和 `SCLK_SMP_DLL` bit,却从来不写它**——采样延迟线从没调谐过;而 vendor 同名驱动里有个 `rockchip_sfc_delay_lines_tuning`。80MHz 跑着、采样又不调谐,采样点就落在 marginal 区,bit 翻不翻纯看脸,这就是"时好时坏"的来源。当时的临时缓解是把 DT 里 `spi-max-frequency` 从 80MHz 降到 50MHz(50MHz 以下采样免调谐也稳)——这条"降频缓解"的旧结论后来标了过时,但"读路径真因是 DLL 没调谐"本身是对的。
 
@@ -63,7 +63,7 @@ UBIFS (ubi0:0): recovery completed
 UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
 ```
 
-这一对照,结论彻底钉死:我们内核的读路径没问题(vendor rootfs 在同内核下跨重启干干净净),**是同一颗 loader 写我们这份小 rootfs 时把 PEB 3/4/30/32 写弱了,写 vendor rootfs 时同位置写得稳稳的**。我们这份 4MB 的小 rootfs 把 UBIFS 的 master/journal 集中在了 PEB 3/4/30/32,正好命中 loader 的弱写块;vendor 那份大 rootfs 元数据分散,没踩中。所以不是内核、不是硬件、不是 ECC 配置、更不是 Linux 写坏,**就是 loader 对我们这份 rootfs 的写**。
+这一对照,结论就此坐实:我们内核的读路径没问题(vendor rootfs 在同内核下跨重启干干净净),**是同一颗 loader 写我们这份小 rootfs 时把 PEB 3/4/30/32 写弱了,写 vendor rootfs 时同位置写得稳稳的**。我们这份 4MB 的小 rootfs 把 UBIFS 的 master/journal 集中在了 PEB 3/4/30/32,正好命中 loader 的弱写块;vendor 那份大 rootfs 元数据分散,没踩中。所以不是内核、不是硬件、不是 ECC 配置、更不是 Linux 写坏,**就是 loader 对我们这份 rootfs 的写**。
 
 中间还有个小插曲值得提:powergood 门 + WPEN 这两项(主线 SFC 缺的、vendor 写侧有的两项)我移植过来之后,板上烧 `update-nand-powergood-wpen-fix.img` 实测,PEB 3/4/30/32 **照样炸**([boot-sdl-202606162143-update-nand-powergood-wpen-fix.txt](../logs/boot-sdl-202606162143-update-nand-powergood-wpen-fix.txt),18 处 ECC)。这说明 powergood/WPEN 不是没用——它们是 Linux 自己写可靠的前提——但它们救不了 loader 已经写下去的存量弱页。
 

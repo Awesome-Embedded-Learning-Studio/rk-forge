@@ -40,6 +40,10 @@ features:
     title: forge 编排器
     details: 把 kernel / uboot / rootfs 一长串命令收成一个 setup→build→pack→assemble 编排器，DAG + 增量跳过
     link: /tutorial/forge/
+  - icon: 🌐
+    title: OpenWrt profile
+    details: "--rootfs=openwrt 一键切到真 OpenWrt（opkg / LuCI / kmod），OpenWrt 自建 musl kernel+rootfs、vermagic 天然匹配，NAND + SD 双路板上验证"
+    link: https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/blob/main/board/aes/openwrt/README.md
   - icon: 💾
     title: 双启动路径
     details: SPI-NAND（UBIFS）+ SD 卡（RKFW）两条启动路都板上验证通过，含 loader 弱写 saga 的根治解

@@ -4,7 +4,7 @@
 
 ## 前言：为什么"持久 RW"这么难
 
-boot 是"把链路点亮"，rootfs 挂上是"能跑"，但这章要的是"我写了个文件，断电凉透、重新上电，它还在"。这种跨冷重启持久，逼着你和 SPI-NAND 的读写可靠性、UBIFS 的一致性、还有那个甩不掉的闭源 loader 写可靠性正面交锋。整场悲剧，就出在"谁往 NAND 里写 rootfs"这件事上。
+boot 是"把链路点亮"，rootfs 挂上是"能跑"，但这章要的是"我写了个文件，断电凉透、重新上电，它还在"。这种跨冷重启持久，逼着咱们和 SPI-NAND 的读写可靠性、UBIFS 的一致性、还有那个甩不掉的闭源 loader 写可靠性正面交锋。整场悲剧，就出在"谁往 NAND 里写 rootfs"这件事上。
 
 ## 先把读路径治了：80MHz 不调谐，采样全是 marginal
 
@@ -22,35 +22,35 @@ rockchip_sfc: dll ok best=[0,230] -> cell 92
 
 ## RW 必崩的现场
 
-读稳了，我以为 RW 也该顺理成章——结果 `echo X > /file && sync && reboot -f`，下次 boot 直接 panic：`ubi0` 报 `error -74 (ECC error) ... PEB 3:4096`、`PEB 4:4096`，retry 三次后 -EBADMSG，`Cannot open root device`，kernel panic。PEB 3/4 跨好几轮重刷都坏，稳得让人绝望。
+读稳了，笔者以为 RW 也该顺理成章——结果 `echo X > /file && sync && reboot -f`，下次 boot 直接 panic：`ubi0` 报 `error -74 (ECC error) ... PEB 3:4096`、`PEB 4:4096`，retry 三次后 -EBADMSG，`Cannot open root device`，kernel panic。PEB 3/4 跨好几轮重刷都坏，稳得让人绝望。
 
-这一段就是 saga 的核心。我顺着时间线把误判一层层剥给你看——因为这条 saga 最值钱的不是某个修法，是那个**怎么会被判错一次**的方法学。
+这一段就是 saga 的核心。笔者顺着时间线把误判一层层剥给咱们看——因为这条 saga 最值钱的不是某个修法，是那个**怎么会被判错一次**的方法学。
 
 ## 四层误判，一层比一层像真的
 
 **第一层：Linux 写把数据写坏了。** 最自然的归因——`echo > /test.txt`、reboot，看上去就是"Linux commit → erase+rewrite PEB 3/4 → 重启 → 读炸"，而且同会话写完立刻读是干净的，崩的只在元数据 PEB 的 commit 上。证据看似自洽，结论却是错的。
 
-**第二层：加探针，第一次指向 loader。** 我在写路径加了 dev_info 探针，发现所有 WRITE/ERASE 都 `prog_fail=0`（写都"成功"），但同会话读 PEB 27 却是 ECC 不可纠——关键是 PEB 27 这次 boot 从头到尾没被写过，坏数据是 loader 烧进去的存量。方向第一次算指对了。
+**第二层：加探针，第一次指向 loader。** 笔者在写路径加了 dev_info 探针，发现所有 WRITE/ERASE 都 `prog_fail=0`（写都"成功"），但同会话读 PEB 27 却是 ECC 不可纠——关键是 PEB 27 这次 boot 从头到尾没被写过，坏数据是 loader 烧进去的存量。方向第一次算指对了。
 
 **第三层：换 vendor loader 4762d6 就稳。** 既然是 loader 写的存量，换颗靠谱的 vendor loader 不就行了？当时写下的结论是：我们的 loader 写弱、vendor 的写可靠。这条后来被 A/B 推翻。
 
-**第四层（最严重）：rkbin 通病，换版本无效，不可解。** 我把三颗 loader 全轮了一遍，全崩，于是写下"loader 写不可靠是 rkbin 通病，与版本无关"，据此暂停了这条线、转头去拆 rkbin。这个判死结论现在看是错的，但它当时合理到差点就认了。
+**第四层（最严重）：rkbin 通病，换版本无效，不可解。** 笔者把三颗 loader 全轮了一遍，全崩，于是写下"loader 写不可靠是 rkbin 通病，与版本无关"，据此暂停了这条线、转头去拆 rkbin。这个判死结论现在看是错的，但它当时合理到差点就认了。
 
 ## 判死为什么错：一个方法学盲区
 
 判死结论的根子，是验证方法有个共同盲区：**全程只换 rkbin 黑盒（loader），从没让 vendor 内核的 fspi 驱动上过板对比；而且每次说"我们的栈写可靠"，全是同会话当场回读，从没跨重启验证过。**
 
-你想这个盲区会导出什么：症状是"Linux 写 → reboot → 读 = 坏"，我却把所有变量都攥在 rkbin 这一环上换（loader 换了三颗），自然就把锅全扣给 rkbin，得出"换 loader 都救不了 = rkbin 通病"。而"我们的栈写可靠"这个前提，又全是没跨重启的同会话回读——拿一个没跨重启验证的前提，去否定一个跨重启才暴露的症状，逻辑上就站不住。
+咱们想这个盲区会导出什么：症状是"Linux 写 → reboot → 读 = 坏"，笔者却把所有变量都攥在 rkbin 这一环上换（loader 换了三颗），自然就把锅全扣给 rkbin，得出"换 loader 都救不了 = rkbin 通病"。而"我们的栈写可靠"这个前提，又全是没跨重启的同会话回读——拿一个没跨重启验证的前提，去否定一个跨重启才暴露的症状，逻辑上就站不住。
 
 ## 推翻它：一个干净到不能再干净的 A/B
 
-同一颗 loader（4762d6）、同一个内核、同一个分区（mtd5），**我只换 rootfs 的内容**：烧我们自己的 rootfs，boot2 立刻 PEB 3/4/30/32 `error -74` → panic（[boot-sdl-2026-06162015](../../logs/boot-sdl-2026-06162015.txt)）；烧 vendor 的 rootfs，boot2 干干净净 `recovery completed → mounted`，全文 `error -74` 计数为 0（[boot-sdl-202606162146](../../logs/boot-sdl-202606162146-update-nand-OURkernel-VENDORrootfs.txt)）。
+同一颗 loader（4762d6）、同一个内核、同一个分区（mtd5），**笔者只换 rootfs 的内容**：烧我们自己的 rootfs，boot2 立刻 PEB 3/4/30/32 `error -74` → panic（[boot-sdl-2026-06162015](../../logs/boot-sdl-2026-06162015.txt)）；烧 vendor 的 rootfs，boot2 干干净净 `recovery completed → mounted`，全文 `error -74` 计数为 0（[boot-sdl-202606162146](../../logs/boot-sdl-202606162146-update-nand-OURkernel-VENDORrootfs.txt)）。
 
-这一对照，结论彻底钉死：我们内核的读路径没问题（vendor rootfs 在同内核下跨重启干干净净），**是同一颗 loader 写我们这份小 rootfs 时把 PEB 3/4/30/32 写弱了，写 vendor rootfs 时同位置写得稳稳的**。我们这份 4MB 的小 rootfs 把 UBIFS 的 master/journal 集中在了那几个 PEB，正好命中 loader 的弱写块；vendor 那份大 rootfs 元数据分散，没踩中。所以不是内核、不是硬件、不是 ECC 配置、更不是 Linux 写坏——**就是 loader 对我们这份 rootfs 的写**。
+这一对照，结论就此坐实：我们内核的读路径没问题（vendor rootfs 在同内核下跨重启干干净净），**是同一颗 loader 写我们这份小 rootfs 时把 PEB 3/4/30/32 写弱了，写 vendor rootfs 时同位置写得稳稳的**。我们这份 4MB 的小 rootfs 把 UBIFS 的 master/journal 集中在了那几个 PEB，正好命中 loader 的弱写块；vendor 那份大 rootfs 元数据分散，没踩中。所以不是内核、不是硬件、不是 ECC 配置、更不是 Linux 写坏——**就是 loader 对我们这份 rootfs 的写**。
 
 后来上 trace v2 直接看 NAND 的 status register byte，rootfs PEB3/4 的 `pg=3,5 st=0x20`、`pg=4 st=0x10`，对照 W25N04KV datasheet §7.3.1：SR bit[5:4]=`10` 就是 ">8 flip 不可纠"，mainline 的 `ecc_get_status` 把它正确报成 `STATUS_ECC_UNCOR_ERROR`。loader 写弱这事儿从"逻辑推断"变成"看 SR 真值"，板上定死了。
 
-> 别把所有写崩都扣给 rkbin。验证 loader 写弱不弱，要做的是拆开变量的 A/B：同 loader + 同内核 + 同分区，只换 rootfs 内容。只换 rkbin 黑盒、又不让 vendor 驱动上板对比，你永远分不清是 loader 写弱还是你自己的读弱。
+> 别把所有写崩都扣给 rkbin。验证 loader 写弱不弱，要做的是拆开变量的 A/B：同 loader + 同内核 + 同分区，只换 rootfs 内容。只换 rkbin 黑盒、又不让 vendor 驱动上板对比，咱们永远分不清是 loader 写弱还是咱们自己的读弱。
 
 ## 解法：别让 loader 写 rootfs，改由 Linux 落盘
 
@@ -76,7 +76,7 @@ PEB 3/4 各 64 页，只有 3 页不可纠（填 0xFF），其余 61 页含 mast
 
 ## 插曲：一颗伪装成 SFC 的 abort
 
- saga 走到这儿，你以为剩下的尾巴就是几颗小雷扫扫尾——结果有颗 abort 把我带进了第二轮弯路，专门值得拎出来一段，因为它伪装得太像 SFC 写路径的锅了。
+ saga 走到这儿，咱们以为剩下的尾巴就是几颗小雷扫扫尾——结果有颗 abort 把笔者带进了第二轮弯路，专门值得拎出来一段，因为它伪装得太像 SFC 写路径的锅了。
 
 RW 收得差不多的那天晚上，板子突然报 `imprecise external abort (0xc06)`，断点都落在 `arm_copy_from_user` 读 dd 的 user buffer 那一行，触发 workload 是 `dd` 写 UBIFS rootfs 压测。看着活脱脱就是"SFC 写路径在压力下数据写错、abort 冒泡到用户态"——而彼时我们刚把 SFC 这摊折腾完，第一反应自然是把锅扣回 SFC。
 
@@ -101,7 +101,7 @@ reserved-memory {
 
 ## 几颗伪装弹，点到为止
 
-saga 主线之外还有几颗会伪装成"写损坏"把你带沟里的雷，这里点到、细节都在 pitfalls/04：`bootm` 把 kernel FIT 暂存到 `0x02080000`（kernel load 地址）会自覆盖，得暂存到 `0x04000000`；`mtd read` 读太短会截断 FIT、sha256 fail，长得跟读 corrupt 一模一样；内核太大（11.5MB gzip）会踩过 boot 分区里那块出厂就标坏的 `0x920000`，解法是换 XZ 压缩压到 7.1MB，不是砍代码（这块 PEB 是 loader 老实 skip 的出厂坏块，不是写毛的，别跟 saga 混为一谈）。
+saga 主线之外还有几颗会伪装成"写损坏"把咱们带沟里的雷，这里点到、细节都在 pitfalls/04：`bootm` 把 kernel FIT 暂存到 `0x02080000`（kernel load 地址）会自覆盖，得暂存到 `0x04000000`；`mtd read` 读太短会截断 FIT、sha256 fail，长得跟读 corrupt 一模一样；内核太大（11.5MB gzip）会踩过 boot 分区里那块出厂就标坏的 `0x920000`，解法是换 XZ 压缩压到 7.1MB，不是砍代码（这块 PEB 是 loader 老实 skip 的出厂坏块，不是写毛的，别跟 saga 混为一谈）。
 
 ## 成功长这样
 

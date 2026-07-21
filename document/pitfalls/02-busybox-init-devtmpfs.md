@@ -6,16 +6,16 @@ boot 链好不容易通到 init 了——rkbin 放行、U-Boot 跑完、kernel �
 
 ## 提示符变成 `~ # ~ #`,键盘敲 ls 收到个 `s: not found`
 
-第一道门来得猝不及防。busybox init 起来了,我以为大功告成,结果串口里提示符是 `~ # ~ #`——两个粘一块儿的;我手贱敲个 `ls`,终端回我一句 `s: not found`。一开始我整个人是懵的:ls 怎么就 not found 了?UART 波特率?接线?驱动?
+第一道门来得猝不及防。busybox init 起来了,笔者以为大功告成,结果串口里提示符是 `~ # ~ #`——两个粘一块儿的;笔者手贱敲个 `ls`,终端回笔者一句 `s: not found`。一开始笔者整个人是懵的:ls 怎么就 not found 了?UART 波特率?接线?驱动?
 
-折腾了一阵才反应过来——我敲的 `l` 和 `s` 被拆开了,一个 sh 收到 `l`、另一个 sh 收到 `s`,收到 `s` 的那个当然报 `s: not found`。罪魁是 inittab 我写了两行 respawn:
+折腾了一阵才反应过来——笔者敲的 `l` 和 `s` 被拆开了,一个 sh 收到 `l`、另一个 sh 收到 `s`,收到 `s` 的那个当然报 `s: not found`。罪魁是 inittab 笔者写了两行 respawn:
 
 ```
 ttyS0::respawn:/bin/sh
 console::respawn:/bin/sh   # ← 这行是祸根
 ```
 
-机制在这里:我们的 bootargs 是 `console=ttyS0`,在这种配置下 `/dev/console` 和 `/dev/ttyS0` 指向的是**同一颗 UART**。inittab 里这两行 respawn 各起一个 sh,两个 sh 都 open 同一个 tty,于是你敲下去的字符就被轮流分发到两个进程里——`ls` 劈成 `l` 和 `s`。这跟波特率、接线、驱动一点关系都没有,纯属 init 配置。
+机制在这里:我们的 bootargs 是 `console=ttyS0`,在这种配置下 `/dev/console` 和 `/dev/ttyS0` 指向的是**同一颗 UART**。inittab 里这两行 respawn 各起一个 sh,两个 sh 都 open 同一个 tty,于是咱们敲下去的字符就被轮流分发到两个进程里——`ls` 劈成 `l` 和 `s`。这跟波特率、接线、驱动一点关系都没有,纯属 init 配置。
 
 正解简单粗暴:inittab 只留一行。我把修复和原因都写进了 [inittab](../../board/aes/rootfs/etc/inittab) 的注释里,就那一行 `ttyS0::respawn:/bin/sh`,顺手把"两行会劈字符"这事儿原样记下,省得以后有人手贱又加回去。
 

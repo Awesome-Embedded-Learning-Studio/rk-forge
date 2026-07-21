@@ -32,7 +32,7 @@ forge assemble --rootfs=openwrt --sd   # → update-sd.img(SD)
 
 ### 2. 编 OpenWrt(build)
 
-`scripts/build-openwrt.sh`。这里和 buildroot 走两条路:OpenWrt 自建 musl 工具链,不借 rk-forge 那个 glibc 外部工具链。这是有意的——kmod 的 vermagic 钉死在 kernel .config 上,工具链换了就对不上,opkg 装的 kmod 全废。
+`scripts/build-openwrt.sh`。这里和 buildroot 走两条路:OpenWrt 自建 musl 工具链,不借 rk-forge 那个 glibc 外部工具链。这是有意的——kmod 的 vermagic 绑死在 kernel .config 上,工具链换了就对不上,opkg 装的 kmod 全废。
 
 踩过的坑里三条值得记。第一,`make world -j14` 会把 package/cleanup 和 target/linux/compile 并行跑,稳定挂——拆成分阶段 build,每阶段内部还是 `-j14`,阶段之间走顺序。第二,`source lib/env.sh` 会把 rk-forge 那棵已经打过补丁的 `LINUX_DIR` 喷进环境,OpenWrt 的 `LINUX_DIR ?=` 反而吃了这个值,于是在已经 quilt-apply 过的树上再 apply 一遍 patches-7.1,全炸——`env -u LINUX_DIR` 隔离掉。第三,OpenWrt 的 `cmd()` 在 `-jN` 下有 silent 假失败(kernel 明明编出来了,make 报错),全程 `V=s` 解决。
 

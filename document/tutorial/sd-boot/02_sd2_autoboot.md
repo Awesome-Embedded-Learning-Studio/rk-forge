@@ -34,7 +34,7 @@ Kbuild 直接拒了，错误信息一字不漏贴出来：
 *** in .../third_party/src/uboot
 ```
 
-理由很直白：源树里已经有 NAND 那一轮 in-tree build 的产物（`u-boot-nodtb.bin`、满地的 `.o`、`u-boot.cfg` 那些），Kbuild 不许在脏源树上做 out-of-tree 构建。它让你 `make mrproper` 清干净——可 `mrproper` 一跑，NAND 那一份产物全毁，紧接着的 NAND `pack-fit` 直接断链。这条死路你怎么走都破不了：要么 Kbuild 拒，要么毁 NAND。
+理由很直白：源树里已经有 NAND 那一轮 in-tree build 的产物（`u-boot-nodtb.bin`、满地的 `.o`、`u-boot.cfg` 那些），Kbuild 不许在脏源树上做 out-of-tree 构建。它让咱们 `make mrproper` 清干净——可 `mrproper` 一跑，NAND 那一份产物全毁，紧接着的 NAND `pack-fit` 直接断链。这条死路咱们怎么走都破不了：要么 Kbuild 拒，要么毁 NAND。
 
 ⚠️ 这里千万别想着"那我先编 SD、再编 NAND 顺序来"——两个 defconfig 在同一棵源树里 in-tree build，后编的照样覆盖前一个的产物，pack-fit 拿到的是错的二进制。
 

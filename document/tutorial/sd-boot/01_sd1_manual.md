@@ -16,7 +16,7 @@ SD 启动链看上去和 NAND 差不多（idblock → SPL → U-Boot → kernel 
 
 ## 坑之一：`mmc dev 0` 报 No MMC device
 
-镜像写好、上电，DDR + SPL + verified-boot + 主线 U-Boot 2026.07 一路跑到 `=>` 提示符，机制全通。一敲 `mmc dev 0`，U-Boot 回我 `No MMC device available`——U-Boot proper 看不到 SD 卡。
+镜像写好、上电，DDR + SPL + verified-boot + 主线 U-Boot 2026.07 一路跑到 `=>` 提示符，机制全通。一敲 `mmc dev 0`，U-Boot 回笔者 `No MMC device available`——U-Boot proper 看不到 SD 卡。
 
 根因要回到主线 U-Boot 的 rk3506.dtsi。我们在 [boot/03](../boot/03_kernel.md) 里说过同一件事的内核版：主线对 RK3506 是有驱动的骨架、缺的是设备树。U-Boot 这边一样，patch 0001 那份 bring-up dtsi 是极简版，**把 mmc 等外设全 deferred 了**，只留 console 和 SFC，`mmc@ff480000` 节点根本不存在。这里有个反直觉的点容易绕进去：SPL 明明能从 SD 读 uboot，怎么到了 proper 反而看不到卡？因为 SPL 自带一份精简的 SD 读驱动（够它把 uboot FIT 拽出来就行），而 U-Boot proper 走 driver model（DM），DT 没节点，`dwmmc_rockchip` 驱动就不 probe，自然没 MMC 设备。SPL 和 proper 是两套路径。
 

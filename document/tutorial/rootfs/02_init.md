@@ -12,24 +12,24 @@ boot 链好不容易通到 init。rkbin 放行、U-Boot 跑完、kernel 起来�
 
 第一道门来得猝不及防。busybox init 起来了，看着像大功告成，结果串口里提示符是 `~ # ~ #`，两个粘一块儿；手贱敲个 `ls`，终端回一句 `s: not found`。一开始整个人是懵的：`ls` 怎么就 not found 了？UART 波特率？接线？驱动？
 
-折腾了一阵才反应过来。我敲的 `l` 和 `s` 被拆开了，一个 sh 收到 `l`、另一个 sh 收到 `s`，收到 `s` 的那个当然报 `s: not found`。罪魁是 inittab 我写了两行 respawn：
+折腾了一阵才反应过来。笔者敲的 `l` 和 `s` 被拆开了，一个 sh 收到 `l`、另一个 sh 收到 `s`，收到 `s` 的那个当然报 `s: not found`。罪魁是 inittab 笔者写了两行 respawn：
 
 ```
 ttyS0::respawn:/bin/sh
 console::respawn:/bin/sh   # ← 这行是祸根
 ```
 
-机制在这里。我们的 bootargs 是 `console=ttyS0`，这种配置下 `/dev/console` 和 `/dev/ttyS0` 指向同一颗 UART。inittab 这两行 respawn 各起一个 sh，两个 sh 都 open 同一个 tty，于是你敲下去的字符被轮流分发到两个进程，`ls` 劈成 `l` 和 `s`。这跟波特率、接线、驱动一点关系都没有，纯属 init 配置。
+机制在这里。我们的 bootargs 是 `console=ttyS0`，这种配置下 `/dev/console` 和 `/dev/ttyS0` 指向同一颗 UART。inittab 这两行 respawn 各起一个 sh，两个 sh 都 open 同一个 tty，于是咱们敲下去的字符被轮流分发到两个进程，`ls` 劈成 `l` 和 `s`。这跟波特率、接线、驱动一点关系都没有，纯属 init 配置。
 
 正解简单粗暴：inittab 只留一行 `ttyS0::respawn:/bin/sh`。修复和原因都写进了 [`board/aes/rootfs/etc/inittab`](../../../board/aes/rootfs/etc/inittab) 的注释里，顺手把"两行会劈字符"这事儿原样记下，省得以后有人手贱又加回去。
 
-⚠️ `console=ttyS0` 下，inittab 的控制台 respawn 只能有一行 `ttyS0::respawn:/bin/sh`，千万别图省事再加一行 `console::respawn:/bin/sh`，不然你会收获一个非常诡异的 `~ # ~ #` 加输入劈半。这一坑笔者当时没存现场 log，证据留在 inittab 的源码注释里，要复现就回放双 respawn 的 inittab。
+⚠️ `console=ttyS0` 下，inittab 的控制台 respawn 只能有一行 `ttyS0::respawn:/bin/sh`，千万别图省事再加一行 `console::respawn:/bin/sh`，不然咱们会收获一个非常诡异的 `~ # ~ #` 加输入劈半。这一坑笔者当时没存现场 log，证据留在 inittab 的源码注释里，要复现就回放双 respawn 的 inittab。
 
 ## 暗门二：切完 rootfs，板上疯狂刷 `can't open /dev/ttyS0`
 
 第一道门推开没多久，第二道又来了，而且更阴。首启 provisioning 跑完、`switch_root /mnt /sbin/init` 切过去，busybox init 起 inittab 那行 respawn，结果板上开始疯狂刷 `can't open /dev/ttyS0: No such file or directory`，一行接一行，根本进不了 shell。
 
-这一坑我怀疑过一圈：inittab 是不是又写错了？busybox 是不是没编 `CONFIG_DEVTMPFS`？rootfs 里 /dev 目录是不是忘了建？全都不是。真正的机制是 devtmpfs 的挂载时机。我们的 kernel 配了 `CONFIG_DEVTMPFS_MOUNT=y`，但这玩意儿只自动挂到 initramfs 自己的 /dev 上；一旦 switch_root 切到真 rootfs（UBIFS），新根的 /dev 是个没人管的空目录——UBIFS rootfs 没预填设备节点，也没人给它挂 devtmpfs。于是 busybox init 那行 respawn 去 open `/dev/ttyS0`，扑了个空，死循环刷错。
+这一坑笔者怀疑过一圈：inittab 是不是又写错了？busybox 是不是没编 `CONFIG_DEVTMPFS`？rootfs 里 /dev 目录是不是忘了建？全都不是。真正的机制是 devtmpfs 的挂载时机。我们的 kernel 配了 `CONFIG_DEVTMPFS_MOUNT=y`，但这玩意儿只自动挂到 initramfs 自己的 /dev 上；一旦 switch_root 切到真 rootfs（UBIFS），新根的 /dev 是个没人管的空目录——UBIFS rootfs 没预填设备节点，也没人给它挂 devtmpfs。于是 busybox init 那行 respawn 去 open `/dev/ttyS0`，扑了个空，死循环刷错。
 
 板上串口把这个时序演得很清楚。失败那次的 [boot-sdl-202606162243](../../logs/boot-sdl-202606162243.txt)，provisioning 刚完切过去，紧接着就是刷屏：
 
@@ -56,9 +56,9 @@ mount -t devtmpfs none /mnt/dev 2>/dev/null
 
 为什么挂到 `/mnt/dev` 而不是别处？因为这时候真 rootfs 还挂在 `/mnt`，devtmpfs 挂到 `/mnt/dev`，等会儿 switch_root 把 `/mnt` 提成新根，这个 devtmpfs 自然就成了新根的 `/dev`，busybox init 的 respawn 就能 open 到 `/dev/ttyS0`。switch_root 不重建文件系统命名空间，它只是把进程的根目录和当前目录切到新根，已挂载的 vfs 树原样带过去——这正是为什么"在 pivot 前挂到 `/mnt/dev`"能落在 pivot 后的 `/dev`。改完上板，同一个流程，[boot-sdl-202606162254](../../logs/boot-sdl-202606162254.txt) 里 `switch_root` 之后再没有那句刷屏，干干净净落到 shell。
 
-⚠️ initramfs 的 `/init` 在 switch_root 之前，一定记得 `mkdir -p /mnt/dev && mount -t devtmpfs none /mnt/dev`。别指望 `CONFIG_DEVTMPFS_MOUNT=y` 能帮你盖到真 rootfs，它只管 initramfs 自己那一亩三分地；新根的 /dev 要你自己挂。
+⚠️ initramfs 的 `/init` 在 switch_root 之前，一定记得 `mkdir -p /mnt/dev && mount -t devtmpfs none /mnt/dev`。别指望 `CONFIG_DEVTMPFS_MOUNT=y` 能帮咱们盖到真 rootfs，它只管 initramfs 自己那一亩三分地；新根的 /dev 要咱们自己挂。
 
-## 顺带一坑：TMPFS 没钉死，`mount -t tmpfs` 静默退回 ramfs
+## 顺带一坑：TMPFS 没显式锁住，`mount -t tmpfs` 静默退回 ramfs
 
 inittab 里除了 respawn 那行，还有几行 sysinit 往 `/tmp`、`/run` 挂 tmpfs：
 
@@ -67,7 +67,7 @@ inittab 里除了 respawn 那行，还有几行 sysinit 往 `/tmp`、`/run` 挂 
 ::sysinit:/bin/mount -t tmpfs   none /run
 ```
 
-这几行看着无害，但踩过一个阴的。`multi_v7` defconfig 默认只开 `TMPFS_POSIX_ACL`、不开 `CONFIG_TMPFS`，TMPFS 本身是靠默认 y 跟着上去的；而我们裁体积那条链（`merge_config` + `olddefconfig`）能把 TMPFS 默默掉成 `# CONFIG_TMPFS is not set`，板上 `.config` 真就出现过这一行。TMPFS 关掉之后 `mount -t tmpfs` 不会报错，内核把它静默退回 ramfs，而 ramfs 不认 buildroot `/etc/fstab` 里的 `mode=` 选项，于是 `/tmp` 挂不上、报一句 `unknown parameter 'mode'`。所以 [`board/rk3506-evb/kernel-trim.config`](../../../board/rk3506-evb/kernel-trim.config) 里把 `CONFIG_TMPFS=y` 显式钉死了，配 KEEP 注释写明"别让 merge_config 把它掉成 n"。这一坑不算 init 时序本身，但它跟 inittab 那几行 sysinit 强绑定：TMPFS 不在，init 阶段就又会卡一道，所以一并记在这里。
+这几行看着无害，但踩过一个阴的。`multi_v7` defconfig 默认只开 `TMPFS_POSIX_ACL`、不开 `CONFIG_TMPFS`，TMPFS 本身是靠默认 y 跟着上去的；而我们裁体积那条链（`merge_config` + `olddefconfig`）能把 TMPFS 默默掉成 `# CONFIG_TMPFS is not set`，板上 `.config` 真就出现过这一行。TMPFS 关掉之后 `mount -t tmpfs` 不会报错，内核把它静默退回 ramfs，而 ramfs 不认 buildroot `/etc/fstab` 里的 `mode=` 选项，于是 `/tmp` 挂不上、报一句 `unknown parameter 'mode'`。所以 [`board/rk3506-evb/kernel-trim.config`](../../../board/rk3506-evb/kernel-trim.config) 里把 `CONFIG_TMPFS=y` 显式锁住了，配 KEEP 注释写明"别让 merge_config 把它掉成 n"。这一坑不算 init 时序本身，但它跟 inittab 那几行 sysinit 强绑定：TMPFS 不在，init 阶段就又会卡一道，所以一并记在这里。
 
 ## 成功长这样
 

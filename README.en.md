@@ -55,6 +55,7 @@ Not a slide deck — these are capabilities running on real hardware (AES-RK3506
 | I2C×3 + UART2 (RMIO crossbar) | ✅ on board | RMIO mux ported |
 | Audio (ES8388 + SAI1 + DMA) | ✅ digital chain | sound card registered, aplay/mpg123 48k clean playback |
 | WiFi (RTL8733BU, wlan0/wlan1) | ✅ on-board probe | out-of-tree driver onto 7.1, full probe |
+| **OpenWrt rootfs profile** (opkg / kmod / LuCI) | ✅ on board | `--rootfs=openwrt`, alongside buildroot; OpenWrt builds kernel+rootfs (musl), vermagic matches by construction; NAND(UBIFS) + SD both verified |
 
 The pre-U-Boot stages (DDR / secure) still borrow the `rkbin` blob — a hard reality of the RK platform; see [Honest blob policy](#-honest-blob-policy).
 
@@ -76,6 +77,8 @@ bash scripts/forge.sh status           # see which stages are up-to-date (increm
 bash scripts/forge.sh assemble --sd    # build an SD-card image (RKFW; this board's ROM accepts only an RK-tool card)
 bash scripts/forge.sh clean --full     # clean rebuild
 ```
+
+> **Want OpenWrt (opkg / LuCI / kmod)?** Add `--rootfs=openwrt` to the same orchestrator to switch to the OpenWrt profile — OpenWrt builds its own kernel + rootfs (musl toolchain, so kmod vermagic matches by construction), while rk-forge still does the RK-specific packing; both NAND and SD paths are verified on board. Usage: `bash scripts/forge.sh all --rootfs=openwrt` (add `--sd` for the SD image). Tutorial: [OpenWrt port](document/tutorial/openwrt/00_openwrt.md) · Reference: [board/aes/openwrt/README.md](board/aes/openwrt/README.md). The buildroot profile remains the default and is untouched without the flag.
 
 > **Build progress:** `forge build` shows live progress ([buildmeter](https://github.com/Awesome-Embedded-Learning-Studio/buildmeter)) — a bordered color Panel if `rich` is installed, a zero-dependency ANSI bar otherwise. `FORGE_PROGRESS=0` disables it.
 
@@ -109,11 +112,11 @@ scripts/
   lib/{env,log,stage,toolchain,host,rkbin}.sh   shared libs; stage.sh = content-hash incremental skip
   apply-series.sh              ordered patch library (git am + true --check dry-run + atomic rollback)
   fit-pack.py · rkfw-pack.py   pure-Python packers, replacing vendor mkimage / afptool / rkImageMaker
-  build-{linux,uboot,rootfs}.sh · pack-{loader,fit,sd,ubifs}.sh · assemble-update.sh
+  build-{linux,uboot,rootfs,openwrt}.sh · pack-{loader,fit,sd,ubifs}.sh · assemble-update.sh
   doctor.sh · env-setup.sh · fetch-deps.sh · flash-sd.sh
-patches/{linux,uboot}/series   ordered patch series ([mainline]/[uboot] prefix)
-board/                         aes/(build workspace: fit/rootfs/buildroot-external) · rk3506-evb/(board config)
-third_party/                   rkbin(pinned submodule) · buildroot · src/(linux·uboot trees, fetch-deps-managed)
+patches/{linux,uboot,openwrt}/series   ordered patch series ([mainline]/[uboot] prefix; openwrt is a Device/aes + config overlay)
+board/                         aes/(build workspace: fit/rootfs/buildroot-external/openwrt) · rk3506-evb/(board config)
+third_party/                   rkbin(pinned submodule) · buildroot · src/(linux·uboot trees, +openwrt optional profile, fetch-deps-managed)
 reference/                     vendor-sdk(reference/extraction pool, NOT a build dependency)
 config/                        forge.env · toolchain.conf (declarative config)
 document/                      tutorial · pitfalls · notes · logs · sdk-diff

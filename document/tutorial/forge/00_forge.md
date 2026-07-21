@@ -73,7 +73,7 @@ rootfs 那个 ext4 **不是** byte-identical——`mke2fs -d` 的 superblock 写
 
 ## 一个 shell 上的提醒
 
-forge 的 lib 脚本用 `BASH_SOURCE` 定位自己，bash 数组也用了一堆，zsh 下这些不可靠。所以**一律用 `bash scripts/forge.sh ...` 调**，别直接 `./scripts/forge.sh`（shebang 在正常情况下能兜住，但 `sh scripts/forge.sh` 这种就抓瞎了）。forge 自己也加了 guard：发现不是 bash 跑的，会 `exec` 重启自己到 bash 下——这是兜底，不是让你随便用 sh 调。
+forge 的 lib 脚本用 `BASH_SOURCE` 定位自己，bash 数组也用了一堆，zsh 下这些不可靠。所以**一律用 `bash scripts/forge.sh ...` 调**，别直接 `./scripts/forge.sh`（shebang 在正常情况下能兜住，但 `sh scripts/forge.sh` 这种就抓瞎了）。forge 自己也加了 guard：发现不是 bash 跑的，会 `exec` 重启自己到 bash 下——这是兜底，不是让咱们随便用 sh 调。
 
 ## 成功长这样
 
@@ -95,6 +95,6 @@ assemble: done
 all done → board/aes/out/update.img
 ```
 
-从源树到一块能烧的 `update.img`，一条命令、按 DAG、只重跑该跑的步骤，构建链对 vendor-sdk 零依赖。前面那些系列里手敲的每一行——fetch、apply、build、pack-loader、pack-fit、stage-rootfs、pack-ubifs、assemble——forge 都替你串起来了；afptool、rkImageMaker、vendor mkimage 这三个 ATK 闭源工具，被 rkfw-pack.py 和 fit-pack.py 换成了仓库里的两个 Python 文件。
+从源树到一块能烧的 `update.img`，一条命令、按 DAG、只重跑该跑的步骤，构建链对 vendor-sdk 零依赖。前面那些系列里手敲的每一行——fetch、apply、build、pack-loader、pack-fit、stage-rootfs、pack-ubifs、assemble——forge 都替咱们串起来了；afptool、rkImageMaker、vendor mkimage 这三个 ATK 闭源工具，被 rkfw-pack.py 和 fit-pack.py 换成了仓库里的两个 Python 文件。
 
-到这里，整个教程走完了：boot 让板子启动到 console，rootfs 让它持久跑进 shell，peripherals 把外设一个个点亮，sd-boot 开出第二条启动路，本篇用 forge 把这一切自动化、并把 ATK 那套闭源工具链彻底干掉。一块空板，到一块能联网、能持久、能一键出镜像、构建链全公开的 RK3506 主线开发板——这就是 rk-forge 这本书带你走完的全程。给板子拍张照，完结撒花。
+到这里，整个教程走完了：boot 让板子启动到 console，rootfs 让它持久跑进 shell，peripherals 把外设一个个点亮，sd-boot 开出第二条启动路，本篇用 forge 把这一切自动化、并把 ATK 那套闭源工具链彻底干掉。一块空板，到一块能联网、能持久、能一键出镜像、构建链全公开的 RK3506 主线开发板——这就是 rk-forge 这本书带咱们走完的全程。给板子拍张照，完结撒花。

@@ -55,6 +55,7 @@ rk-forge 服务**没人服务的 RK3506**：把最新主线 Linux 跑起来，�
 | I2C×3 + UART2（RMIO 交叉开关） | ✅ 板上 | RMIO mux 移植 |
 | Audio（ES8388 + SAI1 + DMA） | ✅ 数字链路 | 声卡注册、aplay/mpg123 48k 干净播完 |
 | WiFi（RTL8733BU，wlan0/wlan1） | ✅ 板上 probe | out-of-tree 驱动搬到 7.1，全链 probe |
+| **OpenWrt rootfs profile**（opkg / kmod / LuCI） | ✅ 板上 | `--rootfs=openwrt`，与 buildroot 并列；OpenWrt 自建 kernel+rootfs（musl），vermagic 天然匹配；NAND(UBIFS) + SD 双路板验 |
 
 启动前段（DDR / secure）仍借 `rkbin` blob——这是 RK 平台的硬现实，详见 [诚实 blob 政策](#-诚实-blob-政策)。
 
@@ -76,6 +77,8 @@ bash scripts/forge.sh status           # 看哪些 stage 是最新（增量跳�
 bash scripts/forge.sh assemble --sd    # 出 SD 卡镜像（RKFW，本板 ROM 只认 RK-tool 卡）
 bash scripts/forge.sh clean --full     # 干净重建
 ```
+
+> **想要 OpenWrt（opkg / LuCI / kmod）？** 同一条编排器加 `--rootfs=openwrt` 即可切到 OpenWrt profile——OpenWrt 自建 kernel + rootfs（musl 工具链，kmod vermagic 天然匹配），rk-forge 照样负责 RK 专属打包；NAND 和 SD 两条路都板上验证过。用法：`bash scripts/forge.sh all --rootfs=openwrt`（SD 版加 `--sd`）。教程：[OpenWrt 移植](document/tutorial/openwrt/00_openwrt.md) · 速查：[board/aes/openwrt/README.md](board/aes/openwrt/README.md)。buildroot profile 是默认，不加 flag 完全不受影响。
 
 > **build 进度条**：`forge build` 跑时显示实时进度（[buildmeter](https://github.com/Awesome-Embedded-Learning-Studio/buildmeter)）—— 装了 `rich` 走华丽边框 Panel，没装走零依赖 ANSI bar。`FORGE_PROGRESS=0` 关闭。
 
@@ -109,11 +112,11 @@ scripts/
   lib/{env,log,stage,toolchain,host,rkbin}.sh   共享库；stage.sh = 内容哈希增量跳过
   apply-series.sh              有序补丁库（git am + 真干跑 --check + 原子回滚）
   fit-pack.py · rkfw-pack.py   纯 Python 打包器，取代 vendor mkimage / afptool / rkImageMaker
-  build-{linux,uboot,rootfs}.sh · pack-{loader,fit,sd,ubifs}.sh · assemble-update.sh
+  build-{linux,uboot,rootfs,openwrt}.sh · pack-{loader,fit,sd,ubifs}.sh · assemble-update.sh
   doctor.sh · env-setup.sh · fetch-deps.sh · flash-sd.sh
-patches/{linux,uboot}/series   有序补丁序列（[mainline]/[uboot] 前缀）
-board/                         aes/(构建工作区:fit/rootfs/buildroot-external) · rk3506-evb/(板 config)
-third_party/                   rkbin(pinned submodule) · buildroot · src/(linux·uboot 源树,fetch-deps 管理)
+patches/{linux,uboot,openwrt}/series   有序补丁序列（[mainline]/[uboot] 前缀；openwrt 是 Device/aes + config overlay）
+board/                         aes/(构建工作区:fit/rootfs/buildroot-external/openwrt) · rk3506-evb/(板 config)
+third_party/                   rkbin(pinned submodule) · buildroot · src/(linux·uboot 源树,+openwrt 可选 profile,fetch-deps 管理)
 reference/                     vendor-sdk(参照/萃取池,非构建依赖)
 config/                        forge.env · toolchain.conf（声明式配置）
 document/                      tutorial · pitfalls · notes · logs · sdk-diff

@@ -6,7 +6,7 @@
 
 boot 系列拿 shell 的法子是一个手搓 initramfs：静态 busybox 加一个 `/init`，塞进 kernel FIT 当 ramdisk。能跑，但那是"为快速验证启动链"的凑合，rootfs 内容全靠手维护，加个工具就得自己交叉编译、自己塞 overlay，不可持续。
 
-rootfs 这程要的是正规流程，所以上 buildroot。buildroot 会从源码给你编一整个最小 Linux 根文件系统——busybox、glibc 运行时、init 配置、FHS 目录结构，一条 `make` 出齐。RK3506 是 Cortex-A7 / NEON-VFPv4，工具链就用我们在 [boot Ch1](../boot/01_toolchain.md) 钉死的那套：`/opt` 下的 Arm GNU 15.2，和板上 boot+RW 验过的完全一致，不另起炉灶。
+rootfs 这程要的是正规流程，所以上 buildroot。buildroot 会从源码给你编一整个最小 Linux 根文件系统——busybox、glibc 运行时、init 配置、FHS 目录结构，一条 `make` 出齐。RK3506 是 Cortex-A7 / NEON-VFPv4，工具链就用我们在 [boot Ch1](../boot/01_toolchain.md) 敲定的那套：`/opt` 下的 Arm GNU 15.2，和板上 boot+RW 验过的完全一致，不另起炉灶。
 
 ## 材料：buildroot 本体 + 我们的 BR2_EXTERNAL
 
@@ -22,13 +22,13 @@ defconfig 里要紧的选择逐条过一下。架构 `arm`、`cortex-a7`、`neon
 
 ## 坑之一：WSL 的 PATH 里带空格，buildroot 当场拒跑
 
-第一个坑死得最快，都没走到工具链校验。WSL 会把 Windows 的 PATH 互操作进来，于是 `PATH` 里赫然躺着 `/mnt/c/Program Files/...` 这种带空格的条目。buildroot 的 `dependencies.mk:27` 一看 PATH 里有空格，直接甩一句 `Your PATH contains spaces, TABs, and/or newline` 然后 exit 1，连配置都不让你生成。
+第一个坑死得最快，都没走到工具链校验。WSL 会把 Windows 的 PATH 互操作进来，于是 `PATH` 里赫然躺着 `/mnt/c/Program Files/...` 这种带空格的条目。buildroot 的 `dependencies.mk:27` 一看 PATH 里有空格，直接甩一句 `Your PATH contains spaces, TABs, and/or newline` 然后 exit 1，连配置都不让咱们生成。
 
 这跟 buildroot 没关系，跟 defconfig 也没关系，纯环境问题。修法是在跑 buildroot 之前，把 PATH 里所有 `/mnt/*` 和含空白字符的条目剥掉，再把工具链 bin 目录前置进去。具体写法见后面 canonical 调用里那一行 `tr` + `grep -vE`，就是干这个的。
 
 ## 坑之二：外部工具链的语言检查，C++/Fortran/OpenMP 连环绊
 
-PATH 弄干净，进到工具链校验，连环坑来了。Arm GNU 工具链是全套——bin 里 g++、gfortran 都有，gcc 还带 OpenMP。buildroot 的 `check_cplusplus` / `check_fortran` / `check_openmp` 要求 defconfig 必须老老实实承认工具链实际带的每一种语言，少承认一种，configure 阶段就 exit 1。它还连着绊：你补上 C++，下一个又卡 Fortran，再下一个 OpenMP，一个接一个。
+PATH 弄干净，进到工具链校验，连环坑来了。Arm GNU 工具链是全套——bin 里 g++、gfortran 都有，gcc 还带 OpenMP。buildroot 的 `check_cplusplus` / `check_fortran` / `check_openmp` 要求 defconfig 必须老老实实承认工具链实际带的每一种语言，少承认一种，configure 阶段就 exit 1。它还连着绊：咱们补上 C++，下一个又卡 Fortran，再下一个 OpenMP，一个接一个。
 
 解法是 defconfig 里把这几项全开。`BR2_TOOLCHAIN_EXTERNAL_CXX=y` 会 select `BR2_INSTALL_LIBSTDCPP`，往 rootfs 装 libstdc++，几 MB，174MiB 的 UBIFS 无所谓。`BR2_TOOLCHAIN_EXTERNAL_FORTRAN=y` 和 `BR2_TOOLCHAIN_EXTERNAL_OPENMP=y` 只是能力声明，不装运行时。D 语言不用管——这套工具链没 gdc，check 自动过。
 
@@ -67,6 +67,6 @@ rootfs.tar    8.76 MB   ← 给 UBIFS staging 用
 
 里面的 busybox 是 ARM EABI5 **hard-float**（`ld-linux-armhf.so.3`），动态链接，`/sbin/init` 是 busybox 的符号链接，`/etc/inittab|passwd|shadow` 齐全，glibc 运行时加 libstdc++ 都在 `/lib`，FHS 结构完整。一份正规的、能烧能启的最小 rootfs，到手。
 
-这份 rootfs 烧进板子跑起来，是 [boot-sdl-202606181919](../../logs/boot-sdl-202606181919.txt) 那一轮——主线 U-Boot → ubiprog 置备 → switch_root → `Welcome to rk-forge buildroot` → root 登录。打包这条 rootfs 进 NAND 用的 FIT packer 已经从早期的 vendor mkimage 换成了纯 Python 的 [`scripts/fit-pack.py`](../../../scripts/fit-pack.py)（字节级复现 vendor mkimage 的 SPL 兼容 -E 外部数据布局，见 [notes/20](../../notes/20-2026-06-19-mkimage-saga-handoff.md)），ubiprog 和持久化细节则是 Ch3 的事；这章你只要知道，buildroot 出的这份 rootfs，板上能跑进 shell。
+这份 rootfs 烧进板子跑起来，是 [boot-sdl-202606181919](../../logs/boot-sdl-202606181919.txt) 那一轮——主线 U-Boot → ubiprog 置备 → switch_root → `Welcome to rk-forge buildroot` → root 登录。打包这条 rootfs 进 NAND 用的 FIT packer 已经从早期的 vendor mkimage 换成了纯 Python 的 [`scripts/fit-pack.py`](../../../scripts/fit-pack.py)（字节级复现 vendor mkimage 的 SPL 兼容 -E 外部数据布局，见 [notes/20](../../notes/20-2026-06-19-mkimage-saga-handoff.md)），ubiprog 和持久化细节则是 Ch3 的事；这章咱们只要知道，buildroot 出的这份 rootfs，板上能跑进 shell。
 
 rootfs 的内容有了。但内核 handoff 到这份 rootfs、busybox init 把 shell 起起来，中间还卡着两道 init 时序的暗门——一道是控制台被抢、一道是新根的 `/dev` 是空的。我们 Ch2 见。

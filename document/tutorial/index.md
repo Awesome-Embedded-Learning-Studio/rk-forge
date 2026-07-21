@@ -6,7 +6,7 @@ title: 教程系列
 
 ## 学习路线图
 
-rk-forge 的 bring-up 弧线分五个阶段，按下面的顺序读最顺。我们先把板子**启动**起来——主线 U-Boot 加一份板级设备树；再让它**持久登录**，rootfs 这条路把 buildroot、init 时序、UBIFS 与 loader 弱写 saga 一口气走完；接着把**外设**一个个点亮，Ethernet/SPI/MMC、USB、WiFi、I2C/UART、Audio 全上板；之后补 **SD 卡**这条第二条启动路，纯 SD 也能 boot；最后用 **forge 编排器**把整条构建链收成一个命令。
+rk-forge 的 bring-up 弧线分五个阶段，按下面的顺序读最顺。我们先把板子**启动**起来——主线 U-Boot 加一份板级设备树；再让它**持久登录**，rootfs 这条路把 buildroot、init 时序、UBIFS 与 loader 弱写 saga 一口气走完；接着把**外设**一个个点亮，Ethernet/SPI/MMC、USB、WiFi、I2C/UART、Audio 全上板；之后补 **SD 卡**这条第二条启动路，纯 SD 也能 boot；最后用 **forge 编排器**把整条构建链收成一个命令。这五阶段是主弧线；跑通之后若还想要一套真能 `opkg` / LuCI 的发行版，再岔到 [OpenWrt 支线](openwrt/)——它和 buildroot 并列，是 rootfs 的进阶选择。
 
 <RoadMap>
   <RoadMapPhase icon="🚀" title="引导启动" subtitle="Boot" time="主线 U-Boot + Kernel" :difficulty="3" :num="1">
@@ -86,6 +86,12 @@ rk-forge 的 bring-up 弧线分五个阶段，按下面的顺序读最顺。我�
 
 <ChapterNav>
   <ChapterLink num="01" href="forge/00_forge">forge：收成一个编排器</ChapterLink>
+</ChapterNav>
+
+### OpenWrt（可选支线）
+
+<ChapterNav>
+  <ChapterLink num="01" href="openwrt/00_openwrt">OpenWrt：给 RK3506 装一套真能 opkg 的发行版</ChapterLink>
 </ChapterNav>
 
 ::: tip 遇到问题？

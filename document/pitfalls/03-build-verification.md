@@ -6,9 +6,9 @@
 
 ## 增量重编,syncconfig 莫名其妙找不到 gcc
 
-事情是这样的:我改了一行驱动,想增量重编内核,结果 `scripts/kconfig/conf --syncconfig Kconfig` 这一阶段直接报错,说找不到 gcc,构建中断。第一反应是常规排查——是不是缺包了?工具链没装好?.config 损坏了?查一圈全没问题。
+事情是这样的:笔者改了一行驱动,想增量重编内核,结果 `scripts/kconfig/conf --syncconfig Kconfig` 这一阶段直接报错,说找不到 gcc,构建中断。第一反应是常规排查——是不是缺包了?工具链没装好?.config 损坏了?查一圈全没问题。
 
-折腾半天才定位到,根子出在 `CROSS_COMPILE` 我给的是个**相对路径**,大概是 `arm-linux-gnueabihf-` 这种,或者 `../../vendor-sdk/.../arm-none-linux-gnueabihf-`。机制在于:syncconfig 这一步是 kconfig 在 worktree 根目录跑的,它会拿 `CROSS_COMPILE` 去拼 `gcc` 的路径;你给相对路径,它就按 worktree 根那个工作目录去解析,解析到的地方根本没 gcc,于是整条增量链断在这儿。这也解释了为什么 vendor 的 `make.sh`/build.sh 一律传绝对路径——不是他们啰嗦,是被坑过。
+折腾半天才定位到,根子出在 `CROSS_COMPILE` 笔者给的是个**相对路径**,大概是 `arm-linux-gnueabihf-` 这种,或者 `../../vendor-sdk/.../arm-none-linux-gnueabihf-`。机制在于:syncconfig 这一步是 kconfig 在 worktree 根目录跑的,它会拿 `CROSS_COMPILE` 去拼 `gcc` 的路径;咱们给相对路径,它就按 worktree 根那个工作目录去解析,解析到的地方根本没 gcc,于是整条增量链断在这儿。这也解释了为什么 vendor 的 `make.sh`/build.sh 一律传绝对路径——不是他们啰嗦,是被坑过。
 
 正解没有捷径:`CROSS_COMPILE` 必须是整段绝对路径。你去看 vendor 的构建日志,[build-uboot.log](../logs/build-uboot.log) 第 167 行就是这么干的:
 
@@ -16,7 +16,7 @@
 + ./make.sh CROSS_COMPILE=/home/charliechen/rk-forge/third_party/vendor-sdk/prebuilts/gcc/linux-x86/arm/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf- alientek_rk3506 --spl-new
 ```
 
-一长串绝对路径,内核构建日志 [build-kernel.log](../logs/build-kernel.log) 里也是同一个套路(行 99/182/2812/3237)。所以 forge 这边的脚本、文档、还有我自己的命令速记,统统把 CROSS_COMPILE 钉死成绝对路径。
+一长串绝对路径,内核构建日志 [build-kernel.log](../logs/build-kernel.log) 里也是同一个套路(行 99/182/2812/3237)。所以 forge 这边的脚本、文档、还有我自己的命令速记,统统把 CROSS_COMPILE 写死成绝对路径。
 
 ⚠️ 任何 kconfig-driven 的构建(内核、U-Boot)增量重编之前,先确认 `CROSS_COMPILE` 是绝对路径。相对路径能让你在 syncconfig 阶段卡半天还摸不着头脑——这条当时没存下报错原文(现存的 build log 都是成功的绝对路径构建),你要复现,拿 `CROSS_COMPILE=arm-linux-gnueabihf-` 跑一次增量重编就能抓到那句"找不到 gcc"。
 

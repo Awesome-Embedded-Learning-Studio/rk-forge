@@ -44,7 +44,7 @@ bringup 那会儿最快见效的解法是一行 DT：把 `spi-max-frequency` 从
 
 内核好不容易起来了，`Starting kernel ...` 也打出来了，结果 earlycon 把控制权交接给真正的 ttyS0 console 之后，屏幕就"没动静"了——看着像内核卡死，其实人家在好好跑，只是你看不见。
 
-这是 RK 的 DW 8250 console 的一个通病：bootargs 里 `console=ttyS0` 如果不跟波特率，console 接管后波特率不对，输出就乱了。正解是**必须带波特率**：`console=ttyS0,1500000`，上面那行 bootargs 里已经带上了。这种坑最磨人——你盯着一个"卡死"的串口排查半天内核，结果根因在 bootargs 漏了几个字符。
+这是 RK 的 DW 8250 console 的一个通病：bootargs 里 `console=ttyS0` 如果不跟波特率，console 接管后波特率不对，输出就乱了。正解是**必须带波特率**：`console=ttyS0,1500000`，上面那行 bootargs 里已经带上了。这种坑最磨人——咱们盯着一个"卡死"的串口排查半天内核，结果根因在 bootargs 漏了几个字符。
 
 ## 成功长这样
 

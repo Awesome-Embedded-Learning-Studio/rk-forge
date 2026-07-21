@@ -51,6 +51,17 @@ bash scripts/forge.sh clean --full     # 干净重建
 
 产物落在 `board/aes/out/update.img`。
 
+## OpenWrt rootfs profile（可选）
+
+上面默认走 buildroot rootfs。想要 OpenWrt（opkg / LuCI / kmod 完整体验），同一条 `forge` 加 `--rootfs=openwrt` 即可——OpenWrt 自建 kernel + musl rootfs（kmod vermagic 天然匹配），rk-forge 照样负责 RK 专属打包，NAND 和 SD 两条路都板上验证过：
+
+```bash
+bash scripts/forge.sh all --rootfs=openwrt             # → update.img（NAND，首启从 RAM 置备 UBIFS）
+bash scripts/forge.sh assemble --rootfs=openwrt --sd   # → SD 卡镜像（ext4 rootfs）
+```
+
+buildroot 仍是默认 profile，不加 flag 完全不受影响；两个 profile 共享 `out/`，切换前若指纹混淆用 `forge clean` 清一下。想读懂整条移植链路（vermagic 为什么钉死 kernel 自建、from-source 首启置备怎么杀三个坑），读 [OpenWrt 教程](document/tutorial/openwrt/00_openwrt.md)；架构取舍与加包的速查参考见 [board/aes/openwrt/README.md](board/aes/openwrt/README.md)。
+
 ## 4. 烧录 & 上板
 
 - **SD 卡**：`forge assemble --sd` 出的镜像用 Rockchip SD 卡工具写入（本板 ROM 只从 RK-tool 卡启动，裸 `dd` 的 SD 不认）。
