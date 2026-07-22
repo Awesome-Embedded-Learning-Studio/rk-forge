@@ -19,12 +19,12 @@
 #                 Boot args at the => prompt: `console=ttyS0,1500000` ONLY (no
 #                 root=/ubi.mtd=, or the kernel mounts root itself and /init never
 #                 runs). Read the WHOLE boot partition:
-#                   `mtd read boot 0x04000000 0 0x1000000; bootm 0x04000000`
+#                   `mtd read boot 0x04000000 0 0x1800000; bootm 0x04000000`
 #                 The old "<0x920000 factory-bad block / kernel must be <9.125 MiB"
 #                 story was a MISDIAGNOSIS (see document/logs/boot-sdl-202606180034.txt):
 #                 0x920000 is a good block, the loader writes it clean, and the ECC -74
 #                 was factory garbage in a region the image never reached. The only real
-#                 constraint is kernel < boot partition (16 MiB). This script pads
+#                 constraint is boot.img < boot partition (24 MiB). This script pads
 #                 boot.img to fill the partition (see below) so the loader erases+writes
 #                 the whole partition — no factory-garbage gap on a fresh chip — making
 #                 the full-partition read always clean on every board.

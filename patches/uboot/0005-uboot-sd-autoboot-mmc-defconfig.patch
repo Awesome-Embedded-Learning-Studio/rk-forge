@@ -84,8 +84,8 @@ index 00000000..36eac90a
 +CONFIG_CMD_BOOTM=y
 +CONFIG_CMD_BOOTZ=y
 +CONFIG_SYS_BOOTM_LEN=0x2000000
-+# NAND partition: boot = 16MB @ sector 0xBA00 (= byte 0x1740000), holds kernel FIT
-+CONFIG_MTDPARTS_DEFAULT="mtdparts=spi-nand0:16m@0x1740000(boot)"
++# NAND partition: boot = 24MB @ sector 0xBA00 (= byte 0x1740000), holds kernel FIT
++CONFIG_MTDPARTS_DEFAULT="mtdparts=spi-nand0:24m@0x1740000(boot)"
 +
 +# autoboot (SD): env=nowhere → compiled-default bootcmd runs every boot. Loads the
 +# SD kernel FIT (boot.img @ sector 0x4000) via `mmc read` (RAW, no fs: defconfig has

@@ -9,7 +9,7 @@ Content-Transfer-Encoding: 8bit
 
 env=nowhere runs the compiled-default bootcmd every boot. Override the default 'bootflow scan -lb' (finds 0 MTD bootdevs, drops to prompt) with the verified manual sequence: console-only bootargs + full-partition mtd read + bootm.
 
-bootargs console-only (no ubi.mtd=/root= — NAND-direct, would pre-attach ubi0 and break initramfs /init ubiprog provisioning). mtd read 0x1000000 = full 16MB boot partition (boot.img 8.32M+padding; smaller truncates ramdisk -> bootm sha256 fail).
+bootargs console-only (no ubi.mtd=/root= — NAND-direct, would pre-attach ubi0 and break initramfs /init ubiprog provisioning). mtd read 0x1800000 = full 24MB boot partition (boot.img up to ~18M+padding when buildroot rootfs is embedded; smaller truncates ramdisk -> bootm sha256 fail).
 
 Board-verified: boot-sdl-202606182124 (autoboot -> mtd read -> bootm -> kernel, zero manual input).
 ---
@@ -22,14 +22,14 @@ index 382dedb0..7e3f26d2 100644
 +++ b/configs/evb-rk3506_defconfig
 @@ -50,3 +50,9 @@ CONFIG_CMD_BOOTZ=y
  CONFIG_SYS_BOOTM_LEN=0x2000000
- # NAND partition: boot = 16MB @ sector 0xBA00 (= byte 0x1740000), holds kernel FIT
- CONFIG_MTDPARTS_DEFAULT="mtdparts=spi-nand0:16m@0x1740000(boot)"
+ # NAND partition: boot = 24MB @ sector 0xBA00 (= byte 0x1740000), holds kernel FIT
+ CONFIG_MTDPARTS_DEFAULT="mtdparts=spi-nand0:24m@0x1740000(boot)"
 +
 +# autoboot: env=nowhere → compiled-default bootcmd runs on every boot (no
 +# hand-typed 3 lines). console-only bootargs (no ubi.mtd=/root= — those are
 +# NAND-direct, would pre-attach ubi0 and break the initramfs /init provisioning).
 +CONFIG_USE_BOOTCOMMAND=y
-+CONFIG_BOOTCOMMAND="setenv bootargs 'console=ttyS0,1500000'; mtd read boot 0x04000000 0 0x1000000; bootm 0x04000000"
++CONFIG_BOOTCOMMAND="setenv bootargs 'console=ttyS0,1500000'; mtd read boot 0x04000000 0 0x1800000; bootm 0x04000000"
 -- 
 2.43.0
 
