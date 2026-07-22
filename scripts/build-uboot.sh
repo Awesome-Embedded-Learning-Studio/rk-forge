@@ -63,12 +63,12 @@ check_toolchain || die "toolchain not on PATH. Run: source scripts/env-setup.sh"
 # Variant config: defconfig + build dir (in-tree vs worktree) + output paths.
 case "$VARIANT" in
   nand)
-    DEFCONFIG="evb-rk3506_defconfig"
+    DEFCONFIG="$UBOOT_DEFCONFIG"
     BUILD_DIR="$UBOOT_DIR_LOCAL"        # in-tree
     MKIMAGE="$UBOOT_DIR_LOCAL/tools/mkimage"
     ;;
   sd)
-    DEFCONFIG="evb-rk3506_sd_defconfig"
+    DEFCONFIG="$UBOOT_DEFCONFIG_SD"
     MKIMAGE="$UBOOT_DIR_LOCAL/tools/mkimage"   # share the NAND-built host tool
     [[ -x "$MKIMAGE" ]] \
       || die "NAND tools/mkimage missing at $MKIMAGE — run build-uboot.sh (default nand) first"

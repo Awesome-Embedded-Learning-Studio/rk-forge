@@ -29,14 +29,30 @@
 #                               (musl, opkg/kmod); rk-forge still does the RK packing
 #                               (uboot/loader/fit-pack/rkfw-pack). Flags may appear
 #                               before OR after the subcommand.
+#   --board=<id>                target board (default: aes). Selects config/boards/<id>.env
+#                               (board constants: SOC/ARCH/DT_NAME/STORAGE/rkbin/toolchain).
+#                               Registered: aes (RK3506B). Flags may appear before OR
+#                               after the subcommand.
 # Guard: ensure bash. The shebang handles the normal case; this catches an
 # explicit `sh scripts/forge.sh` or any non-bash invocation (lib/*.sh rely on
 # bash arrays + BASH_SOURCE). Re-exec ourselves under bash, preserving args.
 if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 set -euo pipefail
 _SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
+
+# Pre-scan --board <id> | --board=<id> BEFORE sourcing lib/env.sh (env.sh sources the
+# active board's config/boards/<id>.env). FORGE_BOARD env var also honored; default aes.
+# The main arg parser below re-handles --board (to consume it); this pre-scan only
+# ensures FORGE_BOARD is set in time for env.sh.
+export FORGE_BOARD="${FORGE_BOARD:-aes}"
+_prev=""
+for _a in "$@"; do
+  [[ "$_prev" == "--board" ]] && FORGE_BOARD="$_a"
+  case "$_a" in --board=*) FORGE_BOARD="${_a#--board=}";; esac
+  _prev="$_a"
+done
 # shellcheck disable=SC1091
-source "${_SCRIPT_DIR}/lib/env.sh"     # PROJECT_ROOT + all paths (config/forge.env)
+source "${_SCRIPT_DIR}/lib/env.sh"     # PROJECT_ROOT + all paths + board config (FORGE_BOARD)
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 # shellcheck disable=SC1091
@@ -60,6 +76,8 @@ while [[ $# -gt 0 ]]; do
     --full)    CLEAN_FULL=1; shift;;
     --rootfs)  ROOTFS_PROFILE="$2"; shift 2;;
     --rootfs=*) ROOTFS_PROFILE="${1#--rootfs=}"; shift;;
+    --board)   FORGE_BOARD="$2"; shift 2;;
+    --board=*) FORGE_BOARD="${1#--board=}"; shift;;
     setup|build|pack|pack-sd|assemble|all|clean|status) CMD="$1"; shift; break;;
     -h|--help) sed -n '2,22p' "$0"; exit 0;;
     *) die "unknown arg: $1 (want a subcommand: setup|build|pack|pack-sd|assemble|all|clean|status)";;
@@ -75,6 +93,8 @@ while [[ $# -gt 0 ]]; do
     --full)    CLEAN_FULL=1; shift;;
     --rootfs)  ROOTFS_PROFILE="$2"; shift 2;;
     --rootfs=*) ROOTFS_PROFILE="${1#--rootfs=}"; shift;;
+    --board)   FORGE_BOARD="$2"; shift 2;;
+    --board=*) FORGE_BOARD="${1#--board=}"; shift;;
     *) break;;   # first non-flag → leave for ASSEMBLE_VARIANT
   esac
 done
@@ -142,9 +162,9 @@ stage_setup() {
   # — peel the tag to its commit with ^{commit} (no-op for commit-sha pins like
   # uboot/openwrt). The awk filter strips pins/* comments + blank lines.
   local linux_base uboot_base openwrt_base
-  linux_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/linux")
-  uboot_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/uboot")
-  openwrt_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/openwrt")
+  linux_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/${FORGE_BOARD}/linux")
+  uboot_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/${FORGE_BOARD}/uboot")
+  openwrt_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/${FORGE_BOARD}/openwrt")
 
   if [[ "$ROOTFS_PROFILE" != "openwrt" ]]; then
     if [[ "$(git -C "$LINUX_DIR" rev-parse HEAD)" == "$(git -C "$LINUX_DIR" rev-parse "${linux_base}^{commit}")" ]]; then
@@ -210,7 +230,7 @@ stage_pack() {
     log_info "[pack] KERNEL_ARTIFACT_DIR=$KERNEL_ARTIFACT_DIR (OpenWrt kernel)"
   fi
   run_stage pack-loader \
-    "${BRINGUP}/RKBOOT-RK3506B-aes.ini" "${FORGE_RKBIN_DIR}/bin/rk35" \
+    "${BRINGUP}/${LOADER_INI}" "${FORGE_RKBIN_DIR}/${RKBIN_BLOB_SUBDIR}" \
     "${_SCRIPT_DIR}/pack-loader.sh" "${_SCRIPT_DIR}/lib/rkbin.sh" \
     -- bash "${_SCRIPT_DIR}/pack-loader.sh"
   # stage-rootfs + pack-ubifs run BEFORE build-initramfs: the provisioning
@@ -232,6 +252,7 @@ stage_pack() {
   fi
   run_stage pack-ubifs \
     "${OUT_DIR}/rootfs" "${_SCRIPT_DIR}/pack-ubifs.sh" "${_PROJECT_ROOT}/config/forge.env" \
+    "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.env" \
     -- bash "${_SCRIPT_DIR}/pack-ubifs.sh"
   # build-initramfs AFTER pack-ubifs: the provisioning ramdisk now embeds
   # rootfs.ubi.img.gz so ubiprog can re-flash mtd5 from RAM on first boot
@@ -250,9 +271,9 @@ stage_pack() {
   # build-initramfs above. FIT templates + load addrs are rk-forge's board-verified
   # ones (NOT OpenWrt's 0x03200000/0x02000000 — those are for its uboot).
   run_stage pack-fit \
-    "${BRINGUP}/fit/rk3506-mainline.its" "${BRINGUP}/fit/rk3506-kernel.its" \
-    "${BRINGUP}/fit/rk3506-kernel-nand.its" "${KERNEL_ARTIFACT_DIR}/arch/arm/boot/zImage" \
-    "${KERNEL_ARTIFACT_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb" \
+    "${BRINGUP}/fit/${SOC}-mainline.its" "${BRINGUP}/fit/${SOC}-kernel.its" \
+    "${BRINGUP}/fit/${SOC}-kernel-nand.its" "${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/${KERN_IMG}" \
+    "${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/dts/rockchip/${DT_NAME}.dtb" \
     "${UBOOT_DIR}/u-boot-nodtb.bin" "${UBOOT_DIR}/u-boot.dtb" \
     "${BRINGUP}/fit/initramfs.cpio.gz" \
     "${_SCRIPT_DIR}/pack-fit.sh" \
@@ -270,17 +291,18 @@ stage_pack_sd() {
   # SD-2 autoboot: build the SD defconfig's uboot OUT-OF-TREE (does NOT touch the
   # NAND build artifacts in $UBOOT_DIR) and pack uboot-sd.img. The NAND uboot.img
   # + boot*.img come from stage_pack above; only the SD uboot FIT is added here.
-  local sd_defcfg="${UBOOT_DIR}/configs/evb-rk3506_sd_defconfig"
+  local sd_defcfg="${UBOOT_DIR}/configs/${UBOOT_DEFCONFIG_SD}"
   run_stage build-uboot-sd \
     "$sd_defcfg" "${_SCRIPT_DIR}/build-uboot.sh" \
     -- bash "${_SCRIPT_DIR}/build-uboot.sh" --variant sd
   run_stage pack-fit-sd \
     "${OUT_DIR}/u-boot-sd-nodtb.bin" "${OUT_DIR}/u-boot-sd.dtb" \
-    "${BRINGUP}/fit/rk3506-mainline.its" "${_SCRIPT_DIR}/pack-fit.sh" \
+    "${BRINGUP}/fit/${SOC}-mainline.its" "${_SCRIPT_DIR}/pack-fit.sh" \
     -- bash "${_SCRIPT_DIR}/pack-fit.sh" --variant sd
   run_stage pack-sd \
     "${OUT_DIR}/idblock.img" "${OUT_DIR}/uboot.img" "${OUT_DIR}/boot.img" \
     "${OUT_DIR}/rootfs" "${_SCRIPT_DIR}/pack-sd.sh" "${_PROJECT_ROOT}/config/forge.env" \
+    "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.env" \
     -- bash "${_SCRIPT_DIR}/pack-sd.sh"
 }
 
@@ -293,14 +315,14 @@ stage_assemble() {
     stage_pack_sd
     run_stage assemble-sd \
       "${OUT_DIR}/boot-sd.img" "${OUT_DIR}/rootfs.ext4" "${OUT_DIR}/uboot-sd.img" \
-      "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/parameter-sd-aes.txt" \
-      "${BRINGUP}/package-file-sd.txt" "${_SCRIPT_DIR}/assemble-update.sh" \
+      "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/${PARAMETER_SD}" \
+      "${BRINGUP}/${PKGFILE_SD}" "${_SCRIPT_DIR}/assemble-update.sh" \
       -- bash "${_SCRIPT_DIR}/assemble-update.sh" --sd
     return
   fi
   run_stage assemble \
     "${OUT_DIR}/boot.img" "${OUT_DIR}/rootfs.ubi.img" "${OUT_DIR}/uboot.img" \
-    "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/parameter-nand-aes-vendorlayout.txt" \
+    "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/${PARAMETER_NAND}" \
     "${_SCRIPT_DIR}/assemble-update.sh" \
     -- bash "${_SCRIPT_DIR}/assemble-update.sh" "$ASSEMBLE_VARIANT"
 }

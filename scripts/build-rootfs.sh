@@ -48,8 +48,8 @@ log_info "BR2_EXTERNAL=$BR2_EXTERNAL"
 cd "$BUILDROOT"
 [[ "$CLEAN" == 1 ]] && { log_info "make clean"; make clean >/dev/null; }
 if [[ "$RECONFIGURE" == 1 || ! -f .config ]]; then
-  log_info "make rk3506_aes_defconfig (regen .config from the forge defconfig)"
-  make rk3506_aes_defconfig
+  log_info "make ${BUILDROOT_DEFCONFIG} (regen .config from the forge defconfig)"
+  make "$BUILDROOT_DEFCONFIG"
 fi
 
 # Toolchain path: the defconfig hardcodes /opt/... because buildroot's Kconfig

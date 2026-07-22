@@ -62,22 +62,22 @@ if [[ "$APPLY" == 1 ]]; then
   "${_SCRIPT_DIR}/apply-series.sh" --component linux
 fi
 
-log_info "merge_config: multi_v7_defconfig + kernel.config + kernel-trim + kernel-compress(XZ) …"
+log_info "merge_config: ${KERNEL_BASE_DEFCONFIG} + kernel.config + kernel-trim + kernel-compress(XZ) …"
 scripts/kconfig/merge_config.sh -m -O . \
-  arch/arm/configs/multi_v7_defconfig "${KERNEL_FRAGMENTS[@]}"
+  "${KERNEL_BASE_DEFCONFIG}" "${KERNEL_FRAGMENTS[@]}"
 
 log_info "olddefconfig …"
 make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" olddefconfig
 
 if [[ "$JUST_DTB" == 1 ]]; then
-  log_info "building rk3506b-aes.dtb only …"
-  make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" rockchip/rk3506b-aes.dtb
-  log_ok "dtb → arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
+  log_info "building ${DT_NAME}.dtb only …"
+  make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" "rockchip/${DT_NAME}.dtb"
+  log_ok "dtb → arch/${ARCH}/boot/dts/rockchip/${DT_NAME}.dtb"
 else
-  log_info "building zImage + dtbs …"
-  forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" zImage dtbs
-  make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" rockchip/rk3506b-aes.dtb
-  log_ok "zImage → arch/arm/boot/zImage ; dtb → arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
+  log_info "building ${KERN_IMG} + dtbs …"
+  forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" "${KERN_IMG}" dtbs
+  make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" "rockchip/${DT_NAME}.dtb"
+  log_ok "${KERN_IMG} → arch/${ARCH}/boot/${KERN_IMG} ; dtb → arch/${ARCH}/boot/dts/rockchip/${DT_NAME}.dtb"
 
   # rtl8733bu.ko (CONFIG_RTL8733BU=m, the WiFi module stage-rootfs ships into the
   # rootfs). zImage/dtbs don't build modules. 8733bu is an IN-TREE module (patch

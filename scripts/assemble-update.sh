@@ -69,7 +69,7 @@ done
 
 LOADER="${LOADER:-${OUT_DIR}/MiniLoaderAll.bin}"  # --loader overrides (e.g. ATK release rk3506_spl_loader_v1.06.111.bin)
 UBOOT="${OUT_DIR}/uboot.img"
-PARAMETER="${PARAMETER_OVERRIDE:-${BRINGUP}/parameter-nand-aes-vendorlayout.txt}"
+PARAMETER="${PARAMETER_OVERRIDE:-${BRINGUP}/${PARAMETER_NAND}}"
 ROOTFS=""
 case "$VMODE" in
   provision)
@@ -77,7 +77,7 @@ case "$VMODE" in
     # First boot: /init rewrites rootfs via ubiprog (reliable kernel write), stamps
     # a marker, switch_root. Survives the loader's weak rootfs write across reboots.
     BOOT="${OUT_DIR}/boot.img"
-    PKGFILE="${BRINGUP}/package-file-nand.txt"   # lists boot + rootfs
+    PKGFILE="${BRINGUP}/${PKGFILE_NAND}"   # lists boot + rootfs
     ROOTFS="${OUT_DIR}/rootfs.ubi.img"
     UPDATE_OUT="${OUT_DIR}/update.img"
     VARIANT="PROVISION-UBIPROG" ;;
@@ -85,14 +85,14 @@ case "$VMODE" in
     # Direct mount (no ramdisk): kernel mounts UBIFS itself. SKIPS ubiprog → ECC 炸
     # on 2nd boot (loader-written-weak rootfs). Loader/debug comparison only.
     BOOT="${OUT_DIR}/boot-nand.img"
-    PKGFILE="${BRINGUP}/package-file-nand.txt"
+    PKGFILE="${BRINGUP}/${PKGFILE_NAND}"
     ROOTFS="${OUT_DIR}/rootfs.ubi.img"
     UPDATE_OUT="${OUT_DIR}/update-nand.img"
     VARIANT="NAND-DIRECT" ;;
   rescue)
     # boot.img initramfs shell, rootfs OMITTED. Recovery shell, no provisioning.
     BOOT="${OUT_DIR}/boot.img"
-    PKGFILE="${BRINGUP}/package-file-aes.txt"
+    PKGFILE="${BRINGUP}/${PKGFILE_RESCUE}"
     UPDATE_OUT="${OUT_DIR}/update-rescue.img"
     VARIANT="RESCUE-SHELL" ;;
   sd)
@@ -108,9 +108,9 @@ case "$VMODE" in
     # superseded. See notes/32.
     BOOT="${OUT_DIR}/boot-sd.img"
     UBOOT="${OUT_DIR}/uboot-sd.img"   # SD-2 autoboot defconfig (mmc-read bootcmd)
-    PKGFILE="${BRINGUP}/package-file-sd.txt"
+    PKGFILE="${BRINGUP}/${PKGFILE_SD}"
     ROOTFS="${OUT_DIR}/rootfs.ext4"
-    PARAMETER="${BRINGUP}/parameter-sd-aes.txt"
+    PARAMETER="${BRINGUP}/${PARAMETER_SD}"
     UPDATE_OUT="${OUT_DIR}/update-sd.img"
     VARIANT="SD-CARD" ;;
 esac
