@@ -45,6 +45,12 @@ source "${_SCRIPT_DIR}/lib/toolchain.sh"
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/progress.sh"   # FORGE_PROGRESS_PY + forge_progress_run
 
+# U-Boot builds BOTH arm32 and arm64 from arch/arm/ (unified) — ARCH=arm regardless of
+# the board's KERNEL arch. rk3568-atk is an arm64 kernel (ARCH=arm64 in the board env)
+# but its U-Boot builds as ARCH=arm + an aarch64 CROSS_COMPILE; aes is arm32/armhf.
+# The arm64/armhf split is purely CROSS_COMPILE (from the board toolchain), NOT ARCH.
+ARCH=arm
+
 UBOOT_DIR_LOCAL="$UBOOT_DIR"; CLEAN=0; VARIANT="nand"
 while [[ $# -gt 0 ]]; do
   case "$1" in

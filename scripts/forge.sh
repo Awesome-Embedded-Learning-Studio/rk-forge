@@ -151,8 +151,10 @@ stage_setup() {
   else
     log_info "[setup] fetching source trees (buildroot profile: linux + uboot + buildroot)"
     bash "${_SCRIPT_DIR}/fetch-deps.sh" all
-    log_info "[setup] fetching WiFi driver drop"
-    bash "${_SCRIPT_DIR}/fetch-rtl8733bu-driver.sh"
+    if [[ -n "${WIFI_DRIVER:-}" ]]; then
+      log_info "[setup] fetching WiFi driver drop (${WIFI_DRIVER})"
+      bash "${_SCRIPT_DIR}/fetch-${WIFI_DRIVER}-driver.sh"
+    fi
   fi
 
   # apply the patch series into each tree, but only if it's still at the base

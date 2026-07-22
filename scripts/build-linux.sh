@@ -44,15 +44,15 @@ done
 
 check_toolchain || die "toolchain not on PATH. Run: source scripts/env-setup.sh && ./scripts/doctor.sh"
 [[ -d "$LINUX_DIR" ]] || die "linux tree not found: $LINUX_DIR"
-# Base RK3506 essentials + safe trim (KEEP NET core; cuts DRM/USB/SOUND bloat) +
-# XZ compression. Together these shrink boot.img before the 0x920000 bad block.
-KERNEL_FRAGMENTS=(
-  "${BOARD_CFG}/kernel.config"
-  "${BOARD_CFG}/kernel-trim.config"
-  "${BOARD_CFG}/kernel-compress.config"
-)
+# Board's kernel fragments (list from the board env KERNEL_FRAGMENTS; aes carries
+# trim+compress for NAND boot-size, other boards may carry just kernel.config).
+# Space-separated filenames under ${BOARD_CFG}/, merged in order (later overrides).
+_kernel_frag_list="${KERNEL_FRAGMENTS:-kernel.config}"
+KERNEL_FRAGMENTS=()
+for _f in $_kernel_frag_list; do KERNEL_FRAGMENTS+=("${BOARD_CFG}/${_f}"); done
+unset _kernel_frag_list
 for _f in "${KERNEL_FRAGMENTS[@]}"; do
-  [[ -f "$_f" ]] || die "kernel config fragment not found: $_f"
+  [[ -f "$_f" ]] || die "kernel config fragment not found: $_f (set KERNEL_FRAGMENTS in config/boards/\${FORGE_BOARD}.env)"
 done
 
 cd "$LINUX_DIR"
@@ -62,7 +62,7 @@ if [[ "$APPLY" == 1 ]]; then
   "${_SCRIPT_DIR}/apply-series.sh" --component linux
 fi
 
-log_info "merge_config: ${KERNEL_BASE_DEFCONFIG} + kernel.config + kernel-trim + kernel-compress(XZ) …"
+log_info "merge_config: ${KERNEL_BASE_DEFCONFIG} + ${KERNEL_FRAGMENTS} …"
 scripts/kconfig/merge_config.sh -m -O . \
   "${KERNEL_BASE_DEFCONFIG}" "${KERNEL_FRAGMENTS[@]}"
 
