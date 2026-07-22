@@ -3,6 +3,7 @@
 /output/
 /out/
 /release/
+remote/
 *.o
 *.o.d
 *.ko
