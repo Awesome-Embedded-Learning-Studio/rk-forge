@@ -131,22 +131,23 @@ pack_cpio() {
   done
   # /init (the provisioning script)
   cp "$INIT_SRC" "$root/init"; chmod +x "$root/init"
-  # FROM-SOURCE rootfs image: embed rootfs.ubi.img (gzipped) ONLY for the
-  # openwrt profile. ubiprog re-writes mtd5 from this RAM copy on first boot
-  # (kills cross-image residue + the loader's weak write). Requires build-
-  # initramfs to run AFTER pack-ubifs (DAG order in forge.sh stage_pack).
+  # FROM-SOURCE rootfs image: embed rootfs.ubi.img (gzipped) for ALL profiles.
+  # ubiprog re-writes mtd5 from this RAM copy on first boot (kills cross-image
+  # residue + the loader's weak write + page-recovery corruption). Requires
+  # build-initramfs to run AFTER pack-ubifs (DAG order in forge.sh stage_pack).
   #
-  # buildroot profile: rootfs is too big (glibc ~23MB ubifs → boot.img would
-  # exceed the 16MB boot partition), so DON'T embed — buildroot falls back to
-  # ubiprog's legacy read-modify-write (no image-file arg), board-verified.
-  if [[ "${ROOTFS_PROFILE:-}" == "openwrt" ]]; then
-    ROOTFS_UBI="${OUT_DIR}/rootfs.ubi.img"
-    [[ -f "$ROOTFS_UBI" ]] \
-      || die "missing $ROOTFS_UBI (build-initramfs runs after pack-ubifs; run: forge pack)"
-    log_info "embedding rootfs.ubi.img → rootfs.ubi.img.gz (openwrt from-source)"
+  # Both profiles embed: buildroot glibc rootfs.ubi.img (~23MB → gzip ~9MB) +
+  # kernel FIT together fit the 24MB boot partition (boot.img ~18MB), so
+  # buildroot no longer falls back to ubiprog's lossy read-modify-write. The
+  # legacy rmw path (ubiprog with no image arg) stays as dead code in ubiprog.c
+  # + initramfs/init, but build-initramfs now always embeds when the image
+  # exists. See issue #16 (rmw固化 loader 弱写/残留 → mount fail).
+  ROOTFS_UBI="${OUT_DIR}/rootfs.ubi.img"
+  if [[ -f "$ROOTFS_UBI" ]]; then
+    log_info "embedding rootfs.ubi.img → rootfs.ubi.img.gz (from-source ubiprog, profile=${ROOTFS_PROFILE:-})"
     gzip -c "$ROOTFS_UBI" > "$root/rootfs.ubi.img.gz"
   else
-    log_info "buildroot profile — NOT embedding image (ubiprog read-modify-write)"
+    die "missing $ROOTFS_UBI (build-initramfs runs after pack-ubifs; run: forge pack)"
   fi
 
   mkdir -p "$(dirname "$OUT_CPIO")"

@@ -17,7 +17,7 @@
 | 或 boot | `third_party/bringup/out/boot-nand.img` | **新内核(含 powergood+WPEN),7.36MB** |
 | 或 rootfs | `third_party/bringup/out/rootfs.ubi.img` | busybox UBIFS rootfs |
 
-分区表(parameter)布局:`uboot@0x2000 / boot@0xBA00(16MB) / rootfs@0x13A00 / userdata(grow)`。
+分区表(parameter)布局:`uboot@0x2000 / boot@0xBA00(24MB) / rootfs@0x17A00 / userdata(grow)`。
 
 ---
 
@@ -86,7 +86,9 @@ Scanning for bootflows in all bootdevs ...
 ```
 **异常**:U-Boot banner 是 `2017.09 #alientek` 而非 `2026.07-rc4` → 烧错 uboot(残留 vendor)。
 
-### 阶段 ③ 手动引导内核(关键!每次重启都要做)
+### 阶段 ③ 手动引导内核(fallback;autoboot 已接管)
+
+> **⚠ 2026-07-22**:autoboot 由 `CONFIG_BOOTCOMMAND`(patch 0003)接管——上电自动 `mtd read boot 0x04000000 0 0x1800000`(24MB boot 分区)+ bootm,**正常启动无需手动**。下方 3 行手动命令(`0x800000` = 7.36MB 内核 / 16MB boot 分区时代)仅作 fallback / 调试参考;当前 buildroot 走 from-source 后 boot.img ~18MB(含内嵌 rootfs),手动引导须读 `0x1800000`。
 
 > **U-Boot env 是 `nowhere`(无持久存储),`saveenv` 不存。每次冷重启后都会落到 `=>`,必须手动 boot。**
 > **当前内核 FIT = 7.36MB,`mtd read` 必须读 0x800000(8MB);读 0x600000(6MB)会截断 FIT → kernel 损坏,会伪装成"写损坏"!**

@@ -426,11 +426,11 @@ index 000000000..e8bb7f8d0
 +			};
 +			partition@1740000 {
 +				label = "boot";
-+				reg = <0x1740000 0x1000000>;
++				reg = <0x1740000 0x1800000>;
 +			};
-+			partition@2740000 {
++			partition@2f40000 {
 +				label = "rootfs";
-+				reg = <0x2740000 0xae00000>;
++				reg = <0x2f40000 0xa600000>;
 +			};
 +			partition@d540000 {
 +				label = "userdata";

@@ -54,6 +54,8 @@ forge assemble --rootfs=openwrt --sd   # → update-sd.img(SD)
 
 这里有个分流:buildroot profile **不**塞这个 image——buildroot rootfs 23MB(glibc),gzip 后 boot.img 会撑爆 16MB 的 boot 分区。buildroot 走的是 ubiprog 的老 read-modify-write 路径,已经板验过。分流逻辑在 `build-initramfs.sh` 里按 `ROOTFS_PROFILE` 切。
 
+**【2026-07-22 更新】此分流已取消**:buildroot 也走 from-source 了——扩 boot 分区 16→24MB 后,buildroot rootfs(gzip ~9MB)+ kernel FIT 一起塞得进 boot.img(~18MB),read-modify-write 路径成 dead code。起因 issue #16(rmw 固化 loader 弱写 / 跨镜像残留 → 每次重启 mount fail)。分支 `feat/buildroot-from-source-provisioning`。
+
 ### 6. 打 boot FIT(pack-fit)
 
 `pack-fit.sh` 把 OpenWrt 的 zImage + initramfs + aes.dtb 用 fit-pack.py 凑成 FIT(Mode A,vendor SPL 兼容的 `-E` 布局)。同时产一个 `boot-sd.img`,没 ramdisk 的版本,给 SD 用——SD 直接挂 ext4,不需要 provisioning。

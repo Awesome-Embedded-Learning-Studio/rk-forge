@@ -11,8 +11,8 @@
 #   page (min I/O) = 2048        W25N04KV: 2 KiB data page (+128 B OOB)
 #   erase block    = 128 KiB     64 pages × 2 KiB
 #   LEB            = 124 KiB     PEB − 2×min_io (EC + VID header, 1 page each)
-#   rootfs partition = 0xae00000 174 MiB (DT partition@2740000)
-#   -c (max LEB)   = 1400        < 1425 PEB in the partition; leaves ~25 PEB for
+#   rootfs partition = 0xa600000 166 MiB (DT partition@2f40000); 1328 PEB
+#   -c (max LEB)   = 1300        < 1328 PEB in the partition; leaves ~28 PEB for
 #                                UBI wear-leveling + bad-block reserve.
 # vol_flags=autoresize: UBI grows the single rootfs volume to fill the partition.
 #

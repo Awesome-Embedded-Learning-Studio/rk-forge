@@ -63,11 +63,11 @@ boot 分区现在是 boot-nand.img(无 ramdisk)。上电到 U-Boot 交互:
 ```
 => setenv bootargs 'earlycon=uart8250,mmio32,0xff0a0000 console=ttyS0,1500000 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rootwait'
 => saveenv                       # 持久(可选;不 save 则每次重设)
-=> mtd read boot 0x04000000 0 0x1000000
+=> mtd read boot 0x04000000 0 0x1800000
 => bootm 0x04000000
 ```
 
-> - `mtd read` 的 len `0x1000000` = boot 分区满 16MB(boot-nand ~12MB 居前,
+> - `mtd read` 的 len `0x1800000` = boot 分区满 24MB(boot-nand ~12MB 居前,
 >   bootm 解析 FIT header 自动取大小,多读无害)。0x04000000 是 FIT 暂存地址
 >   (避 kernel load 0x02080000 重叠,见 sfc/bootm 笔记)。
 > - bootargs 也可不 setenv(让内核用 DT /chosen 自带的 root=),但 U-Boot 若已
