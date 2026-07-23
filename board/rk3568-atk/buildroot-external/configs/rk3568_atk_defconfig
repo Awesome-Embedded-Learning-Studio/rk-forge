@@ -1,0 +1,54 @@
+# rk3568_atk_defconfig — minimal buildroot rootfs for rk-forge (external toolchain:
+# /opt Arm GNU 15.3 aarch64). Goal: smallest rootfs that boots to a busybox shell on
+# eMMC (ext4). No GPU/VPU/NPU/audio/wifi — those are Phase 2 (mainline drivers +
+# the NPU vendor exception, see document/sdk-diff-rk3568.md); the MVP rootfs just
+# needs /init to reach a shell. Parallel to rk3506_aes_defconfig, armhf→aarch64 and
+# stripped of the NAND/audio/wifi bits that are aes-specific.
+BR2_aarch64=y
+BR2_cortex_a55=y
+
+# External toolchain = /opt Arm GNU 15.3 (gcc 15.3.1, glibc, headers 6.6.44 — same
+# headers/glibc line as the aes armhf toolchain, just aarch64). build-rootfs.sh
+# overrides BR2_TOOLCHAIN_EXTERNAL_PATH from the board toolchain
+# (config/toolchain.conf SoT), so the path here is the Kconfig-required placeholder.
+BR2_TOOLCHAIN_EXTERNAL=y
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y
+BR2_TOOLCHAIN_EXTERNAL_PATH="/opt/arm-gnu-toolchain-15.3.rel1-x86_64-aarch64-none-linux-gnu"
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX="$(ARCH)-none-linux-gnu"
+BR2_TOOLCHAIN_EXTERNAL_GCC_15=y
+BR2_TOOLCHAIN_EXTERNAL_HEADERS_6_6=y
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM_GLIBC=y
+BR2_TOOLCHAIN_EXTERNAL_HAS_SSP=y
+# glibc 2.4x dropped Sun RPC from libc (moved to libtirpc); the toolchain's sysroot
+# has no rpc/rpc.h, so buildroot's check_glibc_rpc_feature rejects INET_RPC. The
+# Kconfig default is y for glibc, so disable it explicitly.
+# BR2_TOOLCHAIN_EXTERNAL_INET_RPC is not set
+BR2_TOOLCHAIN_EXTERNAL_LOCALE=y
+BR2_TOOLCHAIN_EXTERNAL_WCHAR=y
+BR2_TOOLCHAIN_EXTERNAL_THREADS=y
+BR2_TOOLCHAIN_EXTERNAL_THREADS_POSIX=y
+BR2_TOOLCHAIN_EXTERNAL_HAS_THREADS_DEBUG=y
+
+# Arm GNU toolchain ships a full language set: g++ + gfortran + OpenMP. buildroot's
+# toolchain-external check_* REQUIRES the config to acknowledge every language the
+# compiler actually provides, else it errors at configure. C++ forces
+# BR2_INSTALL_LIBSTDCPP → libstdc++ lands in the rootfs (~few MB, fine on eMMC).
+BR2_TOOLCHAIN_EXTERNAL_CXX=y
+BR2_INSTALL_LIBSTDCPP=y
+BR2_TOOLCHAIN_EXTERNAL_FORTRAN=y
+BR2_TOOLCHAIN_EXTERNAL_OPENMP=y
+
+# Target
+BR2_TARGET_GENERIC_HOSTNAME="rk3568"
+BR2_TARGET_GENERIC_ISSUE="Welcome to rk-forge buildroot (rk3568-atk)"
+BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS=y
+
+# busybox + init (sysvinit via busybox init)
+BR2_PACKAGE_BUSYBOX=y
+BR2_INIT_BUSYBOX=y
+
+# Output: tar only. The rootfs.tar is staged to a tree (stage-rootfs.sh) then packed
+# to ext4 (pack-emmc.sh's mke2fs -d) for the eMMC GPT rootfs partition. cpio/initramfs
+# NOT needed — RK3568 boots the ext4 root directly (no provisioning ramdisk; that's
+# aes's NAND/ubiprog flow).
+BR2_TARGET_ROOTFS_TAR=y

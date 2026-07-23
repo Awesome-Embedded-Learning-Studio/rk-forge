@@ -89,12 +89,18 @@ else
   # only vmlinux symbols (core + CFG80211=y built-in), so seed Module.symvers from
   # vmlinux.symvers (standard trick for a vmlinux-only tree). Only build when
   # missing; incremental runs skip. ~3 min when it runs.
-  if [[ ! -f drivers/net/wireless/realtek/rtl8733bu/8733bu.ko ]]; then
-    [[ -f Module.symvers ]] || cp vmlinux.symvers Module.symvers
-    log_info "building rtl8733bu.ko (in-tree module.ko target; missing — full-rebuild case)"
-    forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" drivers/net/wireless/realtek/rtl8733bu/8733bu.ko
-    log_ok "rtl8733bu.ko → drivers/net/wireless/realtek/rtl8733bu/8733bu.ko"
+  # Board-gated: aes = RTL8733BU (WIFI_DRIVER="rtl8733bu"); rk3568-atk has
+  # WIFI_DRIVER="" → skip the WiFi module entirely (it has no in-tree rtl8733bu).
+  if [[ -n "${WIFI_DRIVER:-}" ]]; then
+    if [[ ! -f drivers/net/wireless/realtek/rtl8733bu/8733bu.ko ]]; then
+      [[ -f Module.symvers ]] || cp vmlinux.symvers Module.symvers
+      log_info "building rtl8733bu.ko (in-tree module.ko target; missing — full-rebuild case)"
+      forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" drivers/net/wireless/realtek/rtl8733bu/8733bu.ko
+      log_ok "rtl8733bu.ko → drivers/net/wireless/realtek/rtl8733bu/8733bu.ko"
+    else
+      log_info "rtl8733bu.ko present (skip module build)"
+    fi
   else
-    log_info "rtl8733bu.ko present (skip module build)"
+    log_info "no WIFI_DRIVER for this board (config/boards/\${FORGE_BOARD}.env) — skip WiFi module build"
   fi
 fi

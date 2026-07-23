@@ -166,7 +166,7 @@ stage_setup() {
   local linux_base uboot_base openwrt_base
   linux_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/${FORGE_BOARD}/linux")
   uboot_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/${FORGE_BOARD}/uboot")
-  openwrt_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/${FORGE_BOARD}/openwrt")
+  openwrt_base=$(awk '!/^#/ && NF{print $2}' "${_PROJECT_ROOT}/pins/${FORGE_BOARD}/openwrt" 2>/dev/null || true)   # optional — only the openwrt profile uses it (rk3568-atk has no openwrt pin)
 
   if [[ "$ROOTFS_PROFILE" != "openwrt" ]]; then
     if [[ "$(git -C "$LINUX_DIR" rev-parse HEAD)" == "$(git -C "$LINUX_DIR" rev-parse "${linux_base}^{commit}")" ]]; then
@@ -252,34 +252,56 @@ stage_pack() {
       "${_SCRIPT_DIR}/stage-rootfs.sh" \
       -- bash "${_SCRIPT_DIR}/stage-rootfs.sh"
   fi
-  run_stage pack-ubifs \
-    "${OUT_DIR}/rootfs" "${_SCRIPT_DIR}/pack-ubifs.sh" "${_PROJECT_ROOT}/config/forge.env" \
-    "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.env" \
-    -- bash "${_SCRIPT_DIR}/pack-ubifs.sh"
-  # build-initramfs AFTER pack-ubifs: the provisioning ramdisk now embeds
-  # rootfs.ubi.img.gz so ubiprog can re-flash mtd5 from RAM on first boot
-  # (from-source: kills cross-image residue + the loader's weak write). The
-  # rootfs.ubi.img input re-triggers this stage when the rootfs changes.
-  # Generated from tracked/pinned sources (busybox + ubiprog.c + /init) — the
-  # in-forge generator that replaced the never-committed hand-built blob
-  # (clean-clone blocker, issue #6/#8 class).
-  run_stage build-initramfs \
-    "${BRINGUP}/initramfs/init" "${BRINGUP}/rootfs/ubiprog.c" \
-    "${_PROJECT_ROOT}/pins/busybox" "${OUT_DIR}/rootfs.ubi.img" \
-    "${_SCRIPT_DIR}/build-initramfs.sh" \
-    -- bash "${_SCRIPT_DIR}/build-initramfs.sh"
-  # pack-fit reads zImage+aes.dtb from KERNEL_ARTIFACT_DIR (LINUX_DIR for buildroot,
-  # OpenWrt's build_dir for openwrt) and incbin's initramfs.cpio.gz from
-  # build-initramfs above. FIT templates + load addrs are rk-forge's board-verified
-  # ones (NOT OpenWrt's 0x03200000/0x02000000 — those are for its uboot).
-  run_stage pack-fit \
-    "${BRINGUP}/fit/${SOC}-mainline.its" "${BRINGUP}/fit/${SOC}-kernel.its" \
-    "${BRINGUP}/fit/${SOC}-kernel-nand.its" "${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/${KERN_IMG}" \
-    "${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/dts/rockchip/${DT_NAME}.dtb" \
-    "${UBOOT_DIR}/u-boot-nodtb.bin" "${UBOOT_DIR}/u-boot.dtb" \
-    "${BRINGUP}/fit/initramfs.cpio.gz" \
-    "${_SCRIPT_DIR}/pack-fit.sh" \
-    -- bash "${_SCRIPT_DIR}/pack-fit.sh"
+  if [[ "$STORAGE" == "emmc" ]]; then
+    # rk3568: ext4 rootfs (mke2fs -d from the staged tree). NO ubifs, NO provisioning
+    # initramfs — eMMC mounts the ext4 root directly (that's aes's NAND/ubiprog flow).
+    run_stage pack-emmc \
+      "${OUT_DIR}/rootfs" "${BUILDROOT}/output/images/rootfs.tar" \
+      "${_SCRIPT_DIR}/pack-emmc.sh" \
+      "${_PROJECT_ROOT}/config/forge.env" "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.env" \
+      -- bash "${_SCRIPT_DIR}/pack-emmc.sh"
+    # pack-fit (binman board): stage build-uboot's u-boot.itb/idbloader.img + pack the
+    # single no-ramdisk boot.img. Inputs are the rk3568 FIT (no mainline/nand variants,
+    # no initramfs) + u-boot.itb (NOT aes's u-boot-nodtb.bin).
+    run_stage pack-fit \
+      "${BRINGUP}/fit/${SOC}-kernel.its" \
+      "${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/${KERN_IMG}" \
+      "${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/dts/rockchip/${DT_NAME}.dtb" \
+      "${UBOOT_DIR}/u-boot.itb" \
+      "${_SCRIPT_DIR}/pack-fit.sh" \
+      -- bash "${_SCRIPT_DIR}/pack-fit.sh"
+  else
+    # aes (NAND): ubifs rootfs + provisioning initramfs + the full FIT set (uboot.img +
+    # boot.img + boot-nand.img + boot-sd.img). pack-fit packs the vendor-SPL uboot FIT.
+    run_stage pack-ubifs \
+      "${OUT_DIR}/rootfs" "${BUILDROOT}/output/images/rootfs.tar" "${_SCRIPT_DIR}/pack-ubifs.sh" "${_PROJECT_ROOT}/config/forge.env" \
+      "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.env" \
+      -- bash "${_SCRIPT_DIR}/pack-ubifs.sh"
+    # build-initramfs AFTER pack-ubifs: the provisioning ramdisk now embeds
+    # rootfs.ubi.img.gz so ubiprog can re-flash mtd5 from RAM on first boot
+    # (from-source: kills cross-image residue + the loader's weak write). The
+    # rootfs.ubi.img input re-triggers this stage when the rootfs changes.
+    # Generated from tracked/pinned sources (busybox + ubiprog.c + /init) — the
+    # in-forge generator that replaced the never-committed hand-built blob
+    # (clean-clone blocker, issue #6/#8 class).
+    run_stage build-initramfs \
+      "${BRINGUP}/initramfs/init" "${BRINGUP}/rootfs/ubiprog.c" \
+      "${_PROJECT_ROOT}/pins/busybox" "${OUT_DIR}/rootfs.ubi.img" \
+      "${_SCRIPT_DIR}/build-initramfs.sh" \
+      -- bash "${_SCRIPT_DIR}/build-initramfs.sh"
+    # pack-fit reads zImage+aes.dtb from KERNEL_ARTIFACT_DIR (LINUX_DIR for buildroot,
+    # OpenWrt's build_dir for openwrt) and incbin's initramfs.cpio.gz from
+    # build-initramfs above. FIT templates + load addrs are rk-forge's board-verified
+    # ones (NOT OpenWrt's 0x03200000/0x02000000 — those are for its uboot).
+    run_stage pack-fit \
+      "${BRINGUP}/fit/${SOC}-mainline.its" "${BRINGUP}/fit/${SOC}-kernel.its" \
+      "${BRINGUP}/fit/${SOC}-kernel-nand.its" "${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/${KERN_IMG}" \
+      "${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/dts/rockchip/${DT_NAME}.dtb" \
+      "${UBOOT_DIR}/u-boot-nodtb.bin" "${UBOOT_DIR}/u-boot.dtb" \
+      "${BRINGUP}/fit/initramfs.cpio.gz" \
+      "${_SCRIPT_DIR}/pack-fit.sh" \
+      -- bash "${_SCRIPT_DIR}/pack-fit.sh"
+  fi
 }
 
 # SD-card image (parallel to NAND — second boot media, dev/recovery). Reuses the
@@ -309,6 +331,16 @@ stage_pack_sd() {
 }
 
 stage_assemble() {
+  # rk3568 eMMC: GPT + ext4 (NOT aes's NAND/ubiprog). assemble --emmc regardless of
+  # ASSEMBLE_VARIANT — the NAND provision/nand/rescue variants don't apply to eMMC.
+  if [[ "$STORAGE" == "emmc" ]]; then
+    run_stage assemble-emmc \
+      "${OUT_DIR}/boot.img" "${OUT_DIR}/rootfs.ext4" "${OUT_DIR}/u-boot.itb" \
+      "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/${PARAMETER_EMMC}" \
+      "${_SCRIPT_DIR}/assemble-update.sh" \
+      -- bash "${_SCRIPT_DIR}/assemble-update.sh" --emmc
+    return
+  fi
   # --sd variant: RKFW for the Rockchip SD tool (board boots SD only from an
   # RK-tool card). Needs rootfs.ext4 from pack-sd → run the SD pack chain first,
   # then assemble with the SD parameter + ext4 rootfs. Distinct stage name so its
@@ -330,7 +362,7 @@ stage_assemble() {
 }
 
 stage_status() {
-  for s in build-initramfs pack-loader pack-fit stage-rootfs pack-ubifs build-uboot-sd pack-fit-sd pack-sd assemble assemble-sd; do
+  for s in build-initramfs pack-loader pack-fit stage-rootfs pack-ubifs pack-emmc build-uboot-sd pack-fit-sd pack-sd assemble assemble-emmc assemble-sd; do
     if [[ -f "${STATE_DIR}/${s}.fingerprint" ]]; then
       log_ok "$s: recorded"
     else

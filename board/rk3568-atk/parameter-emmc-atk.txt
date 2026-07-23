@@ -1,0 +1,30 @@
+# parameter-emmc-atk.txt — RKFW parameter for the RK3568 eMMC update.img (GPT layout).
+#
+# RK3568 boots eMMC (NOT SPI-NAND like aes): BootROM loads idbloader raw @ sector 0x40
+# (the binman idbloader.img, written by RKDevTool's idb stage — NOT a GPT partition),
+# idbloader's SPL loads u-boot.itb from the uboot partition (@0x4000, matching mainline
+# u-boot's CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR=0x4000), U-Boot bootm's the kernel FIT
+# from the boot partition, the kernel mounts the ext4 rootfs. Three GPT partitions →
+# rootfs = mmcblk1p3 (uboot=p1, boot=p2, rootfs=p3); bootargs root=/dev/mmcblk1p3.
+#
+# Layout (512 B sectors, RK parameter convention; simplified from vendor's
+# parameter-buildroot-fit.txt which also has misc/recovery/backup/oem/userdata — MVP
+# needs only uboot/boot/rootfs):
+#   0x40          idbloader.img   (raw; binman, RKDevTool writes — not a GPT entry)
+#   0x4000  uboot  0x2000  (4 MiB; u-boot.itb ~1 MiB)
+#   0x6000  boot   0x20000 (64 MiB; boot.img ~41 MiB, padded to fill)
+#   0x26000 rootfs 0x100000(512 MiB; rootfs.ext4 256 MiB + headroom; FIXED — rkfw-pack's
+#                          regex can't parse the `-` grow token → empty partition panic)
+FIRMWARE_VER:8.1
+MACHINE_MODEL:RK3568
+MACHINE_ID:007
+MANUFACTURER: RK3568
+MAGIC: 0x5041524B
+ATAG: 0x00200800
+MACHINE: 0xffffffff
+CHECK_MASK: 0x80
+PWR_HLD: 0,0,A,0,1
+TYPE: GPT
+GROW_ALIGN: 0
+CMDLINE:mtdparts=:0x00002000@0x00004000(uboot),0x00020000@0x00006000(boot),0x00100000@0x00026000(rootfs)
+uuid:rootfs=614e0000-0000-4b53-8000-1d28000054a9
