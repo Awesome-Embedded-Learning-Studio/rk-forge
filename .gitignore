@@ -91,5 +91,6 @@ site/.vitepress/.temp/
 dist-pdf/
 
 # --- Python ---
+.venv/
 __pycache__/
 *.pyc

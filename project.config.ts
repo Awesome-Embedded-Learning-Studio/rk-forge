@@ -17,6 +17,7 @@ export default defineProject({
   nav: {
     'zh-CN': [
       { text: '首页', link: '/' },
+      { text: '教学路线', link: '/planning/' },
       { text: '教程', link: '/tutorial/' },
       { text: '踩坑日记', link: '/pitfalls/' },
       { text: '工程笔记', link: '/notes/' },
@@ -27,6 +28,7 @@ export default defineProject({
 
   sidebar: {
     volumes: [
+      { name: 'planning', srcDir: 'planning', urlPrefix: '/planning' },
       { name: 'tutorial', srcDir: 'tutorial', urlPrefix: '/tutorial' },
       { name: 'pitfalls', srcDir: 'pitfalls', urlPrefix: '/pitfalls' },
       { name: 'notes', srcDir: 'notes', urlPrefix: '/notes' },

@@ -1,8 +1,10 @@
 # document/ — rk-forge 文档体系
 
-rk-forge 的文档分四层,各司其职。原始过程素材(raw 笔记 + 板上日志)全部保留作取证参考,和提炼后的结论分开摆;被推翻的旧结论则降级到 archive,免得误导后来人。
+rk-forge 的文档分两半:**规划**([planning/](planning/),课纲)和**执行**(下面四层,教材 + 取证)。原始过程素材(raw 笔记 + 板上日志)全部保留作取证参考,和提炼后的结论分开摆;被推翻的旧结论则降级到 archive,免得误导后来人。
 
-## 四层结构
+> 想看"整门课长什么样、三块板怎么排、哪块板已经能教",从 [planning/](planning/) 进——它是 ROADMAP(课纲)→ tutorial(教材)→ pitfalls/notes/logs(取证) 这条接力链的起点。
+
+## 执行层:四层结构
 
 | 层 | 目录 | 角色 |
 |---|---|---|
@@ -22,4 +24,4 @@ rk-forge 的文档分四层,各司其职。原始过程素材(raw 笔记 + 板�
 
 ## 阅读入口
 
-想理解项目为什么这么做,从 [tutorial/boot/00_roadmap.md](tutorial/boot/00_roadmap.md) 进;想看踩过的坑,进 [pitfalls/](pitfalls/)(按故障域 4 篇);想看原始时间线,进 [notes/](notes/)(编号 01–12 dated)。
+想看三门课的总纲和路线,从 [planning/](planning/) 进;想理解项目为什么这么做,从 [tutorial/boot/00_roadmap.md](tutorial/boot/00_roadmap.md) 进;想看踩过的坑,进 [pitfalls/](pitfalls/)(按故障域 4 篇);想看原始时间线,进 [notes/](notes/)(编号 01–12 dated)。
