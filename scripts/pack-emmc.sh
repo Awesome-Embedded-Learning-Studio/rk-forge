@@ -19,7 +19,7 @@ source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + OUT_DIR (config/forge.e
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 
-ROOTFS_MIB=256          # ext4 rootfs image size (the eMMC partition must be ≥ this)
+ROOTFS_MIB=1024         # ext4 rootfs image size (Phase 2a Qt6 rootfs ~451M; eMMC partition must be ≥ this)
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --out)        OUT_DIR="$2"; shift 2;;
@@ -37,6 +37,27 @@ ROOT="${OUT_DIR}/rootfs"
 
 mkdir -p "$OUT_DIR"
 ROOTFS_EXT4="${OUT_DIR}/rootfs.ext4"
+
+# Generate the u-boot boot.scr into the staged rootfs. The eMMC boot partition is
+# RAW (boot.img = kernel FIT, written whole-partition by assemble-update.sh), NOT a
+# filesystem — so u-boot bootflow can't load boot.img as a file. bootflow's SCRIPT
+# bootmeth instead finds boot.scr on this ext4 rootfs partition and runs it; the
+# script does a raw `mmc read` of the boot partition + bootm. Source:
+# board/rk3568-atk/fit/boot-emmc.cmd. Placed at BOTH /boot/boot.scr (BLS convention)
+# and /boot.scr (bootmeth SCRIPT_FNAME2) for bootmeth compatibility.
+BOOT_CMD="${_PROJECT_ROOT}/board/rk3568-atk/fit/boot-emmc.cmd"
+if [[ -f "$BOOT_CMD" ]]; then
+  MKIMAGE="$(command -v mkimage || true)"
+  [[ -x "$MKIMAGE" ]] || MKIMAGE="${_PROJECT_ROOT}/third_party/buildroot/output/host/bin/mkimage"
+  [[ -x "$MKIMAGE" ]] || MKIMAGE="${_PROJECT_ROOT}/third_party/src/rk3568-atk/uboot/tools/mkimage"
+  [[ -x "$MKIMAGE" ]] || die "mkimage not found (u-boot mkimage needed to build boot.scr; run build-uboot or install u-boot-tools)"
+  mkdir -p "$ROOT/boot"
+  "$MKIMAGE" -A arm64 -O linux -T script -C none -n "rk3568-atk eMMC boot" \
+    -d "$BOOT_CMD" "$ROOT/boot/boot.scr" || die "mkimage boot.scr failed"
+  cp "$ROOT/boot/boot.scr" "$ROOT/boot.scr"   # partition-root copy (SCRIPT_FNAME2)
+  log_info "boot.scr → rootfs /boot/boot.scr + /boot.scr (bootflow entry; boot part is raw FIT)"
+fi
+
 log_info "building ext4 rootfs (${ROOTFS_MIB} MiB) from $ROOT …"
 # -F allow regular file (not a block dev); -b 4k default block; -d populates from the
 # staged tree. Fixed UUID + hash_seed for structural reproducibility (the superblock

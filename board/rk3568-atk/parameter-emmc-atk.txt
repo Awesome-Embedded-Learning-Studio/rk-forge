@@ -13,7 +13,7 @@
 #   0x40          idbloader.img   (raw; binman, RKDevTool writes — not a GPT entry)
 #   0x4000  uboot  0x2000  (4 MiB; u-boot.itb ~1 MiB)
 #   0x6000  boot   0x20000 (64 MiB; boot.img ~41 MiB, padded to fill)
-#   0x26000 rootfs 0x100000(512 MiB; rootfs.ext4 256 MiB + headroom; FIXED — rkfw-pack's
+#   0x26000 rootfs 0x200000(1 GiB; Phase 2a Qt6 rootfs ~451M + headroom; FIXED — rkfw-pack's
 #                          regex can't parse the `-` grow token → empty partition panic)
 FIRMWARE_VER:8.1
 MACHINE_MODEL:RK3568
@@ -26,5 +26,5 @@ CHECK_MASK: 0x80
 PWR_HLD: 0,0,A,0,1
 TYPE: GPT
 GROW_ALIGN: 0
-CMDLINE:mtdparts=:0x00002000@0x00004000(uboot),0x00020000@0x00006000(boot),0x00100000@0x00026000(rootfs)
+CMDLINE:mtdparts=:0x00002000@0x00004000(uboot),0x00020000@0x00006000(boot),0x00200000@0x00026000(rootfs)
 uuid:rootfs=614e0000-0000-4b53-8000-1d28000054a9

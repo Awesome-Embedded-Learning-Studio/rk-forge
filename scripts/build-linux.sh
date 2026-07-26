@@ -79,26 +79,24 @@ else
   make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" "rockchip/${DT_NAME}.dtb"
   log_ok "${KERN_IMG} → arch/${ARCH}/boot/${KERN_IMG} ; dtb → arch/${ARCH}/boot/dts/rockchip/${DT_NAME}.dtb"
 
-  # rtl8733bu.ko (CONFIG_RTL8733BU=m, the WiFi module stage-rootfs ships into the
-  # rootfs). zImage/dtbs don't build modules. 8733bu is an IN-TREE module (patch
-  # 0016), so build it with the in-tree module.ko target (make path/to/8733bu.ko),
-  # NOT `make M=` — M= is external-module style and hits a modfinal rule error on
-  # this in-tree module. The module.ko modpost needs the top-level Module.symvers:
-  # make zImage produces only vmlinux.symvers (vmlinux symbols), NOT Module.symvers
-  # (that needs `make modules`, which we avoid — 656 modules). 8733bu references
-  # only vmlinux symbols (core + CFG80211=y built-in), so seed Module.symvers from
-  # vmlinux.symvers (standard trick for a vmlinux-only tree). Only build when
-  # missing; incremental runs skip. ~3 min when it runs.
-  # Board-gated: aes = RTL8733BU (WIFI_DRIVER="rtl8733bu"); rk3568-atk has
-  # WIFI_DRIVER="" → skip the WiFi module entirely (it has no in-tree rtl8733bu).
+  # WiFi module (CONFIG_<WIFI_DRIVER>=m). In-tree module.ko target (NOT make M= —
+  # M= hits a modfinal rule error on these in-tree modules). Board-gated via
+  # WIFI_DRIVER (config/boards/<board>.env): aes=rtl8733bu (USB), rk3568-atk=
+  # rtl8852bs (SDIO, armbian fork). Module name = WIFI_DRIVER sans the "rtl"
+  # prefix (rtl8733bu→8733bu, rtl8852bs→8852bs). The module.ko modpost needs
+  # Module.symvers; make zImage only yields vmlinux.symvers (the driver references
+  # only vmlinux symbols — CFG80211/MAC80211 are =y built-in), so seed it. Only
+  # build when missing; incremental runs skip.
   if [[ -n "${WIFI_DRIVER:-}" ]]; then
-    if [[ ! -f drivers/net/wireless/realtek/rtl8733bu/8733bu.ko ]]; then
+    WIFI_MOD="${WIFI_DRIVER#rtl}"                                  # 8733bu / 8852bs
+    WIFI_KO="drivers/net/wireless/realtek/${WIFI_DRIVER}/${WIFI_MOD}.ko"
+    if [[ ! -f "$WIFI_KO" ]]; then
       [[ -f Module.symvers ]] || cp vmlinux.symvers Module.symvers
-      log_info "building rtl8733bu.ko (in-tree module.ko target; missing — full-rebuild case)"
-      forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" drivers/net/wireless/realtek/rtl8733bu/8733bu.ko
-      log_ok "rtl8733bu.ko → drivers/net/wireless/realtek/rtl8733bu/8733bu.ko"
+      log_info "building ${WIFI_MOD}.ko (in-tree module.ko target; missing — full-rebuild case)"
+      forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" "$WIFI_KO"
+      log_ok "${WIFI_MOD}.ko → ${WIFI_KO}"
     else
-      log_info "rtl8733bu.ko present (skip module build)"
+      log_info "${WIFI_MOD}.ko present (skip module build)"
     fi
   else
     log_info "no WIFI_DRIVER for this board (config/boards/\${FORGE_BOARD}.env) — skip WiFi module build"

@@ -28,6 +28,27 @@ a rename is a separate tiny task). Or re-clone via the vendor `repo` manifest if
 access. The clone is large (~14 GB) and fully gitignored — its absence is harmless to
 every forge build/pack path.
 
+## rk3568/ — the Rockchip RK3568 Linux BSP (extraction pool)
+
+The Rockchip RK3568 **Linux** SDK (the `linux5.10_sdk` family: buildroot + kernel 5.10 +
+vendor U-Boot + rkbin + `device/rockchip/` + debian/yocto), `repo`-managed (has a `.repo/`).
+Same deal as vendor-sdk: **not built, not a submodule, gitignored** — a knowledge source
+for the RK3568 *mainline* port (see [notes/36](../document/notes/36-2026-07-22-rk3568-multiboard-and-mainline-build.md)):
+board-DT / io-domain / defconfig / vendor packaging flow get distilled out of here into
+forge's mainline board tree.
+
+## rk3568_android/ — the Rockchip RK3568 Android 13 BSP (extraction pool)
+
+The Rockchip RK3568 **Android 13** SDK (AOSP + vendor kernel 5.10 + proprietary HALs +
+rkbin), `repo`-managed, extracted from `android.tgz` (~26.5 GB → ~100 GB). Again **not
+built, not committed, gitignored.** This is deliberately a *reference/comparison* track,
+**separate from rk-forge's mainline-first identity**: Android here is the vendor Android
+world (kernel 5.10 + blobs), the opposite pole from the mainline Linux port. It is kept to
+understand the Rockchip Android packaging flow and to mine DTs/configs — see
+[notes/37](../document/notes/37-2026-07-23-rk3568-android-sdk-build-flow.md) for the
+build-flow analysis. Note Android's `envsetup/lunch/m` + `mkimage.sh` flow does **not** fit
+forge's `setup→build→pack→assemble` orchestrator; it is its own track.
+
 ---
 
 Moved here from `third_party/vendor-sdk/` on 2026-06-20 — topology honesty: reference

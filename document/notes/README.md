@@ -60,6 +60,7 @@ most useful part.
 | 34 | [34-…-openwrt-integration](34-2026-07-11-openwrt-integration.md) | OpenWrt 集成日记(profile 架构 + Device/aes overlay + 分阶段 build 解竞态) |
 | 35 | [35-…-openwrt-rootfs-flow](35-2026-07-12-openwrt-rootfs-flow.md) | OpenWrt rootfs 从源码到上板的七步链路(NAND UBIFS ubiprog + SD ext4) |
 | 36 | [36-…-rk3568-multiboard-and-mainline-build](36-2026-07-22-rk3568-multiboard-and-mainline-build.md) | **RK3568 上板奠基**:多板框架(board 注册表 + 8 脚本参数化) + 主线 kernel/uboot 编通 + binman 自产 loader/uboot(零 vendor 工具)。主线优先,NPU 为唯一例外 |
+| 37 | [37-…-rk3568-android-sdk-build-flow](37-2026-07-23-rk3568-android-sdk-build-flow.md) | **RK3568 Android SDK 构建流程解剖**:ATK android13(多 SoC,含 rk356x)。tgz 只含 `.repo/`→编译前需 `repo sync -l`;两层 `envsetup/lunch ATK_DLRK3568/m` + `mkimage.sh`。与主线(36)对立,仅提取池,不进 forge |
 
 另有 [nand-ecc-debug-handoff.md](nand-ecc-debug-handoff.md)(早期 NAND ECC 调试交接,部分结论已被后续 saga 取代,以 [pitfalls/04](../pitfalls/04-sfc-nand-saga.md) 为准)。
 

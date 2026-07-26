@@ -1,0 +1,16 @@
+# pins/rtl8852bs — source for the RTL8852BS driver drop (fetched by
+# scripts/fetch-rtl8852bs-driver.sh). Format: <git-url> <ref>
+# (same as pins/rtl8733bu). ref = branch / tag / SHA.
+#
+# armbian/wifi-rtl8852bs is the community-maintained fork of the Realtek
+# vendor driver (v1.15.9.2-11, G6 phl framework, CONFIG_SDIO_HCI), already
+# adapted across 6.1 → 6.16 → 6.17 → 6.18 → 7.1:
+#   - cfg80211 wdev-ops via RTW_CFG80211_DEV_PARAM_* macros (7.1 commit 9b560e80)
+#   - osdep timer/napi/kthread_complete_and_exit fixes (version-guarded)
+#   - hmac_sha256 → rtw_hmac_sha256 rename (6.18 symbol conflict)
+# GPL-2.0. The fork IS the ready-to-build driver for mainline 7.1; the only
+# forge-local delta is the arm_rk.mk aarch64/platform_ops adaptation
+# (patches/rk3568-atk/linux/00xx-wifi-rtl8852bs-forge-adapt.patch).
+#
+# main tracks the fork's ongoing mainline work. See document/notes/42.
+https://github.com/armbian/wifi-rtl8852bs main

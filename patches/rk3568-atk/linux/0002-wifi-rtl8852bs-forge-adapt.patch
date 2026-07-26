@@ -1,0 +1,51 @@
+# 0002-wifi-rtl8852bs-forge-adapt.patch — forge-local adaptation applied to the
+# armbian/wifi-rtl8852bs drop AFTER clone (by scripts/fetch-rtl8852bs-driver.sh).
+# The drop is gitignored, so this patch is NOT in the apply-series quilt set —
+# applied with `git apply` inside the fetch script (paths relative to drop root).
+#
+# 3 changes (SDIO + RTL8852B path):
+#  1. Makefile: CONFIG_PLATFORM_ARM_ROCKCHIP n->y — arm_rk.mk then contributes
+#     its functional -D (CONFIG_IOCTL_CFG80211 / RTW_USE_CFG80211_STA_EVENT /
+#     CONFIG_RADIO_WORK) which include/autoconf.h #undefs. arm_rk.mk double-
+#     writes EXTRA_CFLAGS + ccflags-y, so they stick on 7.1.
+#  2. platform/arm_rk.mk: comment out ARCH=arm + the vendor arm-eabi-4.6 absolute
+#     toolchain path + KSRC (poison for an aarch64 in-tree build).
+#  3. platform/arm_rk.mk: SDIO platform_ARM_RK_sdio.o -> platform_ops.o.
+#     platform_ARM_RK_sdio.c calls rockchip_wifi_power() (vendor <linux/rfkill-wlan.h>)
+#     absent on mainline 7.1; platform_ops.c is the empty stub (wifi power is
+#     sequenced by the mmc-pwrseq DT node before this driver's module_init).
+# See document/notes/42.
+--- a/Makefile
++++ b/Makefile
+@@ -214,7 +214,7 @@
+ CONFIG_PLATFORM_AML_S905 = n
+ CONFIG_PLATFORM_AML_S905_L3A = n
+ CONFIG_PLATFORM_HUANGLONG = n
+-CONFIG_PLATFORM_ARM_ROCKCHIP = n
++CONFIG_PLATFORM_ARM_ROCKCHIP = y
+ CONFIG_PLATFORM_SPACEMIT = n
+ 
+ ########### CUSTOMER ################################
+--- a/platform/arm_rk.mk
++++ b/platform/arm_rk.mk
+@@ -12,9 +12,9 @@
+ #EXTRA_CFLAGS += -DCONFIG_PLATFORM_ROCKCHIPS
+ endif
+ 
+-ARCH := arm
+-CROSS_COMPILE := /home/android_sdk/Rockchip/Rk3188/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-
+-KSRC := /home/android_sdk/Rockchip/Rk3188/kernel
++#ARCH := arm
++#CROSS_COMPILE := /home/android_sdk/Rockchip/Rk3188/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-
++#KSRC := /home/android_sdk/Rockchip/Rk3188/kernel
+ 
+ ifeq ($(CONFIG_PCI_HCI), y)
+ EXTRA_CFLAGS += -DCONFIG_PLATFORM_OPS
+@@ -34,6 +34,6 @@
+ endif
+ 
+ ifeq ($(CONFIG_SDIO_HCI), y)
+-_PLATFORM_FILES = platform/platform_ARM_RK_sdio.o
++_PLATFORM_FILES = platform/platform_ops.o
+ endif
+ endif

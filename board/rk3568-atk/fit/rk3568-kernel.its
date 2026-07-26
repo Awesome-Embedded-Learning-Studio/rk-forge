@@ -1,6 +1,6 @@
 /*
  * 主线 Linux 内核 FIT(RK3568 ATK,eMMC 引导用)。
- * 一个 .itb 含 Image(arm64 kernel)+ rk3568-evb1-v10.dtb(fdt),**不含 ramdisk**。
+ * 一个 .itb 含 Image(arm64 kernel)+ rk3568-atk-evb1-ddr4-v10.dtb(fdt),**不含 ramdisk**。
  *
  * eMMC primary boot:无 provisioning initramfs(那是 aes NAND/ubiprog 专属——eMMC
  * 不需要从 RAM 重写 rootfs),内核直接按 bootargs 的 root=/dev/mmcblk1pN 挂 eMMC
@@ -42,8 +42,8 @@
 		};
 
 		fdt {
-			description = "RK3568 EVB1 v10 flat DT (bootargs set by U-Boot: root=/dev/mmcblk1pN)";
-			data = /incbin/("rk3568-evb1-v10.dtb");
+			description = "ATK-DLRK3568 (atk-evb1-ddr4-v10) DT (bootargs set by U-Boot: root=/dev/mmcblk1pN)";
+			data = /incbin/("rk3568-atk-evb1-ddr4-v10.dtb");
 			type = "flat_dt";
 			arch = "arm64";
 			compression = "none";

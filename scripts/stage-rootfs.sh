@@ -88,21 +88,26 @@ log_ok "buildroot rootfs staged ($(du -sh "$ROOT" | cut -f1))"
 # (overlay/root/sample-3s.mp3) — buildroot auto-copies it into rootfs/root/, so
 # no manual cp here (was: cp from assets/).
 
-# Phase WiFi: stage the RTL8733BU driver module into the rootfs.
-# The .ko is built in-tree (CONFIG_RTL8733BU=m; the drop is materialized by
-# scripts/fetch-rtl8733bu-driver.sh + wired by quilt patch 0016). The S99wifi
-# init script (overlay/etc/init.d) insmods it after switch_root. See notes/29.
-LINUX="${LINUX_DIR}"
-KO="${LINUX}/drivers/net/wireless/realtek/rtl8733bu/8733bu.ko"
-if [[ -f "$KO" ]]; then
-  mkdir -p "$ROOT/lib/modules"
-  cp "$KO" "$ROOT/lib/modules/8733bu.ko"
-  log_ok "8733bu.ko → lib/modules/ ($(stat -c%s "$ROOT/lib/modules/8733bu.ko") B)"
-else
-  log_info "note: 8733bu.ko not built yet — run kernel module build first (WiFi will be absent)"
+# Phase WiFi: stage the WiFi driver module into the rootfs (board-gated via
+# WIFI_DRIVER). The .ko is built in-tree (CONFIG_<WIFI_DRIVER>=m; drop
+# materialized by scripts/fetch-<driver>-driver.sh + wired by a quilt patch).
+# The S99wifi init script (overlay/etc/init.d) insmods it after switch_root.
+if [[ -n "${WIFI_DRIVER:-}" ]]; then
+  WIFI_MOD="${WIFI_DRIVER#rtl}"
+  LINUX="${LINUX_DIR}"
+  KO="${LINUX}/drivers/net/wireless/realtek/${WIFI_DRIVER}/${WIFI_MOD}.ko"
+  if [[ -f "$KO" ]]; then
+    mkdir -p "$ROOT/lib/modules"
+    cp "$KO" "$ROOT/lib/modules/${WIFI_MOD}.ko"
+    log_ok "${WIFI_MOD}.ko → lib/modules/ ($(stat -c%s "$ROOT/lib/modules/${WIFI_MOD}.ko") B)"
+  else
+    log_info "note: ${WIFI_MOD}.ko not built yet — run kernel module build first (WiFi will be absent)"
+  fi
+  # Firmware: rtl8733bu loads FW from a built-in array (/lib/firmware files are
+  # an unused belt-suspenders fallback); rtl8852bs is built-in-only (array_8852b_*
+  # — no /lib/firmware staging at all, the .ko carries the FW). See notes/42.
+  [[ "$WIFI_DRIVER" == "rtl8733bu" ]] && stage_wifi_firmware
 fi
-
-stage_wifi_firmware
 
 log_info "tree size: $(du -sh "$ROOT" | cut -f1)"
 log_info "next: scripts/pack-ubifs.sh → $OUT_DIR/rootfs.ubi.img"
