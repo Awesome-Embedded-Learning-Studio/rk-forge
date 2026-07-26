@@ -46,10 +46,20 @@ export BR2_EXTERNAL="${BRINGUP}/buildroot-external"
 log_info "BR2_EXTERNAL=$BR2_EXTERNAL"
 
 cd "$BUILDROOT"
+# Arch guard: buildroot output/ is SHARED across boards. Switching arch (armhf↔aarch64)
+# needs `make clean` first — package stamps don't otherwise invalidate, so the rootfs
+# carries the OLD arch's binaries (e.g. an armhf busybox inside an aarch64 rootfs → boot
+# death on the board). Detect a stale-arch .config and refuse rather than ship a hybrid.
+if [[ -f .config ]]; then
+  if [[ "$ARCH" == "arm64" && "$(grep -c '^BR2_aarch64=y' .config)" -eq 0 ]] \
+  || [[ "$ARCH" == "arm"   && "$(grep -c '^BR2_arm=y' .config)"      -eq 0 ]]; then
+    die "buildroot .config arch ≠ board ARCH=$ARCH (board=$FORGE_BOARD): a previous board's arch lingers in the shared output/. Run: make -C third_party/buildroot clean && scripts/build-rootfs.sh --reconfigure"
+  fi
+fi
 [[ "$CLEAN" == 1 ]] && { log_info "make clean"; make clean >/dev/null; }
 if [[ "$RECONFIGURE" == 1 || ! -f .config ]]; then
-  log_info "make rk3506_aes_defconfig (regen .config from the forge defconfig)"
-  make rk3506_aes_defconfig
+  log_info "make ${BUILDROOT_DEFCONFIG} (regen .config from the forge defconfig)"
+  make "$BUILDROOT_DEFCONFIG"
 fi
 
 # Toolchain path: the defconfig hardcodes /opt/... because buildroot's Kconfig

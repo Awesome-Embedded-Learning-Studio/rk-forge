@@ -1,0 +1,2 @@
+name: rkforge
+desc: rk-forge board support for Rockchip RK3568 (rk3568-atk) — minimal buildroot rootfs via the external /opt Arm GNU 15.3 aarch64 toolchain

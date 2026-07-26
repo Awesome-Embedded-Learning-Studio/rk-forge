@@ -83,14 +83,19 @@ def parse_package_file(path):
 
 def parse_parameter(path):
     ver, parts = (8, 1, 0), {}
+    machine, machine_id = "RK3506", "007"   # RKAF header SoC fields (aes back-compat default)
     if not path or not os.path.exists(path):
-        return ver, parts
+        return ver, parts, machine, machine_id
     with open(path, encoding='utf-8', errors='replace') as f:
         for line in f:
             if line.startswith('FIRMWARE_VER:'):
                 nums = re.findall(r'\d+', line.split(':', 1)[1])
                 nums = (nums + ['0', '0', '0'])[:3]
                 ver = tuple(int(x) for x in nums)
+            if line.startswith('MACHINE_MODEL:'):
+                machine = line.split(':', 1)[1].strip()
+            if line.startswith('MACHINE_ID:'):
+                machine_id = line.split(':', 1)[1].strip()
             if 'mtdparts' in line:
                 body = line.split('mtdparts', 1)[1].lstrip(': ')
                 for tok in body.split(','):
@@ -99,7 +104,7 @@ def parse_parameter(path):
                         size_s, off_s, name = m.groups()
                         size = 0 if size_s.startswith('-') else int(size_s, 16)
                         parts[name.strip()] = (size, int(off_s, 16))
-    return ver, parts
+    return ver, parts, machine, machine_id
 
 def read_chip_tag(loader_path):
     with open(loader_path, 'rb') as f:
@@ -122,7 +127,7 @@ def _wrap_parameter(raw: bytes) -> bytes:
 
 def cmd_pack(args):
     entries = parse_package_file(args.package_file)
-    ver, mtdparts = parse_parameter(args.parameter)
+    ver, mtdparts, machine, machine_id = parse_parameter(args.parameter)
     chip = read_chip_tag(args.loader)
     with open(args.loader, 'rb') as f:
         loader = f.read()
@@ -173,7 +178,7 @@ def cmd_pack(args):
         body += data
     body_len = len(body)                    # header + table + images, before the trailing CRC
     hdr = (b'RKAF' + struct.pack('<I', body_len)   # length field = body_len (= span - 4 once CRC is appended)
-           + _cstr(b'RK3506', 0x22) + _cstr(b'007', 0x1E) + _cstr(b' RK3506', 0x38)
+           + _cstr(machine.encode(), 0x22) + _cstr(machine_id.encode(), 0x1E) + _cstr((' ' + machine).encode(), 0x38)
            + struct.pack('<I', 0) + struct.pack('<I', version_int(ver)) + struct.pack('<I', n))
     assert len(hdr) == RKAF_HDR
     body[:RKAF_HDR] = hdr                   # fill the real header BEFORE computing the trailing CRC

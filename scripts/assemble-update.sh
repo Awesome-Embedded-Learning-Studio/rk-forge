@@ -59,6 +59,7 @@ while [[ $# -gt 0 ]]; do
     --nand) VMODE=nand; shift;;
     --rescue) VMODE=rescue; shift;;
     --sd) VMODE=sd; shift;;
+    --emmc) VMODE=emmc; shift;;
     --loader) LOADER="$2"; shift 2;;
     --parameter) PARAMETER_OVERRIDE="$2"; shift 2;;
     --no-verify) VERIFY=0; shift;;
@@ -69,7 +70,7 @@ done
 
 LOADER="${LOADER:-${OUT_DIR}/MiniLoaderAll.bin}"  # --loader overrides (e.g. ATK release rk3506_spl_loader_v1.06.111.bin)
 UBOOT="${OUT_DIR}/uboot.img"
-PARAMETER="${PARAMETER_OVERRIDE:-${BRINGUP}/parameter-nand-aes-vendorlayout.txt}"
+PARAMETER="${PARAMETER_OVERRIDE:-${BRINGUP}/${PARAMETER_NAND:-}}"
 ROOTFS=""
 case "$VMODE" in
   provision)
@@ -77,7 +78,7 @@ case "$VMODE" in
     # First boot: /init rewrites rootfs via ubiprog (reliable kernel write), stamps
     # a marker, switch_root. Survives the loader's weak rootfs write across reboots.
     BOOT="${OUT_DIR}/boot.img"
-    PKGFILE="${BRINGUP}/package-file-nand.txt"   # lists boot + rootfs
+    PKGFILE="${BRINGUP}/${PKGFILE_NAND}"   # lists boot + rootfs
     ROOTFS="${OUT_DIR}/rootfs.ubi.img"
     UPDATE_OUT="${OUT_DIR}/update.img"
     VARIANT="PROVISION-UBIPROG" ;;
@@ -85,14 +86,14 @@ case "$VMODE" in
     # Direct mount (no ramdisk): kernel mounts UBIFS itself. SKIPS ubiprog → ECC 炸
     # on 2nd boot (loader-written-weak rootfs). Loader/debug comparison only.
     BOOT="${OUT_DIR}/boot-nand.img"
-    PKGFILE="${BRINGUP}/package-file-nand.txt"
+    PKGFILE="${BRINGUP}/${PKGFILE_NAND}"
     ROOTFS="${OUT_DIR}/rootfs.ubi.img"
     UPDATE_OUT="${OUT_DIR}/update-nand.img"
     VARIANT="NAND-DIRECT" ;;
   rescue)
     # boot.img initramfs shell, rootfs OMITTED. Recovery shell, no provisioning.
     BOOT="${OUT_DIR}/boot.img"
-    PKGFILE="${BRINGUP}/package-file-aes.txt"
+    PKGFILE="${BRINGUP}/${PKGFILE_RESCUE}"
     UPDATE_OUT="${OUT_DIR}/update-rescue.img"
     VARIANT="RESCUE-SHELL" ;;
   sd)
@@ -108,21 +109,36 @@ case "$VMODE" in
     # superseded. See notes/32.
     BOOT="${OUT_DIR}/boot-sd.img"
     UBOOT="${OUT_DIR}/uboot-sd.img"   # SD-2 autoboot defconfig (mmc-read bootcmd)
-    PKGFILE="${BRINGUP}/package-file-sd.txt"
+    PKGFILE="${BRINGUP}/${PKGFILE_SD}"
     ROOTFS="${OUT_DIR}/rootfs.ext4"
-    PARAMETER="${BRINGUP}/parameter-sd-aes.txt"
+    PARAMETER="${BRINGUP}/${PARAMETER_SD}"
     UPDATE_OUT="${OUT_DIR}/update-sd.img"
     VARIANT="SD-CARD" ;;
+  emmc)
+    # RK3568 eMMC boot: GPT + ext4 rootfs (NOT aes's NAND/ubiprog path). uboot =
+    # u-boot.itb (binman: mainline U-Boot + BL31/ATF, build-uboot.sh — NOT the
+    # fit-packed uboot.img). rootfs = ext4 (pack-emmc.sh's mke2fs -d, NOT ubi). boot =
+    # the no-ramdisk arm64 kernel FIT (packs to boot.img in pack-fit.sh). The RKFW
+    # download loader (MiniLoaderAll.bin) comes from pack-loader.sh's boot_merger (rkbin
+    # public blobs) — separate from the @0x40 binman idbloader the BootROM loads; see
+    # RKBOOT-RK3568-atk.ini + document/sdk-diff-rk3568.md for the A/B loader distinction.
+    BOOT="${OUT_DIR}/boot.img"
+    UBOOT="${OUT_DIR}/u-boot.itb"
+    PKGFILE="${BRINGUP}/${PKGFILE_EMMC}"
+    ROOTFS="${OUT_DIR}/rootfs.ext4"
+    PARAMETER="${BRINGUP}/${PARAMETER_EMMC}"
+    UPDATE_OUT="${OUT_DIR}/update.img"
+    VARIANT="EMMC" ;;
 esac
 for f in "$LOADER" "$UBOOT" "$BOOT" "$PARAMETER" "$PKGFILE" ${ROOTFS:+"$ROOTFS"}; do
   [[ -r "$f" ]] || die "missing: $f (run \`forge pack\` first; for --nand the rootfs chain is stage-rootfs → pack-ubifs)"
 done
 
-# --sd: the ext4 rootfs image must FIT in the fixed-size rootfs GPT partition
-# (parameter-sd-aes.txt). A larger image would overflow/truncate → broken root.
-# (grow was removed from the rootfs partition: rkfw-pack's regex can't parse `-`,
-# leaving nand_addr=0xFFFFFFFF → RK tool writes no image → empty partition panic.)
-if [[ "$VMODE" == "sd" ]]; then
+# --sd / --emmc: the ext4 rootfs image must FIT in the fixed-size rootfs GPT partition
+# (parameter-sd-aes.txt / parameter-emmc-atk.txt). A larger image would overflow/truncate
+# → broken root. (grow was removed from the rootfs partition: rkfw-pack's regex can't
+# parse `-`, leaving nand_addr=0xFFFFFFFF → RK tool writes no image → empty partition panic.)
+if [[ "$VMODE" == "sd" || "$VMODE" == "emmc" ]]; then
   ROOTFS_PART_HEX=$(sed -nE 's/.*0x([0-9a-fA-F]+)@0x[0-9a-fA-F]+\(rootfs\).*/\1/p' "$PARAMETER")
   [[ -n "$ROOTFS_PART_HEX" ]] || die "couldn't parse rootfs partition size from $PARAMETER"
   ROOTFS_PART_SZ=$(( 0x$ROOTFS_PART_HEX * 512 ))
@@ -160,7 +176,7 @@ mkdir -p "$ROCKDEV/Image"
 cp "$PKGFILE"   "$ROCKDEV/package-file"
 cp "$LOADER"    "$ROCKDEV/Image/MiniLoaderAll.bin"
 cp "$PARAMETER" "$ROCKDEV/Image/parameter.txt"
-cp "$UBOOT"     "$ROCKDEV/Image/uboot.img"
+cp "$UBOOT"     "$ROCKDEV/Image/$(basename "$UBOOT")"   # aes=uboot.img, rk3568=u-boot.itb (manifest name matches the basename)
 cp "$BOOT"      "$ROCKDEV/Image/boot.img"   # boot-nand.img staged as boot.img to match the manifest
 [[ -n "$ROOTFS" ]] && cp "$ROOTFS" "$ROCKDEV/Image/rootfs.img"
 
@@ -180,7 +196,7 @@ if [[ "$VERIFY" == 1 ]]; then
   VFY=$(mktemp -d)
   python3 "${_SCRIPT_DIR}/rkfw-pack.py" unpack "$UPDATE_OUT" "$VFY" >/dev/null 2>&1 \
     || die "self-check FAIL: rkfw-pack.py unpack"
-  PAIRS=("uboot.img:$UBOOT" "boot.img:$BOOT")
+  PAIRS=("$(basename "$UBOOT"):$UBOOT" "boot.img:$BOOT")
   [[ -n "$ROOTFS" ]] && PAIRS+=("rootfs.img:$ROOTFS")
   for pair in "${PAIRS[@]}"; do
     p=${pair%%:*}; src=${pair#*:}

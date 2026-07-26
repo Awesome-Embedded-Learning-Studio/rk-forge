@@ -61,11 +61,13 @@ u-boot.itb
 .cache/
 compile_commands.json
 
-# --- board/aes build outputs (reproducible via scripts/pack-*.sh + assemble-update.sh) ---
-# The .its are SOURCE (tracked); everything else under fit/ + all of out/ are
-# regenerated artifacts. tee.bin is a staged rkbin blob copy (pack-fit.sh re-stages it).
-/board/aes/out/
-/board/aes/out-gcc10-snapshot/
+# --- board/<board>/ build outputs (reproducible via scripts/pack-*.sh + assemble-update.sh) ---
+# The .its under fit/ are SOURCE (tracked); everything else under fit/ + all of out/
+# are regenerated artifacts. tee.bin is a staged rkbin blob copy (pack-fit.sh re-stages it).
+# Generic over ALL boards (aes/RK3506, rk3568-atk/RK3568, ...) — out/ holds the packed
+# update.img / rootfs.ext4 / boot.img (hundreds of MiB), never tracked.
+/board/*/out/
+/board/*/out-*/
 /board/aes/fit/*.itb
 /board/aes/fit/*.bin
 /board/aes/fit/zImage

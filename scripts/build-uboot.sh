@@ -44,6 +44,30 @@ source "${_SCRIPT_DIR}/lib/log.sh"
 source "${_SCRIPT_DIR}/lib/toolchain.sh"
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/progress.sh"   # FORGE_PROGRESS_PY + forge_progress_run
+source "${_SCRIPT_DIR}/lib/rkbin.sh"      # rkbin_load: BL31/TEE/TPL blobs (binman self-pack for ATF boards)
+
+# U-Boot builds BOTH arm32 and arm64 from arch/arm/ (unified) — ARCH=arm regardless of
+# the board's KERNEL arch. rk3568-atk is an arm64 kernel (ARCH=arm64 in the board env)
+# but its U-Boot builds as ARCH=arm + an aarch64 CROSS_COMPILE; aes is arm32/armhf.
+# The arm64/armhf split is purely CROSS_COMPILE (from the board toolchain), NOT ARCH.
+ARCH=arm
+
+# Boards with an ATF stage (RKBIN_BL31_PAT set) let binman self-pack idbloader.img +
+# u-boot.itb from the rkbin blobs (RK3568 — NO vendor boot_merger/trustmerger needed).
+# Boards without (aes/RK3506) skip — their loader comes from pack-loader.sh (boot_merger)
+# + uboot.img from pack-fit.sh (fit-pack.py). binman reads BL31/ROCKCHIP_TPL/TEE env vars.
+if [[ -n "${RKBIN_BL31_PAT:-}" ]]; then
+  rkbin_load
+  export BL31="${RKBIN_BLOB_DIR}/${RKBIN_BL31}"
+  export ROCKCHIP_TPL="${RKBIN_BLOB_DIR}/${RKBIN_DDR}"
+  # OP-TEE (TEE/bl32) is intentionally NOT exported: rkbin ships bl32 as a raw .bin,
+  # but binman's tee-os entry expects an ELF → "Failed to read ELF file: Magic number
+  # does not match". OP-TEE is OPTIONAL for boot (RK3568 boots with BL31/ATF alone) —
+  # binman emits "missing optional external blobs: tee-os" and still produces a
+  # functional u-boot.itb with BL31. If OP-TEE is needed later, build it from source
+  # (ELF) and export TEE=<that-elf>.
+  log_info "binman blobs: BL31=$RKBIN_BL31  ROCKCHIP_TPL=$RKBIN_DDR  (TEE omitted — OP-TEE optional; rkbin bl32 is raw, not ELF)"
+fi
 
 UBOOT_DIR_LOCAL="$UBOOT_DIR"; CLEAN=0; VARIANT="nand"
 while [[ $# -gt 0 ]]; do
@@ -63,12 +87,12 @@ check_toolchain || die "toolchain not on PATH. Run: source scripts/env-setup.sh"
 # Variant config: defconfig + build dir (in-tree vs worktree) + output paths.
 case "$VARIANT" in
   nand)
-    DEFCONFIG="evb-rk3506_defconfig"
+    DEFCONFIG="$UBOOT_DEFCONFIG"
     BUILD_DIR="$UBOOT_DIR_LOCAL"        # in-tree
     MKIMAGE="$UBOOT_DIR_LOCAL/tools/mkimage"
     ;;
   sd)
-    DEFCONFIG="evb-rk3506_sd_defconfig"
+    DEFCONFIG="$UBOOT_DEFCONFIG_SD"
     MKIMAGE="$UBOOT_DIR_LOCAL/tools/mkimage"   # share the NAND-built host tool
     [[ -x "$MKIMAGE" ]] \
       || die "NAND tools/mkimage missing at $MKIMAGE — run build-uboot.sh (default nand) first"

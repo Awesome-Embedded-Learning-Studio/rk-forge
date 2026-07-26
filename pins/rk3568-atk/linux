@@ -1,0 +1,7 @@
+# pins/rk3568-atk/linux — upstream Linux for the rk3568-atk board.
+# Format: <git-url> <ref>. ref = the BASE patches/rk3568-atk/linux applies onto.
+# RK3568 SoC support is mainline since 5.12; v7.1 (same base as aes) carries mature
+# RK3568: pinctrl/clk/GMAC/USB/PCIe/HDMI/DSI, Panfrost GPU (Mali-G52), Hantro+rkvdec2
+# VPU, RGA, RKCIF/rkisp1 camera — all the accelerators except the NPU (vendor rknpu2,
+# ported separately). The board DT (rk3568-atk-evb1-ddr4-v10) is rk-forge's contribution.
+https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git v7.1

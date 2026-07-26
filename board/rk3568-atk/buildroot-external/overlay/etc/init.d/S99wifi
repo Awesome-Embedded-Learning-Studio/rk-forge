@@ -1,0 +1,26 @@
+#!/bin/sh
+# S99wifi — load the out-of-tree RTL8852BS WiFi driver after switch_root.
+#
+# The driver is an =m module (8852bs.ko) because the boot flow mounts the ext4
+# rootfs only AFTER switch_root. cfg80211/mac80211 are built-in (=y), so insmod
+# needs no other module first (modinfo shows depends=). Firmware is a built-in C
+# array (array_8852b_u2_nic[]) — no /lib/firmware files needed. The driver is
+# the armbian/wifi-rtl8852bs community fork (7.1-adapted); drop materialized by
+# scripts/fetch-rtl8852bs-driver.sh, staged by scripts/stage-rootfs.sh.
+#
+# Non-fatal by design: a probe failure must not block boot. Debug with
+# `dmesg | grep -iE '8852|rtw'` and `lsmod | grep 8852`. See document/notes/42.
+case "$1" in
+	start)
+		echo "S99wifi: loading RTL8852BS driver…"
+		if insmod /lib/modules/8852bs.ko 2>/dev/null; then
+			echo "S99wifi: 8852bs.ko loaded"
+		else
+			echo "S99wifi: insmod failed — see 'dmesg | grep -iE \"8852|rtw\"'"
+		fi
+		;;
+	stop)
+		rmmod 8852bs 2>/dev/null
+		;;
+esac
+exit 0

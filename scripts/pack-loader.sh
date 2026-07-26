@@ -53,7 +53,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 BOOT_MERGER="${RKBIN_PUBLIC}/tools/boot_merger"              # packer is version-tolerant; always public
-INI_TPL="${BRINGUP}/RKBOOT-RK3506B-aes.ini"
+INI_TPL="${BRINGUP}/${LOADER_INI}"
 
 [[ -x "$BOOT_MERGER" ]]|| die "boot_merger not found/executable: $BOOT_MERGER (init third_party/rkbin submodule)"
 [[ -f "$INI_TPL" ]]    || die "loader ini template not found: $INI_TPL"
@@ -68,13 +68,16 @@ mkdir -p "$OUT_DIR"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$WORK/bin"
-ln -s "$BLOB_DIR" "$WORK/bin/rk35"
+ln -s "$BLOB_DIR" "$WORK/${RKBIN_BLOB_SUBDIR}"
 
 # Substitute the ini template (vendor mk-fitimage.sh convention: @TOKEN@ sed).
+# @BL31_BIN@ is optional (RK3568 has an ATF BL31 stage; RK3506 has none — the token
+# is absent from the aes ini, so the sub is a no-op there).
 INI="$WORK/RKBOOT.ini"
 sed -e "s~@DDR_BIN@~$DDR_BIN~" \
     -e "s~@USBPLUG_BIN@~$USBPLUG_BIN~" \
     -e "s~@SPL_BIN@~$SPL_BIN~" \
+    -e "s~@BL31_BIN@~${RKBIN_BL31:-}~" \
     -e "s~@LOADER_OUT@~loader.bin~" \
     -e "s~@IDB_OUT@~idblock.img~" \
     "$INI_TPL" > "$INI"

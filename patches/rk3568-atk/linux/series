@@ -1,0 +1,23 @@
+# patches/rk3568-atk/linux/series — quilt-style ordered apply list.
+# One filename per line (relative to this dir). Applied by scripts/apply-series.sh
+# via `git am` (run from the linux tree, FORGE_BOARD=rk3568-atk).
+#
+# NOTE: the ATK board-DT + ILI9881C panel changes (notes/41) are currently applied
+# as a working-tree delta in third_party/src/rk3568-atk/linux (not yet
+# quilt-normalised into this series) — that normalisation is a separate task and
+# does NOT block WiFi. This series currently carries the rtl8852bs wiring only;
+# the 851-file driver drop itself is materialized by
+# scripts/fetch-rtl8852bs-driver.sh from reference/rk3568/.../rtl8852bs/ and is
+# gitignored in the kernel clone.
+#
+# Run fetch-rtl8852bs-driver.sh BEFORE apply-series so rtl8852bs/Kconfig exists
+# when the wire patch sources it. See document/notes/42.
+
+# Phase WiFi (rtl8852bs SDIO, armbian fork — see document/notes/42):
+# 0001 — ONLY the 2-line realtek registration (source Kconfig + obj-$ line).
+#        The 851-file driver drop is materialized by scripts/fetch-rtl8852bs-driver.sh
+#        (armbian/wifi-rtl8852bs @ pin, gitignored in the kernel clone). The forge-
+#        local arm_rk.mk adaptation (aarch64 + platform_ops stub) is applied by the
+#        fetch script from 0002-wifi-rtl8852bs-forge-adapt.patch — the drop is
+#        gitignored so it can't go through git am. Run fetch BEFORE apply-series.
+0001-wifi-rtl8852bs-wire-realtek.patch

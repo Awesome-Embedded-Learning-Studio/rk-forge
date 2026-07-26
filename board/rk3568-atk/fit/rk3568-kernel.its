@@ -1,0 +1,65 @@
+/*
+ * 主线 Linux 内核 FIT(RK3568 ATK,eMMC 引导用)。
+ * 一个 .itb 含 Image(arm64 kernel)+ rk3568-atk-evb1-ddr4-v10.dtb(fdt),**不含 ramdisk**。
+ *
+ * eMMC primary boot:无 provisioning initramfs(那是 aes NAND/ubiprog 专属——eMMC
+ * 不需要从 RAM 重写 rootfs),内核直接按 bootargs 的 root=/dev/mmcblk1pN 挂 eMMC
+ * 的 ext4 rootfs 分区,再 exec /sbin/init。bootargs 由 U-Boot setenv 提供(覆盖
+ * DT chosen)。与 aes 的 rk3506-kernel-sd.its 同构(无 ramdisk 真根),只是 arch/镜像/
+ * load 地址不同。
+ *
+ * load 地址取自主线 U-Boot include/configs/rk3568_common.h 的 ENV_MEM_LAYOUT_SETTINGS:
+ *   kernel_addr_r=0x02000000   fdt_addr_r=0x12000000   (ramdisk_addr_r=0x12180000,本镜像不用)
+ * U-Boot 加载序列: `load mmc 1:2 ${kernel_addr_r} boot.img; bootm ${kernel_addr_r}`(boot
+ * 分区号由 parameter-emmc-atk.txt 的 GPT 布局决定)。
+ *
+ * 与 aes(RK3506)的差异: arm64 → arch="arm64" + Image(arm64 未压缩内核,自解压逻辑在
+ * 内核自身,非 zImage);地址随 rk3568_common.h(rk3506 用 rk3506_common.h 的 0x02080000)。
+ *
+ * 打包: fit-pack.py pack --external-offset 0x800(Mode B,主线 U-Boot bootm 消费,
+ * 与 aes 的 boot*.img 同模式)。
+ */
+/dts-v1/;
+
+/ {
+	description = "Mainline Linux FIT for RK3568 ATK (eMMC ext4 rootfs boot)";
+	#address-cells = <1>;
+
+	images {
+
+		kernel {
+			description = "Linux kernel (arm64 Image, self-decompressing)";
+			data = /incbin/("Image");
+			type = "kernel";
+			arch = "arm64";
+			os = "linux";
+			compression = "none";
+			load = <0x02000000>;
+			entry = <0x02000000>;
+			hash {
+				algo = "sha256";
+			};
+		};
+
+		fdt {
+			description = "ATK-DLRK3568 (atk-evb1-ddr4-v10) DT (bootargs set by U-Boot: root=/dev/mmcblk1pN)";
+			data = /incbin/("rk3568-atk-evb1-ddr4-v10.dtb");
+			type = "flat_dt";
+			arch = "arm64";
+			compression = "none";
+			load = <0x12000000>;
+			hash {
+				algo = "sha256";
+			};
+		};
+	};
+
+	configurations {
+		default = "conf";
+		conf {
+			description = "Boot mainline arm64 Linux, mount eMMC ext4 rootfs";
+			kernel = "kernel";
+			fdt = "fdt";
+		};
+	};
+};

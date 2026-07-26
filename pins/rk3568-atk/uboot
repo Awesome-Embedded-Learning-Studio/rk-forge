@@ -1,0 +1,7 @@
+# pins/rk3568-atk/uboot — upstream U-Boot for rk3568-atk.
+# Mainline U-Boot has evb-rk3568_defconfig (RK3568 EVB); binman builds the idblock +
+# u-boot.itb (with BL31/BL32 ATF/OP-TEE blobs pulled from rkbin) — so RK3568 packing is
+# largely mainline-self-contained (NO vendor boot_merger/trustmerger like the vendor
+# flow, unlike aes which needs boot_merger for its loader). A board patch adds the ATK
+# DT + any tweaks. Same base commit as aes (2026.07-rc4 era).
+https://gitlab.denx.de/u-boot/u-boot.git 5ca1a73c

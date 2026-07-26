@@ -73,14 +73,22 @@ if [[ "$VARIANT" == "sd" ]]; then
   UBOOT_FIT="uboot-sd.img"
   need "$UBOOT_BIN"; need "$UBOOT_DTB"
 else
-  UBOOT_BIN="${UBOOT_DIR}/u-boot-nodtb.bin"
-  UBOOT_DTB="${UBOOT_DIR}/u-boot.dtb"
-  UBOOT_FIT="uboot.img"
   KERNEL_ARTIFACT_DIR="${KERNEL_ARTIFACT_DIR:-$LINUX_DIR}"   # openwrt profile overrides this to OpenWrt's build_dir (set by forge.sh stage_pack)
-  ZIMAGE="${KERNEL_ARTIFACT_DIR}/arch/arm/boot/zImage"
-  KERN_DTB="${KERNEL_ARTIFACT_DIR}/arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
-  INITRAMFS="${BRINGUP}/fit/initramfs.cpio.gz"
-  need "$UBOOT_BIN"; need "$UBOOT_DTB"; need "$ZIMAGE"; need "$KERN_DTB"; need "$INITRAMFS"
+  ZIMAGE="${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/${KERN_IMG}"
+  KERN_DTB="${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/dts/rockchip/${DT_NAME}.dtb"
+  need "$ZIMAGE"; need "$KERN_DTB"
+  if [[ "${UBOOT_FIT_SOURCE:-nodtb}" == "nodtb" ]]; then
+    # aes: pack-fit packs the vendor-SPL-compatible uboot FIT from the separate pieces.
+    UBOOT_BIN="${UBOOT_DIR}/u-boot-nodtb.bin"
+    UBOOT_DTB="${UBOOT_DIR}/u-boot.dtb"
+    UBOOT_FIT="uboot.img"
+    INITRAMFS="${BRINGUP}/fit/initramfs.cpio.gz"   # aes boot.img embeds the provisioning ramdisk
+    need "$UBOOT_BIN"; need "$UBOOT_DTB"; need "$INITRAMFS"
+  else
+    # binman (rk3568): uboot is build-uboot's FINAL u-boot.itb — not re-packed here.
+    # boot.img carries no initramfs (eMMC mounts ext4 root directly).
+    need "${UBOOT_DIR}/u-boot.itb"
+  fi
 fi
 
 # tee blob: resolved via lib/rkbin.sh (rkbin_load) from FORGE_RKBIN_DIR — the SAME
@@ -90,32 +98,46 @@ fi
 # from the same rkbin) verifies. uboot is a loadable (not hash-locked), so tee is
 # the ONLY blob whose hash must match the SPL. Run pack-loader + pack-fit with the
 # SAME FORGE_RKBIN_DIR (the default public rkbin is the sole source).
-rkbin_load
-TEE="${RKBIN_BLOB_DIR}/${RKBIN_TEE}"
-log_info "tee blob: $RKBIN_TEE (from $FORGE_RKBIN_DIR) — pairs with the SPL from the same source"
+if [[ "${UBOOT_FIT_SOURCE:-nodtb}" == "nodtb" ]]; then
+  rkbin_load
+  TEE="${RKBIN_BLOB_DIR}/${RKBIN_TEE}"
+  log_info "tee blob: $RKBIN_TEE (from $FORGE_RKBIN_DIR) — pairs with the SPL from the same source"
+fi
 
 mkdir -p "$OUT_DIR"
 W1=$(mktemp -d); W2=$(mktemp -d)
 trap 'rm -rf "$W1" "$W2" "${W3:-}" "${W4:-}"' EXIT
 
-# --- uboot FIT (rk3506-mainline.its) ---------------------------------------
-cp "$UBOOT_BIN" "$W1/uboot-nodtb.bin"
-cp "$UBOOT_DTB" "$W1/u-boot.dtb"
-cp "$TEE"       "$W1/tee.bin"
-cp "${BRINGUP}/fit/rk3506-mainline.its" "$W1/"
-# uboot FIT is packed by fit-pack.py, NOT mkimage: vendor SPL only parses the
-# external-data layout vendor mkimage 2017.09 emits, and the ATK fork that produces
-# it is non-public. fit-pack.py reproduces that layout in pure Python (FDT +
-# 0x200-aligned external data + per-image sha256, /totalsize sized so Rockchip SPL
-# loads the whole image). `fit-pack.py selftest` proves it structurally +
-# hash-identical to vendor's output; board-boot is the final confirmation. The tee
-# variant is resolved above from FORGE_RKBIN_DIR. The kernel FITs below are loaded
-# by mainline U-Boot (accepts mainline mkimage FITs), so they stay on mainline mkimage.
-log_info "packing $UBOOT_FIT (fit-pack.py, vendor-SPL-compatible -E layout)…"
-python3 "$FIT_PACK" pack "$W1/rk3506-mainline.its" "$W1/$UBOOT_FIT"
-cp "$W1/$UBOOT_FIT" "$OUT_DIR/$UBOOT_FIT"
-"$MKIMAGE" -l "$OUT_DIR/$UBOOT_FIT" >/dev/null || die "$UBOOT_FIT failed FIT parse"
-log_ok "$UBOOT_FIT → $OUT_DIR/$UBOOT_FIT ($(stat -c%s "$OUT_DIR/$UBOOT_FIT") B)"
+# --- uboot image -----------------------------------------------------------
+if [[ "${UBOOT_FIT_SOURCE:-nodtb}" == "nodtb" ]]; then
+  # aes: pack the vendor-SPL-compatible uboot FIT (rk<SOC>-mainline.its) from the
+  # separate pieces (u-boot-nodtb.bin + u-boot.dtb + tee). fit-pack.py, NOT mkimage:
+  # vendor SPL only parses the external-data layout vendor mkimage 2017.09 emits, and
+  # the ATK fork that produces it is non-public. fit-pack.py reproduces that layout in
+  # pure Python (FDT + 0x200-aligned external data + per-image sha256, /totalsize sized
+  # so Rockchip SPL loads the whole image). The kernel FIT below is loaded by
+  # mainline U-Boot (accepts mainline mkimage FITs), so it stays on mainline mkimage.
+  cp "$UBOOT_BIN" "$W1/uboot-nodtb.bin"
+  cp "$UBOOT_DTB" "$W1/u-boot.dtb"
+  cp "$TEE"       "$W1/tee.bin"
+  cp "${BRINGUP}/fit/${SOC}-mainline.its" "$W1/"
+  log_info "packing $UBOOT_FIT (fit-pack.py, vendor-SPL-compatible -E layout)…"
+  python3 "$FIT_PACK" pack "$W1/${SOC}-mainline.its" "$W1/$UBOOT_FIT"
+  cp "$W1/$UBOOT_FIT" "$OUT_DIR/$UBOOT_FIT"
+  "$MKIMAGE" -l "$OUT_DIR/$UBOOT_FIT" >/dev/null || die "$UBOOT_FIT failed FIT parse"
+  log_ok "$UBOOT_FIT → $OUT_DIR/$UBOOT_FIT ($(stat -c%s "$OUT_DIR/$UBOOT_FIT") B)"
+else
+  # binman (rk3568): build-uboot's `make all` already ran binman to produce the FINAL
+  # loader + uboot (idbloader.img + u-boot.itb; BL31/ATF + ROCKCHIP_TPL wired from
+  # rkbin). These ARE the consumed images — do NOT re-pack (wrapping u-boot.itb in
+  # another FIT would double-wrap it). Just stage them to OUT_DIR.
+  for _b in u-boot.itb idbloader.img; do
+    [[ -f "${UBOOT_DIR}/${_b}" ]] \
+      || die "binman ${_b} missing in $UBOOT_DIR (run build-uboot first; for ATF boards binman MUST succeed — its failure is NOT tolerated like on aes)"
+    cp "${UBOOT_DIR}/${_b}" "${OUT_DIR}/${_b}"
+  done
+  log_ok "u-boot.itb + idbloader.img (binman) → $OUT_DIR (build-uboot products, not re-packed)"
+fi
 
 # --variant sd: the SD defconfig's ONLY FIT is uboot-sd.img (the boot*.img are
 # produced by the default NAND run and don't depend on the uboot defconfig). Done.
@@ -124,11 +146,26 @@ if [[ "$VARIANT" == "sd" ]]; then
   exit 0
 fi
 
-# --- boot FIT (rk3506-kernel.its) ------------------------------------------
-cp "$ZIMAGE"    "$W2/zImage"
-cp "$KERN_DTB"  "$W2/rk3506b-aes.dtb"
+# --- boot FIT(s) -----------------------------------------------------------
+if [[ "$STORAGE" == "emmc" ]]; then
+  # rk3568: a SINGLE boot.img, no ramdisk. The kernel mounts the eMMC ext4 rootfs
+  # directly per bootargs (root=/dev/mmcblk1pN) — no provisioning initramfs (that's
+  # aes's NAND/ubiprog flow). Mode B (--external-offset 0x800), consumed by mainline
+  # U-Boot bootm — same packing mode as aes's boot*.img, just arm64 + no-ramdisk ITS.
+  cp "$ZIMAGE"    "$W2/${KERN_IMG}"
+  cp "$KERN_DTB"  "$W2/${DT_NAME}.dtb"
+  cp "${BRINGUP}/fit/${SOC}-kernel.its" "$W2/"
+  log_info "packing boot.img (fit-pack.py Mode B --external-offset 0x800, no ramdisk → eMMC ext4 root)…"
+  python3 "$FIT_PACK" pack --external-offset 0x800 "$W2/${SOC}-kernel.its" "$W2/boot.img"
+  cp "$W2/boot.img" "$OUT_DIR/boot.img"
+  "$MKIMAGE" -l "$OUT_DIR/boot.img" >/dev/null || die "boot.img failed FIT parse"
+  log_ok "boot.img → $OUT_DIR/boot.img ($(stat -c%s "$OUT_DIR/boot.img") B, no ramdisk → eMMC ext4 root)"
+else
+# --- aes: boot FIT (rk3506-kernel.its, with provisioning initramfs) --------
+cp "$ZIMAGE"    "$W2/${KERN_IMG}"
+cp "$KERN_DTB"  "$W2/${DT_NAME}.dtb"
 cp "$INITRAMFS" "$W2/initramfs.cpio.gz"
-cp "${BRINGUP}/fit/rk3506-kernel.its" "$W2/"
+cp "${BRINGUP}/fit/${SOC}-kernel.its" "$W2/"
 # boot.img / boot-nand.img are packed by fit-pack.py too (Phase 2 — single packing
 # tool for all FITs, decoupling pack-fit from the mainline U-Boot mkimage build).
 # These are consumed by MAINLINE U-Boot (bootm), so they use Mode B: -E -p 0x800 →
@@ -136,7 +173,7 @@ cp "${BRINGUP}/fit/rk3506-kernel.its" "$W2/"
 # (no version/totalsize — those are ATK-specific). `fit-pack.py selftest --vendor
 # <img> --its <its>` proves structure+blob+hash parity with the mainline-mkimage output.
 log_info "packing boot.img (fit-pack.py Mode B, --external-offset 0x800)…"
-python3 "$FIT_PACK" pack --external-offset 0x800 "$W2/rk3506-kernel.its" "$W2/boot.img"
+python3 "$FIT_PACK" pack --external-offset 0x800 "$W2/${SOC}-kernel.its" "$W2/boot.img"
 cp "$W2/boot.img" "$OUT_DIR/boot.img"
 "$MKIMAGE" -l "$OUT_DIR/boot.img" >/dev/null || die "boot.img failed FIT parse"
 log_ok "boot.img → $OUT_DIR/boot.img ($(stat -c%s "$OUT_DIR/boot.img") B, with initramfs)"
@@ -148,11 +185,11 @@ log_ok "boot.img → $OUT_DIR/boot.img ($(stat -c%s "$OUT_DIR/boot.img") B, with
 # for the persistent-rootfs boot; keep boot.img (with initramfs) as the fallback
 # rescue shell (swap which one you write to the boot partition).
 W3=$(mktemp -d)
-cp "$ZIMAGE"   "$W3/zImage"
-cp "$KERN_DTB" "$W3/rk3506b-aes.dtb"
-cp "${BRINGUP}/fit/rk3506-kernel-nand.its" "$W3/"
+cp "$ZIMAGE"   "$W3/${KERN_IMG}"
+cp "$KERN_DTB" "$W3/${DT_NAME}.dtb"
+cp "${BRINGUP}/fit/${SOC}-kernel-nand.its" "$W3/"
 log_info "packing boot-nand.img (fit-pack.py Mode B --external-offset 0x800, no ramdisk)…"
-python3 "$FIT_PACK" pack --external-offset 0x800 "$W3/rk3506-kernel-nand.its" "$W3/boot-nand.img"
+python3 "$FIT_PACK" pack --external-offset 0x800 "$W3/${SOC}-kernel-nand.its" "$W3/boot-nand.img"
 cp "$W3/boot-nand.img" "$OUT_DIR/boot-nand.img"
 "$MKIMAGE" -l "$OUT_DIR/boot-nand.img" >/dev/null || die "boot-nand.img failed FIT parse"
 log_ok "boot-nand.img → $OUT_DIR/boot-nand.img ($(stat -c%s "$OUT_DIR/boot-nand.img") B, no ramdisk → UBIFS root)"
@@ -167,13 +204,15 @@ log_ok "boot-nand.img → $OUT_DIR/boot-nand.img ($(stat -c%s "$OUT_DIR/boot-nan
 # boot-nand.img (media-agnostic); only the bootargs differ (set by U-Boot).
 W4=$(mktemp -d)
 trap 'rm -rf "$W1" "$W2" "${W3:-}" "${W4:-}"' EXIT
-cp "$ZIMAGE"   "$W4/zImage"
-cp "$KERN_DTB" "$W4/rk3506b-aes.dtb"
-cp "${BRINGUP}/fit/rk3506-kernel-sd.its" "$W4/"
+cp "$ZIMAGE"   "$W4/${KERN_IMG}"
+cp "$KERN_DTB" "$W4/${DT_NAME}.dtb"
+cp "${BRINGUP}/fit/${SOC}-kernel-sd.its" "$W4/"
 log_info "packing boot-sd.img (fit-pack.py Mode B --external-offset 0x800, no ramdisk)…"
-python3 "$FIT_PACK" pack --external-offset 0x800 "$W4/rk3506-kernel-sd.its" "$W4/boot-sd.img"
+python3 "$FIT_PACK" pack --external-offset 0x800 "$W4/${SOC}-kernel-sd.its" "$W4/boot-sd.img"
 cp "$W4/boot-sd.img" "$OUT_DIR/boot-sd.img"
 "$MKIMAGE" -l "$OUT_DIR/boot-sd.img" >/dev/null || die "boot-sd.img failed FIT parse"
 log_ok "boot-sd.img → $OUT_DIR/boot-sd.img ($(stat -c%s "$OUT_DIR/boot-sd.img") B, no ramdisk → SD ext4 root)"
+
+fi   # end STORAGE branch (emmc: single boot.img | nand: boot.img + boot-nand.img + boot-sd.img)
 
 log_warn "all FITs now forge-packed (fit-pack.py); board-boot of these is the confirmation."

@@ -51,7 +51,9 @@ git_clone_retry() {  # <clone-args...>
 
 fetch_one() {  # <name>
   local name="$1" pin_file url ref target
-  pin_file="${PROJECT_ROOT}/pins/${name}"
+  # Board-specific pin (pins/<board>/<name>) overrides the shared pin (pins/<name>).
+  pin_file="${PROJECT_ROOT}/pins/${FORGE_BOARD}/${name}"
+  [[ -f "$pin_file" ]] || pin_file="${PROJECT_ROOT}/pins/${name}"
   [[ -f "$pin_file" ]] || { log_warn "$name: no pin file ($pin_file) — skipping"; return 0; }
   # pin file format: <git-url> <ref>  (# = comment)
   read -r url ref < <(grep -vE '^[[:space:]]*#' "$pin_file" | grep -vE '^[[:space:]]*$' | head -1)

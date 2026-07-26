@@ -44,15 +44,15 @@ done
 
 check_toolchain || die "toolchain not on PATH. Run: source scripts/env-setup.sh && ./scripts/doctor.sh"
 [[ -d "$LINUX_DIR" ]] || die "linux tree not found: $LINUX_DIR"
-# Base RK3506 essentials + safe trim (KEEP NET core; cuts DRM/USB/SOUND bloat) +
-# XZ compression. Together these shrink boot.img before the 0x920000 bad block.
-KERNEL_FRAGMENTS=(
-  "${BOARD_CFG}/kernel.config"
-  "${BOARD_CFG}/kernel-trim.config"
-  "${BOARD_CFG}/kernel-compress.config"
-)
+# Board's kernel fragments (list from the board env KERNEL_FRAGMENTS; aes carries
+# trim+compress for NAND boot-size, other boards may carry just kernel.config).
+# Space-separated filenames under ${BOARD_CFG}/, merged in order (later overrides).
+_kernel_frag_list="${KERNEL_FRAGMENTS:-kernel.config}"
+KERNEL_FRAGMENTS=()
+for _f in $_kernel_frag_list; do KERNEL_FRAGMENTS+=("${BOARD_CFG}/${_f}"); done
+unset _kernel_frag_list
 for _f in "${KERNEL_FRAGMENTS[@]}"; do
-  [[ -f "$_f" ]] || die "kernel config fragment not found: $_f"
+  [[ -f "$_f" ]] || die "kernel config fragment not found: $_f (set KERNEL_FRAGMENTS in config/boards/\${FORGE_BOARD}.env)"
 done
 
 cd "$LINUX_DIR"
@@ -62,39 +62,43 @@ if [[ "$APPLY" == 1 ]]; then
   "${_SCRIPT_DIR}/apply-series.sh" --component linux
 fi
 
-log_info "merge_config: multi_v7_defconfig + kernel.config + kernel-trim + kernel-compress(XZ) …"
+log_info "merge_config: ${KERNEL_BASE_DEFCONFIG} + ${KERNEL_FRAGMENTS} …"
 scripts/kconfig/merge_config.sh -m -O . \
-  arch/arm/configs/multi_v7_defconfig "${KERNEL_FRAGMENTS[@]}"
+  "${KERNEL_BASE_DEFCONFIG}" "${KERNEL_FRAGMENTS[@]}"
 
 log_info "olddefconfig …"
 make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" olddefconfig
 
 if [[ "$JUST_DTB" == 1 ]]; then
-  log_info "building rk3506b-aes.dtb only …"
-  make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" rockchip/rk3506b-aes.dtb
-  log_ok "dtb → arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
+  log_info "building ${DT_NAME}.dtb only …"
+  make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" "rockchip/${DT_NAME}.dtb"
+  log_ok "dtb → arch/${ARCH}/boot/dts/rockchip/${DT_NAME}.dtb"
 else
-  log_info "building zImage + dtbs …"
-  forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" zImage dtbs
-  make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" rockchip/rk3506b-aes.dtb
-  log_ok "zImage → arch/arm/boot/zImage ; dtb → arch/arm/boot/dts/rockchip/rk3506b-aes.dtb"
+  log_info "building ${KERN_IMG} + dtbs …"
+  forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$(nproc)" "${KERN_IMG}" dtbs
+  make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" "rockchip/${DT_NAME}.dtb"
+  log_ok "${KERN_IMG} → arch/${ARCH}/boot/${KERN_IMG} ; dtb → arch/${ARCH}/boot/dts/rockchip/${DT_NAME}.dtb"
 
-  # rtl8733bu.ko (CONFIG_RTL8733BU=m, the WiFi module stage-rootfs ships into the
-  # rootfs). zImage/dtbs don't build modules. 8733bu is an IN-TREE module (patch
-  # 0016), so build it with the in-tree module.ko target (make path/to/8733bu.ko),
-  # NOT `make M=` — M= is external-module style and hits a modfinal rule error on
-  # this in-tree module. The module.ko modpost needs the top-level Module.symvers:
-  # make zImage produces only vmlinux.symvers (vmlinux symbols), NOT Module.symvers
-  # (that needs `make modules`, which we avoid — 656 modules). 8733bu references
-  # only vmlinux symbols (core + CFG80211=y built-in), so seed Module.symvers from
-  # vmlinux.symvers (standard trick for a vmlinux-only tree). Only build when
-  # missing; incremental runs skip. ~3 min when it runs.
-  if [[ ! -f drivers/net/wireless/realtek/rtl8733bu/8733bu.ko ]]; then
-    [[ -f Module.symvers ]] || cp vmlinux.symvers Module.symvers
-    log_info "building rtl8733bu.ko (in-tree module.ko target; missing — full-rebuild case)"
-    forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" drivers/net/wireless/realtek/rtl8733bu/8733bu.ko
-    log_ok "rtl8733bu.ko → drivers/net/wireless/realtek/rtl8733bu/8733bu.ko"
+  # WiFi module (CONFIG_<WIFI_DRIVER>=m). In-tree module.ko target (NOT make M= —
+  # M= hits a modfinal rule error on these in-tree modules). Board-gated via
+  # WIFI_DRIVER (config/boards/<board>.env): aes=rtl8733bu (USB), rk3568-atk=
+  # rtl8852bs (SDIO, armbian fork). Module name = WIFI_DRIVER sans the "rtl"
+  # prefix (rtl8733bu→8733bu, rtl8852bs→8852bs). The module.ko modpost needs
+  # Module.symvers; make zImage only yields vmlinux.symvers (the driver references
+  # only vmlinux symbols — CFG80211/MAC80211 are =y built-in), so seed it. Only
+  # build when missing; incremental runs skip.
+  if [[ -n "${WIFI_DRIVER:-}" ]]; then
+    WIFI_MOD="${WIFI_DRIVER#rtl}"                                  # 8733bu / 8852bs
+    WIFI_KO="drivers/net/wireless/realtek/${WIFI_DRIVER}/${WIFI_MOD}.ko"
+    if [[ ! -f "$WIFI_KO" ]]; then
+      [[ -f Module.symvers ]] || cp vmlinux.symvers Module.symvers
+      log_info "building ${WIFI_MOD}.ko (in-tree module.ko target; missing — full-rebuild case)"
+      forge_progress_run kernel make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" "$WIFI_KO"
+      log_ok "${WIFI_MOD}.ko → ${WIFI_KO}"
+    else
+      log_info "${WIFI_MOD}.ko present (skip module build)"
+    fi
   else
-    log_info "rtl8733bu.ko present (skip module build)"
+    log_info "no WIFI_DRIVER for this board (config/boards/\${FORGE_BOARD}.env) — skip WiFi module build"
   fi
 fi

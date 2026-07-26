@@ -1,0 +1,45 @@
+From 2e4280bbd44f46dbc34def17ec4f5e773e4aadff Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 26 Jul 2026 18:15:03 +0800
+Subject: [PATCH] wifi: rtl8852bs -- wire into realtek Kconfig + Makefile
+
+Register the RTL8852BS driver drop (armbian/wifi-rtl8852bs community fork,
+7.1-adapted) with the realtek subsystem so CONFIG_RTL8852BS selects it. This is
+ONLY the 2-line registration; the 851-file drop is materialized by
+scripts/fetch-rtl8852bs-driver.sh (gitignored). The arm_rk.mk forge-adapt is
+applied by the fetch script from 0002-wifi-rtl8852bs-forge-adapt.patch (the drop
+is gitignored so it can't go through git am).
+
+Run fetch-rtl8852bs-driver.sh BEFORE apply-series so rtl8852bs/Kconfig exists
+when this patch sources it. Pair with CFG80211=y / MAC80211=y / WLAN=y /
+WLAN_VENDOR_REALTEK=y / RTL8852BS=m in board/rk3568-atk/kernel.config.
+See document/notes/42.
+---
+ drivers/net/wireless/realtek/Kconfig  | 1 +
+ drivers/net/wireless/realtek/Makefile | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/drivers/net/wireless/realtek/Kconfig b/drivers/net/wireless/realtek/Kconfig
+index 4a1f0e64d..35a7d25b5 100644
+--- a/drivers/net/wireless/realtek/Kconfig
++++ b/drivers/net/wireless/realtek/Kconfig
+@@ -17,5 +17,6 @@ source "drivers/net/wireless/realtek/rtlwifi/Kconfig"
+ source "drivers/net/wireless/realtek/rtl8xxxu/Kconfig"
+ source "drivers/net/wireless/realtek/rtw88/Kconfig"
+ source "drivers/net/wireless/realtek/rtw89/Kconfig"
++source "drivers/net/wireless/realtek/rtl8852bs/Kconfig"
+ 
+ endif # WLAN_VENDOR_REALTEK
+diff --git a/drivers/net/wireless/realtek/Makefile b/drivers/net/wireless/realtek/Makefile
+index ab25419f5..8d39e42b5 100644
+--- a/drivers/net/wireless/realtek/Makefile
++++ b/drivers/net/wireless/realtek/Makefile
+@@ -9,4 +9,5 @@ obj-$(CONFIG_RTLWIFI)		+= rtlwifi/
+ obj-$(CONFIG_RTL8XXXU)		+= rtl8xxxu/
+ obj-$(CONFIG_RTW88)		+= rtw88/
+ obj-$(CONFIG_RTW89)		+= rtw89/
++obj-$(CONFIG_RTL8852BS)		+= rtl8852bs/
+ 
+-- 
+2.43.0
+

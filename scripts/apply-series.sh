@@ -34,7 +34,10 @@ while [[ $# -gt 0 ]]; do
 done
 [[ -n "$COMPONENT" ]] || die "missing --component <name>"
 
-SERIES="${_PROJECT_ROOT}/patches/${COMPONENT}/series"
+# Board: from env (forge.sh exports FORGE_BOARD) or default aes. Patches live
+# per-board at patches/<board>/<component>/series.
+FORGE_BOARD="${FORGE_BOARD:-aes}"
+SERIES="${_PROJECT_ROOT}/patches/${FORGE_BOARD}/${COMPONENT}/series"
 [[ -f "$SERIES" ]] || { log_warn "no series at ${SERIES} (nothing to apply)"; exit 0; }
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
@@ -46,7 +49,7 @@ PATCHES=()
 while IFS= read -r line; do
   line="${line%%#*}"; line="${line//[[:space:]]/}"   # strip comments + whitespace
   [[ -z "$line" ]] && continue
-  PATCHES+=("${_PROJECT_ROOT}/patches/${COMPONENT}/${line}")
+  PATCHES+=("${_PROJECT_ROOT}/patches/${FORGE_BOARD}/${COMPONENT}/${line}")
 done < "$SERIES"
 
 [[ ${#PATCHES[@]} -gt 0 ]] || { log_warn "series is empty"; exit 0; }
@@ -64,7 +67,7 @@ for p in "${PATCHES[@]}"; do
   else
     git am --abort >/dev/null 2>&1 || true
     rollback
-    die "[$i/${#PATCHES[@]}] FAILED $(basename "$p") — rolled back to ${PRE_HEAD:0:8}. Edit the patch or reorder patches/${COMPONENT}/series."
+    die "[$i/${#PATCHES[@]}] FAILED $(basename "$p") — rolled back to ${PRE_HEAD:0:8}. Edit the patch or reorder patches/${FORGE_BOARD}/${COMPONENT}/series."
   fi
 done
 
