@@ -61,14 +61,31 @@ INI_TPL="${BRINGUP}/${LOADER_INI}"
 # Resolve the blob tuple from FORGE_RKBIN_DIR via lib/rkbin.sh (shared with
 # pack-fit.sh → SPL<->tee hash pair stays consistent by construction).
 rkbin_load
-BLOB_DIR="$RKBIN_BLOB_DIR"; DDR_BIN="$RKBIN_DDR"; USBPLUG_BIN="$RKBIN_USBPLUG"; SPL_BIN="$RKBIN_SPL"
-log_info "loader blobs: ddr=$DDR_BIN  usbplug=$USBPLUG_BIN  spl=$SPL_BIN  (from $FORGE_RKBIN_DIR)"
+BLOB_DIR="$RKBIN_BLOB_DIR"; DDR_BIN="$RKBIN_DDR"; USBPLUG_BIN="$RKBIN_USBPLUG"
+# SPL source: rkbin vendor rk3588_spl v1.14 predates BL31 v1.54's bl31_base→0x60000 move,
+# so the vendor SPL jumps BL31 to the wrong address → BL31 never enters → bootloop.
+# The mainline build-uboot u-boot-spl.bin is same-gen as BL31 v1.54 (U-Boot official RK3588
+# flow: rkbin DDR as TPL + mainline SPL). RK3568's rk356x_spl has no base-move issue → rkbin default.
+if [[ "${SPL_SOURCE:-rkbin}" == "mainline" ]]; then
+  [[ -f "${UBOOT_DIR}/spl/u-boot-spl.bin" ]] || die "SPL_SOURCE=mainline but ${UBOOT_DIR}/spl/u-boot-spl.bin missing (run build-uboot)"
+  SPL_BIN="u-boot-spl.bin"
+  log_info "loader blobs: ddr=$DDR_BIN  usbplug=$USBPLUG_BIN  spl=$SPL_BIN (MAINLINE build-uboot SPL, matches BL31 v1.54)"
+else
+  SPL_BIN="$RKBIN_SPL"
+  log_info "loader blobs: ddr=$DDR_BIN  usbplug=$USBPLUG_BIN  spl=$SPL_BIN (rkbin vendor, from $FORGE_RKBIN_DIR)"
+fi
 
 mkdir -p "$OUT_DIR"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
-mkdir -p "$WORK/bin"
-ln -s "$BLOB_DIR" "$WORK/${RKBIN_BLOB_SUBDIR}"
+# Real blob dir (not symlink) so we can mix rkbin DDR/usbplug with a mainline SPL.
+mkdir -p "$WORK/${RKBIN_BLOB_SUBDIR}"
+cp "$BLOB_DIR/$DDR_BIN" "$BLOB_DIR/$USBPLUG_BIN" "$WORK/${RKBIN_BLOB_SUBDIR}/"
+if [[ "${SPL_SOURCE:-rkbin}" == "mainline" ]]; then
+  cp "${UBOOT_DIR}/spl/u-boot-spl.bin" "$WORK/${RKBIN_BLOB_SUBDIR}/u-boot-spl.bin"
+else
+  cp "$BLOB_DIR/$RKBIN_SPL" "$WORK/${RKBIN_BLOB_SUBDIR}/"
+fi
 
 # Substitute the ini template (vendor mk-fitimage.sh convention: @TOKEN@ sed).
 # @BL31_BIN@ is optional (RK3568 has an ATF BL31 stage; RK3506 has none — the token

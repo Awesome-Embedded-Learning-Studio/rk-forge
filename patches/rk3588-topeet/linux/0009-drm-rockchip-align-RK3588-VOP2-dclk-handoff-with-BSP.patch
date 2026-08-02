@@ -1,0 +1,129 @@
+From 1f7e4ce5fe7443aebe00ed9acdd40e199b6d6bf9 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 2 Aug 2026 14:30:00 +0800
+Subject: [PATCH 9/9] drm/rockchip: align RK3588 VOP2 dclk handoff with BSP
+
+The TOPEET BSP sets ACLK_VOP to 750 MHz, parents the VP2 source from
+V0PLL and pulses the selected video-port dclk reset after committing its
+timing registers.  Preserve those RK3588 hardware handoff requirements
+while continuing to use the mainline VOP2 implementation.
+
+This addresses the repeated VP2 vblank timeouts seen immediately before
+the system-wide hard lock while keeping the current mainline firmware,
+U-Boot and kernel stack.
+---
+ .../boot/dts/rockchip/rk3588-topeet.dts      | 15 +++++++++++++++
+ .../gpu/drm/rockchip/rockchip_drm_vop2.c     | 33 +++++++++++++++++++++++++++
+ .../gpu/drm/rockchip/rockchip_drm_vop2.h     |  1 +
+ 3 files changed, 49 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+--- a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+@@ -667,6 +667,19 @@ &pwm1 {
+ };
+ 
+ &vop {
++	/* Match the RK3588 BSP's VOP clock/reset contract.  The DCLK resets
++	 * are consumed by the mainline VOP2 enable path below; assigned clocks
++	 * are applied by the common clock framework before the DRM probe. */
++	assigned-clocks = <&cru ACLK_VOP>;
++	assigned-clock-rates = <750000000>;
++	resets = <&cru SRST_A_VOP>,
++		 <&cru SRST_H_VOP>,
++		 <&cru SRST_D_VOP0>,
++		 <&cru SRST_D_VOP1>,
++		 <&cru SRST_D_VOP2>,
++		 <&cru SRST_D_VOP3>;
++	reset-names = "axi", "ahb", "dclk_vp0", "dclk_vp1",
++		      "dclk_vp2", "dclk_vp3";
+ 	status = "okay";
+ };
+ 
+@@ -795,6 +808,8 @@ &dsi0_out {
+ &vp2 {
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
++	assigned-clocks = <&cru DCLK_VOP2_SRC>;
++	assigned-clock-parents = <&cru PLL_V0PLL>;
+ 
+ 	vp2_out_dsi0: endpoint@ROCKCHIP_VOP2_EP_MIPI0 {
+ 		reg = <ROCKCHIP_VOP2_EP_MIPI0>;
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+@@ -17,6 +17,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/pm_runtime.h>
+ #include <linux/regmap.h>
++#include <linux/reset.h>
+ #include <linux/swab.h>
+ 
+ #include <drm/drm.h>
+@@ -147,6 +148,27 @@ static void vop2_unlock(struct vop2 *vop2)
+ 	mutex_unlock(&vop2->vop2_lock);
+ }
+ 
++static void vop2_dclk_reset(struct vop2_video_port *vp)
++{
++	int ret;
++
++	if (!vp->dclk_rst)
++		return;
++
++	ret = reset_control_assert(vp->dclk_rst);
++	if (ret) {
++		drm_warn(vp->vop2->drm, "failed to assert VP%u dclk reset: %d\n",
++			 vp->id, ret);
++		return;
++	}
++
++	udelay(10);
++	ret = reset_control_deassert(vp->dclk_rst);
++	if (ret)
++		drm_warn(vp->vop2->drm, "failed to deassert VP%u dclk reset: %d\n",
++			 vp->id, ret);
++}
++
+ static void vop2_win_disable(struct vop2_win *win)
+ {
+ 	vop2_win_write(win, VOP2_WIN_ENABLE, 0);
+@@ -1807,6 +1829,11 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc,
+ 
+ 	vop2_crtc_atomic_try_set_gamma(vop2, vp, crtc, crtc_state);
+ 
++	/* RK3588 BSP pulses the active VP DCLK reset after the timing and
++	 * interface registers are committed.  Without this handoff the VP may
++	 * never start scanning and all following vblank waits time out. */
++	vop2_dclk_reset(vp);
++
+ 	drm_crtc_vblank_on(crtc);
+ 
+ 	vop2_unlock(vop2);
+@@ -2384,6 +2411,12 @@ static int vop2_create_crtcs(struct vop2 *vop2)
+ 		vp->data = vp_data;
+ 
+ 		snprintf(dclk_name, sizeof(dclk_name), "dclk_vp%d", vp->id);
++		vp->dclk_rst = devm_reset_control_get_optional_exclusive(vop2->dev,
++								 dclk_name);
++		if (IS_ERR(vp->dclk_rst))
++			return dev_err_probe(drm->dev, PTR_ERR(vp->dclk_rst),
++					     "failed to get %s reset\n", dclk_name);
++
+ 		vp->dclk = devm_clk_get(vop2->dev, dclk_name);
+ 		if (IS_ERR(vp->dclk))
+ 			return dev_err_probe(drm->dev, PTR_ERR(vp->dclk),
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
+@@ -236,6 +236,7 @@ struct vop2_video_port_data {
+ struct vop2_video_port {
+ 	struct drm_crtc crtc;
+ 	struct vop2 *vop2;
++	struct reset_control *dclk_rst;
+ 	struct clk *dclk;
+ 	struct clk *dclk_src;
+ 	unsigned int id;
+-- 
+2.43.0
+

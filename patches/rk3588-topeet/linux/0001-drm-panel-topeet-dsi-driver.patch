@@ -1,0 +1,425 @@
+From bf097193d460cbc304133b680d8346a5e1ea5862 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Tue, 28 Jul 2026 09:45:54 +0800
+Subject: [PATCH 1/2] drm/panel: add topeet DSI panel driver with DT
+ init-sequence
+
+Generic DRM panel driver for DSI panels whose init/exit sequences are provided verbatim via the panel-init-sequence / panel-exit-sequence DT byte blobs (Rockchip BSP "simple-panel-dsi" binding). The topeet iTOP-RK3588 10.1" 1024x600 panel is driven via DSI0 -> a bridge IC -> LVDS; the bridge has no mainline driver, so this replays the vendor blob rather than open-coding a per-IC driver.
+
+Vendor record format: <type><delay_ms><len><payload>, type per mipi_display.h (0x29 = generic long write for the bridge manufacturer registers; 0x05/0x15/0x39 = DCS). Mode/lanes/format fixed to the board panel (4-lane RGB888 video-burst). Modeled on panel-himax-hx8394.
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ drivers/gpu/drm/panel/Kconfig            |  12 +
+ drivers/gpu/drm/panel/Makefile           |   1 +
+ drivers/gpu/drm/panel/panel-topeet-dsi.c | 363 +++++++++++++++++++++++
+ 3 files changed, 376 insertions(+)
+ create mode 100644 drivers/gpu/drm/panel/panel-topeet-dsi.c
+
+diff --git a/drivers/gpu/drm/panel/Kconfig b/drivers/gpu/drm/panel/Kconfig
+index d592f4f4b..c8de80e13 100644
+--- a/drivers/gpu/drm/panel/Kconfig
++++ b/drivers/gpu/drm/panel/Kconfig
+@@ -1196,6 +1196,18 @@ config DRM_PANEL_TDO_TL070WSH30
+ 	  24 bit RGB per pixel. It provides a MIPI DSI interface to
+ 	  the host, a built-in LED backlight and touch controller.
+ 
++config DRM_PANEL_TOPEET_DSI
++	tristate "Topeet DSI panel with DT init-sequence (DSI->LVDS bridge)"
++	depends on OF
++	depends on DRM_MIPI_DSI
++	help
++	  Say Y here to enable a generic DRM panel driver for DSI panels
++	  whose init/exit command sequences are provided verbatim via the
++	  panel-init-sequence / panel-exit-sequence DT properties (the Rockchip
++	  BSP "simple-panel-dsi" binding). Used for the topeet iTOP-RK3588 10.1"
++	  1024x600 panel driven via DSI0 -> a bridge IC -> LVDS, whose bridge has
++	  no mainline driver.
++
+ config DRM_PANEL_TPO_TD028TTEC1
+ 	tristate "Toppoly (TPO) TD028TTEC1 panel driver"
+ 	depends on OF && SPI
+diff --git a/drivers/gpu/drm/panel/Makefile b/drivers/gpu/drm/panel/Makefile
+index a4291dc39..dd1850d6d 100644
+--- a/drivers/gpu/drm/panel/Makefile
++++ b/drivers/gpu/drm/panel/Makefile
+@@ -117,6 +117,7 @@ obj-$(CONFIG_DRM_PANEL_SONY_TD4353_JDI) += panel-sony-td4353-jdi.o
+ obj-$(CONFIG_DRM_PANEL_SONY_TULIP_TRULY_NT35521) += panel-sony-tulip-truly-nt35521.o
+ obj-$(CONFIG_DRM_PANEL_STARTEK_KD070FHFID015) += panel-startek-kd070fhfid015.o
+ obj-$(CONFIG_DRM_PANEL_TDO_TL070WSH30) += panel-tdo-tl070wsh30.o
++obj-$(CONFIG_DRM_PANEL_TOPEET_DSI) += panel-topeet-dsi.o
+ obj-$(CONFIG_DRM_PANEL_TPO_TD028TTEC1) += panel-tpo-td028ttec1.o
+ obj-$(CONFIG_DRM_PANEL_TPO_TD043MTEA1) += panel-tpo-td043mtea1.o
+ obj-$(CONFIG_DRM_PANEL_TPO_TPG110) += panel-tpo-tpg110.o
+diff --git a/drivers/gpu/drm/panel/panel-topeet-dsi.c b/drivers/gpu/drm/panel/panel-topeet-dsi.c
+new file mode 100644
+index 000000000..cd557c1de
+--- /dev/null
++++ b/drivers/gpu/drm/panel/panel-topeet-dsi.c
+@@ -0,0 +1,363 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * DRM panel driver for DSI panels whose init/exit sequences are provided
++ * verbatim via the DT panel-init-sequence / panel-exit-sequence byte blobs
++ * (the Rockchip BSP "simple-panel-dsi" binding).
++ *
++ * Target: the topeet iTOP-RK3588 10.1" 1024x600 panel, driven via DSI0 -> a
++ * bridge IC -> LVDS. The bridge has no mainline driver and its register set is
++ * a manufacturer (generic) sequence, so this driver simply replays the vendor
++ * blob rather than open-coding a per-IC driver. Mode (display-timings), lanes,
++ * format and flags are fixed to the board's panel (4-lane RGB888 video-burst,
++ * matching the vendor config); only the init/exit replay is DT-driven.
++ *
++ * Vendor record format: <u8 type><u8 delay_ms><u8 len><len payload bytes>,
++ * where type follows include/video/mipi_display.h:
++ *   0x29 MIPI_DSI_GENERIC_LONG_WRITE  — manufacturer registers (the bridge IC)
++ *   0x05 MIPI_DSI_DCS_SHORT_WRITE     — e.g. 0x11 sleep-out, 0x10 sleep-in
++ *   0x15 MIPI_DSI_DCS_SHORT_WRITE_PARAM
++ *   0x39 MIPI_DSI_DCS_LONG_WRITE
++ *
++ * Modeled on panel-himax-hx8394.c (multi-context DSI writes, devm_drm_panel_alloc).
++ */
++
++#include <linux/delay.h>
++#include <linux/gpio/consumer.h>
++#include <linux/mod_devicetable.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/property.h>
++#include <linux/regulator/consumer.h>
++
++#include <video/mipi_display.h>
++
++#include <drm/drm_mipi_dsi.h>
++#include <drm/drm_modes.h>
++#include <drm/drm_panel.h>
++
++#define DRV_NAME "panel-topeet-dsi"
++#define TOPEET_SEQ_MAX 4096
++
++struct topeet_panel {
++	struct device *dev;
++	struct drm_panel panel;
++	struct gpio_desc *reset_gpio;	/* optional (NULL on topeet — reset via power) */
++	struct regulator *power;	/* power-supply = vcc3v3_lcd_n */
++	enum drm_panel_orientation orientation;
++
++	u8 *init_seq;
++	size_t init_len;
++	u8 *exit_seq;
++	size_t exit_len;
++
++	u32 prepare_delay;
++	u32 enable_delay;
++	u32 disable_delay;
++	u32 unprepare_delay;
++	u32 reset_delay;
++};
++
++static inline struct topeet_panel *to_topeet_panel(struct drm_panel *panel)
++{
++	return container_of(panel, struct topeet_panel, panel);
++}
++
++/* Replay a vendor <type><delay><len><payload> byte sequence over DSI. */
++static int topeet_panel_send_seq(struct mipi_dsi_device *dsi,
++				 const u8 *seq, size_t len)
++{
++	struct mipi_dsi_multi_context ctx = { .dsi = dsi };
++	size_t i = 0;
++
++	while (i + 3 <= len) {
++		u8 type = seq[i];
++		u32 delay = seq[i + 1];
++		u8 plen = seq[i + 2];
++		const u8 *payload = &seq[i + 3];
++
++		if (i + 3 + plen > len) {
++			dev_err(&dsi->dev,
++				"truncated init record at %zu (declared %u)\n",
++				i, plen);
++			return -EINVAL;
++		}
++
++		switch (type) {
++		case MIPI_DSI_GENERIC_LONG_WRITE:		/* 0x29 */
++			mipi_dsi_generic_write_multi(&ctx, payload, plen);
++			break;
++		case MIPI_DSI_DCS_SHORT_WRITE:			/* 0x05 */
++		case MIPI_DSI_DCS_SHORT_WRITE_PARAM:		/* 0x15 */
++		case MIPI_DSI_DCS_LONG_WRITE:			/* 0x39 */
++			mipi_dsi_dcs_write_buffer_multi(&ctx, payload, plen);
++			break;
++		default:
++			dev_err(&dsi->dev,
++				"unknown sequence type 0x%02x at %zu\n", type, i);
++			return -EINVAL;
++		}
++
++		if (delay)
++			mipi_dsi_msleep(&ctx, delay);
++
++		i += 3 + plen;
++		if (ctx.accum_err)
++			break;
++	}
++
++	return ctx.accum_err;
++}
++
++static int topeet_panel_prepare(struct drm_panel *panel)
++{
++	struct topeet_panel *ctx = to_topeet_panel(panel);
++	int ret;
++
++	ret = regulator_enable(ctx->power);
++	if (ret) {
++		dev_err(ctx->dev, "failed to enable power supply: %d\n", ret);
++		return ret;
++	}
++
++	if (ctx->reset_gpio) {
++		/* Assert, deassert, settle. */
++		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++		usleep_range(1000, 2000);
++		gpiod_set_value_cansleep(ctx->reset_gpio, 0);
++		msleep(ctx->reset_delay ?: 10);
++	} else {
++		/* No reset GPIO: the power rail power-cycles the bridge. */
++		msleep(ctx->prepare_delay ?: 20);
++	}
++
++	return 0;
++}
++
++static int topeet_panel_enable(struct drm_panel *panel)
++{
++	struct topeet_panel *ctx = to_topeet_panel(panel);
++	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
++	int ret;
++
++	if (ctx->init_len) {
++		ret = topeet_panel_send_seq(dsi, ctx->init_seq, ctx->init_len);
++		if (ret) {
++			dev_err(ctx->dev, "init sequence failed: %d\n", ret);
++			return ret;
++		}
++	}
++
++	if (ctx->enable_delay)
++		msleep(ctx->enable_delay);
++
++	return 0;
++}
++
++static int topeet_panel_disable(struct drm_panel *panel)
++{
++	struct topeet_panel *ctx = to_topeet_panel(panel);
++	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
++	int ret = 0;
++
++	if (ctx->exit_len) {
++		ret = topeet_panel_send_seq(dsi, ctx->exit_seq, ctx->exit_len);
++		if (ret)
++			dev_err(ctx->dev, "exit sequence failed: %d\n", ret);
++	}
++
++	if (ctx->disable_delay)
++		msleep(ctx->disable_delay);
++
++	return ret;
++}
++
++static int topeet_panel_unprepare(struct drm_panel *panel)
++{
++	struct topeet_panel *ctx = to_topeet_panel(panel);
++
++	if (ctx->reset_gpio)
++		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++
++	regulator_disable(ctx->power);
++
++	if (ctx->unprepare_delay)
++		msleep(ctx->unprepare_delay);
++
++	return 0;
++}
++
++static int topeet_panel_get_modes(struct drm_panel *panel,
++				  struct drm_connector *connector)
++{
++	struct topeet_panel *ctx = to_topeet_panel(panel);
++	struct drm_display_mode mode;
++	struct drm_display_mode *m;
++	u32 width_mm = 0, height_mm = 0;
++	int ret;
++
++	ret = of_get_drm_display_mode(ctx->dev->of_node, &mode, NULL, 0);
++	if (ret) {
++		dev_err(ctx->dev, "failed to parse display-timings: %d\n", ret);
++		return ret;
++	}
++
++	m = drm_mode_duplicate(connector->dev, &mode);
++	if (!m)
++		return -ENOMEM;
++
++	m->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
++	drm_mode_set_name(m);
++
++	device_property_read_u32(ctx->dev, "width-mm", &width_mm);
++	device_property_read_u32(ctx->dev, "height-mm", &height_mm);
++	if (width_mm)
++		connector->display_info.width_mm = width_mm;
++	if (height_mm)
++		connector->display_info.height_mm = height_mm;
++
++	drm_mode_probed_add(connector, m);
++
++	return 1;
++}
++
++static enum drm_panel_orientation topeet_panel_get_orientation(
++		struct drm_panel *panel)
++{
++	struct topeet_panel *ctx = to_topeet_panel(panel);
++
++	return ctx->orientation;
++}
++
++static const struct drm_panel_funcs topeet_drm_funcs = {
++	.prepare	   = topeet_panel_prepare,
++	.unprepare	   = topeet_panel_unprepare,
++	.enable		   = topeet_panel_enable,
++	.disable	   = topeet_panel_disable,
++	.get_modes	   = topeet_panel_get_modes,
++	.get_orientation  = topeet_panel_get_orientation,
++};
++
++static int topeet_panel_read_seq(struct device *dev, const char *name,
++				 u8 **out_seq, size_t *out_len)
++{
++	u8 *buf;
++	int ret;
++
++	buf = devm_kzalloc(dev, TOPEET_SEQ_MAX, GFP_KERNEL);
++	if (!buf)
++		return -ENOMEM;
++
++	ret = of_property_read_variable_u8_array(dev->of_node, name, buf,
++						 0, TOPEET_SEQ_MAX);
++	if (ret < 0)
++		return ret;
++
++	*out_seq = buf;
++	*out_len = ret;
++	return 0;
++}
++
++static int topeet_panel_probe(struct mipi_dsi_device *dsi)
++{
++	struct device *dev = &dsi->dev;
++	struct topeet_panel *ctx;
++	int ret;
++
++	ctx = devm_drm_panel_alloc(dev, struct topeet_panel, panel,
++				   &topeet_drm_funcs, DRM_MODE_CONNECTOR_DSI);
++	if (IS_ERR(ctx))
++		return PTR_ERR(ctx);
++
++	ctx->dev = dev;
++	mipi_dsi_set_drvdata(dsi, ctx);
++
++	ctx->reset_gpio = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_HIGH);
++	if (IS_ERR(ctx->reset_gpio))
++		return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio),
++				     "failed to get reset gpio\n");
++
++	ctx->power = devm_regulator_get(dev, "power");
++	if (IS_ERR(ctx->power))
++		return dev_err_probe(dev, PTR_ERR(ctx->power),
++				     "failed to request power supply\n");
++
++	ret = topeet_panel_read_seq(dev, "panel-init-sequence",
++				    &ctx->init_seq, &ctx->init_len);
++	if (ret) {
++		dev_err(dev, "panel-init-sequence missing/invalid: %d\n", ret);
++		return ret;
++	}
++
++	ret = topeet_panel_read_seq(dev, "panel-exit-sequence",
++				    &ctx->exit_seq, &ctx->exit_len);
++	if (ret)
++		ctx->exit_len = 0;	/* exit sequence is optional */
++
++	device_property_read_u32(dev, "prepare-delay-ms", &ctx->prepare_delay);
++	device_property_read_u32(dev, "enable-delay-ms", &ctx->enable_delay);
++	device_property_read_u32(dev, "disable-delay-ms", &ctx->disable_delay);
++	device_property_read_u32(dev, "unprepare-delay-ms", &ctx->unprepare_delay);
++	device_property_read_u32(dev, "reset-delay-ms", &ctx->reset_delay);
++
++	of_drm_get_panel_orientation(dev->of_node, &ctx->orientation);
++
++	/*
++	 * 1024x600 topeet panel: 4-lane RGB888, video mode + burst, low-power
++	 * command transmission, EOT packet suppression (mainline spells it
++	 * NO_EOT_PACKET; the BSP's MIPI_DSI_MODE_EOT_PACKET is the inverse).
++	 */
++	dsi->mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
++			  MIPI_DSI_MODE_LPM | MIPI_DSI_MODE_NO_EOT_PACKET;
++	dsi->format = MIPI_DSI_FMT_RGB888;
++	dsi->lanes = 4;
++
++	ret = drm_panel_of_backlight(&ctx->panel);
++	if (ret)
++		return ret;
++
++	drm_panel_add(&ctx->panel);
++
++	ret = mipi_dsi_attach(dsi);
++	if (ret < 0) {
++		dev_err_probe(dev, ret, "mipi_dsi_attach failed\n");
++		drm_panel_remove(&ctx->panel);
++		return ret;
++	}
++
++	dev_dbg(dev, "topeet DSI panel ready (init %zub, exit %zub, %u lanes)\n",
++		ctx->init_len, ctx->exit_len, dsi->lanes);
++
++	return 0;
++}
++
++static void topeet_panel_remove(struct mipi_dsi_device *dsi)
++{
++	struct topeet_panel *ctx = mipi_dsi_get_drvdata(dsi);
++	int ret;
++
++	ret = mipi_dsi_detach(dsi);
++	if (ret < 0)
++		dev_err(&dsi->dev, "failed to detach from DSI host: %d\n", ret);
++
++	drm_panel_remove(&ctx->panel);
++}
++
++static const struct of_device_id topeet_panel_of_match[] = {
++	{ .compatible = "topeet,dsi-panel-seq" },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, topeet_panel_of_match);
++
++static struct mipi_dsi_driver topeet_panel_driver = {
++	.probe		= topeet_panel_probe,
++	.remove		= topeet_panel_remove,
++	.driver		= {
++		.name		= DRV_NAME,
++		.of_match_table = topeet_panel_of_match,
++	},
++};
++module_mipi_dsi_driver(topeet_panel_driver);
++
++MODULE_AUTHOR("rk-forge");
++MODULE_DESCRIPTION("DRM panel driver for DSI panels with DT init-sequence (topeet)");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+

@@ -1,0 +1,28 @@
+From 67526aa596d45f8071736ab7037b4699b54e3812 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Fri, 31 Jul 2026 21:38:17 +0800
+Subject: [PATCH] configs: evb-rk3588: set CONFIG_BAUDRATE to 115200
+
+Upstream evb-rk3588_defconfig defaults to 1500000 (Rockchip EVB default). The topeet iTOP-RK3588 serial chain is 115200 end-to-end (DDR blob via ddrbin_tool + kernel console ttyS2,115200), so u-boot at 1500000 prints garbage on the 115200 console after BL31 handoff. Match the chain at 115200.
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ configs/evb-rk3588_defconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configs/evb-rk3588_defconfig b/configs/evb-rk3588_defconfig
+index c7f6256a626..0e679cc7fc0 100644
+--- a/configs/evb-rk3588_defconfig
++++ b/configs/evb-rk3588_defconfig
+@@ -52,7 +52,7 @@ CONFIG_PHY_ROCKCHIP_USBDP=y
+ CONFIG_SPL_PINCTRL=y
+ CONFIG_PWM_ROCKCHIP=y
+ CONFIG_SPL_RAM=y
+-CONFIG_BAUDRATE=1500000
++CONFIG_BAUDRATE=115200
+ CONFIG_DEBUG_UART_SHIFT=2
+ CONFIG_SYS_NS16550_MEM32=y
+ CONFIG_SYSRESET=y
+-- 
+2.43.0
+

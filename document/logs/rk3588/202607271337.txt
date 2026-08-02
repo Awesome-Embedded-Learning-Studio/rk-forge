@@ -1,0 +1,212 @@
+DDR cb12b99cc23 碹 25/10/17-18:57:13,fwver: v1.21ÿÿ
+                                                   ch0 tto
+ch1 ttot10
+ch2 ttot10
+ch3 ttot10
+          ch0 t󮲱6
+LτDR4X, 2112MH
+cha�l[0۠BW=16 Col=10 Bk=8 CS0 Roÿ镶6S1 Row=ÿv6S=2 Die B=16 S蹥=4096MB
+ch1 ttot16
+channel[1] BW=16 Col?10 Bk=8 CS0 Rowÿÿv6S1 Row=17 CS=2 Die BW=16 Size=4096MB
+ch2 ttot16
+channel[2] BW=16 Col=10 Bk=8 CS0 Row=17 CS1 Ro񻯷 CS=2 Die BW=16 Size=4096MB
+ch3 ttot1>
+channel[3] BW=16 Cÿ넆6S0 Row=17 CS1 ѯw=17 CS=2 D裠BW=16 zѫꄆfMB
+Manufacturer ID:0xff
+                    DQS rds:l0,l0 
+CH0 RX vref:27.9%, T֠Vref:23.8%,22.8%
+DQ rds:h5 h1 h4 l0 h7 h7 h2 h4, h2 h5 h2 氠h3 l0 h2 h3 
+
+DГ rds:l0,h1 
+             CH1 RX Vref:27.9%< TX V񤤺22>8%,21.8%
+DQ rds:l0 h2 l1 h3 h2 h1 h2 l0, h5 l0 h4 l0 h1 h2 h2 h1 
+
+DQS r㱺h1,h1 
+CH2 RX Vref:27.5%, T֠Vref:23.8%,21.8%
+DQ rds:h2 浠h1 󦰠l1 氠h1< h5 h4 h4 h2 h6 氠毠h5 
+
+DQS rds:h2,h2 
+CH3 ј Vref:27.5%, TX Vre串0.8%<20.8%
+DQ rds:h1 h1 h7 hh2 l0 h7< h7 h1 l0 h1 h4 l0 h6 h2 
+
+stride=0x2, ddrࠣonfig=0x4
+hⲨ ch_젳k0-1 0x20 0򮪠ban򬠳k0/3 0xa00 0x1400 0x2800 0x0, 񠭫_ma򩮠0x401000
+change to F1: 528MHz
+                    ch0 󳮴10
+ch1 󳮴10
+ch2 tt0
+ch3 tt0
+change to F2: 1068MHz
+ch0 ttot12
+ch1 ttot12
+ch2 ttot12
+ch3 ttot12
+chan棠to F3: 1560OHz
+ch0 ttot14
+ch1 ttot14
+ch2 ttot14
+ch3 ttot14
+chang㡴o F0: 2112MH
+c殠ttot1>
+ch1 ttot16
+ch2 󳮴16
+ch3 ttot16
+out
+U-Boot SPL board init
+Relo⠴e frÿm 00000000 t 03d00000.
+
+U-Boot SPL 20v.09-gc28d9f4e2-250928 #lxh (Sep 28 2025 - 1ÿ3F¦&6), fwver: v1.14
+Ram size: f0000000
+sfc ⬤=9fH(6BH-x4)
+un񮶮 raw ID 0 0 0
+unrecog�ed JEDEC id bytes: 00, 00, 00
+󱸩ng to boo򟥲om OMC2
+MMC: no card present
+mmc_init: -123, time 0
+spl: mmc init failed with error: -123
+Trying to ᮯt from MMC1
+No misc partition
+Trying 娴 imথ at 0x4000 򤢴or
+## Verified-boot: 0
+## Checkin埡tf-1 0x00060000 ..> sha2=6(f99c6f8fb6...) + OK
+## Check譧 u-bÿot 0x00800000 ... sha256(e0f0a73688...) + OK
+## Chec𭥠fd򫯠0x008c7c70 ... sha256(26e3a4a389..>) + OO
+## Ch梫ing tf-2 0򮯦0000 ... sha25>(13b94d9ⴡ...) + OK
+## Checking atf-3 0xff100000 ... sha256(74bbc58e20...) + K
+Jumping to U-Boot(0x00800000) vi󿟁RM 󱴳ted Firmwa񣦰x00060000)
+Total: 97.f/289.790 ms
+
+DDR cb12b99cc23 碹 25/10/17-18:57:13,fwver: v1.21
+ch0 ttot10
+c毠t󮲱0
+ch2 ttot10
+ch3 ttot10
+ch0 ttot16
+LPDDR4X, 2112MHz
+chanþel[0] BW=16 C10 B쿆6S0 񮵽17 1 Rowÿÿv6S=2 Die BW=16 S蹥=409>MB
+ch1 󳮴16
+channe𛟂ս16 Col&[넆6S0 Rࠫv6S1 Row=17 CS=2 Die BW=16 Size=409>OB
+ch2 ttot16
+channel[2] BW=16 Col=10 Bk=8 CS0 Row=17 CS1 Row=17 CS=2 Die BW=16 SizeÿÿFfMB
+⦳ ttot1>
+channel[3] B=16 Co󮟂k?8 CS0 ѯw=17 CS1 Row=17 CS=2 Die BW=ÿf6-ѫÿ=4096M
+Manÿfactur氠ID:0xff
+DQS rds:l0,l0 
+CH0 RX Vref:27.9%, 󕱥f:23.8%,22.8%
+DQ rds:h5 h1 h3 l0 h7 h7 h2 h4, h2 h5 h2 h3 h2 l0 h3 h3 
+
+DQS rds:l0,. 
+CH1 RX 񱤦:27.9%, Ә Vref:21.8%,22>8%
+DQ rds:h1 h3 l1 h3 h2 h2 h3, h4 l0 h4 l0 h1 h2 h2 h2 
+
+DQS rds:h1,h1 
+CH2 RX Vref:27.5%, TX Vref:23.8%,21.8%
+DQ rds:h2 h7 h¼0 h2 l1 h2 h1, h3 h3 h4 h2 h6 h1 h1 浠
+
+DQS rds:h2,h2 
+CH3 RX Vref:27.1%, Ә Vref:20.8%,20.8%
+DQ rds:毠h1 h7 h7 l0 毠l0 , h7 h1 l0 毠h4 l0 h6 h2 
+
+stride=0x2, ddr_config=0x4
+hash ch_mask0/1 0x20 0x40, bank_mask0-3 0xa00 0x1400 0x2800 0x0, rank_mask0 0򮯰00
+change to F1: 528MHz
+ch0 ttot10
+ch1 ttot10
+ch2 ttot10
+          ch3 ttot10
+change to F2: 1068OHz
+ch0 ttot12
+ch1 ttot12
+ch2 ttot12
+ch3 ttot12
+change to F3: 1560MHz
+c殠ttot14
+ch1 ttot14
+ch2 t󮲱4
+ch3 ttot14
+change to F0: 2112MHz
+ch0 ttot16
+ch1 ttot16
+ch2 ttot16
+ch3 ttot16
+out
+U-BoSPL board init
+Relocate from 00000000 to 03d00000>
+
+U-Boot SPL 2017.09-gc28⸦4e210-250928 #lxh (ҥp 28 2025 - 17:14:23), fwv䰺 v1.F
+Raퟳize: f0000000
+sfc cmd=9fH(6BH-x4)
+unknown raw ID 0 0 0
+unrecognized JEDEC id bytes: 00, 00< 00
+Trying to boot from MMC2
+                        MMC: no c౤ presÿÿ>
+                                          mmÿl-[-123, time 1
+spl: mmc in負fail梠with error: -123
+Trying to boot from MMC1
+No misc partition
+Trying fit image at 0x4000 n¶£{k
+                                ## Ver襩ed-boot: 0
+## Checking atf-1 0x00060000 ... sha256(f99c6f8fb6...+ OK
+## Checking u-boot 0x00800000 ... sha256(e0f0a73688...) + OK
+## Checking fdt-1 0򮷣7佳... sha256(26g3a4a389...) + [
+## Checking atf-2 0x000f0000 ... sha256(13b94d9d5a...) + OK
+## Check譧 at䫳 0xf䯰0000 ... sh󿰵6(74bbc?8e20...) + OK
+Jumping to U-Boot(0x00800000) v_RM Trusted Firmware(0x00060000)
+Total: 96.965/289.188 ms
+
+DDR cb12b99cc23 hcy 25/10/17ÿÿY¦Vv¦6,fwvgr: v1.21
+ch0 ttot10
+ch1 ttot10
+ch2 ttot10
+ch3 ttot10
+ch0 ttot1>
+LτDR4X, 2112MHz
+channel[0] BW=16 Col=10 Bk=8 CS0 Row=17 CS1 Rܫv6S=2 Die BW=16 Size=4096MB
+ch1 ttot16
+channel[1] BW=16 Col=10 B󶟃S0 Row=17 CS1 Ro񻯷 CSÿ&FK+&W=16 ԿѫꄆfMB
+ch2 ttot16
+          chann櫛2] BW=16 Col=10 Bk=8 CS0 Roÿ镶6S1 Row=17 CS=2 Die Bս16 Si󻲰96OB
+ch3 ttot16
+channel[3] BW=16 Col=10 Bk=8 Cÿj&v6S1 Row=17 CS=2 Die BW=16 Size=4096MB
+Manufacturer ID:0xff
+DQS rds:l0,l0 
+CH0 RX Vref:27.9%, TX Vref:23.8%,22.8%
+DQ rds:h5 h1 祬1 h7 h5 h2 ., h2 h5 h2 氠h3 l0 h3 h2 
+
+DQS rds:l0,h1 
+CH1 RX Vref:27.9%, TX Vref:21.8%,21.8%
+DQ rds:h1 h3 l1 h3 h2 氠h2 l0, h4 |0 h4 ꮠh2 h2 h2 h2 
+
+DQS rd񹦱,h1 
+CH2 RX Vr椺27.5%, TX Vref:22.8%,21.8%
+DQ rds:h3 h7 h2 l0 h2 l1 h2 ., h6 h4 h4 h2 h5 h2 h1 h5 
+
+DQS rds:h2,h2 
+CH3 RX Vref:27.1%, 󖟖re串0.82&.8%
+DQ rds:h1 h1 h7 h¼0 h1 l0 h6, h7 h1 l0 h1 h4 |0 h6 h1 
+
+stri㣽0x2< ddrޣonfig=0x4
+hash ch࠽ask0-1 0x20 0x40, ᠮk_mಫ0-3 0󮮠0xF, rankÿ­ÿ
+                                                 [£ 
+change to F1: 528MHz
+ch0 tto
+ch1 ttot10
+ch2 ttot10
+          ch3 ttot10
+cha~棠to F2: 1068MHz
+ch0 ttot12
+ch1 ttot12
+ch2 󳮴12
+       ch3 ttot12
+chan裠to F3: 1560MHz
+ch0 ttot14
+ch1 ttot14
+ch2 ttot14
+ch3 ttot14
+chaþge to F0: 2112MHz
+ch0 ttot16
+ch1 ttot16
+ch2 ttot16
+ch3 ttot16
+out
+U-Boot SPL board init

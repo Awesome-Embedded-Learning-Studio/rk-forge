@@ -49,6 +49,23 @@ understand the Rockchip Android packaging flow and to mine DTs/configs — see
 build-flow analysis. Note Android's `envsetup/lunch/m` + `mkimage.sh` flow does **not** fit
 forge's `setup→build→pack→assemble` orchestrator; it is its own track.
 
+## rk3588/ — the Rockchip RK3588 Linux BSP (extraction pool)
+
+The Rockchip RK3588 **Linux** SDK (`rk3588-linux_20251229.tar.xz`, ~13 GB) — the vendor
+buildroot + kernel + U-Boot + rkbin bundle for the iTOP-RK3588 board. Same extraction-pool
+role as rk3568/: a knowledge source for the RK3588 port (mainline-first, mirroring the
+rk3568 approach), **not built, not a submodule, gitignored.** Currently placed **as a
+tarball only** — extraction into a `repo`-managed tree is a follow-up step once the
+migration kicks off.
+
+## rk3588_android/ — the Rockchip RK3588 Android 13 BSP (extraction pool)
+
+The Rockchip RK3588 **Android 13** SDK (`3588-android13-full-20251206.tar.xz`, ~28 GB;
+shipped alongside `MD5.txt` + `readme.txt` in the iTOP `07_iTOP-RK3588开发板Android13源码`
+folder). Same deal as rk3568_android/: the vendor Android world (kernel + blobs), kept as a
+*reference/comparison* track separate from the mainline-first Linux port — **not built, not
+committed, gitignored.** Also placed **as a tarball only** for now.
+
 ---
 
 Moved here from `third_party/vendor-sdk/` on 2026-06-20 — topology honesty: reference

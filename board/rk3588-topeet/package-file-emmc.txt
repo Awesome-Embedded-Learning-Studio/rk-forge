@@ -1,0 +1,20 @@
+# package-file-emmc.txt — RKAF manifest for the RK3588 eMMC update.img.
+#
+# RK3588 eMMC update.img = RKFW download loader (MiniLoaderAll.bin, boot_merger from public
+# rkbin blobs — the `db` helper) + GPT (parameter-emmc-topeet.txt) + partition images:
+#   uboot   = u-boot.itb  (binman: mainline U-Boot + BL31/ATF, build-uboot.sh — NOT the
+#                          fit-packed uboot.img aes uses; rkfw-pack stages it by basename)
+#   boot    = boot.img    (kernel FIT: arm64 Image + rk3588-evb1-v10.dtb [MVP], pack-fit.sh)
+#   rootfs  = rootfs.img  (Ubuntu 26.04 ext4 → stage-rootfs → pack-emmc.sh's mke2fs -d;
+#                          staged as rootfs.img to match the manifest name)
+# The eMMC @0x40 boot loader (binman idbloader.img) is NOT a partition here — RKDevTool
+# writes idbloader raw at sector 0x40 via the loader's idb stage; this manifest only carries
+# the GPT partitions + the download loader. Identical shape to rk3568-atk (binman + eMMC).
+
+# NAME		Relative path
+package-file	package-file
+bootloader	Image/MiniLoaderAll.bin
+parameter	Image/parameter.txt
+uboot		Image/u-boot.itb
+boot		Image/boot.img
+rootfs		Image/rootfs.img

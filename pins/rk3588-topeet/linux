@@ -1,0 +1,8 @@
+# pins/rk3588-topeet/linux — upstream Linux for the rk3588-topeet board.
+# Format: <git-url> <ref>. ref = the BASE patches/rk3588-topeet/linux applies onto.
+# RK3588 SoC support is mainline since 5.19; v7.1 (same base as rk3568-atk) carries the
+# most mature RK3588: big.LITTLE (A76+A55) CPU, Mali-G610 GPU (Panthor), Hantro+rkvdec2
+# VPU (multi-core), RGA, RKCIF/rkisp1 camera, and the NPU via the mainline "Rocket" driver
+# (RK3588-only — unlike RK3568 which must port vendor rknpu2). The board DT
+# (topeet-rk3588-linux) is rk-forge's contribution (ported from vendor in Phase 5).
+https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git v7.1

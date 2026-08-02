@@ -1,0 +1,62 @@
+/*
+ * 主线 Linux 内核 FIT (RK3588 topeet, eMMC 引导用)。
+ * 一个 .itb 含 Image(arm64 kernel) + rk3588-evb1-v10.dtb(fdt), 不含 ramdisk。
+ *
+ * MVP: 复用主线 rk3588-evb1-v10.dtb (零板级 DT patch) 验证主线链路。Phase 5 板 DT
+ * (rk3588-topeet.dts, 从 vendor topeet-rk3588-linux.dts 移植) 落地后, DT_NAME 切换,
+ * 此处 incbin 改 "rk3588-topeet.dtb"。
+ *
+ * load 地址取自主线 U-Boot include/configs/rk3588_common.h 的 ENV_MEM_LAYOUT_SETTINGS:
+ *   kernel_addr_r=0x02000000   fdt_addr_r=0x12000000
+ * 注意: RK3588 的这两个地址与 RK3568 完全相同 (RK3568 也是 0x02000000/0x12000000),
+ * 所以本 its 的 load/entry 与 rk3568-kernel.its 一致, 只是 DT 名 + description 不同。
+ *
+ * eMMC primary boot: 无 provisioning initramfs (那是 aes NAND/ubiprog 专属), 内核直接
+ * 按 bootargs 的 root=/dev/mmcblk?1p3 挂 eMMC 的 ext4 rootfs。与 rk3568-atk 同构。
+ *
+ * 打包: fit-pack.py pack --external-offset 0x800 (Mode B, 主线 U-Boot bootm 消费)。
+ */
+/dts-v1/;
+
+/ {
+	description = "Mainline Linux FIT for RK3588 topeet (eMMC ext4 rootfs boot)";
+	#address-cells = <1>;
+
+	images {
+
+		kernel {
+			description = "Linux kernel (arm64 Image, self-decompressing)";
+			data = /incbin/("Image");
+			type = "kernel";
+			arch = "arm64";
+			os = "linux";
+			compression = "none";
+			load = <0x02000000>;
+			entry = <0x02000000>;
+			hash {
+				algo = "sha256";
+			};
+		};
+
+		fdt {
+			description = "Topeet RK3588 board DT (ported from vendor; bootargs set by U-Boot: root=/dev/mmcblk?1p3)";
+			data = /incbin/("rk3588-topeet.dtb");
+			type = "flat_dt";
+			arch = "arm64";
+			compression = "none";
+			load = <0x12000000>;
+			hash {
+				algo = "sha256";
+			};
+		};
+	};
+
+	configurations {
+		default = "conf";
+		conf {
+			description = "Boot mainline arm64 Linux, mount eMMC ext4 rootfs";
+			kernel = "kernel";
+			fdt = "fdt";
+		};
+	};
+};

@@ -1,0 +1,39 @@
+From 5591f04a68618ca8b2dd89b94ceb6c2f0629bc63 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Tue, 28 Jul 2026 08:47:50 +0800
+Subject: [PATCH] configs: evb-rk3588: confine boot_targets to eMMC (mmc0)
+
+The default rk3588 boot_targets ("mmc1 mmc0 nvme scsi usb pxe dhcp spi", from rockchip-common.h) stalls autoboot on boards whose GMAC PHY autoneg is broken: bootflow reaches the pxe/dhcp bootmeths and waits out a BOOTP timeout (-110/-4) instead of bootting the on-board eMMC.
+
+For eMMC-only boards (e.g. topeet iTOP-RK3588), confine boot_targets to "mmc0" so bootflow scans only the eMMC bootdev and immediately finds /boot/boot.scr on mmc 0:3. Defined before the rk3588_common.h include so the #ifndef guard in rockchip-common.h adopts it (same idiom as genbook-cm5-rk3588.h: #define BOOT_TARGETS "usb mmc0").
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ include/configs/evb_rk3588.h | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/include/configs/evb_rk3588.h b/include/configs/evb_rk3588.h
+index 5ff1ddbfcbe..0536e67bf40 100644
+--- a/include/configs/evb_rk3588.h
++++ b/include/configs/evb_rk3588.h
+@@ -10,6 +10,17 @@
+ 		"stdout=serial,vidconsole\0" \
+ 		"stderr=serial,vidconsole\0"
+ 
++/*
++ * Confine autoboot to the on-board eMMC (mmc 0). The rk3588_common default
++ * (rockchip-common.h's BOOT_TARGETS) is "mmc1 mmc0 nvme scsi usb pxe dhcp spi";
++ * the trailing pxe/dhcp entries stall autoboot on this board's broken GMAC PHY
++ * autoneg (BOOTP timeout -110/-4), and there is no SD/NVMe/USB boot media here.
++ * Define BEFORE the rk3588_common.h include so the #ifndef guard in
++ * rockchip-common.h adopts this value (same idiom as genbook-cm5-rk3588.h).
++ * boot.scr lives at mmc 0:3 /boot/boot.scr (bootflow script bootmeth finds it).
++ */
++#define BOOT_TARGETS	"mmc0"
++
+ #include <configs/rk3588_common.h>
+ 
+ #endif
+-- 
+2.43.0
+
