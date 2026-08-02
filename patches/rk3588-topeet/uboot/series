@@ -1,0 +1,25 @@
+# patches/rk3588-topeet/uboot/series — board patches for rk3588-topeet U-Boot
+# (mainline u-boot 2026.07-rc4 base, pin 5ca1a73c7d3, evb-rk3588_defconfig).
+# One patch filename per line (quilt style); '#' = comment, blank lines OK.
+# Applied by scripts/apply-series.sh --component uboot (git am, bisectable).
+#
+# 0001 — autoboot fix. The stock evb-rk3588 boot_targets (from rockchip-common.h's
+# BOOT_TARGETS macro = "mmc1 mmc0 nvme scsi usb pxe dhcp spi") stalls autoboot on
+# this board: bootflow hits the pxe/dhcp bootmeths and waits out a BOOTP timeout
+# (GMAC PHY autoneg broken, -110/-4) instead of booting the eMMC. Confines
+# boot_targets to "mmc0" so bootflow scans only the eMMC bootdev and finds
+# /boot/boot.scr on mmc 0:3. Override lives in evb_rk3588.h (BEFORE the
+# rk3588_common.h include, so the #ifndef guard in rockchip-common.h adopts it —
+# same idiom as genbook-cm5-rk3588.h). See [[rk3588-build-gotchas]] #4.
+# 0002 — serial baud. Upstream evb-rk3588_defconfig defaults to 1500000; the
+# topeet chain is 115200 end-to-end (DDR ddrbin hack + kernel ttyS2,115200), so
+# u-boot at 1500000 prints garbage after BL31 handoff. Force CONFIG_BAUDRATE=115200.
+
+0001-boot-targets-emmc-only.patch
+0002-evb-rk3588-baud-115200.patch
+# 0003 — autoboot. bootstd's default bootcmd ("bootflow scan -lb") does NOT find
+# boot.scr on mmc 0:3 (script bootmeth doesn't match), so autoboot drops to the
+# prompt. Bake the known-working manual sequence into CONFIG_BOOTCOMMAND:
+# load mmc 0:3 ${scriptaddr} /boot/boot.scr; source  (boot.scr then mmc read +
+# bootm the raw boot partition). boot_targets (0001) is now moot but harmless.
+0003-evb-rk3588-bootcommand-emmc.patch

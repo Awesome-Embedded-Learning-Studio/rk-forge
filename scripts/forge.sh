@@ -99,8 +99,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 # Validate ROOTFS_PROFILE AFTER both scans (flag may precede OR follow the subcommand).
-[[ "$ROOTFS_PROFILE" == "buildroot" || "$ROOTFS_PROFILE" == "openwrt" ]] \
-  || die "unknown --rootfs: $ROOTFS_PROFILE (want buildroot|openwrt)"
+[[ "$ROOTFS_PROFILE" == "buildroot" || "$ROOTFS_PROFILE" == "openwrt" || "$ROOTFS_PROFILE" == "ubuntu" ]] \
+  || die "unknown --rootfs: $ROOTFS_PROFILE (want buildroot|openwrt|ubuntu)"
 ASSEMBLE_VARIANT="${1:---provision}"   # only meaningful for assemble/all
 
 # --- run_stage: run a stage unless its inputs are unchanged ------------------
@@ -148,6 +148,14 @@ stage_setup() {
     bash "${_SCRIPT_DIR}/fetch-deps.sh" linux
     bash "${_SCRIPT_DIR}/fetch-deps.sh" uboot
     bash "${_SCRIPT_DIR}/fetch-deps.sh" openwrt
+  elif [[ "$ROOTFS_PROFILE" == "ubuntu" ]]; then
+    log_info "[setup] fetching source trees (ubuntu profile: linux + uboot; rootfs is ubuntu-base+apt, NO buildroot)"
+    bash "${_SCRIPT_DIR}/fetch-deps.sh" linux
+    bash "${_SCRIPT_DIR}/fetch-deps.sh" uboot
+    if [[ -n "${WIFI_DRIVER:-}" ]]; then
+      log_info "[setup] fetching WiFi driver drop (${WIFI_DRIVER})"
+      bash "${_SCRIPT_DIR}/fetch-${WIFI_DRIVER}-driver.sh"
+    fi
   else
     log_info "[setup] fetching source trees (buildroot profile: linux + uboot + buildroot)"
     bash "${_SCRIPT_DIR}/fetch-deps.sh" all
@@ -209,6 +217,13 @@ stage_build() {
     bash "${_SCRIPT_DIR}/build-openwrt.sh"
     log_info "[build] U-Boot (build-uboot.sh — rk-forge mainline, reused)"
     bash "${_SCRIPT_DIR}/build-uboot.sh"
+  elif [[ "$ROOTFS_PROFILE" == "ubuntu" ]]; then
+    log_info "[build] kernel (build-linux.sh — make is internally incremental)"
+    bash "${_SCRIPT_DIR}/build-linux.sh"
+    log_info "[build] U-Boot (build-uboot.sh — SOURCE_DATE_EPOCH → byte-reproducible)"
+    bash "${_SCRIPT_DIR}/build-uboot.sh"
+    log_info "[build] rootfs (build-ubuntu-rootfs.sh — ubuntu-base tarball + apt via qemu-user-static)"
+    bash "${_SCRIPT_DIR}/build-ubuntu-rootfs.sh"
   else
     log_info "[build] kernel (build-linux.sh — make is internally incremental)"
     bash "${_SCRIPT_DIR}/build-linux.sh"
@@ -245,6 +260,11 @@ stage_pack() {
     run_stage stage-rootfs \
       "${OUT_DIR}/.openwrt-built" "${_SCRIPT_DIR}/stage-rootfs.sh" \
       -- bash "${_SCRIPT_DIR}/stage-rootfs.sh"
+  elif [[ "$ROOTFS_PROFILE" == "ubuntu" ]]; then
+    run_stage stage-rootfs \
+      "${OUT_DIR}/ubuntu-rootfs.tar" "${OUT_DIR}/.ubuntu-rootfs-built" \
+      "${_SCRIPT_DIR}/stage-rootfs.sh" \
+      -- bash "${_SCRIPT_DIR}/stage-rootfs.sh"
   else
     run_stage stage-rootfs \
       "${BUILDROOT}/output/images/rootfs.tar" \
@@ -256,7 +276,8 @@ stage_pack() {
     # rk3568: ext4 rootfs (mke2fs -d from the staged tree). NO ubifs, NO provisioning
     # initramfs — eMMC mounts the ext4 root directly (that's aes's NAND/ubiprog flow).
     run_stage pack-emmc \
-      "${OUT_DIR}/rootfs" "${BUILDROOT}/output/images/rootfs.tar" \
+      "${OUT_DIR}/rootfs" "${STATE_DIR}/stage-rootfs.fingerprint" \
+      "${BRINGUP}/fit/boot-emmc.cmd" \
       "${_SCRIPT_DIR}/pack-emmc.sh" \
       "${_PROJECT_ROOT}/config/forge.env" "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.env" \
       -- bash "${_SCRIPT_DIR}/pack-emmc.sh"

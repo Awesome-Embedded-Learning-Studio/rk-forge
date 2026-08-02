@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000005 Mon Sep 17 00:00:00 2001
+From: rk-forge <rk-forge@localhost>
+Date: Sat, 1 Aug 2026 23:00:00 +0800
+Subject: [PATCH] input: goodix: release reset line after address selection
+
+The TOPEET RK3588 GT911 stops acknowledging I2C while the reset GPIO remains
+driven after the address-selection sequence.  Once the failed probe releases
+the GPIO, userspace can read the controller ID again.
+
+Both Goodix implementations in the working vendor SDK release RST to input
+after T4: the board's legacy gt9xx driver and the SDK's generic Goodix driver.
+Restore that board-required step while preserving the mainline timing and
+interrupt synchronization sequence.
+
+Signed-off-by: rk-forge <rk-forge@localhost>
+---
+ drivers/input/touchscreen/goodix.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/drivers/input/touchscreen/goodix.c b/drivers/input/touchscreen/goodix.c
+index 000000000000..000000000000 100644
+--- a/drivers/input/touchscreen/goodix.c
++++ b/drivers/input/touchscreen/goodix.c
+@@ -795,6 +795,17 @@ int goodix_reset_no_int_sync(struct goodix_ts_data *ts)
+ 
+ 	usleep_range(6000, 10000);		/* T4: > 5ms */
+ 
++	/*
++	 * Release the reset line after the address-selection window.  The
++	 * TOPEET vendor gt9xx driver and its generic Goodix driver both switch
++	 * RST back to input here.  Keeping RK3588 GPIO3_C1 driven caused this
++	 * panel to stop acknowledging I2C until the failed probe released the
++	 * descriptor.
++	 */
++	error = gpiod_direction_input(ts->gpiod_rst);
++	if (error)
++		goto error;
++
+ 	return 0;
+ 
+ error:
+-- 
+2.43.0
+

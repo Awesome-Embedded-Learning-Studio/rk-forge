@@ -1,0 +1,855 @@
+From f852f977ccb70dc21be3bb18de6686563f51f85c Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Tue, 28 Jul 2026 09:45:55 +0800
+Subject: [PATCH 2/2] arm64: dts: rockchip: add rk3588-topeet board + 1024x600
+ DSI panel/GT911
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Board DT for the iTOP-RK3588 (topeet): Phase 1 boot essentials (eMMC/GMAC/USB/PMIC rk806/CPU supplies), the vendor-compatible ttyFIQ0 console on UART2, plus the Phase 3 display pipeline — VOP2 vp2 -> dsi0 (mipi-dsi2) -> topeet,dsi-panel-seq bridge panel (1024x600) on mipidcphy0, pwm-backlight, vcc3v3_lcd_n power rail, and a Goodix GT911 touch on i2c2. Routing uses the mainline OF-graph (vendor's &route_dsi0 is BSP-only).
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ arch/arm64/boot/dts/rockchip/Makefile         |   1 +
+ .../arm64/boot/dts/rockchip/rk3588-topeet.dts | 817 ++++++++++++++++++
+ 2 files changed, 818 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+
+diff --git a/arch/arm64/boot/dts/rockchip/Makefile b/arch/arm64/boot/dts/rockchip/Makefile
+index cb55c6b70..d89c54e86 100644
+--- a/arch/arm64/boot/dts/rockchip/Makefile
++++ b/arch/arm64/boot/dts/rockchip/Makefile
+@@ -209,6 +209,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5b-plus.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5t.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-tiger-haikou.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-tiger-haikou-video-demo.dtbo
++dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-topeet.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-toybrick-x0.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-turing-rk1.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588s-coolpi-4b.dtb
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+new file mode 100644
+index 000000000..000000000
+--- /dev/null
++++ b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+@@ -0,0 +1,817 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * rk3588-topeet.dts — iTOP-RK3588 (topeet) board DT for mainline linux v7.1.
++ *
++ * Ported from the vendor topeet-rk3588-linux.dts (kernel 5.10). The PMIC + rk8602 + CPU
++ * supply topology is identical to Forlinx OK3588-C (single rk806 on spi2 + rk8602/rk8603
++ * on i2c0 for CPU big + rk8602 on i2c1 for NPU), so the power tree is modeled on
++ * rk3588-fet3588-c.dtsi; peripherals (gmac/usb/sdhci) on rk3588-ok3588-c.dts.
++ *
++ * Phase 1 (this file): boot to serial console + eMMC rootfs + Ethernet + USB host.
++ * Phase 2 (later): es8388 audio (simple-audio-card), hym8563 RTC, USB type-C, pcie3x4.
++ * Phase 3 (later): MIPI panel (needs mainline panel binding) + camera (mainline has no
++ *                  rk3588 camera engine yet) — not boot-blocking, deliberately omitted.
++ *
++ * NOTE: topeet is "rockchip,rk3588-evb3-lp5-v10" in vendor; we use a clean "topeet,..."
++ * compatible (the vendor string is a BSP concept; U-Boot matches on the 2nd "rockchip,rk3588").
++ */
++/dts-v1/;
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/leds/common.h>
++#include <dt-bindings/pinctrl/rockchip.h>
++#include <dt-bindings/pwm/pwm.h>
++#include <dt-bindings/soc/rockchip,vop2.h>
++#include "rk3588.dtsi"
++
++/ {
++	model = "Topeet RK3588 Board (iTOP-RK3588)";
++	compatible = "topeet,rk3588-topeet", "rockchip,rk3588";
++
++	aliases {
++		ethernet0 = &gmac0;
++		mmc0 = &sdhci;
++	};
++
++	/* Vendor-reserved persistent crash log window; survives watchdog reset. */
++	reserved-memory {
++		ramoops: ramoops@110000 {
++			compatible = "ramoops";
++			reg = <0x0 0x00110000 0x0 0x000e0000>;
++			record-size = <0x00020000>;
++			console-size = <0x00080000>;
++		};
++	};
++
++	fiq_debugger: fiq-debugger {
++		compatible = "rockchip,fiq-debugger";
++		rockchip,serial-id = <2>;
++		rockchip,wake-irq = <0>;
++		/* Vendor board mode: FIQ debugger backend using the UART IRQ. */
++		rockchip,irq-mode-enable = <1>;
++		rockchip,baudrate = <115200>;
++		/* Mainline RK3588 GIC uses the fourth affinity cell. */
++		interrupts = <GIC_SPI 423 IRQ_TYPE_LEVEL_LOW 0>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&uart2m0_xfer>;
++		status = "okay";
++	};
++
++	vcc12v_dcin: regulator-vcc12v-dcin {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc12v_dcin";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <12000000>;
++		regulator-max-microvolt = <12000000>;
++	};
++
++	vcc5v0_sys: regulator-vcc5v0-sys {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc5v0_sys";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&vcc12v_dcin>;
++	};
++
++	/* Single-rk806 boards have no on-PMIC 1.1V NLDO feed — board-mounted LDO. */
++	vcc_1v1_nldo_s3: regulator-vcc-1v1-nldo-s3 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc_1v1_nldo_s3";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <1100000>;
++		regulator-max-microvolt = <1100000>;
++		vin-supply = <&vcc5v0_sys>;
++	};
++
++	/* LCD panel 3.3V power (gpio1_B3). The panel has no separate reset GPIO —
++	 * power-cycling this rail resets the bridge IC. */
++	vcc3v3_lcd_n: regulator-vcc3v3-lcd-n {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc3v3_lcd0_n";
++		regulator-boot-on;
++		enable-active-high;
++		gpio = <&gpio1 RK_PB3 GPIO_ACTIVE_HIGH>;
++		vin-supply = <&vcc_3v3_s3>;
++	};
++
++	backlight: backlight {
++		compatible = "pwm-backlight";
++		/* Simple linear ramp (vendor used a low-end gamma curve; swap if needed). */
++		brightness-levels = <0 4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72
++				     76 80 84 88 92 96 100 104 108 112 116 120 124 128 132
++				     136 140 144 148 152 156 160 164 168 172 176 180 184 188
++				     192 196 200 204 208 212 216 220 224 228 232 236 240 244
++				     248 252 255>;
++		default-brightness-level = <50>;
++		pwms = <&pwm1 0 25000 0>;
++	};
++};
++
++/* === CPU supply (modeled on fet3588-c; big clusters share one rk8602 rail for cpu+mem) === */
++&cpu_b0 {
++	cpu-supply = <&vdd_cpu_big0_s0>;
++	mem-supply = <&vdd_cpu_big0_mem_s0>;
++};
++
++&cpu_b1 {
++	cpu-supply = <&vdd_cpu_big0_s0>;
++	mem-supply = <&vdd_cpu_big0_mem_s0>;
++};
++
++&cpu_b2 {
++	cpu-supply = <&vdd_cpu_big1_s0>;
++	mem-supply = <&vdd_cpu_big1_mem_s0>;
++};
++
++&cpu_b3 {
++	cpu-supply = <&vdd_cpu_big1_s0>;
++	mem-supply = <&vdd_cpu_big1_mem_s0>;
++};
++
++&cpu_l0 {
++	cpu-supply = <&vdd_cpu_lit_s0>;
++	mem-supply = <&vdd_cpu_lit_mem_s0>;
++};
++
++&cpu_l1 {
++	cpu-supply = <&vdd_cpu_lit_s0>;
++	mem-supply = <&vdd_cpu_lit_mem_s0>;
++};
++
++&cpu_l2 {
++	cpu-supply = <&vdd_cpu_lit_s0>;
++	mem-supply = <&vdd_cpu_lit_mem_s0>;
++};
++
++&cpu_l3 {
++	cpu-supply = <&vdd_cpu_lit_s0>;
++	mem-supply = <&vdd_cpu_lit_mem_s0>;
++};
++
++/* === External CPU/NPU buck regulators (i2c0 big0/big1, i2c1 npu) === */
++&i2c0 {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c0m2_xfer>;
++	resets = <&cru SRST_I2C0>, <&cru SRST_P_I2C0>;
++	reset-names = "i2c", "apb";
++
++	vdd_cpu_big0_s0: vdd_cpu_big0_mem_s0: regulator@42 {
++		compatible = "rockchip,rk8602";
++		reg = <0x42>;
++		regulator-compatible = "rk860x-reg";
++		regulator-name = "vdd_cpu_big0_s0";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <550000>;
++		regulator-max-microvolt = <1050000>;
++		regulator-ramp-delay = <2300>;
++		rockchip,suspend-voltage-selector = <1>;
++		vin-supply = <&vcc5v0_sys>;
++
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++
++	vdd_cpu_big1_s0: vdd_cpu_big1_mem_s0: regulator@43 {
++		compatible = "rockchip,rk8603";
++		reg = <0x43>;
++		regulator-compatible = "rk860x-reg";
++		regulator-name = "vdd_cpu_big1_s0";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <550000>;
++		regulator-max-microvolt = <1050000>;
++		regulator-ramp-delay = <2300>;
++		rockchip,suspend-voltage-selector = <1>;
++		vin-supply = <&vcc5v0_sys>;
++
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++};
++
++&i2c1 {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c1m2_xfer>;
++	resets = <&cru SRST_I2C1>, <&cru SRST_P_I2C1>;
++	reset-names = "i2c", "apb";
++
++	vdd_npu_s0: vdd_npu_mem_s0: regulator@42 {
++		compatible = "rockchip,rk8602";
++		reg = <0x42>;
++		regulator-compatible = "rk860x-reg";
++		regulator-name = "vdd_npu_s0";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <550000>;
++		regulator-max-microvolt = <950000>;
++		regulator-ramp-delay = <2300>;
++		rockchip,suspend-voltage-selector = <1>;
++		vin-supply = <&vcc5v0_sys>;
++
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++};
++
++/* === PMIC rk806 (single, on spi2) — full regulator tree (fet3588-c verbatim) === */
++&spi2 {
++	status = "okay";
++	assigned-clocks = <&cru CLK_SPI2>;
++	assigned-clock-rates = <200000000>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&spi2m2_cs0 &spi2m2_pins>;
++	num-cs = <1>;
++
++	pmic@0 {
++		compatible = "rockchip,rk806";
++		spi-max-frequency = <1000000>;
++		reg = <0x0>;
++
++		interrupt-parent = <&gpio0>;
++		interrupts = <7 IRQ_TYPE_LEVEL_LOW>;
++
++		pinctrl-names = "default";
++		pinctrl-0 = <&pmic_pins>, <&rk806_dvs1_null>,
++			    <&rk806_dvs2_null>, <&rk806_dvs3_null>;
++
++		system-power-controller;
++
++		vcc1-supply = <&vcc5v0_sys>;
++		vcc2-supply = <&vcc5v0_sys>;
++		vcc3-supply = <&vcc5v0_sys>;
++		vcc4-supply = <&vcc5v0_sys>;
++		vcc5-supply = <&vcc5v0_sys>;
++		vcc6-supply = <&vcc5v0_sys>;
++		vcc7-supply = <&vcc5v0_sys>;
++		vcc8-supply = <&vcc5v0_sys>;
++		vcc9-supply = <&vcc5v0_sys>;
++		vcc10-supply = <&vcc5v0_sys>;
++		vcc11-supply = <&vcc_2v0_pldo_s3>;
++		vcc12-supply = <&vcc5v0_sys>;
++		vcc13-supply = <&vcc_1v1_nldo_s3>;
++		vcc14-supply = <&vcc_1v1_nldo_s3>;
++		vcca-supply = <&vcc5v0_sys>;
++
++		gpio-controller;
++		#gpio-cells = <2>;
++
++		rk806_dvs1_null: dvs1-null-pins {
++			pins = "gpio_pwrctrl1";
++			function = "pin_fun0";
++		};
++
++		rk806_dvs2_null: dvs2-null-pins {
++			pins = "gpio_pwrctrl2";
++			function = "pin_fun0";
++		};
++
++		rk806_dvs3_null: dvs3-null-pins {
++			pins = "gpio_pwrctrl3";
++			function = "pin_fun0";
++		};
++
++		regulators {
++			vdd_gpu_s0: vdd_gpu_mem_s0: dcdc-reg1 {
++				regulator-boot-on;
++				regulator-min-microvolt = <550000>;
++				regulator-max-microvolt = <950000>;
++				regulator-ramp-delay = <12500>;
++				regulator-name = "vdd_gpu_s0";
++				regulator-enable-ramp-delay = <400>;
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vdd_cpu_lit_s0: vdd_cpu_lit_mem_s0: dcdc-reg2 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <550000>;
++				regulator-max-microvolt = <950000>;
++				regulator-ramp-delay = <12500>;
++				regulator-name = "vdd_cpu_lit_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vdd_log_s0: dcdc-reg3 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <675000>;
++				regulator-max-microvolt = <750000>;
++				regulator-ramp-delay = <12500>;
++				regulator-name = "vdd_log_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++					regulator-suspend-microvolt = <750000>;
++				};
++			};
++
++			vdd_vdenc_s0: vdd_vdenc_mem_s0: dcdc-reg4 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <550000>;
++				regulator-max-microvolt = <950000>;
++				regulator-ramp-delay = <12500>;
++				regulator-name = "vdd_vdenc_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vdd_ddr_s0: dcdc-reg5 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <675000>;
++				regulator-max-microvolt = <900000>;
++				regulator-ramp-delay = <12500>;
++				regulator-name = "vdd_ddr_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++					regulator-suspend-microvolt = <850000>;
++				};
++			};
++
++			vdd2_ddr_s3: dcdc-reg6 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-name = "vdd2_ddr_s3";
++				regulator-state-mem {
++					regulator-on-in-suspend;
++				};
++			};
++
++			vcc_2v0_pldo_s3: dcdc-reg7 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <2000000>;
++				regulator-max-microvolt = <2000000>;
++				regulator-ramp-delay = <12500>;
++				regulator-name = "vcc_2v0_pldo_s3";
++				regulator-state-mem {
++					regulator-on-in-suspend;
++					regulator-suspend-microvolt = <2000000>;
++				};
++			};
++
++			vcc_3v3_s3: dcdc-reg8 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc_3v3_s3";
++				regulator-state-mem {
++					regulator-on-in-suspend;
++					regulator-suspend-microvolt = <3300000>;
++				};
++			};
++
++			vddq_ddr_s0: dcdc-reg9 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-name = "vddq_ddr_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vcc_1v8_s3: dcdc-reg10 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc_1v8_s3";
++				regulator-state-mem {
++					regulator-on-in-suspend;
++					regulator-suspend-microvolt = <1800000>;
++				};
++			};
++
++			avcc_1v8_s0: pldo-reg1 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "avcc_1v8_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vcc_1v8_s0: pldo-reg2 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc_1v8_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++					regulator-suspend-microvolt = <1800000>;
++				};
++			};
++
++			avdd_1v2_s0: pldo-reg3 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1200000>;
++				regulator-max-microvolt = <1200000>;
++				regulator-name = "avdd_1v2_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vcc_3v3_s0: pldo-reg4 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-ramp-delay = <12500>;
++				regulator-name = "vcc_3v3_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vccio_sd_s0: pldo-reg5 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-ramp-delay = <12500>;
++				regulator-name = "vccio_sd_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			pldo6_s3: pldo-reg6 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "pldo6_s3";
++				regulator-state-mem {
++					regulator-on-in-suspend;
++					regulator-suspend-microvolt = <1800000>;
++				};
++			};
++
++			vdd_0v75_s3: nldo-reg1 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <750000>;
++				regulator-max-microvolt = <750000>;
++				regulator-name = "vdd_0v75_s3";
++				regulator-state-mem {
++					regulator-on-in-suspend;
++					regulator-suspend-microvolt = <750000>;
++				};
++			};
++
++			vdd_ddr_pll_s0: nldo-reg2 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <850000>;
++				regulator-max-microvolt = <850000>;
++				regulator-name = "vdd_ddr_pll_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++					regulator-suspend-microvolt = <850000>;
++				};
++			};
++
++			avdd_0v75_s0: nldo-reg3 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <750000>;
++				regulator-max-microvolt = <750000>;
++				regulator-name = "avdd_0v75_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vdd_0v85_s0: nldo-reg4 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <850000>;
++				regulator-max-microvolt = <850000>;
++				regulator-name = "vdd_0v85_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vdd_0v75_s0: nldo-reg5 {
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <750000>;
++				regulator-max-microvolt = <750000>;
++				regulator-name = "vdd_0v75_s0";
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++		};
++	};
++};
++
++&pd_gpu {
++	domain-supply = <&vdd_gpu_s0>;
++};
++
++/* ttyFIQ0 owns UART2; the DesignWare 8250 driver must not bind this node. */
++&uart2 {
++	status = "disabled";
++};
++
++/* === eMMC (boot rootfs) === */
++&sdhci {
++	bus-width = <8>;
++	mmc-hs400-1_8v;
++	mmc-hs400-enhanced-strobe;
++	no-sdio;
++	no-sd;
++	non-removable;
++	status = "okay";
++};
++
++/* === Ethernet (RTL8211F RGMII on gmac0; topeet single eth) === */
++&gmac0 {
++	clock_in_out = "output";
++	phy-handle = <&rgmii_phy0>;
++	phy-mode = "rgmii-rxid";
++	pinctrl-names = "default";
++	pinctrl-0 = <&gmac0_miim
++		     &gmac0_tx_bus2
++		     &gmac0_rx_bus2
++		     &gmac0_rgmii_clk
++		     &gmac0_rgmii_bus>;
++	tx_delay = <0x44>;
++	rx_delay = <0x00>;
++	status = "okay";
++};
++
++&mdio0 {
++	rgmii_phy0: ethernet-phy@1 {
++		/* RTL8211F */
++		compatible = "ethernet-phy-id001c.c916";
++		reg = <0x1>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&rtl8211f_rst>;
++		reset-assert-us = <20000>;
++		reset-deassert-us = <100000>;
++		reset-gpios = <&gpio0 RK_PB0 GPIO_ACTIVE_LOW>;
++	};
++};
++
++&pinctrl {
++	rtl8211f {
++		rtl8211f_rst: rtl8211f-rst {
++			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++
++	touchscreen {
++		gt911_int: gt911-int {
++			rockchip,pins = <3 RK_PC0 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++	};
++};
++
++/* === GPU (Mali-G610, Panthor) === */
++&gpu {
++	mali-supply = <&vdd_gpu_s0>;
++	status = "okay";
++};
++
++/* === USB host (2x USB2 host ports) === */
++&u2phy2 {
++	status = "okay";
++};
++
++&u2phy2_host {
++	status = "okay";
++};
++
++&u2phy3 {
++	status = "okay";
++};
++
++&u2phy3_host {
++	status = "okay";
++};
++
++&usb_host0_ehci {
++	status = "okay";
++};
++
++&usb_host0_ohci {
++	status = "okay";
++};
++
++&usb_host1_ehci {
++	status = "okay";
++};
++
++&usb_host1_ohci {
++	status = "okay";
++};
++
++/* === combo PHYs (enable; consumers wired as needed later) === */
++&combphy0_ps {
++	status = "okay";
++};
++
++&combphy1_ps {
++	status = "okay";
++};
++
++&combphy2_psu {
++	status = "okay";
++};
++
++&tsadc {
++	status = "okay";
++};
++
++&saradc {
++	vref-supply = <&avcc_1v8_s0>;
++	status = "okay";
++};
++
++/* === LCD: 10.1" 1024x600 DSI->LVDS bridge panel + GT911 touch (Phase 3) ===
++ *
++ * topeet routes VOP2 vp2 -> dsi0 (mipi-dsi2 controller) -> bridge IC -> LVDS
++ * panel. The bridge has no mainline driver; panel-topeet-dsi replays the vendor
++ * init sequence verbatim. Note the mainline label is mipidcphy0 (no underscore)
++ * and dsi0 is the "rk3588-mipi-dsi2" controller (built by ROCKCHIP_DW_MIPI_DSI2).
++ * Vendor-private &route_dsi0 / &dsi0_in_vp2{status} nodes do NOT exist in
++ * mainline — routing is expressed purely through the OF-graph endpoints below.
++ */
++&pwm1 {
++	status = "okay";
++};
++
++&vop {
++	status = "okay";
++};
++
++&vop_mmu {
++	status = "okay";
++};
++
++&mipidcphy0 {
++	status = "okay";
++};
++
++&dsi0 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	status = "okay";
++
++	lcd_panel: panel@0 {
++		compatible = "topeet,dsi-panel-seq";
++		reg = <0>;
++		power-supply = <&vcc3v3_lcd_n>;
++		backlight = <&backlight>;
++		width-mm = <235>;
++		height-mm = <143>;
++		reset-delay-ms = <10>;
++		enable-delay-ms = <35>;
++		prepare-delay-ms = <6>;
++		disable-delay-ms = <20>;
++
++		/* Vendor init sequence (topeet-screen-lcds.dts, LCD_TYPE_LVDS_10_1_1024x600).
++		 * Every record is type 0x29 = GENERIC_LONG_WRITE to the bridge's
++		 * manufacturer registers. The block deliberately ends at 9C 04… with
++		 * no DCS sleep-out/display-on: unlike the MIPI0/MIPI1 panels in the
++		 * same vendor file (which DO end with 05 .. 11 / 05 .. 29), this bridge
++		 * self-starts on the video stream. If the panel stays dark, try
++		 * appending: 05 0A 01 11 (sleep-out) 05 14 01 29 (display-on). */
++		panel-init-sequence = [
++			29 02 06 3C 01 09 00 07 00
++			29 02 06 14 01 06 00 00 00
++			29 02 06 64 01 0B 00 00 00
++			29 02 06 68 01 0B 00 00 00
++			29 02 06 6C 01 0B 00 00 00
++			29 02 06 70 01 0B 00 00 00
++			29 02 06 34 01 1F 00 00 00
++			29 02 06 10 02 1F 00 00 00
++			29 02 06 04 01 01 00 00 00
++			29 02 06 04 02 01 00 00 00
++			29 02 06 50 04 20 01 F0 03
++			29 02 06 54 04 14 00 A0 00
++			29 02 06 58 04 00 04 A0 00
++			29 02 06 5C 04 0A 00 17 00
++			29 02 06 60 04 58 02 0C 00
++			29 02 06 64 04 01 00 00 00
++			29 02 06 A0 04 06 80 04 00
++			29 02 06 A0 04 06 80 04 00
++			29 02 06 04 05 04 00 00 00
++			29 02 06 80 04 02 03 04 05
++			29 02 06 84 04 06 07 07 0A
++			29 02 06 88 04 0B 0C 0E 0F
++			29 02 06 8C 04 0D 0E 0F 12
++			29 02 06 90 04 16 17 13 14
++			29 02 06 94 04 15 16 17 1B
++			29 02 06 98 04 18 19 1A 06
++			29 02 06 9C 04 31 04 00 00
++		];
++
++		panel-exit-sequence = [
++			05 05 01 28
++			05 78 01 10
++		];
++
++		/* hfront-porch=1580 is carried verbatim from vendor; almost certainly a
++		 * typo (158?) but it's what the bridge was validated against. Revisit if
++		 * the mode is rejected. */
++		display-timings {
++			native-mode = <&dsi0_timing0>;
++			dsi0_timing0: timing0 {
++				clock-frequency = <82000000>;
++				hactive = <1024>;
++				vactive = <600>;
++				hfront-porch = <1580>;
++				hsync-len = <10>;
++				hback-porch = <100>;
++				vfront-porch = <10>;
++				vsync-len = <10>;
++				vback-porch = <25>;
++				hsync-active = <0>;
++				vsync-active = <0>;
++				de-active = <0>;
++				pixelclk-active = <0>;
++			};
++		};
++
++		port {
++			mipi_panel_in: endpoint {
++				remote-endpoint = <&dsi0_out_panel>;
++			};
++		};
++	};
++};
++
++&dsi0_in {
++	dsi0_in_vp2: endpoint {
++		remote-endpoint = <&vp2_out_dsi0>;
++	};
++};
++
++&dsi0_out {
++	dsi0_out_panel: endpoint {
++		remote-endpoint = <&mipi_panel_in>;
++	};
++};
++
++&vp2 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	vp2_out_dsi0: endpoint@ROCKCHIP_VOP2_EP_MIPI0 {
++		reg = <ROCKCHIP_VOP2_EP_MIPI0>;
++		remote-endpoint = <&dsi0_in_vp2>;
++	};
++};
++
++/* === Touch: Goodix GT911 on i2c2 (vendor "goodix,gt9xx" -> mainline "goodix,gt911") === */
++&i2c2 {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c2m4_xfer>;
++
++	touchscreen@14 {
++		compatible = "goodix,gt911";
++		reg = <0x14>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&gt911_int>;
++		AVDD28-supply = <&vcc3v3_lcd_n>;
++		VDDIO-supply = <&vcc3v3_lcd_n>;
++		interrupt-parent = <&gpio3>;
++		interrupts = <RK_PC0 IRQ_TYPE_EDGE_FALLING>;
++		/* Mainline Goodix uses logical GPIO values as the raw address strap. */
++		irq-gpios = <&gpio3 RK_PC0 GPIO_ACTIVE_HIGH>;
++		panel = <&lcd_panel>;
++		reset-gpios = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
++		touchscreen-size-x = <1024>;
++		touchscreen-size-y = <600>;
++		status = "okay";
++	};
++};
+-- 
+2.43.0

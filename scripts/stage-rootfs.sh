@@ -26,6 +26,20 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Ubuntu's source tar stores numeric root ownership.  forge intentionally runs
+# without sudo, so preserve that metadata with a persistent fakeroot database;
+# pack-emmc.sh reloads the same database before mke2fs reads this tree.
+ROOTFS_FAKEROOT_STATE="${OUT_DIR}/.rootfs.fakeroot"
+if [[ "$ROOTFS_PROFILE" == "ubuntu" && "${RK_FORGE_ROOTFS_FAKEROOT:-0}" != 1 ]]; then
+  command -v fakeroot >/dev/null || die "missing host tool: fakeroot (needed to preserve Ubuntu rootfs ownership)"
+  rm -f "$ROOTFS_FAKEROOT_STATE"
+  log_info "staging Ubuntu rootfs under fakeroot (persistent ownership metadata)"
+  export FAKEROOTDONTTRYCHOWN=1
+  exec fakeroot -s "$ROOTFS_FAKEROOT_STATE" -- \
+    env RK_FORGE_ROOTFS_FAKEROOT=1 ROOTFS_PROFILE="$ROOTFS_PROFILE" \
+    bash "$0" --out "$OUT_DIR"
+fi
+
 ROOT="${OUT_DIR}/rootfs"
 rm -rf "$ROOT"
 mkdir -p "$ROOT"
@@ -65,6 +79,112 @@ if [[ "$ROOTFS_PROFILE" == "openwrt" ]]; then
   stage_wifi_firmware
   log_info "tree size: $(du -sh "$ROOT" | cut -f1)"
   log_info "next: scripts/pack-ubifs.sh → $OUT_DIR/rootfs.ubi.img"
+  exit 0
+fi
+
+if [[ "$ROOTFS_PROFILE" == "ubuntu" ]]; then
+  # ubuntu profile: extract the Ubuntu rootfs tarball built by build-ubuntu-rootfs.sh
+  # (ubuntu-base + apt via qemu-user-static chroot). For rk3588-topeet, WIFI_DRIVER is
+  # empty — AP6xxx WiFi uses the mainline brcmfmac driver (in the kernel) + firmware from
+  # the linux-firmware package already inside the tarball, so NO .ko staging here.
+  UBUNTU_ROOTFS_TAR="${OUT_DIR}/ubuntu-rootfs.tar"
+  [[ -f "$UBUNTU_ROOTFS_TAR" ]] \
+    || die "missing ubuntu rootfs.tar (build it first: forge build --rootfs=ubuntu): $UBUNTU_ROOTFS_TAR"
+  log_info "extracting ubuntu rootfs.tar → $ROOT"
+  tar --numeric-owner --same-owner -xf "$UBUNTU_ROOTFS_TAR" -C "$ROOT"
+
+  # The cached Ubuntu tar may predate the ttyFIQ0 port. Enforce the board's
+  # console ownership at every staging pass so no ttyS2 getty can reopen the
+  # same UART behind the FIQ debugger.
+  if [[ "$FORGE_BOARD" == "rk3588-topeet" ]]; then
+    # GDM does not offer root as a desktop login.  The cached rootfs tar predates
+    # user provisioning, so enforce one conventional development account on
+    # every staging pass.  The password is deliberately documented and must be
+    # changed/locked before production deployment.
+    if ! grep -q '^charliechen:' "$ROOT/etc/passwd"; then
+      awk -F: '$3 == 1000 { found = 1 } END { exit !found }' "$ROOT/etc/passwd" && \
+        die "cannot create charliechen user: UID 1000 already exists"
+      awk -F: '$3 == 1000 { found = 1 } END { exit !found }' "$ROOT/etc/group" && \
+        die "cannot create charliechen group: GID 1000 already exists"
+
+      printf '%s\n' 'charliechen:x:1000:1000:Charlie Chen:/home/charliechen:/bin/bash' >> "$ROOT/etc/passwd"
+      printf '%s\n' 'charliechen:$6$rkforge$B35cyT3RgiRXukvoxFiUgd.tgUmjHP5II67DT3VWmWZzf.p5GjiLEX6AZrAI.VbtuhHhXlFeyKZzzQ3m1B4I91:20500:0:99999:7:::' >> "$ROOT/etc/shadow"
+      printf '%s\n' 'charliechen:x:1000:' >> "$ROOT/etc/group"
+      printf '%s\n' 'charliechen:!::' >> "$ROOT/etc/gshadow"
+
+      add_group_member() {
+        local account_file="$1" group_name="$2" tmp_file
+        tmp_file="${account_file}.rkforge-tmp"
+        awk -F: -v OFS=: -v group_name="$group_name" '
+          $1 == group_name {
+            if ($4 == "")
+              $4 = "charliechen"
+            else if (("," $4 ",") !~ /,charliechen,/)
+              $4 = $4 ",charliechen"
+          }
+          { print }
+        ' "$account_file" > "$tmp_file"
+        chmod --reference="$account_file" "$tmp_file"
+        mv "$tmp_file" "$account_file"
+      }
+      for group_name in adm sudo audio video render input plugdev netdev; do
+        grep -q "^${group_name}:" "$ROOT/etc/group" || die "missing Ubuntu group: $group_name"
+        add_group_member "$ROOT/etc/group" "$group_name"
+        add_group_member "$ROOT/etc/gshadow" "$group_name"
+      done
+
+      mkdir -p "$ROOT/home/charliechen"
+      if [[ -d "$ROOT/etc/skel" ]]; then
+        cp -a "$ROOT/etc/skel/." "$ROOT/home/charliechen/"
+      fi
+      chown -R 1000:1000 "$ROOT/home/charliechen"
+      chmod 0750 "$ROOT/home/charliechen"
+    fi
+
+    mkdir -p "$ROOT/var/lib/AccountsService/users"
+    printf '%s\n' '[User]' 'SystemAccount=false' \
+      > "$ROOT/var/lib/AccountsService/users/charliechen"
+    chmod 0600 "$ROOT/var/lib/AccountsService/users/charliechen"
+
+    mkdir -p "$ROOT/etc/gdm3"
+    printf '%s\n' \
+      '[daemon]' \
+      'AutomaticLoginEnable = true' \
+      'AutomaticLogin = charliechen' \
+      '' \
+      '[security]' \
+      '' \
+      '[debug]' \
+      > "$ROOT/etc/gdm3/custom.conf"
+
+    mkdir -p "$ROOT/etc/systemd/system/getty.target.wants"
+    rm -f "$ROOT/etc/systemd/system/getty.target.wants/serial-getty@ttyS2.service"
+    ln -sf /lib/systemd/system/serial-getty@.service \
+      "$ROOT/etc/systemd/system/getty.target.wants/serial-getty@ttyFIQ0.service"
+
+    # ttyFIQ0 is IRQ-backed and cannot diagnose a global IRQ/hard lockup.  Keep
+    # the independent DesignWare watchdog alive through systemd so a full hang
+    # becomes a warm reset (which preserves the ramoops window), and make every
+    # detector panic instead of merely printing into an unreachable console.
+    mkdir -p "$ROOT/etc/systemd/system.conf.d" "$ROOT/etc/sysctl.d"
+    printf '%s\n' \
+      '[Manager]' \
+      'RuntimeWatchdogSec=30s' \
+      > "$ROOT/etc/systemd/system.conf.d/10-rk3588-lockup-diagnostics.conf"
+    printf '%s\n' \
+      'kernel.panic = 10' \
+      'kernel.panic_on_oops = 1' \
+      'kernel.softlockup_panic = 1' \
+      'kernel.hardlockup_panic = 1' \
+      'kernel.hung_task_panic = 1' \
+      'kernel.hung_task_timeout_secs = 60' \
+      'kernel.panic_on_rcu_stall = 1' \
+      'kernel.watchdog_thresh = 10' \
+      > "$ROOT/etc/sysctl.d/90-rk3588-lockup-diagnostics.conf"
+  fi
+  log_ok "Ubuntu rootfs staged ($(du -sh "$ROOT" | cut -f1))"
+  log_info "tree size: $(du -sh "$ROOT" | cut -f1)"
+  log_info "next: scripts/pack-emmc.sh → $OUT_DIR/rootfs.ext4"
   exit 0
 fi
 

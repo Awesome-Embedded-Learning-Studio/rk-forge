@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000006 Mon Sep 17 00:00:00 2001
+From: rk-forge <rk-forge@localhost>
+Date: Sat, 1 Aug 2026 23:40:00 +0800
+Subject: [PATCH] input: goodix: sequence power before reset
+
+The TOPEET vendor gt9xx driver enables the touch regulator, waits 20 ms,
+and only then requests the GPIOs and performs the GT911 reset/address-select
+sequence.  Preserve that power-on stabilization interval in the mainline
+Goodix driver.
+
+This matters on the RK3588 TOPEET 10.1-inch LCD/touch module, where an early
+probe can start an I2C transfer before the shared module rail has stabilized.
+The transfer then times out in the RK3x controller's START state, while a
+later manual bind resets and identifies the same controller successfully.
+
+Signed-off-by: rk-forge <rk-forge@localhost>
+---
+ drivers/input/touchscreen/goodix.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/input/touchscreen/goodix.c b/drivers/input/touchscreen/goodix.c
+index 000000000000..000000000000 100644
+--- a/drivers/input/touchscreen/goodix.c
++++ b/drivers/input/touchscreen/goodix.c
+@@ -1362,6 +1362,14 @@ static int goodix_ts_probe(struct i2c_client *client)
+ 	if (error)
+ 		return error;
+ 
++	/*
++	 * The TOPEET GT911 vendor driver waits for the touch supply to settle
++	 * before starting the reset/address-selection sequence.  Without this
++	 * interval the RK3588 board can issue the first
++	 * I2C START while the integrated LCD/touch module is still powering up.
++	 */
++	msleep(20);
++
+ reset:
+ 	if (ts->reset_controller_at_probe) {
+ 		/* reset the controller */
+-- 
+2.43.0

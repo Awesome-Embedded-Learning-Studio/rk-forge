@@ -19,7 +19,7 @@ source "${_SCRIPT_DIR}/lib/env.sh"     # _PROJECT_ROOT + OUT_DIR (config/forge.e
 # shellcheck disable=SC1091
 source "${_SCRIPT_DIR}/lib/log.sh"
 
-ROOTFS_MIB=1024         # ext4 rootfs image size (Phase 2a Qt6 rootfs ~451M; eMMC partition must be ≥ this)
+ROOTFS_MIB="${ROOTFS_MIB:-1024}"  # ext4 rootfs image size; board env may override (Ubuntu GNOME needs ~8 GiB; buildroot busybox ~1 GiB)
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --out)        OUT_DIR="$2"; shift 2;;
@@ -28,6 +28,20 @@ while [[ $# -gt 0 ]]; do
     *) die "unknown arg: $1";;
   esac
 done
+
+# stage-rootfs.sh records archive ownership in this fakeroot database.  Reload
+# it so mke2fs -d sees root-owned system files rather than the invoking host
+# user's UID/GID.  This remains fully sudo-free and does not mount the image.
+ROOTFS_FAKEROOT_STATE="${OUT_DIR}/.rootfs.fakeroot"
+if [[ "$ROOTFS_PROFILE" == "ubuntu" && "${RK_FORGE_ROOTFS_FAKEROOT:-0}" != 1 ]]; then
+  command -v fakeroot >/dev/null || die "missing host tool: fakeroot (needed to preserve Ubuntu rootfs ownership)"
+  [[ -s "$ROOTFS_FAKEROOT_STATE" ]] || die "missing fakeroot state: $ROOTFS_FAKEROOT_STATE (rerun stage-rootfs)"
+  log_info "packing Ubuntu ext4 under saved fakeroot ownership metadata"
+  export FAKEROOTDONTTRYCHOWN=1
+  exec fakeroot -i "$ROOTFS_FAKEROOT_STATE" -s "$ROOTFS_FAKEROOT_STATE" -- \
+    env RK_FORGE_ROOTFS_FAKEROOT=1 ROOTFS_PROFILE="$ROOTFS_PROFILE" \
+    bash "$0" --out "$OUT_DIR" --rootfs-mib "$ROOTFS_MIB"
+fi
 
 need_tool() { command -v "$1" >/dev/null || die "missing host tool: $1 (apt: e2fsprogs)"; }
 need_tool mke2fs
@@ -43,16 +57,16 @@ ROOTFS_EXT4="${OUT_DIR}/rootfs.ext4"
 # filesystem — so u-boot bootflow can't load boot.img as a file. bootflow's SCRIPT
 # bootmeth instead finds boot.scr on this ext4 rootfs partition and runs it; the
 # script does a raw `mmc read` of the boot partition + bootm. Source:
-# board/rk3568-atk/fit/boot-emmc.cmd. Placed at BOTH /boot/boot.scr (BLS convention)
+# ${BRINGUP}/fit/boot-emmc.cmd (per-board). Placed at BOTH /boot/boot.scr (BLS convention)
 # and /boot.scr (bootmeth SCRIPT_FNAME2) for bootmeth compatibility.
-BOOT_CMD="${_PROJECT_ROOT}/board/rk3568-atk/fit/boot-emmc.cmd"
+BOOT_CMD="${BRINGUP}/fit/boot-emmc.cmd"
 if [[ -f "$BOOT_CMD" ]]; then
   MKIMAGE="$(command -v mkimage || true)"
   [[ -x "$MKIMAGE" ]] || MKIMAGE="${_PROJECT_ROOT}/third_party/buildroot/output/host/bin/mkimage"
-  [[ -x "$MKIMAGE" ]] || MKIMAGE="${_PROJECT_ROOT}/third_party/src/rk3568-atk/uboot/tools/mkimage"
+  [[ -x "$MKIMAGE" ]] || MKIMAGE="${UBOOT_TREE}/tools/mkimage"
   [[ -x "$MKIMAGE" ]] || die "mkimage not found (u-boot mkimage needed to build boot.scr; run build-uboot or install u-boot-tools)"
   mkdir -p "$ROOT/boot"
-  "$MKIMAGE" -A arm64 -O linux -T script -C none -n "rk3568-atk eMMC boot" \
+  "$MKIMAGE" -A arm64 -O linux -T script -C none -n "${FORGE_BOARD} eMMC boot" \
     -d "$BOOT_CMD" "$ROOT/boot/boot.scr" || die "mkimage boot.scr failed"
   cp "$ROOT/boot/boot.scr" "$ROOT/boot.scr"   # partition-root copy (SCRIPT_FNAME2)
   log_info "boot.scr → rootfs /boot/boot.scr + /boot.scr (bootflow entry; boot part is raw FIT)"

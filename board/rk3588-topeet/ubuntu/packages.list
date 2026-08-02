@@ -1,0 +1,44 @@
+# board/rk3588-topeet/ubuntu/packages.list — apt packages for the Ubuntu 26.04 rootfs.
+# One package per line; '#' = comment, blank lines OK. Installed by build-ubuntu-rootfs.sh
+# inside the qemu-user-static chroot. ubuntu-base already provides dpkg/apt/systemd/glibc;
+# this list adds what an RK3588 dev board needs to boot to a useful shell + bring up the
+# MVP "全要" peripherals (GPU/WiFi/NPU userspace).
+
+# --- init / userspace basics (mostly affirmed; ubuntu-base has systemd) ---
+systemd
+systemd-sysv
+init
+dbus
+udev
+kmod
+
+# --- networking ---
+netplan.io
+iproute2
+iputils-ping
+openssh-server
+openssh-client
+wpasupplicant
+
+# --- WiFi/BT firmware: AP6xxx = Broadcom brcmfmac; linux-firmware carries the blobs ---
+linux-firmware
+
+# --- GPU: Mali-G610 → Panthor. mesa 24.x+ ships the Panthor Gallium driver; libgl1-mesa-dri
+#     pulls in the GL/DRI stack. Verify mesa version supports Panthor (TODO Phase 6). ---
+mesa-utils
+libgl1-mesa-dri
+
+# --- Desktop: Ubuntu GNOME (user pick). ubuntu-desktop meta pulls gdm3 + gnome-shell +
+#     mutter + wayland + xorg + the full desktop stack. rootfs staged ~3-4 GiB; the eMMC
+#     rootfs partition is enlarged to 8 GiB (parameter-emmc-topeet.txt) to fit. ---
+ubuntu-desktop
+
+# --- dev tools ---
+vim-tiny
+less
+file
+ca-certificates
+curl
+wget
+htop
+i2c-tools
