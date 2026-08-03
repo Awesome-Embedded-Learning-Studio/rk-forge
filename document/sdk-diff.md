@@ -4,6 +4,8 @@
 > 与我们主线移植(linux 7.1 + U-Boot 2026.07-rc4)的差距。**不美化、不隐藏**:说清 BSP 有什么、
 > 主线有没有、差什么、还能不能 boot。本文随 bringup 推进持续更新。
 >
+> 本篇为 RK3506B 版；RK3568 见 [sdk-diff-rk3568.md](sdk-diff-rk3568.md)，RK3588 见 [sdk-diff-rk3588.md](sdk-diff-rk3588.md)。
+>
 > **状态(活文档)**:主线 7.1 + 主线 U-Boot 从 NAND/SD 启动到交互 shell,UBIFS rootfs 跨冷重启
 > RW 持久;外设(Ethernet 双口 / SPI / MMC-SD / USB / WiFi RTL8733BU / I2C / UART2 / Audio 数字链路)
 > 全部点亮、板上验证;rkbin 已切公开仓 submodule、toolchain 已切 ArmGNU 15.2、vendor-sdk 从 build 链

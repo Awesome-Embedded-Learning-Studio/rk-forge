@@ -27,9 +27,9 @@ const layers = [
   },
   {
     icon: '🔧',
-    label: 'RK3506 硬件',
-    sublabel: 'Hardware · AES 板',
-    items: ['ARM Cortex-A7 ×3 + M0', '512MB DDR3', 'SPI-NAND 512MB', '双 RJ45', 'WiFi RTL8733BU']
+    label: 'Rockchip 硬件',
+    sublabel: 'Hardware · 三块板',
+    items: ['RK3506B · Cortex-A7×3 armhf', 'RK3568 · Cortex-A55×4 aarch64', 'RK3588 · A76+A55 aarch64']
   }
 ]
 </script>

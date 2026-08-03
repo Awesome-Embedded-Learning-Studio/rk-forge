@@ -3,7 +3,7 @@ import { defineProject } from './site/.vitepress/config/schema'
 export default defineProject({
   name: 'rk-forge',
   title: { 'zh-CN': 'RK-Forge 的教程文档' },
-  description: { 'zh-CN': 'RK-Forge，专注于 Rockchip RK3506 主线优先的嵌入式 Linux 教程文档网站' },
+  description: { 'zh-CN': 'RK-Forge，面向 Rockchip RK3506B / RK3568 / RK3588 的主线优先嵌入式 Linux 教程文档网站' },
   base: '/rk-forge/',
   copyright: 'Copyright © 2026 Charliechen - 保留所有权利',
 
@@ -57,6 +57,6 @@ export default defineProject({
   favicon: '/rk-forge/Awesome-Embedded.ico',
 
   homeBanner: {
-    'zh-CN': '🚀 新手必读：不知道从哪里开始？请先查看 <a href="/rk-forge/tutorial/boot/">引导启动路线图</a>，了解 RK3506 主线启动的完整学习路径。',
+    'zh-CN': '🚀 新手必读：不知道从哪里开始？请先查看 <a href="/rk-forge/planning/">三板教学路线</a>，了解 RK3506B / RK3568 / RK3588 的完整学习路径。',
   },
 })

@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "RK-Forge"
-  text: "RK3506 主线优先开发工作空间"
-  tagline: 面向 Rockchip RK3506，从工具链到 rootfs、外设、SD 启动的完整主线学习路径——别人卖成品镜像，我们卖菜谱 + 灶 + 带你做饭的书
+  text: "Rockchip 三板主线开发工作空间"
+  tagline: 面向 Rockchip RK3506B / RK3568 / RK3588，从工具链到 rootfs、外设、显示/GPU 的完整主线学习路径——别人卖成品镜像，我们卖菜谱 + 灶 + 带你做饭的书
   image:
     src: /Awesome-Embedded.png
     alt: RK-Forge Logo
@@ -22,7 +22,7 @@ hero:
 features:
   - icon: 🚀
     title: 主线优先
-    details: 主线 Linux 7.1 + U-Boot 2026.07-rc4，紧跟上游；RK-SDK 整个坍缩成 rkbin + 一块板级设备树
+    details: 主线 Linux 7.1 + U-Boot 2026.07-rc4，紧跟上游；每块板都坍缩成 rkbin + 一块板级设备树
     link: /tutorial/boot/
   - icon: 🧩
     title: 有序补丁库
@@ -34,7 +34,7 @@ features:
     link: /sdk-diff
   - icon: 📖
     title: 0→1 教程
-    details: 从空机器到 RK3506 主线启动到 UART 登录的可复现路径，每章配真实板上抓取，绝不合成
+    details: 从空机器到 RK3506B 主线启动到 UART 登录的可复现路径，每章配真实板上抓取，绝不合成；RK3568/RK3588 教程建设中
     link: /tutorial/
   - icon: 🛠️
     title: forge 编排器
