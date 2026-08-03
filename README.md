@@ -2,14 +2,14 @@
 
 # rk-forge
 
-**面向 Rockchip RK3506 的主线优先（mainline-first）嵌入式 Linux 开发工作空间**
+**面向 Rockchip RK3506B / RK3568 / RK3588 的主线优先（mainline-first）嵌入式 Linux 开发工作空间**
 有序补丁库 · 诚实差距报告 · forge 构建编排器 · 0→1 教程
 
 [![License](https://img.shields.io/badge/License-MIT-orange?style=flat-square)](LICENSE)
 [![Kernel](https://img.shields.io/badge/Kernel-mainline%207.1-blue?style=flat-square)](#-板上已验证)
 [![U-Boot](https://img.shields.io/badge/U--Boot-mainline%202026.07-blue?style=flat-square)](#-板上已验证)
 [![Mainline](https://img.shields.io/badge/Mainline-first%20%E2%9C%93-brightgreen?style=flat-square)](#-这是什么)
-[![Board](https://img.shields.io/badge/board-RK3506B%20verified-brightgreen?style=flat-square)](#-板上已验证)
+[![Boards](https://img.shields.io/badge/boards-RK3506B%20%C2%B7%20RK3568%20%C2%B7%20RK3588-brightgreen?style=flat-square)](#-支持的开发板)
 [![WSL2](https://img.shields.io/badge/WSL2-tested-brightgreen?style=flat-square)](QUICK_START.md)
 [![Docs](https://img.shields.io/badge/docs-online%20%E2%86%92-blue?style=flat-square)](https://awesome-embedded-learning-studio.github.io/rk-forge/)
 [![Deploy](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/actions/workflows/deploy.yml/badge.svg)](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/actions/workflows/deploy.yml)
@@ -22,7 +22,7 @@
 
 ## 这是什么
 
-rk-forge 服务**没人服务的 RK3506**：把最新主线 Linux 跑起来，并**诚实报告还差什么**。
+rk-forge 把最新主线 Linux 跑到三块 Rockchip 板上——RK3506B、RK3568、RK3588——并**诚实报告每块板还差什么**。三块板不是平行三门课，是一条阶梯：RK3506B 是起点、也是教程最完整的一块；RK3568/RK3588 把同一套主线 bring-up 方法延伸到 AArch64、异构和 GPU/显示/媒体。
 
 它**不是**又一个 Armbian / Yocto / 厂商 BSP 镜像，而是四件事：
 
@@ -31,7 +31,7 @@ rk-forge 服务**没人服务的 RK3506**：把最新主线 Linux 跑起来，�
 3. **forge 构建编排器** —— 一条 `forge.sh all` 把 `setup → build → pack → assemble` 收口，DAG 依赖 + 内容哈希增量跳过，取代 RK-SDK `build.sh` 每次全量重编的体验。
 4. **0→1 教程** —— 从空机器到 RK3506 主线启动到 UART 登录的完整可复现路径，每章配真实板上 UART 抓取，绝不合成。
 
-**核心命题（已核实并板上验证）**：RK3506 的 SoC 地基——pinctrl + clock（自 Linux 6.19 起）、U-Boot SoC 支持（经 Jonas Karlman v2 系列已合并）——**全在主线**。所以对"主线启动"这件事，RK-SDK 整个坍缩成两样：① `rkbin`（DDR 初始化闭源 blob，绕不开，见 [诚实 blob 政策](#-诚实-blob-政策)）；② **一块板级设备树**（上游没有，rk-forge 来写）。rk-forge 的主要贡献就是这块 `.dts` + 一条诚实的路径。
+**核心命题（已核实并板上验证）**：这三块 Rockchip SoC 的地基——pinctrl + clock、U-Boot SoC 支持、乃至 RK3588 的 GPU（Panthor）/ NPU（Rocket）驱动——**都在主线**。所以对"主线启动"这件事，每块板都坍缩成两样：① `rkbin`（DDR 初始化闭源 blob，绕不开，见 [诚实 blob 政策](#-诚实-blob-政策)）；② **一块板级设备树**（上游没有或不够，rk-forge 来写/补）。rk-forge 的主要贡献就是这块 `.dts` + 一条诚实的路径——其中 RK3506B 的主线空白最大，是这套方法立起来的地方。
 
 > 别人卖成品饭；rk-forge 卖菜谱 + 灶 + 带你做饭的书，专做没人做的那道菜。
 
@@ -39,9 +39,9 @@ rk-forge 服务**没人服务的 RK3506**：把最新主线 Linux 跑起来，�
 
 ---
 
-## ✅ 板上已验证
+## ✅ 板上已验证（aes / RK3506B）
 
-不是 PPT，是真板子（AES-RK3506B，RK3506B / Cortex-A7×3）上跑通的能力。完整取证日志见 [document/logs/](document/logs/)。
+aes（RK3506B）是三块板里教程最完整、验证最透的一块，下表是它板上跑通的能力。RK3568/RK3588 的真机进度见 [支持的开发板](#-支持的开发板)，逐项证据同样落在 [document/logs/](document/logs/) 与 [document/notes/](document/notes/)。
 
 | 能力 | 状态 | 说明 |
 |------|------|------|
@@ -68,6 +68,8 @@ rk-forge 服务**没人服务的 RK3506**：把最新主线 Linux 跑起来，�
 source scripts/env-setup.sh    # 导出 ARCH=arm / CROSS_COMPILE=arm-none-linux-gnueabihf-
 bash scripts/forge.sh all      # setup → build → pack → assemble → board/aes/out/update.img
 ```
+
+> 默认板是 `aes`（RK3506B）。构建 RK3568 / RK3588 加 `--board`：`bash scripts/forge.sh all --board=rk3568-atk`（或 `rk3588-topeet`）——`forge` 会按板自动选工具链（armhf / aarch64）、存储路径（NAND / eMMC）和 rootfs profile。
 
 `forge` 是单一入口编排器，常用子命令：
 
@@ -114,10 +116,10 @@ scripts/
   fit-pack.py · rkfw-pack.py   纯 Python 打包器，取代 vendor mkimage / afptool / rkImageMaker
   build-{linux,uboot,rootfs,openwrt}.sh · pack-{loader,fit,sd,ubifs}.sh · assemble-update.sh
   doctor.sh · env-setup.sh · fetch-deps.sh · flash-sd.sh
-patches/{linux,uboot,openwrt}/series   有序补丁序列（[mainline]/[uboot] 前缀；openwrt 是 Device/aes + config overlay）
-board/                         aes/(构建工作区:fit/rootfs/buildroot-external/openwrt) · rk3506-evb/(板 config)
-third_party/                   rkbin(pinned submodule) · buildroot · src/(linux·uboot 源树,+openwrt 可选 profile,fetch-deps 管理)
-reference/                     vendor-sdk(参照/萃取池,非构建依赖)
+patches/<board>/{linux,uboot}/series   按板隔离的有序补丁序列（[mainline]/[uboot] 前缀；aes 另有 openwrt = Device/aes + config overlay）
+board/                         aes/ · rk3568-atk/ · rk3588-topeet/（各板构建工作区 + 配置）· rk3506-evb/（aes 的 kernel config 片段）
+third_party/                   rkbin(pinned submodule) · buildroot · src/<board>/(linux·uboot 源树，fetch-deps 按 pins/ 管理，+openwrt 可选 profile)
+reference/                     各板 vendor SDK（参照/萃取池，非构建依赖：vendor-sdk / rk3568 / rk3588 + Android 对照轨）
 config/                        forge.env · toolchain.conf（声明式配置）
 document/                      tutorial · pitfalls · notes · logs · sdk-diff
 ```
@@ -126,11 +128,13 @@ document/                      tutorial · pitfalls · notes · logs · sdk-diff
 
 ## 🎯 支持的开发板
 
-| 板卡 | 芯片 | 状态 |
-|------|------|------|
-| AES-RK3506B | Rockchip RK3506B（Cortex-A7×3，32-bit armhf） | ✅ 完整支持 |
+| 板卡 | 芯片 | 真机状态 | rootfs | 说明 |
+|------|------|---------|--------|------|
+| AES-RK3506B | RK3506B（Cortex-A7×3，armhf） | ✅ 完整支持 | buildroot · openwrt | 教程最完整；SPI-NAND(UBIFS)+SD 双启动；全外设板验 |
+| ATK-DLRK3568 | RK3568（Cortex-A55×4，aarch64） | 🟡 真机 boot | buildroot（Phase 2a 全栈） | 多外设板验（双 GMAC / LCD ILI9881C / Panfrost G52 / CAN / RTC）；板级 DT 整理进补丁库中 |
+| iTOP-RK3588 | RK3588（A76×4+A55×4，aarch64） | 🟡 真机 boot → GNOME 桌面 | ubuntu（26.04） | Panthor G610 + LCD(DSI→LVDS 1024×600) 出图；VOP2 稳定性验证进行中 |
 
-其他 RK3506 板卡欢迎提 PR 补板级设备树。
+> 三块板共享同一条 `forge` 编排器，用 `--board=<id>` 选板（`aes` / `rk3568-atk` / `rk3588-topeet`，默认 `aes`）。NPU（RK3568 需 vendor rknpu2、RK3588 走主线 Rocket）与 VPU 编解码仍是 roadmap，不在上表。其他 Rockchip 板卡欢迎提 PR 补板级设备树。
 
 ---
 
@@ -159,7 +163,7 @@ MIT，详见 [LICENSE](LICENSE)。源自 GPL SDK 的补丁保留 GPL-2.0 并在�
 
 <div align="center">
 
-**做 RK 的 imx-forge 兄弟项目，专啃没人做的 RK3506，把最新 Linux 跑起来并诚实报告差距。**
+**做 RK 的 imx-forge 兄弟项目——把最新主线 Linux 跑到 RK3506B / RK3568 / RK3588 上，并诚实报告每块板的差距。**
 
 [⭐ Star](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge) · [🍴 Fork](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/fork) · [📢 Issues](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/issues)
 

@@ -4,7 +4,7 @@ title: "RK3588 教学路线：异构计算、媒体与产品工程"
 
 # RK3588 教学路线：异构计算、媒体与产品工程
 
-> 状态：**planned**。当前 rk-forge 尚未建立经过真板验证的 RK3588 target。本文件只定义公共必修、专业分支和项目候选，不表示 RK3588 已受支持。具体开发板、PCB 版本、摄像头、显示、存储、SDK 和产品方向确认前，不写具体设备树、镜像布局或接口结论。
+> 状态：**partial**。RK3588（讯饶 iTOP-RK3588 EVB，eMMC）已真机 boot 到 Ubuntu 26.04 GNOME 桌面：主线 kernel 7.1 + 主线 U-Boot 2026.07 + 主线 SPL（规避 vendor SPL/BL31 基址错配 bootloop），Panthor Mali-G610 GPU（固件内嵌）、LCD DSI→LVDS 1024×600（TC358775）出图、GT911 触摸轴映射已修、eMMC HS400、PMIC rk806 均板上验证。课程化仍在进行；LCD 的 VOP2 hard-lock 修复当前为候选镜像，连续冷/热启动稳定性验证未闭环，故不写成稳定支持；WiFi/BT、NPU（主线 Rocket）、VPU、摄像头仍属 roadmap。
 
 ## 1. 路线承诺
 
@@ -33,7 +33,7 @@ RK3588 路线不以“运行厂商 demo”为终点，也不要求所有学习�
 | 项目 | 本路线定义 |
 |---|---|
 | 目标 SoC | Rockchip RK3588，ARMv8-A / AArch64 |
-| 具体开发板 | 待维护者确认 |
+| 具体开发板 | 讯饶 iTOP-RK3588 EVB（eMMC） |
 | CPU | Cortex-A76/A55 big.LITTLE，具体拓扑以真板和官方资料确认 |
 | 主角色 | 高性能 Linux、媒体、AI、Android 和产品化 |
 | 公共重点 | ATF/OP-TEE、内存、SMMU、dma-buf、性能、功耗、DRM/V4L2/MPP/RGA |
@@ -91,7 +91,7 @@ G：GPU 为独立高级选修，可与主方向组合，但不是结课必需。
 
 ### 第 1 章：RK3588 异构 SoC 全景
 
-RK3588 是一颗"很多 IP 挤在一块硅上"的异构 SoC——CPU 有 big.LITTLE 两簇，外加 GPU、NPU、VPU、RGA、ISP 五个加速器。这一章先建立整张图的直觉：每个 IP 干什么、它们怎么共享内存、为什么"峰值跑分"在这颗芯片上特别骗人。具体核数、拓扑、加速器版本以真板和官方资料为准——RK3588 当前还是 `planned`，rk-forge 没建 target。
+RK3588 是一颗“很多 IP 挤在一块硅上”的异构 SoC——CPU 有 big.LITTLE 两簇，外加 GPU、NPU、VPU、RGA、ISP 五个加速器。这一章先建立整张图的直觉：每个 IP 干什么、它们怎么共享内存、为什么“峰值跑分”在这颗芯片上特别骗人。rk-forge 已在 iTOP-RK3588 上建起真板 target（主线 boot 到 GNOME 桌面 + GPU/LCD/触摸板验），核数、拓扑、加速器版本以真板和官方资料为准，具体 pinout 和镜像布局见 [board/rk3588-topeet/](../../board/rk3588-topeet/)。
 
 **CPU 是 big.LITTLE，A76 加 A55，这是异构的起点。** 大核（A76）冲峰值 IPC、小核（A55）冲能效，同一份任务放在不同核上，功耗和延迟能差出几个量级。这就是"异构"的核心——不是"核多"，是"核不一样"。`capacity`、`freq-domain`、`cluster` 这些拓扑事实能从 `/sys/devices/system/cpu/` 读出来，要和调度器口径对齐。**同一份 AArch64 ISA、不同微架构、不同私有 cache 和共享 LLCC**——这意味着"代码能跑"和"代码能跑得稳"是两件事：大小核之间迁移时的 cache 抖动，能让延迟尖峰翻几倍（H2 会展开）。
 
@@ -849,7 +849,7 @@ CFDesktop 可以作为智能屏或 AI 盒的产品界面，但不替代底层媒
 
 ## 12. 硬件和方向确认门
 
-以下事实确认前，相应内容保持 `planned` 或 `blocked`：
+以下事项中，开发板（iTOP-RK3588）、DRAM、eMMC、调试串口、以太网、显示（DSI→LVDS）、GPU（Panthor）和触摸已在真板确认；其余仍待确认的，相应内容保持 `planned` 或 `blocked`：
 
 - 具体 RK3588 开发板和 PCB 版本；
 - DRAM、eMMC、SD、NVMe 等存储配置；
@@ -864,8 +864,8 @@ CFDesktop 可以作为智能屏或 AI 盒的产品界面，但不替代底层媒
 
 ## 13. 明确不讲或推迟
 
-- 不把 RK3588 写成已经支持；
-- 不在开发板和配套硬件确认前写 pinout、DTS 和镜像布局；
+- 不把 RK3588 写成稳定/完整支持——当前是 `partial`（真机 boot 到 GNOME 桌面 + GPU/LCD/触摸板验），但 VOP2 hard-lock 修复仍是候选镜像、WiFi/BT、NPU/VPU、摄像头未接，连续冷/热启动稳定性验证未完；
+- 开发板和主要配套硬件已确认（iTOP-RK3588 + LCD/触摸），DTS/镜像布局见 [board/rk3588-topeet/](../../board/rk3588-topeet/)，但摄像头、Android 等未确认方向不写结论；
 - 不把运行厂商 demo 计为课程完成；
 - 不要求同时推进 Linux、Android、GPU、NPU、媒体和摄像头；
 - 不默认把所有 RK3588 硬件能力纳入课程；

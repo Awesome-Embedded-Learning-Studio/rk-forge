@@ -11,12 +11,12 @@ title: 三板教学路线
 | 板子 | SoC / 架构 | 你会学到 | ROADMAP | 进展 |
 |---|---|---|---|---|
 | **RK3506B** | RK3506B / ARMv7-A · Cortex-A7×3（32-bit armhf） | 主线 bring-up、SPI-NAND/UBIFS 可靠性、SD 启动、Buildroot/OpenWrt、工业接口 | [RK3506B 路线](RK3506B_ROADMAP) | 🟢 `partial` — 真板已验证，教程已在 [tutorial/](../tutorial/) 兑现 |
-| **RK3568** | RK3568 / AArch64 · Cortex-A55×4 | Linux 设备模型、IRQ/clock/regulator、I²C/SPI/UART、DMA、USB/PCIe、网络、DRM | [RK3568 路线](RK3568_ROADMAP) | 🟡 `planned` — 课程已定义，待建真板 target |
-| **RK3588** | RK3588 / AArch64 · A76+A55 big.LITTLE | 异构、内存/SMMU/dma-buf、DRM/V4L2/MPP/RGA、AI(NPU)/媒体/Android/GPU | [RK3588 路线](RK3588_ROADMAP) | 🟡 `planned` — 公共必修 + 三方向，待建真板 target |
+| **RK3568** | RK3568 / AArch64 · Cortex-A55×4 | Linux 设备模型、IRQ/clock/regulator、I²C/SPI/UART、DMA、USB/PCIe、网络、DRM | [RK3568 路线](RK3568_ROADMAP) | 🟡 `partial` — ATK 真机 boot 已验证（多外设板验），课程化待建 |
+| **RK3588** | RK3588 / AArch64 · A76+A55 big.LITTLE | 异构、内存/SMMU/dma-buf、DRM/V4L2/MPP/RGA、AI(NPU)/媒体/Android/GPU | [RK3588 路线](RK3588_ROADMAP) | 🟡 `partial` — iTOP 真机 boot 到 GNOME 桌面已验证，课程化待建 |
 
 ## 从哪块板开始
 
-- **嵌入式新手，或想吃透主线 bring-up** — 从 [RK3506B](RK3506B_ROADMAP) 进。它是目前唯一已在板上跑通的板：主线 U-Boot 2026.07 + Linux 7.1 启动链、SPI-NAND 可靠性、Buildroot 与 OpenWrt 都有完整的 [tutorial/](../tutorial/) 教程和 [真板日志](../logs/) 取证。学完你能独立维护一块 ARM32 板的板级支持。
+- **嵌入式新手，或想吃透主线 bring-up** — 从 [RK3506B](RK3506B_ROADMAP) 进。它是三块板里教程最完整、验证最透的一块：主线 U-Boot 2026.07 + Linux 7.1 启动链、SPI-NAND 可靠性、Buildroot 与 OpenWrt 都有完整的 [tutorial/](../tutorial/) 教程和 [真板日志](../logs/) 取证。学完你能独立维护一块 ARM32 板的板级支持。
 - **做过 Linux BSP，想系统学驱动框架** — 从 [RK3568](RK3568_ROADMAP) 进。它假设你懂交叉编译和基础启动链，把精力集中在 AArch64 下的 platform driver、设备树绑定、中断与 DMA、USB/PCIe、DRM 这套标准驱动框架上。
 - **做异构 / 媒体 / AI / Android 产品** — 从 [RK3588](RK3588_ROADMAP) 进。它不收零基础，要求先过它 §3 的六条自测（EL1/EL3、地址类型、设备树、probe 失败分析、perf、AArch64 产物隔离），然后从公共媒体地基进入 NPU / 媒体 / Android 三个方向之一。
 

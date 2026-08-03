@@ -4,7 +4,7 @@ title: "RK3568 教学路线：AArch64 Linux 驱动与接口工程"
 
 # RK3568 教学路线：AArch64 Linux 驱动与接口工程
 
-> 状态：**planned**。当前 rk-forge 尚未建立经过真板验证的 RK3568 target。本文件只定义教学目标、课程顺序、硬件依赖和项目候选，不表示 RK3568 已受支持。具体开发板、PCB 版本、存储、接口、设备树、BSP/SDK 版本确认前，不规划对应 pinout、镜像布局或烧录细节。
+> 状态：**partial**。RK3568（正点原子 ATK-DLRK3568 EVB1 DDR4 v1.0）已真机 boot 到 login：主线 kernel 7.1 + 主线 U-Boot + binman 自产 loader（零 vendor 工具），双 GMAC、eMMC、LCD ILI9881C、Panfrost Mali-G52、CAN、RTC、Goodix 触摸多外设板验；rootfs 走 buildroot Phase 2a 全功能栈（Qt6/Mesa/GStreamer/Weston）。课程化（章节、实践、证据挂接）仍在进行，板级 DT 正整理进有序补丁库（patches/rk3568-atk/），WiFi 驱动、VPU/NPU、PCIe/SATA 仍属 roadmap。
 
 ## 1. 路线承诺
 
@@ -20,7 +20,7 @@ RK3568 路线不重复 RK3506B 的 NAND bring-up，也不把 RK3588 的高级能
 | 项目 | 本路线定义 |
 |---|---|
 | 目标 SoC | Rockchip RK3568，ARMv8-A / AArch64 |
-| 具体开发板 | 待维护者确认 |
+| 具体开发板 | 正点原子 ATK-DLRK3568 EVB1 DDR4 v1.0 |
 | 主角色 | 64 位通用 Linux 和驱动课程主平台 |
 | 架构重点 | LP64、EL0–EL3、ATF、PSCI、64 位地址与 ABI |
 | 驱动重点 | 设备模型、DT binding、IRQ、clock/reset/regulator、I²C/SPI、DMA、USB、PCIe、网络、基础 DRM |
@@ -84,7 +84,7 @@ RK3568 与 RK3588 同为 AArch64，不代表二者能够共用 U-Boot、ATF、�
 
 ### 第 1 章：RK3568 硬件和启动全景
 
-RK3568 是社区主流支持的 AArch64 SoC——Collabora 等社区早就把它伺候得明白，主线支持成熟。这一章先建整张图的直觉：SoC 拓扑、启动链、BSP 与 mainline 的版本边界。具体板卡型号、PCB 版本、存储配置待维护者确认前，不写 pinout 和镜像布局——RK3568 当前是 `planned`，rk-forge 还没建 target。
+RK3568 是社区主流支持的 AArch64 SoC——Collabora 等社区早就把它伺候得明白，主线支持成熟。这一章先建整张图的直觉：SoC 拓扑、启动链、BSP 与 mainline 的版本边界。rk-forge 已在 ATK-DLRK3568 上建起真板 target（主线 boot + 多外设板验），板卡型号、PCB、存储配置都已确认，具体 pinout 和镜像布局见 [board/rk3568-atk/](../../board/rk3568-atk/)。
 
 **SoC 与 CPU 拓扑。** RK3568 是四核 Cortex-A55（ARMv8.2-A、AArch64），cluster 共享 L2 cache；A55 是能效核，四核 SMP 跑通用 Linux 驱动主课绰绰有余。**为什么 RK3568 适合做"通用 Linux 驱动主课"**：接口齐全（I²C/SPI/UART/USB/PCIe/GMAC/DRM）、社区主线支持成熟、外设能覆盖绝大多数子系统——你在它上学到的驱动框架知识，迁移到任何 AArch64 SoC 都通用。
 
@@ -501,7 +501,7 @@ PCIe 是高速串行总线，接 NVMe SSD、网卡、GPU 等。这一章讲 PCIe
 
 ## 8. 硬件确认门
 
-以下事实确认前，相应章节只能保持 `planned`：
+以下事项中，开发板型号（ATK-DLRK3568 EVB1 DDR4 v1.0）、DRAM、eMMC、调试串口、以太网、显示（LCD ILI9881C）和触摸已在真板确认；其余仍待确认的，相应章节保持 `planned`：
 
 - 具体开发板型号和 PCB 版本；
 - DRAM 容量；
@@ -514,8 +514,8 @@ PCIe 是高速串行总线，接 NVMe SSD、网卡、GPU 等。这一章讲 PCIe
 
 ## 9. 明确不讲或推迟
 
-- 不把 RK3568 写成已经支持；
-- 不在板卡型号确认前写 pinout、分区和镜像布局；
+- 不把 RK3568 写成稳定/完整支持——当前是 `partial`（真机 boot + 多外设板验），但板级 DT 仍在整理进补丁库、WiFi 驱动未移植、VPU/NPU 未接，连续稳定性验证未完；
+- 板卡型号已确认（ATK-DLRK3568），pinout/分区/镜像布局见 [board/rk3568-atk/](../../board/rk3568-atk/)，但未板上验证的接口不写结论；
 - 不复制 RK3506B 的 SPI-NAND saga；
 - 不从头复制完整 Linux/C 基础课；
 - 不把字符设备 demo 当成驱动课程终点；

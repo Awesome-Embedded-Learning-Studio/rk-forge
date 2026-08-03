@@ -2,14 +2,14 @@
 
 # rk-forge
 
-**A mainline-first embedded Linux workspace for Rockchip RK3506**
+**A mainline-first embedded Linux workspace for Rockchip RK3506B / RK3568 / RK3588**
 Ordered patch library · Honest gap report · forge build orchestrator · 0→1 tutorial
 
 [![License](https://img.shields.io/badge/License-MIT-orange?style=flat-square)](LICENSE)
 [![Kernel](https://img.shields.io/badge/Kernel-mainline%207.1-blue?style=flat-square)](#-verified-on-hardware)
 [![U-Boot](https://img.shields.io/badge/U--Boot-mainline%202026.07-blue?style=flat-square)](#-verified-on-hardware)
 [![Mainline](https://img.shields.io/badge/Mainline-first%20%E2%9C%93-brightgreen?style=flat-square)](#-what-this-is)
-[![Board](https://img.shields.io/badge/board-RK3506B%20verified-brightgreen?style=flat-square)](#-verified-on-hardware)
+[![Boards](https://img.shields.io/badge/boards-RK3506B%20%C2%B7%20RK3568%20%C2%B7%20RK3588-brightgreen?style=flat-square)](#-supported-boards)
 [![WSL2](https://img.shields.io/badge/WSL2-tested-brightgreen?style=flat-square)](QUICK_START.md)
 [![Docs](https://img.shields.io/badge/docs-online%20%E2%86%92-blue?style=flat-square)](https://awesome-embedded-learning-studio.github.io/rk-forge/)
 [![Deploy](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/actions/workflows/deploy.yml/badge.svg)](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/actions/workflows/deploy.yml)
@@ -22,7 +22,7 @@ English · [中文](README.md)
 
 ## What this is
 
-rk-forge serves the **underserved RK3506**: bring up the latest mainline Linux, and **honestly report what's still missing**.
+rk-forge brings the latest mainline Linux to **three Rockchip boards — RK3506B, RK3568, RK3588** — and **honestly reports what's still missing on each**. They form a ladder, not three parallel tracks: RK3506B is the starting point and the most completely documented board; RK3568/RK3588 extend the same mainline bring-up method to AArch64, big.LITTLE, and GPU/display/media.
 
 It is **not** yet another Armbian / Yocto / vendor BSP image. It does four things:
 
@@ -31,7 +31,7 @@ It is **not** yet another Armbian / Yocto / vendor BSP image. It does four thing
 3. **forge build orchestrator** — one `forge.sh all` runs `setup → build → pack → assemble`, with a DAG of dependencies and content-hash incremental skipping, replacing RK-SDK `build.sh`'s rebuild-everything-every-time experience.
 4. **0→1 tutorial** — a reproducible path from a blank machine to RK3506 mainline booting to a UART login, each chapter backed by real on-board UART captures — never synthesized.
 
-**Core thesis (verified, on hardware):** RK3506's SoC foundation — pinctrl + clock (since Linux 6.19) and U-Boot SoC support (merged via Jonas Karlman's v2 series) — is **entirely in mainline**. So for "mainline boot", the whole RK-SDK collapses into two things: ① `rkbin` (closed DDR-init blob, unavoidable — see [Honest blob policy](#-honest-blob-policy)); ② **a board device tree** (not upstream — rk-forge writes it). rk-forge's main contribution is that `.dts` + an honest path.
+**Core thesis (verified, on hardware):** The foundation of all three Rockchip SoCs — pinctrl + clock, U-Boot SoC support, even RK3588's GPU (Panthor) / NPU (Rocket) drivers — is **entirely in mainline**. So for "mainline boot", each board collapses into two things: ① `rkbin` (closed DDR-init blob, unavoidable — see [Honest blob policy](#-honest-blob-policy)); ② **a board device tree** (not upstream, or not enough — rk-forge writes/supplements it). rk-forge's main contribution is that `.dts` + an honest path — RK3506B had the largest mainline gap, which is where this method was built up.
 
 > Others sell cooked meals; rk-forge sells the recipe + the stove + a book that walks you through cooking — the dish nobody else makes.
 
@@ -39,9 +39,9 @@ It is **not** yet another Armbian / Yocto / vendor BSP image. It does four thing
 
 ---
 
-## ✅ Verified on hardware
+## ✅ Verified on hardware (aes / RK3506B)
 
-Not a slide deck — these are capabilities running on real hardware (AES-RK3506B, RK3506B / Cortex-A7×3). Full evidence logs in [document/logs/](document/logs/).
+aes (RK3506B) is the most completely documented and most thoroughly verified of the three boards; the table below is what's running on it. For RK3568/RK3588 on-hardware progress see [Supported boards](#-supported-boards); per-item evidence likewise lives in [document/logs/](document/logs/) and [document/notes/](document/notes/).
 
 | Capability | Status | Notes |
 |------------|--------|-------|
@@ -68,6 +68,8 @@ The pre-U-Boot stages (DDR / secure) still borrow the `rkbin` blob — a hard re
 source scripts/env-setup.sh    # export ARCH=arm / CROSS_COMPILE=arm-none-linux-gnueabihf-
 bash scripts/forge.sh all      # setup → build → pack → assemble → board/aes/out/update.img
 ```
+
+> The default board is `aes` (RK3506B). To build RK3568 / RK3588 add `--board`: `bash scripts/forge.sh all --board=rk3568-atk` (or `rk3588-topeet`) — `forge` auto-selects the toolchain (armhf / aarch64), storage path (NAND / eMMC) and rootfs profile per board.
 
 `forge` is the single-entry orchestrator. Common subcommands:
 
@@ -114,10 +116,10 @@ scripts/
   fit-pack.py · rkfw-pack.py   pure-Python packers, replacing vendor mkimage / afptool / rkImageMaker
   build-{linux,uboot,rootfs,openwrt}.sh · pack-{loader,fit,sd,ubifs}.sh · assemble-update.sh
   doctor.sh · env-setup.sh · fetch-deps.sh · flash-sd.sh
-patches/{linux,uboot,openwrt}/series   ordered patch series ([mainline]/[uboot] prefix; openwrt is a Device/aes + config overlay)
-board/                         aes/(build workspace: fit/rootfs/buildroot-external/openwrt) · rk3506-evb/(board config)
-third_party/                   rkbin(pinned submodule) · buildroot · src/(linux·uboot trees, +openwrt optional profile, fetch-deps-managed)
-reference/                     vendor-sdk(reference/extraction pool, NOT a build dependency)
+patches/<board>/{linux,uboot}/series   per-board ordered patch series ([mainline]/[uboot] prefix; aes also has openwrt = Device/aes + config overlay)
+board/                         aes/ · rk3568-atk/ · rk3588-topeet/ (per-board build workspace + config) · rk3506-evb/ (aes kernel config fragments)
+third_party/                   rkbin(pinned submodule) · buildroot · src/<board>/(linux·uboot trees, fetch-deps-managed via pins/, +openwrt optional profile)
+reference/                     per-board vendor SDKs (reference/extraction pool, NOT a build dependency: vendor-sdk / rk3568 / rk3588 + Android comparison track)
 config/                        forge.env · toolchain.conf (declarative config)
 document/                      tutorial · pitfalls · notes · logs · sdk-diff
 ```
@@ -126,11 +128,13 @@ document/                      tutorial · pitfalls · notes · logs · sdk-diff
 
 ## 🎯 Supported boards
 
-| Board | SoC | Status |
-|-------|-----|--------|
-| AES-RK3506B | Rockchip RK3506B (Cortex-A7×3, 32-bit armhf) | ✅ fully supported |
+| Board | SoC | On-hardware status | rootfs | Notes |
+|-------|-----|--------------------|--------|-------|
+| AES-RK3506B | RK3506B (Cortex-A7×3, armhf) | ✅ fully supported | buildroot · openwrt | most complete docs; SPI-NAND(UBIFS)+SD dual boot; all peripherals verified |
+| ATK-DLRK3568 | RK3568 (Cortex-A55×4, aarch64) | 🟡 boots on hardware | buildroot (Phase 2a full stack) | multi-peripheral verified (dual GMAC / LCD ILI9881C / Panfrost G52 / CAN / RTC); board DT being folded into the patch library |
+| iTOP-RK3588 | RK3588 (A76×4+A55×4, aarch64) | 🟡 boots → GNOME desktop | ubuntu (26.04) | Panthor G610 + LCD(DSI→LVDS 1024×600) working; VOP2 stability validation in progress |
 
-Board device trees for other RK3506 boards are welcome via PR.
+> All three boards share one `forge` orchestrator; select with `--board=<id>` (`aes` / `rk3568-atk` / `rk3588-topeet`, default `aes`). NPU (RK3568 needs vendor rknpu2, RK3588 uses mainline Rocket) and VPU codecs are still roadmap, not in the table above. Board DTs for other Rockchip boards are welcome via PR.
 
 ---
 
@@ -159,7 +163,7 @@ MIT, see [LICENSE](LICENSE). Patches originating from GPL SDKs retain GPL-2.0 an
 
 <div align="center">
 
-**An imx-forge sibling for the Rockchip world — tackling the underserved RK3506, running the latest Linux and honestly reporting the gaps.**
+**An imx-forge sibling for the Rockchip world — running the latest mainline Linux on RK3506B / RK3568 / RK3588 and honestly reporting each board's gaps.**
 
 [⭐ Star](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge) · [🍴 Fork](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/fork) · [📢 Issues](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/issues)
 
