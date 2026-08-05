@@ -142,6 +142,6 @@ panthor ... Mali-G610 ... renderD128        # GPU（下一章细讲固件）
 rk3588-topeet login:                        # systemd 到 graphical.target
 ```
 
-这一段从 [document/logs/rk3588/](../../logs/rk3588/) 里的真机抓取截的，一个字没合成。bootloop 那一段的完整排除法在 [bootloop-analysis.md](../../logs/rk3588/bootloop-analysis.md)。
+这一段从 document/logs/rk3588/ 里的真机抓取截的，一个字没合成。bootloop 那一段的完整排除法在 [bootloop-analysis.md](../../logs/rk3588/bootloop-analysis.md)。
 
 到这里，RK3588 已经能自己 boot 到 systemd 了。下一章咱们点亮那块 1024×600 的屏——那条路比 boot 难走得多，拖了整整四个镜像才出图。
