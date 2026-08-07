@@ -22,15 +22,23 @@ source "${PROJECT_ROOT}/config/forge.env"
 
 # 2) active board config (board-specific constants). FORGE_BOARD from env or forge.sh
 #    --board pre-scan; default aes for backward compatibility.
+#    PR1 bridge: board config is now config/boards/<id>.yaml, loaded by the forge
+#    Python loader (src/forge/cli.py) and emitted as bash-sourceable env. The
+#    legacy .env stays on disk for rollback until F4; the YAML is the live truth.
 export FORGE_BOARD="${FORGE_BOARD:-aes}"
-_board_env="${PROJECT_ROOT}/config/boards/${FORGE_BOARD}.env"
-if [ ! -r "$_board_env" ]; then
-  echo "env.sh: board config not found: $_board_env (FORGE_BOARD=${FORGE_BOARD})" >&2
-  echo "  available boards: $(ls "${PROJECT_ROOT}/config/boards/"*.env 2>/dev/null | sed 's#.*/##;s/\.env$//' | tr '\n' ' ')" >&2
+_board_yaml="${PROJECT_ROOT}/config/boards/${FORGE_BOARD}.yaml"
+if [ ! -r "$_board_yaml" ]; then
+  echo "env.sh: board config not found: $_board_yaml (FORGE_BOARD=${FORGE_BOARD})" >&2
+  echo "  available boards: $(ls "${PROJECT_ROOT}/config/boards/"*.yaml 2>/dev/null | sed 's#.*/##;s/\.yaml$//' | tr '\n' ' ')" >&2
+  exit 1
+fi
+if ! _board_env_dump="$(python3 "${PROJECT_ROOT}/src/forge/cli.py" config --board "${FORGE_BOARD}" --emit-env 2>/dev/null)"; then
+  echo "env.sh: forge loader failed for board '${FORGE_BOARD}' ($_board_yaml)" >&2
   exit 1
 fi
 # shellcheck disable=SC1091
-source "$_board_env"
+eval "$_board_env_dump"
+unset _board_yaml _board_env_dump
 
 # 3) resolve project-relative paths → absolute exports (the names scripts already use)
 export BRINGUP="${PROJECT_ROOT}/${BRINGUP_DIR}"

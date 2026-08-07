@@ -1,0 +1,18 @@
+# forge.yaml — project-level config (board-agnostic). Loaded before the active
+# board's config/boards/<id>.yaml by the single forge loader.
+#
+# PR1 scope: default board + repo-relative paths only. The shared source pool
+# (buildroot/busybox/wifi_drivers) folds in from pins/ when fetch-deps ports to
+# Python (PR3); until then pins/ remains the fetch source-of-truth. Per-board
+# sources (linux/uboot/openwrt) live in each board.yaml.
+
+project:
+  default_board: aes
+
+paths:
+  src_dir: third_party/src        # per-board patched clones: <src_dir>/<board>/{linux,uboot,openwrt}
+  buildroot_dir: third_party/buildroot   # shared (no patches; board delta = BR2_EXTERNAL)
+  rkbin_dir: third_party/rkbin    # SOLE blob source (pinned submodule)
+  assets_dir: assets
+  out_root: out                   # F4 aggregation target. PR1 still emits board-scoped
+                                  #   OUT_DIR=${BRINGUP_DIR}/out via env.sh; flips to out/<board>/ at F4.

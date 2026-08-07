@@ -10,7 +10,7 @@ title: 三板教学路线
 
 | 板子 | SoC / 架构 | 你会学到 | ROADMAP | 进展 |
 |---|---|---|---|---|
-| **RK3506B** | RK3506B / ARMv7-A · Cortex-A7×3（32-bit armhf） | 主线 bring-up、SPI-NAND/UBIFS 可靠性、SD 启动、Buildroot/OpenWrt、工业接口 | [RK3506B 路线](RK3506B_ROADMAP) | 🟢 `partial` — 真板已验证，教程已在 [tutorial/](../tutorial/) 兑现 |
+| **RK3506B** | RK3506B / ARMv7-A · Cortex-A7×3（32-bit armhf） | 主线 bring-up、SPI-NAND/UBIFS 可靠性、SD 启动、Buildroot/OpenWrt、工业接口 | [RK3506B 路线](RK3506B_ROADMAP) | 🟢 `verified` — 真板已验证，教程已在 [tutorial/](../tutorial/) 兑现 |
 | **RK3568** | RK3568 / AArch64 · Cortex-A55×4 | Linux 设备模型、IRQ/clock/regulator、I²C/SPI/UART、DMA、USB/PCIe、网络、DRM | [RK3568 路线](RK3568_ROADMAP) | 🟡 `partial` — ATK 真机 boot 已验证（多外设板验），课程化待建 |
 | **RK3588** | RK3588 / AArch64 · A76+A55 big.LITTLE | 异构、内存/SMMU/dma-buf、DRM/V4L2/MPP/RGA、AI(NPU)/媒体/Android/GPU | [RK3588 路线](RK3588_ROADMAP) | 🟡 `partial` — iTOP 真机 boot 到 GNOME 桌面已验证，课程化待建 |
 

@@ -179,7 +179,7 @@ stage_setup() {
   if [[ "$ROOTFS_PROFILE" != "openwrt" ]]; then
     if [[ "$(git -C "$LINUX_DIR" rev-parse HEAD)" == "$(git -C "$LINUX_DIR" rev-parse "${linux_base}^{commit}")" ]]; then
       log_info "[setup] applying linux patch series"
-      ( cd "$LINUX_DIR" && bash "${_SCRIPT_DIR}/apply-series.sh" --component linux )
+      python3 "${_PROJECT_ROOT}/src/forge/cli.py" apply --board "${FORGE_BOARD}" --component linux --worktree "$LINUX_DIR"
     else
       log_info "[setup] linux tree already patched ($(git -C "$LINUX_DIR" describe --tags 2>/dev/null || git -C "$LINUX_DIR" rev-parse --short HEAD)) — skip apply"
     fi
@@ -187,7 +187,7 @@ stage_setup() {
 
   if [[ "$(git -C "$UBOOT_DIR" rev-parse HEAD)" == "$(git -C "$UBOOT_DIR" rev-parse "${uboot_base}^{commit}")" ]]; then
     log_info "[setup] applying uboot patch series"
-    ( cd "$UBOOT_DIR" && bash "${_SCRIPT_DIR}/apply-series.sh" --component uboot )
+    python3 "${_PROJECT_ROOT}/src/forge/cli.py" apply --board "${FORGE_BOARD}" --component uboot --worktree "$UBOOT_DIR"
   else
     log_info "[setup] uboot tree already patched — skip apply"
   fi
@@ -198,7 +198,7 @@ stage_setup() {
   if [[ "$ROOTFS_PROFILE" == "openwrt" ]]; then
     if [[ "$(git -C "$OPENWRT_DIR" rev-parse HEAD)" == "$(git -C "$OPENWRT_DIR" rev-parse "${openwrt_base}^{commit}")" ]]; then
       log_info "[setup] applying openwrt overlay (Device/aes + config)"
-      ( cd "$OPENWRT_DIR" && bash "${_SCRIPT_DIR}/apply-series.sh" --component openwrt )
+      python3 "${_PROJECT_ROOT}/src/forge/cli.py" apply --board "${FORGE_BOARD}" --component openwrt --worktree "$OPENWRT_DIR"
     else
       log_info "[setup] openwrt tree already overlayed ($(git -C "$OPENWRT_DIR" rev-parse --short HEAD)) — skip apply"
     fi
@@ -248,8 +248,9 @@ stage_pack() {
   fi
   run_stage pack-loader \
     "${BRINGUP}/${LOADER_INI}" "${FORGE_RKBIN_DIR}/${RKBIN_BLOB_SUBDIR}" \
-    "${_SCRIPT_DIR}/pack-loader.sh" "${_SCRIPT_DIR}/lib/rkbin.sh" \
-    -- bash "${_SCRIPT_DIR}/pack-loader.sh"
+    "${_PROJECT_ROOT}/src/forge/pack/loader.py" "${_PROJECT_ROOT}/src/forge/core/rkbin.py" \
+    "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.yaml" \
+    -- python3 "${_PROJECT_ROOT}/src/forge/cli.py" pack --board "${FORGE_BOARD}" loader
   # stage-rootfs + pack-ubifs run BEFORE build-initramfs: the provisioning
   # initramfs embeds rootfs.ubi.img.gz (for from-source ubiprog), so it needs
   # rootfs.ubi.img packed first. stage-rootfs.sh branches on ROOTFS_PROFILE:
@@ -278,9 +279,9 @@ stage_pack() {
     run_stage pack-emmc \
       "${OUT_DIR}/rootfs" "${STATE_DIR}/stage-rootfs.fingerprint" \
       "${BRINGUP}/fit/boot-emmc.cmd" \
-      "${_SCRIPT_DIR}/pack-emmc.sh" \
-      "${_PROJECT_ROOT}/config/forge.env" "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.env" \
-      -- bash "${_SCRIPT_DIR}/pack-emmc.sh"
+      "${_PROJECT_ROOT}/src/forge/pack/emmc.py" \
+      "${_PROJECT_ROOT}/config/forge.env" "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.yaml" \
+      -- python3 "${_PROJECT_ROOT}/src/forge/cli.py" pack --board "${FORGE_BOARD}" emmc
     # pack-fit (binman board): stage build-uboot's u-boot.itb/idbloader.img + pack the
     # single no-ramdisk boot.img. Inputs are the rk3568 FIT (no mainline/nand variants,
     # no initramfs) + u-boot.itb (NOT aes's u-boot-nodtb.bin).
@@ -289,15 +290,16 @@ stage_pack() {
       "${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/${KERN_IMG}" \
       "${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/dts/rockchip/${DT_NAME}.dtb" \
       "${UBOOT_DIR}/u-boot.itb" \
-      "${_SCRIPT_DIR}/pack-fit.sh" \
-      -- bash "${_SCRIPT_DIR}/pack-fit.sh"
+      "${_PROJECT_ROOT}/src/forge/pack/fit.py" "${_PROJECT_ROOT}/src/forge/tools/fit_pack.py" \
+      "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.yaml" \
+      -- python3 "${_PROJECT_ROOT}/src/forge/cli.py" pack --board "${FORGE_BOARD}" fit --kernel-dir "${KERNEL_ARTIFACT_DIR}"
   else
     # aes (NAND): ubifs rootfs + provisioning initramfs + the full FIT set (uboot.img +
     # boot.img + boot-nand.img + boot-sd.img). pack-fit packs the vendor-SPL uboot FIT.
     run_stage pack-ubifs \
-      "${OUT_DIR}/rootfs" "${BUILDROOT}/output/images/rootfs.tar" "${_SCRIPT_DIR}/pack-ubifs.sh" "${_PROJECT_ROOT}/config/forge.env" \
-      "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.env" \
-      -- bash "${_SCRIPT_DIR}/pack-ubifs.sh"
+      "${OUT_DIR}/rootfs" "${BUILDROOT}/output/images/rootfs.tar" "${_PROJECT_ROOT}/src/forge/pack/ubifs.py" "${_PROJECT_ROOT}/config/forge.env" \
+      "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.yaml" \
+      -- python3 "${_PROJECT_ROOT}/src/forge/cli.py" pack --board "${FORGE_BOARD}" ubifs
     # build-initramfs AFTER pack-ubifs: the provisioning ramdisk now embeds
     # rootfs.ubi.img.gz so ubiprog can re-flash mtd5 from RAM on first boot
     # (from-source: kills cross-image residue + the loader's weak write). The
@@ -320,8 +322,9 @@ stage_pack() {
       "${KERNEL_ARTIFACT_DIR}/arch/${ARCH}/boot/dts/rockchip/${DT_NAME}.dtb" \
       "${UBOOT_DIR}/u-boot-nodtb.bin" "${UBOOT_DIR}/u-boot.dtb" \
       "${BRINGUP}/fit/initramfs.cpio.gz" \
-      "${_SCRIPT_DIR}/pack-fit.sh" \
-      -- bash "${_SCRIPT_DIR}/pack-fit.sh"
+      "${_PROJECT_ROOT}/src/forge/pack/fit.py" "${_PROJECT_ROOT}/src/forge/tools/fit_pack.py" \
+      "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.yaml" \
+      -- python3 "${_PROJECT_ROOT}/src/forge/cli.py" pack --board "${FORGE_BOARD}" fit --kernel-dir "${KERNEL_ARTIFACT_DIR}"
   fi
 }
 
@@ -342,13 +345,15 @@ stage_pack_sd() {
     -- bash "${_SCRIPT_DIR}/build-uboot.sh" --variant sd
   run_stage pack-fit-sd \
     "${OUT_DIR}/u-boot-sd-nodtb.bin" "${OUT_DIR}/u-boot-sd.dtb" \
-    "${BRINGUP}/fit/${SOC}-mainline.its" "${_SCRIPT_DIR}/pack-fit.sh" \
-    -- bash "${_SCRIPT_DIR}/pack-fit.sh" --variant sd
+    "${BRINGUP}/fit/${SOC}-mainline.its" \
+    "${_PROJECT_ROOT}/src/forge/pack/fit.py" "${_PROJECT_ROOT}/src/forge/tools/fit_pack.py" \
+    "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.yaml" \
+    -- python3 "${_PROJECT_ROOT}/src/forge/cli.py" pack --board "${FORGE_BOARD}" fit --variant sd
   run_stage pack-sd \
     "${OUT_DIR}/idblock.img" "${OUT_DIR}/uboot.img" "${OUT_DIR}/boot.img" \
-    "${OUT_DIR}/rootfs" "${_SCRIPT_DIR}/pack-sd.sh" "${_PROJECT_ROOT}/config/forge.env" \
-    "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.env" \
-    -- bash "${_SCRIPT_DIR}/pack-sd.sh"
+    "${OUT_DIR}/rootfs" "${_PROJECT_ROOT}/src/forge/pack/sd.py" "${_PROJECT_ROOT}/config/forge.env" \
+    "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.yaml" \
+    -- python3 "${_PROJECT_ROOT}/src/forge/cli.py" pack --board "${FORGE_BOARD}" sd
 }
 
 stage_assemble() {
@@ -358,8 +363,9 @@ stage_assemble() {
     run_stage assemble-emmc \
       "${OUT_DIR}/boot.img" "${OUT_DIR}/rootfs.ext4" "${OUT_DIR}/u-boot.itb" \
       "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/${PARAMETER_EMMC}" \
-      "${_SCRIPT_DIR}/assemble-update.sh" \
-      -- bash "${_SCRIPT_DIR}/assemble-update.sh" --emmc
+      "${_PROJECT_ROOT}/src/forge/pack/assemble.py" "${_PROJECT_ROOT}/src/forge/tools/rkfw_pack.py" \
+      "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.yaml" \
+      -- python3 "${_PROJECT_ROOT}/src/forge/cli.py" assemble --board "${FORGE_BOARD}" --variant emmc
     return
   fi
   # --sd variant: RKFW for the Rockchip SD tool (board boots SD only from an
@@ -371,15 +377,17 @@ stage_assemble() {
     run_stage assemble-sd \
       "${OUT_DIR}/boot-sd.img" "${OUT_DIR}/rootfs.ext4" "${OUT_DIR}/uboot-sd.img" \
       "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/${PARAMETER_SD}" \
-      "${BRINGUP}/${PKGFILE_SD}" "${_SCRIPT_DIR}/assemble-update.sh" \
-      -- bash "${_SCRIPT_DIR}/assemble-update.sh" --sd
+      "${BRINGUP}/${PKGFILE_SD}" "${_PROJECT_ROOT}/src/forge/pack/assemble.py" \
+      "${_PROJECT_ROOT}/src/forge/tools/rkfw_pack.py" "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.yaml" \
+      -- python3 "${_PROJECT_ROOT}/src/forge/cli.py" assemble --board "${FORGE_BOARD}" --variant sd
     return
   fi
   run_stage assemble \
     "${OUT_DIR}/boot.img" "${OUT_DIR}/rootfs.ubi.img" "${OUT_DIR}/uboot.img" \
     "${OUT_DIR}/MiniLoaderAll.bin" "${BRINGUP}/${PARAMETER_NAND}" \
-    "${_SCRIPT_DIR}/assemble-update.sh" \
-    -- bash "${_SCRIPT_DIR}/assemble-update.sh" "$ASSEMBLE_VARIANT"
+    "${_PROJECT_ROOT}/src/forge/pack/assemble.py" "${_PROJECT_ROOT}/src/forge/tools/rkfw_pack.py" \
+    "${_PROJECT_ROOT}/config/boards/${FORGE_BOARD}.yaml" \
+    -- python3 "${_PROJECT_ROOT}/src/forge/cli.py" assemble --board "${FORGE_BOARD}" --variant "${ASSEMBLE_VARIANT#--}"
 }
 
 stage_status() {

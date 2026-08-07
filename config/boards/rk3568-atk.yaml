@@ -1,0 +1,60 @@
+# config/boards/rk3568-atk.yaml — ATK-DLRK3568 (正点原子 RK3568 EVB1 DDR4 v1.0).
+# PR1: 1:1 faithful translation of config/boards/rk3568-atk.env + PR2 explicit-ization
+# (spl_source / rootfs_mib / arch_override now declared, not bash-defaulted). RK3568 =
+# A55×4, aarch64, mainline-first. NPU is the one vendor exception (mainline "Rocket" is
+# RK3588-only; RK3568 needs vendor rknpu2 + librknnrt) — see document/sdk-diff-rk3568.md.
+
+identity:
+  board: rk3568-atk
+  soc: rk3568
+  arch: arm64
+  abi: aarch64
+  cpu: cortex-a55
+
+kernel:
+  base: v7.1
+  dtb_name: rk3568-atk-evb1-ddr4-v10   # MVP reuses mainline's rk3568-evb1-v10 base; ATK add-ons layered in Phase 2
+  img: Image
+  base_defconfig: arch/arm64/configs/defconfig
+  fragments: [kernel.config]
+
+uboot:
+  defconfig: evb-rk3568_defconfig
+  defconfig_sd: ""
+  fit_source: binman                    # ATF board → binman emits idbloader.img + u-boot.itb (BL31 embedded)
+  arch_override: arm                    # explicit (PR2): Rockchip u-boot ships under arch/arm/ even for arm64
+
+buildroot:
+  defconfig: rk3568_atk_defconfig
+
+wifi_driver: rtl8852bs                  # armbian wifi-rtl8852bs fork (SDIO, 7.1-adapted)
+
+storage:
+  kind: emmc                            # GPT + ext4 (no ubiprog)
+  rootfs_mib: 1024                      # explicit (PR2): was the bash pack-emmc.sh :-1024 default; buildroot busybox ~1 GiB
+
+workspace:
+  bringup_dir: board/rk3568-atk
+  board_cfg_dir: board/rk3568-atk
+
+rkbin:
+  blob_subdir: bin/rk35
+  spl_source: rkbin                    # explicit (PR2): rk3568 uses the rkbin vendor SPL
+  blobs:
+    ddr: rk3568_ddr_1560MHz_v1.*.bin
+    usbplug: rk356x_usbplug_v1.*.bin
+    spl: rk356x_spl_v1.*.bin            # matches v1.14 (not the _nand variant)
+    tee: rk3568_bl32_v*.bin             # BL32 = OP-TEE
+    tee_exclude: ""
+    bl31: rk3568_bl31_v*.elf            # BL31 = ATF (RK3568 has ATF, unlike RK3506)
+
+manifests:
+  loader_ini: RKBOOT-RK3568-atk.ini
+  trust_ini: RKTRUST-RK3568-atk.ini     # RK3568 needs RKTRUST (BL31+BL32); aes's single-RKBOOT flow doesn't cover BL31
+  parameter: {emmc: parameter-emmc-atk.txt}
+  package: {emmc: package-file-emmc.txt}
+
+toolchain:
+  prefix: aarch64-none-linux-gnu-
+  bin_dir: /opt/arm-gnu-toolchain-15.3.rel1-x86_64-aarch64-none-linux-gnu/bin
+  sysroot: ""

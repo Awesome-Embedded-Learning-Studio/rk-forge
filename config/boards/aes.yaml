@@ -1,0 +1,59 @@
+# config/boards/aes.yaml — ATK-DLRK3506B (RK3506B, armhf, SPI-NAND).
+# PR1: 1:1 faithful translation of config/boards/aes.env. The env.sh bridge
+# emits these as the same bash vars the legacy .env exported. Explicit-ization
+# (adding spl_source/rootfs_mib/arch_override everywhere) lands in PR2.
+# "aes" = "Awesome Embedded Studio" in-house alias for the ATK board (never 'atk').
+
+identity:
+  board: aes
+  soc: rk3506
+  arch: arm
+  abi: armhf
+  cpu: cortex-a7
+
+kernel:
+  base: v7.1
+  dtb_name: rk3506b-aes
+  img: zImage
+  base_defconfig: arch/arm/configs/multi_v7_defconfig
+  fragments: [kernel.config, kernel-trim.config, kernel-compress.config]
+
+uboot:
+  defconfig: evb-rk3506_defconfig
+  defconfig_sd: evb-rk3506_sd_defconfig
+  fit_source: nodtb
+  arch_override: arm                    # explicit (PR2): Rockchip u-boot ships under arch/arm/ even for arm64
+
+buildroot:
+  defconfig: rk3506_aes_defconfig
+
+wifi_driver: rtl8733bu
+
+storage:
+  kind: nand
+  nand_geometry: {min_io: 2048, peb: 128KiB, leb: 124KiB, max_leb: 1300}
+
+workspace:
+  bringup_dir: board/aes
+  board_cfg_dir: board/rk3506-evb
+
+rkbin:
+  blob_subdir: bin/rk35
+  spl_source: rkbin                    # explicit (PR2): aes uses the rkbin vendor SPL (no mainline-SPL base mismatch like rk3588)
+  blobs:
+    ddr: rk3506b_ddr_750MHz_v1.*.bin
+    usbplug: rk3506_usbplug_v1.*.bin
+    spl: rk3506_spl_v1.*.bin
+    tee: rk3506_tee_v*.bin
+    tee_exclude: "_ta_"
+    # bl31 absent — RK3506 has no ATF stage
+
+manifests:
+  loader_ini: RKBOOT-RK3506B-aes.ini
+  parameter: {nand: parameter-nand-aes-vendorlayout.txt, sd: parameter-sd-aes.txt}
+  package: {nand: package-file-nand.txt, rescue: package-file-aes.txt, sd: package-file-sd.txt}
+
+toolchain:
+  prefix: arm-none-linux-gnueabihf-
+  bin_dir: /opt/arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-linux-gnueabihf/bin
+  sysroot: ""

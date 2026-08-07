@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "forge"
+version = "0.1.0"
+description = "rk-forge build orchestrator — in-place bash→Python refactor (config-first)."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Awesome-Embedded-Learning-Studio" }]
+dependencies = ["pyyaml>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+forge = "forge.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/forge"]
