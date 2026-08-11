@@ -48,9 +48,13 @@ class EmPacker:
         out_dir = Path(out_dir) if out_dir else (self.project.root / b.bringup_dir / "out")
         rootfs_mib = rootfs_mib or b.rootfs_mib or 1024
 
-        # Ubuntu fakeroot: re-exec under the saved ownership db if needed (preserves bash behaviour).
+        # Ubuntu fakeroot: re-exec under the saved ownership db when UNPRIVILEGED
+        # (so mke2fs -d sees root ownership). Skip under real root — root already
+        # owns everything AND has the CAP_SYS_ADMIN that fakeroot can't fake, which
+        # mke2fs needs to read trusted.*/security.* xattrs (apt-set file caps etc).
         state = out_dir / ".rootfs.fakeroot"
-        if state.is_file() and os.environ.get("RK_FORGE_ROOTFS_FAKEROOT") != "1":
+        if (state.is_file() and os.geteuid() != 0
+                and os.environ.get("RK_FORGE_ROOTFS_FAKEROOT") != "1"):
             self._reexec_fakeroot(state)
             return  # os.execv replaces the process; not reached on success
 

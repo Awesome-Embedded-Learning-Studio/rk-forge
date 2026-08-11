@@ -78,6 +78,23 @@ rk-forge/
    > 与蓝图 §6"硬编码凭证"教训**不冲突**:§6 批的是**个人凭证**(charliechen / chen0303,真人名 + 疑似真人密码)烤进构建脚本 = 泄漏;现在是**通用、刻意公开的教学默认**(`rk-forge`/`rk-forge`,等同 Ubuntu live 镜像文档化的默认登录),写在配置、无密可保。判据 = "有没有敏感信息"。
 3. 🔒 **rk3588 firmware:现在就建模** `kernel.firmware` 块(loader 解析项目相对路径 + 缺失即报错,结构性防 `/home/...` 绝对路径坑);先空着,`mali_csffw.bin` 落到 `boards/rk3588-topeet/firmware/`。
 
+### 5.3 rootfs 定制模型:原生机制 owning,stage 退化为纯物化(已拍板)
+
+> 用户原话定调:"组合为基础的 rootfs……是不是用包管理器更好呢?buildroot 也有自己的 config,只有外部的用户配置需要注入。"
+
+🔒 **定制骑在 base 的原生机制上,不在 staging 阶段往树上贴文件**(旧 bash 的 stage-rootfs 是在"重新发明一个更烂的包管理器")。每个 base 用自己的系统把定制烤进产物:
+
+| base | 原生机制(定制住在这) | 旧 stage-rootfs 反模式 → 新落法 |
+|---|---|---|
+| buildroot | `BR2_EXTERNAL`:defconfig + overlay + **post-build 钩子** | 解 tar 后手动 cp .ko/固件 → **挪进 post-build.sh**(从 forge kernel 树 cp .ko) |
+| openwrt | 包系统(kmod→lib/modules)+ UCI defaults + rk-forge overlay | rsync 后手动丢固件兜底 → **删除**(驱动运行时从内置数组加载,/lib/firmware 本就不读) |
+| ubuntu | apt 装包 + **useradd/chpasswd**(原生用户管理)+ 配置文件 | 解 tar 后改 passwd 重建账户 → **全挪进 build-ubuntu-rootfs 的 chroot**(apt + useradd/chpasswd from `ubuntu.account` + fstab/console/gdm3 文件),烤进 tar |
+
+- 🔒 **`forge stage` = 纯物化**:buildroot `tar xf`、openwrt `rsync TARGET_DIR`、ubuntu `tar xf`(+fakeroot 保属主)。**零 Python 注入逻辑**。
+- 🔒 **ubuntu 定制全在 build 时 chroot 做完**(apt 装包、useradd/chpasswd 建账户、fstab/console/gdm3 等配置文件),烤进 `ubuntu-rootfs.tar`;stage 只解 tar。不用 cloud-init(首启依赖重、板子圈不受欢迎)。
+- 🔒 **杀账户重复隐患**:build-ubuntu-rootfs(chroot 建)+ stage-rootfs(tar 上重建)两处改 passwd 会漂 → **单源 `ubuntu.account`,只 build 时建一次**(useradd + chpasswd -e 哈希),stage 不再碰账户。
+- **HandBuiltBase 暂缓**(用户定:不急)。
+
 > §1–5 至此全部 🔒。架构方案定稿,可进施工(P0 黄金网 → P1 loader+board.yaml)。
 
 ## 6. 关联:定位文案(已落地)

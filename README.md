@@ -33,9 +33,8 @@ rk-forge 把**主线** Linux 7.1 + U-Boot 2026.07 跑到三块 Rockchip 板上,�
 ## 🚀 快速开始
 
 ```bash
-./scripts/doctor.sh            # 检查 host 依赖 + 交叉工具链(缺啥给 apt 命令)
-source scripts/env-setup.sh    # 导出 ARCH / CROSS_COMPILE
-bash scripts/forge.sh all      # setup → build → pack → assemble → board/aes/out/update.img
+python3 src/forge/cli.py doctor --board aes   # 检查 host 依赖 + 交叉工具链(缺啥给 apt 命令)
+python3 src/forge/cli.py all    --board aes   # setup → build → pack → assemble → board/aes/out/update.img
 ```
 
 默认板 `aes`(RK3506B);构建其它板加 `--board=rk3568-atk` / `rk3588-topeet`(自动选工具链 / 存储 / rootfs profile);OpenWrt 加 `--rootfs=openwrt`。完整步骤、烧录上板、常见坑见 [QUICK_START.md](QUICK_START.md) 与 [document/tutorial/](document/tutorial/)。

@@ -1,7 +1,0 @@
-# pins/linux — upstream Linux source for the kernel build.
-# Format: <git-url> <ref>. ref = the BASE the patches/linux_mainline/series
-# applies onto (via apply-series.sh). P3: explore/linux → third_party/src/linux.
-# (Cloned from the stable tree; the v7.1 tag is the mainline release commit,
-# identical across torvalds/stable. .gitmodules still declares torvalds — P3
-# reconciles.) Patches 0001-0016 apply on v7.1.
-https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git v7.1

@@ -40,8 +40,7 @@ u-boot.itb
 # knowledge source for sdk-diff + board-DT/config extraction. LOCAL clone, not
 # redistributable → fully ignored. Moved here from third_party/ on 2026-06-20 to
 # reflect that it is reference material, not a build input. See reference/README.md.
-/reference/vendor-sdk/
-/reference/verdor-sdk.gz
+/reference/
 
 # WiFi RTL8733BU firmware: LOCAL-only Realtek blobs (UNUSED at runtime — the
 # driver loads firmware from a built-in array; see firmware/rtl8733bu/README.md).

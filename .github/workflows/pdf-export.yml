@@ -42,7 +42,7 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: Build PDF
-        run: ./scripts/build-pdf.sh
+        run: python3 src/forge/cli.py pdf
 
       - name: Upload PDF artifact (14-day QA)
         uses: actions/upload-artifact@v4

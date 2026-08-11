@@ -61,7 +61,7 @@ class FitPacker:
             return
 
         self._pack_boot(out_dir, kad)
-        self.log.warn("all FITs forge-packed; board-boot is the confirmation.")
+        self.log.info("all FITs forge-packed (fit-pack encoder; definitive check is board-boot).")
 
     # ── uboot FIT ────────────────────────────────────────────────────────────
     def _pack_uboot(self, out_dir: Path) -> None:

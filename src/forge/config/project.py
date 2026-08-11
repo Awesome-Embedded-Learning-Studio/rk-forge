@@ -22,6 +22,7 @@ class Project:
     assets_dir: Path
     out_root: Path
     sources: dict = field(default_factory=dict)
+    ubuntu_account: dict = field(default_factory=dict)
 
     @classmethod
     def from_yaml(cls, root) -> "Project":
@@ -43,4 +44,5 @@ class Project:
             assets_dir=root / paths.get("assets_dir", "assets"),
             out_root=root / paths.get("out_root", "out"),
             sources=dict(raw.get("sources", {})),
+            ubuntu_account=dict(raw.get("ubuntu", {}).get("account", {})),
         )

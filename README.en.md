@@ -33,9 +33,8 @@ rk-forge runs **mainline** Linux 7.1 + U-Boot 2026.07 on three Rockchip boards, 
 ## 🚀 Quick start
 
 ```bash
-./scripts/doctor.sh            # check host deps + the cross toolchain (prints the apt line if missing)
-source scripts/env-setup.sh    # export ARCH / CROSS_COMPILE
-bash scripts/forge.sh all      # setup → build → pack → assemble → board/aes/out/update.img
+python3 src/forge/cli.py doctor --board aes   # check host deps + the cross toolchain (prints the apt line if missing)
+python3 src/forge/cli.py all    --board aes   # setup → build → pack → assemble → board/aes/out/update.img
 ```
 
 Default board `aes` (RK3506B); other boards add `--board=rk3568-atk` / `rk3588-topeet` (auto-selects toolchain / storage / rootfs profile); OpenWrt adds `--rootfs=openwrt`. Full steps, flashing, and common pitfalls are in [QUICK_START.md](QUICK_START.md) and [document/tutorial/](document/tutorial/).

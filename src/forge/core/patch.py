@@ -21,7 +21,7 @@ from forge.core.proc import Proc
 
 
 class PatchApplier:
-    """Applies patches/<board>/<component>/series into a component worktree."""
+    """Applies boards/<board>/patches/<component>/series into a component worktree."""
 
     def __init__(self, board: Board, project: Project, worktree: Path,
                  proc: Proc | None = None, log: Log | None = None):
@@ -32,7 +32,7 @@ class PatchApplier:
         self.proc = proc or Proc(log=self.log)
 
     def apply(self, component: str, check: bool = False) -> None:
-        series = self.project.root / "patches" / self.board.id / component / "series"
+        series = self.project.root / "boards" / self.board.id / "patches" / component / "series"
         if not series.is_file():
             self.log.warn(f"no series at {series} (nothing to apply)")
             return
@@ -53,7 +53,7 @@ class PatchApplier:
                 self._git_ok("am", "--abort")
                 self._rollback(pre_head)
                 self.log.die(f"[{i}/{len(patches)}] FAILED {patch.name} — rolled back to {pre_head[:8]}. "
-                             f"Edit the patch or reorder patches/{self.board.id}/{component}/series.")
+                             f"Edit the patch or reorder boards/{self.board.id}/patches/{component}/series.")
 
         if check:
             self._rollback(pre_head)

@@ -3,10 +3,12 @@
 rk-forge is a per-board, full-stack Rockchip Linux teaching + engineering project (RK3506B / RK3568 / RK3588) — mainline-first, honest on hardware, chasing fully-open. Before contributing:
 
 ## Setup
-1. `./scripts/doctor.sh` — checks host deps + the cross toolchain (armhf for RK3506,
-   aarch64 for RK3568/RK3588); prints the `sudo apt install ...` line if anything is missing.
-2. `source scripts/env-setup.sh` — exports `ARCH` / `CROSS_COMPILE` (or just run
-   `bash scripts/forge.sh ...`, which picks the toolchain from the selected board).
+1. `python3 src/forge/cli.py doctor --board aes` — checks host deps + the cross
+   toolchain (armhf for RK3506, aarch64 for RK3568/RK3588); prints the
+   `sudo apt install ...` line if anything is missing.
+2. `forge` reads the toolchain from the selected board's `config/boards/<id>.yaml`
+   (no env sourcing). Run any stage as `python3 src/forge/cli.py <cmd> --board <id>`
+   (or `pip install -e .` for the short `forge` form).
 
 ## Conventions
 - **Patches**: quilt-style ordered `patches/<board>/{linux,uboot}/series`, one patch per commit,

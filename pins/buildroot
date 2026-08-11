@@ -1,5 +1,0 @@
-# pins/buildroot — upstream buildroot (near 2026.08-dev).
-# Format: <git-url> <ref>. buildroot is NOT patched — forge's board
-# customization lives in third_party/bringup/buildroot-external (BR2_EXTERNAL).
-# Pin a snapshot ref for reproducibility (no release tag for this dev HEAD).
-https://github.com/buildroot/buildroot.git 67449130
