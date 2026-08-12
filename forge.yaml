@@ -1,0 +1,39 @@
+# forge.yaml — project-level config (board-agnostic). Loaded before the active
+# board's boards/<id>/board.yaml by the single forge loader.
+
+project:
+  default_board: aes
+
+# §5.1 (architecture.md): SHARED source pool — board-agnostic upstream refs that
+# every board reuses (URL/ref stored ONCE here; boards reference by id). Per-board
+# refs (linux/uboot/openwrt) live in each board.yaml's `sources:`. forge.fetch
+# resolves board.sources[name] → project.sources[name].
+sources:
+  buildroot:   {url: https://github.com/buildroot/buildroot.git, ref: 67449130}
+  rtl8733bu:   {url: https://github.com/Awesome-Embedded-Learning-Studio/rtl8733bu-linux-driver, ref: linux-7.1-port}
+  rtl8852bs:   {url: https://github.com/armbian/wifi-rtl8852bs, ref: main}
+  # busybox is a tarball (not a git ref) for the provisioning initramfs — sha256-pinned.
+  busybox:     {url: https://busybox.net/downloads/busybox-1.36.1.tar.bz2,
+                sha256: b8cc24c9574d809e7279c3be349795c5d5ceb6fdf19ca709f80cde50e47de314}
+
+# §5.2 (architecture.md): the ubuntu profile's login account. Generic, deliberately
+# public teaching default (≈ Ubuntu live-image docs), NOT a personal credential —
+# so it lives in config, not baked in a build script. Plaintext here ONLY; at build
+# the password is hashed (openssl passwd -6) into /etc/shadow, so the image carries
+# just the hash. A board may override any field in its board.yaml `ubuntu.account`.
+ubuntu:
+  account:
+    username: rk-forge
+    password: rk-forge
+    uid: 1000
+    gecos: rk-forge dev
+    groups: [adm, sudo, audio, video, render, input, plugdev, netdev]
+    autologin: true
+
+paths:
+  src_dir: third_party/src        # per-board patched clones: <src_dir>/<board>/{linux,uboot,openwrt}
+  buildroot_dir: third_party/buildroot   # shared (no patches; board delta = BR2_EXTERNAL)
+  rkbin_dir: third_party/rkbin    # SOLE blob source (pinned submodule)
+  assets_dir: assets
+  out_root: out                   # F4 aggregation target. PR1 still emits board-scoped
+                                  #   OUT_DIR=${BRINGUP_DIR}/out via env.sh; flips to out/<board>/ at F4.

@@ -1,0 +1,893 @@
+From 0000000000000000000000000000000000000011 Mon Sep 17 00:00:00 2001
+From: rk-forge <rk-forge@localhost>
+Date: Wed, 12 Aug 2026 23:45:00 +0800
+Subject: [PATCH] cpufreq: rockchip: port RK3588 vendor DVFS sequencing
+
+Port the RK3588 CPU DVFS transaction semantics from the Rockchip vendor
+kernel to Linux 7.1's split OPP clock and regulator callbacks.
+
+Install the dual cpu/mem regulator configuration before registering
+cpufreq-dt, preserve the vendor intermediate SCMI clock flags, sequence
+the memory and CPU rails in the vendor order, update CPU/DSU SRAM read
+margins, roll back failed transitions, and coordinate the deep idle
+state above the big-core threshold.
+
+Describe the RK3588 read-margin GRFs and convert the board OPP voltage
+properties to the two-supply form.  The Topeet cpu/mem supply aliases
+remain identical to the vendor board device tree.
+
+Signed-off-by: rk-forge <rk-forge@localhost>
+---
+diff --git a/drivers/cpufreq/Kconfig b/drivers/cpufreq/Kconfig
+--- a/drivers/cpufreq/Kconfig
++++ b/drivers/cpufreq/Kconfig
+@@ -207,7 +207,7 @@
+ config CPUFREQ_DT
+ 	tristate "Generic DT based cpufreq driver"
+ 	depends on HAVE_CLK && OF
+-	select CPUFREQ_DT_PLATDEV
++	select CPUFREQ_DT_PLATDEV if !ARM_ROCKCHIP_CPUFREQ
+ 	select PM_OPP
+ 	help
+ 	  This adds a generic DT based cpufreq driver for frequency management.
+@@ -216,6 +216,19 @@
+ 
+ 	  If in doubt, say N.
+ 
++config ARM_ROCKCHIP_CPUFREQ
++	bool "Rockchip RK3588 CPU frequency transition helper"
++	depends on ARCH_ROCKCHIP && CPUFREQ_DT
++	depends on REGULATOR && MFD_SYSCON
++	help
++	  Enable the Rockchip RK3588 CPUFreq transition helper. It installs
++	  vendor-compatible dual-supply voltage sequencing, SRAM read-margin
++	  updates, intermediate SCMI clock transitions and cpuidle coordination
++	  before creating the generic cpufreq-dt platform device.
++
++	  This is required on RK3588 boards whose CPU and memory supplies are
++	  described separately in the OPP table.
++
+ config CPUFREQ_DT_RUST
+ 	tristate "Rust based Generic DT based cpufreq driver"
+ 	depends on HAVE_CLK && OF && RUST
+
+diff --git a/drivers/cpufreq/Makefile b/drivers/cpufreq/Makefile
+--- a/drivers/cpufreq/Makefile
++++ b/drivers/cpufreq/Makefile
+@@ -74,6 +74,7 @@
+ obj-$(CONFIG_ARM_QCOM_CPUFREQ_HW)	+= qcom-cpufreq-hw.o
+ obj-$(CONFIG_ARM_QCOM_CPUFREQ_NVMEM)	+= qcom-cpufreq-nvmem.o
+ obj-$(CONFIG_ARM_RASPBERRYPI_CPUFREQ) 	+= raspberrypi-cpufreq.o
++obj-$(CONFIG_ARM_ROCKCHIP_CPUFREQ)	+= rockchip-cpufreq.o
+ obj-$(CONFIG_ARM_S3C64XX_CPUFREQ)	+= s3c64xx-cpufreq.o
+ obj-$(CONFIG_ARM_S5PV210_CPUFREQ)	+= s5pv210-cpufreq.o
+ obj-$(CONFIG_ARM_SA1110_CPUFREQ)	+= sa1110-cpufreq.o
+
+diff --git a/drivers/cpufreq/rockchip-cpufreq.c b/drivers/cpufreq/rockchip-cpufreq.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/cpufreq/rockchip-cpufreq.c
+@@ -0,0 +1,642 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Rockchip RK3588 CPUFreq transition helper
++ *
++ * Adapted from Rockchip's vendor rockchip-cpufreq and OPP helpers to the
++ * split clock/regulator callbacks in the mainline OPP core. The RK3588 CPU
++ * clock itself remains owned by SCMI, as it is in the vendor device tree.
++ */
++
++#include <linux/clk.h>
++#include <linux/cpu.h>
++#include <linux/cpufreq.h>
++#include <linux/cpuidle.h>
++#include <linux/delay.h>
++#include <linux/err.h>
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/pm_opp.h>
++#include <linux/regmap.h>
++#include <linux/regulator/consumer.h>
++#include <linux/slab.h>
++
++#include "cpufreq-dt.h"
++
++#define RK3588_OPP_INTERMEDIATE_RATE	BIT(0)
++#define RK3588_OPP_SCALING_UP_RATE	BIT(1)
++#define RK3588_OPP_SCALING_UP_INTER	(RK3588_OPP_INTERMEDIATE_RATE | \
++					 RK3588_OPP_SCALING_UP_RATE)
++#define RK3588_OPP_SCALING_DOWN_INTER	RK3588_OPP_INTERMEDIATE_RATE
++
++struct rockchip_volt_rm {
++	u32 volt;
++	u32 rm;
++};
++
++struct rockchip_cluster {
++	struct list_head node;
++	struct device *dev;
++	struct clk *clk;
++	struct regmap *grf;
++	struct regmap *dsu_grf;
++	struct rockchip_volt_rm *rm_table;
++	cpumask_t cpus;
++	unsigned int rm_count;
++	unsigned int low_rm;
++	unsigned int current_rm;
++	unsigned int target_rm;
++	unsigned int idle_threshold_freq;
++	unsigned long intermediate_threshold_freq;
++	unsigned long cpu_volt;
++	unsigned long mem_volt;
++	int opp_config_token;
++	bool idle_disabled;
++};
++
++static LIST_HEAD(rockchip_clusters);
++
++static struct rockchip_cluster *rockchip_cluster_lookup(int cpu)
++{
++	struct rockchip_cluster *cluster;
++
++	list_for_each_entry(cluster, &rockchip_clusters, node) {
++		if (cpumask_test_cpu(cpu, &cluster->cpus))
++			return cluster;
++	}
++
++	return NULL;
++}
++
++static unsigned int rockchip_get_read_margin(struct rockchip_cluster *cluster,
++					      unsigned long volt)
++{
++	unsigned int i;
++
++	if (!cluster->rm_table)
++		return UINT_MAX;
++
++	for (i = 0; i < cluster->rm_count; i++) {
++		if (volt >= cluster->rm_table[i].volt)
++			return cluster->rm_table[i].rm;
++	}
++
++	return cluster->low_rm;
++}
++
++static int rk3588_set_read_margin(struct rockchip_cluster *cluster, u32 rm)
++{
++	struct device *dev = cluster->dev;
++
++	if (!cluster->rm_table || rm == UINT_MAX || rm == cluster->current_rm)
++		return 0;
++
++	dev_dbg(dev, "set memory read margin to %u\n", rm);
++
++	if (cluster->grf) {
++		regmap_write(cluster->grf, 0x20, 0x001c0000 | (rm << 2));
++		regmap_write(cluster->grf, 0x28, 0x003c0000 | (rm << 2));
++		regmap_write(cluster->grf, 0x2c, 0x003c0000 | (rm << 2));
++		regmap_write(cluster->grf, 0x30, 0x00200020);
++		udelay(1);
++		regmap_write(cluster->grf, 0x30, 0x00200000);
++	}
++
++	if (cluster->dsu_grf) {
++		regmap_write(cluster->dsu_grf, 0x20,
++			     0x001c0000 | (rm << 2));
++		regmap_write(cluster->dsu_grf, 0x28,
++			     0x003c0000 | (rm << 2));
++		regmap_write(cluster->dsu_grf, 0x2c,
++			     0x003c0000 | (rm << 2));
++		regmap_write(cluster->dsu_grf, 0x30,
++			     0x001c0000 | (rm << 2));
++		regmap_write(cluster->dsu_grf, 0x38,
++			     0x001c0000 | (rm << 2));
++		regmap_write(cluster->dsu_grf, 0x18, 0x40004000);
++		udelay(1);
++		regmap_write(cluster->dsu_grf, 0x18, 0x40000000);
++	}
++
++	cluster->current_rm = rm;
++	return 0;
++}
++
++static int rockchip_set_intermediate_rate(struct rockchip_cluster *cluster,
++					  unsigned long old_freq,
++					  unsigned long new_freq,
++					  bool scaling_up)
++{
++	if (!cluster->rm_table || cluster->target_rm == cluster->current_rm)
++		return 0;
++
++	/* High-voltage to high-voltage transitions need no SRAM margin window. */
++	if (cluster->target_rm < cluster->low_rm &&
++	    cluster->current_rm < cluster->low_rm)
++		return 0;
++
++	if (scaling_up) {
++		if (cluster->intermediate_threshold_freq &&
++		    old_freq <= cluster->intermediate_threshold_freq)
++			return 0;
++
++		return clk_set_rate(cluster->clk,
++				    new_freq | RK3588_OPP_SCALING_UP_INTER);
++	}
++
++	if (cluster->intermediate_threshold_freq &&
++	    new_freq <= cluster->intermediate_threshold_freq)
++		return clk_set_rate(cluster->clk, new_freq);
++
++	return clk_set_rate(cluster->clk,
++			    new_freq | RK3588_OPP_SCALING_DOWN_INTER);
++}
++
++static int rockchip_set_voltage(struct device *dev, struct regulator *reg,
++				struct dev_pm_opp_supply *supply,
++				const char *name)
++{
++	int ret;
++
++	dev_dbg(dev, "%s voltage (uV): %lu %lu %lu\n", name,
++		supply->u_volt_min, supply->u_volt, supply->u_volt_max);
++
++	ret = regulator_set_voltage_triplet(reg, supply->u_volt_min,
++					    supply->u_volt,
++					    supply->u_volt_max);
++	if (ret)
++		dev_err(dev, "failed to set %s voltage (%lu %lu %lu uV): %d\n",
++			name, supply->u_volt_min, supply->u_volt,
++			supply->u_volt_max, ret);
++
++	return ret;
++}
++
++static int rockchip_config_regulators(struct device *dev,
++				      struct dev_pm_opp *old_opp,
++				      struct dev_pm_opp *new_opp,
++				      struct regulator **regulators,
++				      unsigned int count)
++{
++	struct dev_pm_opp_supply old_supply[2];
++	struct dev_pm_opp_supply new_supply[2];
++	struct rockchip_cluster *cluster;
++	unsigned long old_freq, new_freq;
++	u32 old_rm;
++	int ret;
++
++	if (WARN_ON(count != 2))
++		return -EINVAL;
++
++	cluster = rockchip_cluster_lookup(dev->id);
++	if (!cluster)
++		return -ENODEV;
++
++	ret = dev_pm_opp_get_supplies(new_opp, new_supply);
++	if (ret)
++		return ret;
++
++	ret = dev_pm_opp_get_supplies(old_opp, old_supply);
++	if (ret)
++		return ret;
++
++	old_freq = dev_pm_opp_get_freq(old_opp);
++	new_freq = dev_pm_opp_get_freq(new_opp);
++	old_rm = rockchip_get_read_margin(cluster, old_supply[0].u_volt);
++	cluster->target_rm = rockchip_get_read_margin(cluster,
++						      new_supply[0].u_volt);
++
++	/* Scaling up: intermediate clock, mem, CPU, margin, final clock. */
++	if (new_freq >= old_freq) {
++		ret = rockchip_set_intermediate_rate(cluster, old_freq, new_freq,
++						    true);
++		if (ret) {
++			dev_err(dev, "failed to set scaling-up intermediate rate: %d\n",
++				ret);
++			return ret;
++		}
++
++		ret = rockchip_set_voltage(dev, regulators[1], &new_supply[1],
++					   "mem");
++		if (ret)
++			goto restore_up;
++
++		ret = rockchip_set_voltage(dev, regulators[0], &new_supply[0],
++					   "cpu");
++		if (ret)
++			goto restore_up;
++
++		ret = rk3588_set_read_margin(cluster, cluster->target_rm);
++		if (!ret) {
++			cluster->cpu_volt = new_supply[0].u_volt;
++			cluster->mem_volt = new_supply[1].u_volt;
++		}
++		return ret;
++	}
++
++	/* Scaling down: clock and margin were changed by config_clks first. */
++	ret = rockchip_set_voltage(dev, regulators[0], &new_supply[0], "cpu");
++	if (ret)
++		goto restore_down;
++
++	ret = rockchip_set_voltage(dev, regulators[1], &new_supply[1], "mem");
++	if (ret)
++		goto restore_down;
++
++	cluster->cpu_volt = new_supply[0].u_volt;
++	cluster->mem_volt = new_supply[1].u_volt;
++	return 0;
++
++restore_down:
++	if (clk_set_rate(cluster->clk, old_freq))
++		dev_err(dev, "failed to restore old frequency %lu Hz\n", old_freq);
++	rk3588_set_read_margin(cluster, old_rm);
++restore_up:
++	rockchip_set_voltage(dev, regulators[1], &old_supply[1], "mem");
++	rockchip_set_voltage(dev, regulators[0], &old_supply[0], "cpu");
++	return ret;
++}
++
++static int rockchip_config_clks(struct device *dev, struct opp_table *opp_table,
++				struct dev_pm_opp *opp, void *data,
++				bool scaling_down)
++{
++	struct rockchip_cluster *cluster;
++	struct dev_pm_opp_supply new_supply[2];
++	unsigned long old_freq, new_freq;
++	u32 old_rm;
++	int ret;
++
++	cluster = rockchip_cluster_lookup(dev->id);
++	if (!cluster)
++		return -ENODEV;
++
++	if (!opp)
++		return data ? clk_set_rate(cluster->clk, *(unsigned long *)data) : 0;
++
++	new_freq = dev_pm_opp_get_freq(opp);
++	old_freq = clk_get_rate(cluster->clk);
++
++	if (!scaling_down)
++		return clk_set_rate(cluster->clk, new_freq);
++
++	ret = dev_pm_opp_get_supplies(opp, new_supply);
++	if (ret)
++		return ret;
++
++	old_rm = rockchip_get_read_margin(cluster, cluster->cpu_volt);
++	cluster->target_rm = rockchip_get_read_margin(cluster,
++						      new_supply[0].u_volt);
++
++	ret = rockchip_set_intermediate_rate(cluster, old_freq, new_freq,
++						    false);
++	if (ret) {
++		dev_err(dev, "failed to set scaling-down intermediate rate: %d\n",
++			ret);
++		return ret;
++	}
++
++	ret = rk3588_set_read_margin(cluster, cluster->target_rm);
++	if (ret)
++		goto restore;
++
++	ret = clk_set_rate(cluster->clk, new_freq);
++	if (!ret)
++		return 0;
++
++	dev_err(dev, "failed to set CPU clock to %lu Hz: %d\n", new_freq, ret);
++restore:
++	rk3588_set_read_margin(cluster, old_rm);
++	if (clk_set_rate(cluster->clk, old_freq))
++		dev_err(dev, "failed to restore old frequency %lu Hz\n", old_freq);
++
++	return ret;
++}
++
++static int rockchip_parse_rm_table(struct rockchip_cluster *cluster,
++				   struct device_node *opp_np)
++{
++	const char *prop = "volt-mem-read-margin";
++	int count, i, ret;
++
++	count = of_property_count_u32_elems(opp_np, prop);
++	if (count == -EINVAL || count == -ENODATA)
++		return 0;
++	if (count < 0)
++		return count;
++	if (!count || count % 2)
++		return -EINVAL;
++
++	cluster->rm_count = count / 2;
++	cluster->rm_table = devm_kcalloc(cluster->dev, cluster->rm_count,
++						 sizeof(*cluster->rm_table),
++						 GFP_KERNEL);
++	if (!cluster->rm_table)
++		return -ENOMEM;
++
++	for (i = 0; i < cluster->rm_count; i++) {
++		ret = of_property_read_u32_index(opp_np, prop, i * 2,
++						 &cluster->rm_table[i].volt);
++		if (ret)
++			return ret;
++		ret = of_property_read_u32_index(opp_np, prop, i * 2 + 1,
++						 &cluster->rm_table[i].rm);
++		if (ret)
++			return ret;
++	}
++
++	of_property_read_u32(opp_np, "low-volt-mem-read-margin",
++			     &cluster->low_rm);
++	return 0;
++}
++
++static int rockchip_init_voltages_and_read_margin(struct rockchip_cluster *cluster)
++{
++	struct regulator *cpu_reg, *mem_reg;
++	unsigned long current_rate;
++	u32 target_rm;
++	int current_volt, ret = 0;
++
++	cpu_reg = regulator_get_optional(cluster->dev, "cpu");
++	if (IS_ERR(cpu_reg))
++		return dev_err_probe(cluster->dev, PTR_ERR(cpu_reg),
++				     "failed to get CPU regulator for read margin\n");
++
++	mem_reg = regulator_get_optional(cluster->dev, "mem");
++	if (IS_ERR(mem_reg)) {
++		ret = dev_err_probe(cluster->dev, PTR_ERR(mem_reg),
++				    "failed to get memory regulator\n");
++		goto out_put_cpu;
++	}
++
++	current_volt = regulator_get_voltage(cpu_reg);
++	if (current_volt < 0) {
++		ret = current_volt;
++		goto out_put_regulators;
++	}
++	cluster->cpu_volt = current_volt;
++
++	current_volt = regulator_get_voltage(mem_reg);
++	if (current_volt < 0) {
++		ret = current_volt;
++		goto out_put_regulators;
++	}
++	cluster->mem_volt = current_volt;
++
++	if (!cluster->rm_table)
++		goto out_put_regulators;
++
++	current_rate = clk_get_rate(cluster->clk);
++	target_rm = rockchip_get_read_margin(cluster, cluster->cpu_volt);
++	cluster->target_rm = target_rm;
++
++	if (cluster->intermediate_threshold_freq &&
++	    current_rate > cluster->intermediate_threshold_freq) {
++		ret = clk_set_rate(cluster->clk,
++				   cluster->intermediate_threshold_freq);
++		if (ret)
++			goto out_put_regulators;
++		rk3588_set_read_margin(cluster, target_rm);
++		ret = clk_set_rate(cluster->clk, current_rate);
++	} else {
++		ret = rk3588_set_read_margin(cluster, target_rm);
++	}
++
++out_put_regulators:
++	regulator_put(mem_reg);
++out_put_cpu:
++	regulator_put(cpu_reg);
++	return ret;
++}
++
++static void rockchip_cluster_release(struct rockchip_cluster *cluster)
++{
++	if (cluster->opp_config_token > 0)
++		dev_pm_opp_clear_config(cluster->opp_config_token);
++	if (!IS_ERR_OR_NULL(cluster->clk))
++		clk_put(cluster->clk);
++	list_del(&cluster->node);
++}
++
++static int rockchip_cluster_init(int cpu)
++{
++	static const char * const clock_names[] = { NULL, NULL };
++	static const char * const regulator_names[] = { "cpu", "mem", NULL };
++	struct dev_pm_opp_config opp_config = {
++		.clk_names = clock_names,
++		.config_clks = rockchip_config_clks,
++		.config_regulators = rockchip_config_regulators,
++		.regulator_names = regulator_names,
++	};
++	struct rockchip_cluster *cluster;
++	struct device_node *opp_np;
++	struct device *dev;
++	u32 freq;
++	int ret;
++
++	if (rockchip_cluster_lookup(cpu))
++		return 0;
++
++	dev = get_cpu_device(cpu);
++	if (!dev)
++		return -EPROBE_DEFER;
++
++	if (!of_property_present(dev->of_node, "cpu-supply") ||
++	    !of_property_present(dev->of_node, "mem-supply"))
++		return -EINVAL;
++
++	opp_np = of_parse_phandle(dev->of_node, "operating-points-v2", 0);
++	if (!opp_np)
++		return -ENOENT;
++
++	cluster = devm_kzalloc(dev, sizeof(*cluster), GFP_KERNEL);
++	if (!cluster) {
++		ret = -ENOMEM;
++		goto out_put_node;
++	}
++
++	cluster->dev = dev;
++	cluster->current_rm = UINT_MAX;
++	cluster->target_rm = UINT_MAX;
++	cluster->opp_config_token = -1;
++	INIT_LIST_HEAD(&cluster->node);
++
++	ret = dev_pm_opp_of_get_sharing_cpus(dev, &cluster->cpus);
++	if (ret) {
++		dev_err(dev, "failed to get OPP-sharing CPUs: %d\n", ret);
++		goto out_put_node;
++	}
++
++	cluster->grf = syscon_regmap_lookup_by_phandle(opp_np, "rockchip,grf");
++	if (IS_ERR(cluster->grf))
++		cluster->grf = NULL;
++
++	cluster->dsu_grf = syscon_regmap_lookup_by_phandle(opp_np,
++							 "rockchip,dsu-grf");
++	if (IS_ERR(cluster->dsu_grf))
++		cluster->dsu_grf = NULL;
++
++	ret = rockchip_parse_rm_table(cluster, opp_np);
++	if (ret) {
++		dev_err(dev, "invalid voltage/read-margin table: %d\n", ret);
++		goto out_put_node;
++	}
++
++	if (!of_property_read_u32(opp_np, "intermediate-threshold-freq", &freq))
++		cluster->intermediate_threshold_freq = (unsigned long)freq * 1000;
++	of_property_read_u32(opp_np, "rockchip,idle-threshold-freq",
++			     &cluster->idle_threshold_freq);
++
++	cluster->clk = clk_get(dev, NULL);
++	if (IS_ERR(cluster->clk)) {
++		ret = dev_err_probe(dev, PTR_ERR(cluster->clk),
++				    "failed to get CPU clock\n");
++		goto out_put_node;
++	}
++
++	cluster->opp_config_token = dev_pm_opp_set_config(dev, &opp_config);
++	if (cluster->opp_config_token < 0) {
++		ret = dev_err_probe(dev, cluster->opp_config_token,
++				    "failed to configure Rockchip OPP transitions\n");
++		goto out_put_clk;
++	}
++
++	list_add_tail(&cluster->node, &rockchip_clusters);
++	ret = rockchip_init_voltages_and_read_margin(cluster);
++	if (ret) {
++		dev_err(dev, "failed to initialize SRAM read margin: %d\n", ret);
++		rockchip_cluster_release(cluster);
++		goto out_put_node;
++	}
++
++	dev_info(dev, "Rockchip RK3588 CPUFreq transition helper initialized\n");
++	of_node_put(opp_np);
++	return 0;
++
++out_put_clk:
++	clk_put(cluster->clk);
++out_put_node:
++	of_node_put(opp_np);
++	return ret;
++}
++
++static int rockchip_cpufreq_idle_state_disable(const struct cpumask *cpus,
++					       int index, bool disable)
++{
++	unsigned int cpu;
++
++	for_each_cpu(cpu, cpus) {
++		struct cpuidle_device *idle_dev = per_cpu(cpuidle_devices, cpu);
++		struct cpuidle_driver *idle_drv;
++
++		if (!idle_dev)
++			continue;
++
++		idle_drv = cpuidle_get_cpu_driver(idle_dev);
++		if (!idle_drv || index >= idle_drv->state_count)
++			continue;
++
++		cpuidle_driver_state_disabled(idle_drv, index, disable);
++	}
++
++	if (disable) {
++		preempt_disable();
++		for_each_cpu(cpu, cpus) {
++			if (cpu != smp_processor_id() && cpu_online(cpu))
++				wake_up_if_idle(cpu);
++		}
++		preempt_enable();
++	}
++
++	return 0;
++}
++
++static int rockchip_cpufreq_transition_notifier(struct notifier_block *nb,
++						 unsigned long event,
++						 void *data)
++{
++	struct cpufreq_freqs *freqs = data;
++	struct rockchip_cluster *cluster;
++
++	cluster = rockchip_cluster_lookup(freqs->policy->cpu);
++	if (!cluster)
++		return NOTIFY_BAD;
++
++	if (event == CPUFREQ_PRECHANGE) {
++		if (cluster->idle_threshold_freq &&
++		    freqs->new >= cluster->idle_threshold_freq &&
++		    !cluster->idle_disabled) {
++			rockchip_cpufreq_idle_state_disable(freqs->policy->cpus, 1,
++							true);
++			cluster->idle_disabled = true;
++		}
++	} else if (event == CPUFREQ_POSTCHANGE) {
++		if (cluster->idle_threshold_freq &&
++		    freqs->new < cluster->idle_threshold_freq &&
++		    cluster->idle_disabled) {
++			rockchip_cpufreq_idle_state_disable(freqs->policy->cpus, 1,
++							false);
++			cluster->idle_disabled = false;
++		}
++	}
++
++	return NOTIFY_OK;
++}
++
++static struct notifier_block rockchip_cpufreq_transition_nb = {
++	.notifier_call = rockchip_cpufreq_transition_notifier,
++};
++
++static int __init rockchip_cpufreq_driver_init(void)
++{
++	struct cpufreq_dt_platform_data pdata = {
++		.have_governor_per_policy = true,
++	};
++	struct rockchip_cluster *cluster, *tmp;
++	struct platform_device *pdev;
++	int cpu, ret;
++
++	if (!of_machine_is_compatible("rockchip,rk3588"))
++		return 0;
++
++	for_each_possible_cpu(cpu) {
++		ret = rockchip_cluster_init(cpu);
++		if (ret) {
++			pr_err("failed to initialize RK3588 CPUFreq cluster for cpu%d: %d\n",
++			       cpu, ret);
++			goto release_clusters;
++		}
++	}
++
++	ret = cpufreq_register_notifier(&rockchip_cpufreq_transition_nb,
++					CPUFREQ_TRANSITION_NOTIFIER);
++	if (ret) {
++		pr_err("failed to register RK3588 CPUFreq transition notifier: %d\n",
++		       ret);
++		goto release_clusters;
++	}
++
++	pdev = platform_device_register_data(NULL, "cpufreq-dt", -1, &pdata,
++					     sizeof(pdata));
++	if (IS_ERR(pdev)) {
++		ret = PTR_ERR(pdev);
++		cpufreq_unregister_notifier(&rockchip_cpufreq_transition_nb,
++					    CPUFREQ_TRANSITION_NOTIFIER);
++		goto release_clusters;
++	}
++
++	return 0;
++
++release_clusters:
++	list_for_each_entry_safe(cluster, tmp, &rockchip_clusters, node)
++		rockchip_cluster_release(cluster);
++	return ret;
++}
++module_init(rockchip_cpufreq_driver_init);
++
++MODULE_AUTHOR("Rockchip Electronics Co., Ltd.");
++MODULE_DESCRIPTION("Rockchip RK3588 CPUFreq transition helper");
++MODULE_LICENSE("GPL");
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+--- a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+@@ -36,6 +36,27 @@
+ 		mmc0 = &sdhci;
+ 	};
+ 
++	/* RK3588 CPU/DSU SRAM read-margin GRFs used by vendor CPU DVFS. */
++	bigcore0_grf: syscon@fd590000 {
++		compatible = "rockchip,rk3588-bigcore0-grf", "syscon";
++		reg = <0x0 0xfd590000 0x0 0x100>;
++	};
++
++	bigcore1_grf: syscon@fd592000 {
++		compatible = "rockchip,rk3588-bigcore1-grf", "syscon";
++		reg = <0x0 0xfd592000 0x0 0x100>;
++	};
++
++	litcore_grf: syscon@fd594000 {
++		compatible = "rockchip,rk3588-litcore-grf", "syscon";
++		reg = <0x0 0xfd594000 0x0 0x100>;
++	};
++
++	dsu_grf: syscon@fd598000 {
++		compatible = "rockchip,rk3588-dsu-grf", "syscon";
++		reg = <0x0 0xfd598000 0x0 0x100>;
++	};
++
+ 	/* Vendor-reserved persistent crash log window; survives watchdog reset. */
+ 	reserved-memory {
+ 		ramoops: ramoops@110000 {
+@@ -114,6 +135,145 @@
+ 	};
+ };
+ 
++/*
++ * Rockchip's RK3588 CPU DVFS uses two logical supplies per cluster and must
++ * update SRAM read margin around low-voltage transitions.  On this board each
++ * cpu/mem pair aliases the same physical regulator, matching the vendor DT.
++ */
++&cluster0_opp_table {
++	rockchip,grf = <&litcore_grf>;
++	rockchip,dsu-grf = <&dsu_grf>;
++	volt-mem-read-margin = <
++		855000 1
++		765000 2
++		675000 3
++		495000 4
++	>;
++	low-volt-mem-read-margin = <4>;
++	intermediate-threshold-freq = <1008000>;
++
++	opp-1008000000 {
++		opp-microvolt = <675000 675000 950000>,
++				<675000 675000 950000>;
++	};
++
++	opp-1200000000 {
++		opp-microvolt = <712500 712500 950000>,
++				<712500 712500 950000>;
++	};
++
++	opp-1416000000 {
++		opp-microvolt = <762500 762500 950000>,
++				<762500 762500 950000>;
++	};
++
++	opp-1608000000 {
++		opp-microvolt = <850000 850000 950000>,
++				<850000 850000 950000>;
++	};
++
++	opp-1800000000 {
++		opp-microvolt = <950000 950000 950000>,
++				<950000 950000 950000>;
++	};
++};
++
++&cluster1_opp_table {
++	rockchip,grf = <&bigcore0_grf>;
++	volt-mem-read-margin = <
++		855000 1
++		765000 2
++		675000 3
++		495000 4
++	>;
++	low-volt-mem-read-margin = <4>;
++	intermediate-threshold-freq = <1008000>;
++	rockchip,idle-threshold-freq = <2208000>;
++
++	opp-1200000000 {
++		opp-microvolt = <675000 675000 1000000>,
++				<675000 675000 1000000>;
++	};
++
++	opp-1416000000 {
++		opp-microvolt = <725000 725000 1000000>,
++				<725000 725000 1000000>;
++	};
++
++	opp-1608000000 {
++		opp-microvolt = <762500 762500 1000000>,
++				<762500 762500 1000000>;
++	};
++
++	opp-1800000000 {
++		opp-microvolt = <850000 850000 1000000>,
++				<850000 850000 1000000>;
++	};
++
++	opp-2016000000 {
++		opp-microvolt = <925000 925000 1000000>,
++				<925000 925000 1000000>;
++	};
++
++	opp-2208000000 {
++		opp-microvolt = <987500 987500 1000000>,
++				<987500 987500 1000000>;
++	};
++
++	opp-2400000000 {
++		opp-microvolt = <1000000 1000000 1000000>,
++				<1000000 1000000 1000000>;
++	};
++};
++
++&cluster2_opp_table {
++	rockchip,grf = <&bigcore1_grf>;
++	volt-mem-read-margin = <
++		855000 1
++		765000 2
++		675000 3
++		495000 4
++	>;
++	low-volt-mem-read-margin = <4>;
++	intermediate-threshold-freq = <1008000>;
++	rockchip,idle-threshold-freq = <2208000>;
++
++	opp-1200000000 {
++		opp-microvolt = <675000 675000 1000000>,
++				<675000 675000 1000000>;
++	};
++
++	opp-1416000000 {
++		opp-microvolt = <725000 725000 1000000>,
++				<725000 725000 1000000>;
++	};
++
++	opp-1608000000 {
++		opp-microvolt = <762500 762500 1000000>,
++				<762500 762500 1000000>;
++	};
++
++	opp-1800000000 {
++		opp-microvolt = <850000 850000 1000000>,
++				<850000 850000 1000000>;
++	};
++
++	opp-2016000000 {
++		opp-microvolt = <925000 925000 1000000>,
++				<925000 925000 1000000>;
++	};
++
++	opp-2208000000 {
++		opp-microvolt = <987500 987500 1000000>,
++				<987500 987500 1000000>;
++	};
++
++	opp-2400000000 {
++		opp-microvolt = <1000000 1000000 1000000>,
++				<1000000 1000000 1000000>;
++	};
++};
++
+ /* === CPU supply (modeled on fet3588-c; big clusters share one rk8602 rail for cpu+mem) === */
+ &cpu_b0 {
+ 	cpu-supply = <&vdd_cpu_big0_s0>;
+
+-- 
+2.43.0

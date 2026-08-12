@@ -22,6 +22,13 @@ export default defineProject({
       { text: '踩坑日记', link: '/pitfalls/' },
       { text: '工程笔记', link: '/notes/' },
       { text: '差距对照', link: '/sdk-diff' },
+      {
+        text: '项目',
+        items: [
+          { text: '蓝图与定位', link: '/blueprint' },
+          { text: '架构与构建', link: '/architecture' },
+        ],
+      },
       { text: 'GitHub', link: 'https://github.com/Awesome-Embedded-Learning-Studio/rk-forge' },
     ],
   },
@@ -33,6 +40,26 @@ export default defineProject({
       { name: 'pitfalls', srcDir: 'pitfalls', urlPrefix: '/pitfalls' },
       { name: 'notes', srcDir: 'notes', urlPrefix: '/notes' },
     ],
+    extra: {
+      '/blueprint': [
+        {
+          text: '项目',
+          items: [
+            { text: '蓝图与定位', link: '/blueprint' },
+            { text: '架构与构建', link: '/architecture' },
+          ],
+        },
+      ],
+      '/architecture': [
+        {
+          text: '项目',
+          items: [
+            { text: '蓝图与定位', link: '/blueprint' },
+            { text: '架构与构建', link: '/architecture' },
+          ],
+        },
+      ],
+    },
   },
 
   github: {

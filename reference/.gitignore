@@ -1,7 +1,0 @@
-# RK3588 参考（Linux BSP + Android BSP，均为提取池，不入库）
-rk3588/
-rk3588_android/
-
-# RK3568 参考（Linux BSP + Android BSP，均为提取池，不入库）
-rk3568/
-rk3568_android/

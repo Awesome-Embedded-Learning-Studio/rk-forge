@@ -76,8 +76,9 @@ most useful part.
 | 54 | [54-…-rk3588-vendor-vop2-handoff-hardlock-fix](54-2026-08-02-rk3588-vendor-vop2-handoff-hardlock-fix.md) | **RK3588 vendor 定制补漏**:保留新版启动链；补 VOP ACLK 750MHz、VP2→V0PLL、dclk reset handoff；0007/0008 继续排除。候选 `2846097b…` 待连续板验 |
 | 55 | [55-…-rk3588-gt911-landscape-axis-fix](55-2026-08-02-rk3588-gt911-landscape-axis-fix.md) | **RK3588 GT911 坐标修复**:event 证明触点生命周期完整；五点板验否定 swap，芯片物理轴方向正确但原生范围为 600×1024。最终只删除错误的 1024×600 尺寸覆盖；候选 `af26a389…` 待板验 |
 | 56 | [56-…-rk3588-ubuntu-user-rootfs-ownership](56-2026-08-02-rk3588-ubuntu-user-rootfs-ownership.md) | **RK3588 Ubuntu 桌面账户 + ownership 修复**:创建 `charliechen` 并配置 GDM 自动登录；用跨 stage/pack 的 fakeroot state 修复整个 ext4 被宿主 UID 1000 拥有的问题。候选 `d100a898…` 待板验 |
+| 57 | [57-…-rk3588-vendor-cpufreq-dvfs-port](57-2026-08-12-rk3588-vendor-cpufreq-dvfs-port.md) | **RK3588 vendor CPUFreq 正式迁移**:A/B 锁定 CPUFreq；Linux 7.1 OPP 回调移植双 supply、中间 SCMI rate、SRAM read-margin、回滚与 cpuidle 协调。候选 `063b2670…` 待连续板验 |
 
-> **RK3588 全程阅读顺序**(从 0 开始):[49](49-2026-07-27-rk3588-bootloop-mainline-spl.md) → [50](50-2026-07-27-rk3588-first-boot-baud-root-dt.md)(前传,bootloop/首启) → 43 → 44 → 45 → 46 → 47 → 48 → 51 → 52 → 53 → 54 → 55 → 56(autoboot/LCD/GPU/桌面/ttyFIQ0/DVFS/GT911/hard-lock/VOP handoff/触摸坐标/rootfs ownership 取证)。`134228df…` 和 0001–0006 救援路径后续都出现过间歇性挂死，当前没有完成多轮压力板验的“稳定镜像”；`c670a208…` 已否决，`2846097b…` 已确认能启动并使显示、触摸事件工作，`2fa62f8f…` 的 swap 已被五点数据否决，`af26a389…` 缺少桌面用户且 ext4 ownership 错误，最新综合候选为 `d100a898…`，等待 GNOME 触摸和连续冷/热启动板验。
+> **RK3588 全程阅读顺序**(从 0 开始):[49](49-2026-07-27-rk3588-bootloop-mainline-spl.md) → [50](50-2026-07-27-rk3588-first-boot-baud-root-dt.md)(前传,bootloop/首启) → 43 → 44 → 45 → 46 → 47 → 48 → 51 → 52 → 53 → 54 → 55 → 56 → 57(autoboot/LCD/GPU/桌面/ttyFIQ0/DVFS/GT911/hard-lock/VOP handoff/触摸坐标/rootfs ownership/vendor CPUFreq 事务取证)。A/B 已把最新随机挂死收敛到 CPUFreq；最新候选 `063b2670…` 已通过 host 构建、patch replay 和镜像 round-trip，等待开启 CPUFreq 后的连续冷/热启动与桌面运行板验。
 
 另有 [nand-ecc-debug-handoff.md](nand-ecc-debug-handoff.md)(早期 NAND ECC 调试交接,部分结论已被后续 saga 取代,以 [pitfalls/04](../pitfalls/04-sfc-nand-saga.md) 为准)。
 

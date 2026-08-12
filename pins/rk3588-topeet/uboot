@@ -1,7 +1,0 @@
-# pins/rk3588-topeet/uboot — upstream U-Boot for rk3588-topeet.
-# Mainline U-Boot has evb-rk3588_defconfig (RK3588 EVB); binman builds the idblock +
-# u-boot.itb (with BL31/BL32 ATF/OP-TEE blobs pulled from rkbin) — RK3588 packing is largely
-# mainline-self-contained (NO vendor boot_merger/trustmerger), same shape as rk3568-atk.
-# A board patch adds the topeet DT if needed (Phase 5). Same base commit as rk3568-atk
-# (2026.07-rc4 era).
-https://gitlab.denx.de/u-boot/u-boot.git 5ca1a73c
