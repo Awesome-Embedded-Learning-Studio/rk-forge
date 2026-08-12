@@ -26,6 +26,9 @@
 # 0009 — preserve the RK3588 vendor VOP hardware handoff in mainline: ACLK
 #        750 MHz, VP2 parented from V0PLL, and per-VP DCLK reset after timing
 #        commit. This targets the vblank timeouts preceding the hard lock.
+# 0011 — port the RK3588 vendor CPU DVFS transaction to Linux 7.1 OPP
+#        callbacks: dual cpu/mem rails, intermediate SCMI rates, SRAM read
+#        margins, rollback and big-core cpuidle coordination.
 # 0007/0008 were a coupled I2C-v5 + GT911 polling experiment. Candidate
 #        c670a208... did not reach login reliably, so both are intentionally
 #        excluded below. Keep the patch files only as failed-test evidence.
@@ -41,3 +44,4 @@
 0006-input-goodix-sequence-power-before-reset.patch
 0009-drm-rockchip-align-RK3588-VOP2-dclk-handoff-with-BSP.patch
 0010-arm64-dts-rk3588-topeet-fix-GT911-axis-mapping.patch
+0011-cpufreq-rockchip-port-rk3588-vendor-dvfs-sequencing.patch
