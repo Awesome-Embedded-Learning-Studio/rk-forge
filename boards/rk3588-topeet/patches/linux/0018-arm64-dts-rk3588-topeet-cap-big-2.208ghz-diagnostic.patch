@@ -1,0 +1,51 @@
+From 233a3cff345d7a6381a8203569f0ff60ea417593 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sat, 15 Aug 2026 22:12:34 
+Subject: [PATCH] arm64: dts: rk3588-topeet: cap big clusters at 2.208 GHz (diagnostic)
+
+With 0012's defer-safe registration the CPU DVFS path finally runs, and the
+board now wedges (all-CPU, IRQ+NMI silent, DW-watchdog reset) on every boot
+at GNOME/GDM load — the formerly-rare hang made deterministic.  vendor gates
+the 2.4 GHz OPP to top speed-bin silicon (PVTM/binning, intentionally not
+ported); our table exposes it ungated at 1.0 V.
+
+NOTE: the ladder nodes live in the included rk3588-opp.dtsi; 0011's board
+hunks only override their properties (dual-supply voltages).  Removing the
+board-level 2.4 override alone therefore leaves the base single-supply OPP
+active — the cap MUST be /delete-node/ on the referenced tables.
+
+Diagnostic A/B: cap both big clusters at 2.208 GHz @ 987.5 mV (also the
+vendor high-temperature clamp).  Stable board => rail/binning theory
+confirmed => port proper bin-gating or keep the cap.  Still wedging =>
+next suspects: the DSU coupling gap or the i2c/RK860X domain.
+
+---
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+--- a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+@@ -219,11 +219,7 @@
+ 		opp-microvolt = <987500 987500 1000000>,
+ 				<987500 987500 1000000>;
+ 	};
+-
+-	opp-2400000000 {
+-		opp-microvolt = <1000000 1000000 1000000>,
+-				<1000000 1000000 1000000>;
+-	};
++	/delete-node/ opp-2400000000;
+ };
+ 
+ &cluster2_opp_table {
+@@ -267,11 +263,7 @@
+ 		opp-microvolt = <987500 987500 1000000>,
+ 				<987500 987500 1000000>;
+ 	};
+-
+-	opp-2400000000 {
+-		opp-microvolt = <1000000 1000000 1000000>,
+-				<1000000 1000000 1000000>;
+-	};
++	/delete-node/ opp-2400000000;
+ };
+ 
+ /* === CPU supply (modeled on fet3588-c; big clusters share one rk8602 rail for cpu+mem) === */

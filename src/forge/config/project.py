@@ -46,3 +46,14 @@ class Project:
             sources=dict(raw.get("sources", {})),
             ubuntu_account=dict(raw.get("ubuntu", {}).get("account", {})),
         )
+
+    @property
+    def user(self):
+        """Per-developer drop-in config (``user/``) — :mod:`forge.config.user`.
+
+        Uncached on purpose: the dir scan + tiny yaml merge is microseconds, and
+        a fresh read per access keeps long-lived orchestrators honest against
+        drop-ins added mid-session.
+        """
+        from forge.config.user import UserConfig
+        return UserConfig.load(self.root)

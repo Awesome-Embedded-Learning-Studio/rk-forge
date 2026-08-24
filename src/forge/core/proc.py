@@ -27,7 +27,13 @@ from forge.core.log import Log
 # through Proc — notably fakeroot (LD_PRELOAD intercepts chown for the ubuntu
 # rootfs staging), which the no-leakage rule must not break.
 _HOST_ALLOWLIST = ("PATH", "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "LC_CTYPE",
-                   "TZ", "TMPDIR", "LD_PRELOAD", "LD_LIBRARY_PATH", "GIT_CONFIG_PARAMETERS",
+                   "TZ", "TMPDIR", "LD_PRELOAD", "LD_LIBRARY_PATH",
+                   # fakeroot session vars: LD_PRELOAD alone is not enough — without
+                   # FAKEROOTKEY the preloaded libfakeroot can't reach faked and its
+                   # intercepted calls return garbage errnos (saw 253/255 from
+                   # mke2fs llistxattr inside `fakeroot forge pack emmc`).
+                   "FAKEROOTKEY", "FAKEROOTDONTTRYCHOWN",
+                   "GIT_CONFIG_PARAMETERS",
                    "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0")
 
 

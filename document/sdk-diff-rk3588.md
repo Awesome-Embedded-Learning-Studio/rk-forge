@@ -74,7 +74,7 @@ vendor 侧信息来自 `reference/rk3588/` 实地读取:vendor kernel DT(`topeet
 | **显示(DRM 1024×600 DSI→LVDS)** | ✅ VOP2 + `DW_MIPI_DSI`(旧 `_DSI` 符号)+ `simple-panel-dsi` 重放 init-seq;**但 vendor 默认屏实为 MIPI1 / FT5x06 800×1280,1024×600/GT911 分支编译关闭**(`topeet-screen-lcds.dts` 仅 `#define LCD_TYPE_MIPI1`) | ✅ VOP2 vp2→dsi0(`mipi-dsi2`)→ OOT `panel-topeet-dsi` 重放 vendor init-seq(patch 0001/0002);boot logo + GNOME 桌面亮([notes/44](notes/44-2026-07-31-rk3588-lcd-dsi-panel-port.md)–[47](notes/47-2026-08-01-rk3588-lcd-video-fix-tc358775-init-prepare.md)) | 已闭合;**VOP2 dclk handoff(patch 0009)= 候选,稳定性未闭环**([notes/54](notes/54-2026-08-02-rk3588-vendor-vop2-handoff-hardlock-fix.md)) |
 | **触摸 GT911(i2c2)** | ⚠️ vendor `goodix,gt9xx` 节点在 1024×600 分支里,**但 `TOUCHSCREEN_GT9XX` / `TOUCHSCREEN_GOODIX` 均未编进 defconfig**,且该屏分支编译关闭;vendor 实际点亮的是 FT5x06 | ⚠️ 主线 `goodix,gt911`(`CONFIG_TOUCHSCREEN_GOODIX`);IRQ 路径修(pinctrl `pcfg_pull_up` + `IRQ_TYPE_EDGE_FALLING`)、轴原生范围 600×1024 不交换(patch 0010);**坐标事件已取证,GNOME 触摸 UX + 稳定性待续**([notes/52](notes/52-2026-08-02-rk3588-gt911-vendor-polling-i2c-v5.md)、[55](notes/55-2026-08-02-rk3588-gt911-landscape-axis-fix.md)) | 部分闭合;与 hardlock 调查交叉 |
 | **watchdog + ramoops** | ✅ `DW_WATCHDOG`(defconfig;topeet DTS 未重声明,用 SoC 默认) | ✅ `ramoops@110000` + DW watchdog + soft/buddy hardlock detector + systemd `RuntimeWatchdogSec=30`(patch DT + kernel.config) | 已闭合(取证用,非产品稳态,[notes/53](notes/53-2026-08-02-rk3588-hard-lockup-ramoops-watchdog.md)) |
-| **WiFi / BT(AP6xxx)** | ✅ `BCMDHD_PCIE`(Broadcom AP6xxx over PCIe;BT HCI UART / Marvell SDIO)。**vendor DT 无独立 WiFi/BT 节点**,走 PCIe 驱动 | ⚠️ `CONFIG_BRCMFMAC=y` 已开,但 DT 未接 / 未板验;`cfg80211` regdb `-2` 回退 world domain | roadmap(固件 + DT + 板验) |
+| **WiFi / BT(RTL8723DU,USB)** | ✅ Realtek standalone 驱动 `CONFIG_RTL8723DU=m`(`RK_WIFIBT_CHIP="RTL8723DU"`);**DT 无 WiFi/BT 节点——USB combo 免 DT**,WiFi/BT 共用一组 USB2.0(迅为手册) | ✅ **主线 `rtw88_8723DU` 已板验通(2026-08-15):关联 + DHCP routable**([notes/58](notes/58-2026-08-15-rk3588-wifi-rtl8723du-rtw88-bringup.md));`FW_LOADER_COMPRESS_ZSTD` 必须(Ubuntu 固件全 .zst);rtl8xxxu 从不认 8723DU(曾误开);BT 半边配置/固件已全,待板验 | WiFi 已闭合;BT 板验待做 |
 | **NPU** | ✅ vendor rknpu2(`drivers/rknpu/`,`ROCKCHIP_RKNPU`) | ❌ 主线 Rocket 驱动(RK3588-only)在,CONFIG 未开(kernel.config Phase 6 TODO) | roadmap |
 | **VPU / MPP(Hantro + rkvdec2/rkvenc2)** | ✅ vendor MPP(`RKVDEC2`/`RKVENC2`/`VDPU`/`VEPU`,`drivers/video/rockchip/mpp/`) | ⚠️ 主线 Hantro + rkvdec2 驱动在,DT 未接;无 vendor MPP 用户态 | roadmap |
 | **RGA(2D)** | ✅ vendor RGA3(`ROCKCHIP_MULTI_RGA`)+ RGA2 | ❌ 主线无 RGA 驱动 | roadmap / 上游缺 |
@@ -122,7 +122,9 @@ vendor 侧信息来自 `reference/rk3588/` 实地读取:vendor kernel DT(`topeet
    当前不得写成稳定。
 2. **GT911 触摸 GNOME UX 验收**:坐标事件已取证([notes/55](notes/55-2026-08-02-rk3588-gt911-landscape-axis-fix.md)),
    需 GNOME 虚拟键盘 / 拖动 / 多点触控板验,且与 hardlock 调查解耦。
-3. **WiFi / BT(AP6xxx brcmfmac)**:DT 接 + 固件(regdb `-2`)+ 板验;`CONFIG_BRCMFMAC` 已开。
+3. ~~**WiFi / BT(RTL8723DU,USB combo)**~~:**WiFi 已闭合**(2026-08-15,rtw88_8723du 关联 + DHCP
+   routable,[notes/58](notes/58-2026-08-15-rk3588-wifi-rtl8723du-rtw88-bringup.md));BT 半边
+   (btusb/btrtl 配置与固件已全)板验待做;`network-manager` 已补进 packages.list 待下次 rootfs 重建。
 4. **NPU(Rocket)/ VPU(Hantro + rkvdec2)/ PCIe**:主线驱动在,逐项接 DT + 板验。
 5. **音频(ES8388)/ RTC(hym8563)/ 摄像头**:Phase 2/3,DT 接线。
 6. ~~boot 到 GNOME 桌面~~:**已闭合**([notes/48](notes/48-2026-08-01-rk3588-gpu-firmware-embedded-gnome-desktop.md) /

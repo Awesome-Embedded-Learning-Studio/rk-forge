@@ -8,7 +8,7 @@ title: 工程笔记
 
 > 命名约定 `NN-YYYY-MM-DD-<slug>.md`：**序号** = 推荐阅读顺序（理解项目的递进阶段），**日期** = 工作日期，**slug** = 一句话描述。序号主导排序。
 
-完整 57 篇按阶段递进的阅读顺序，见左侧栏或 [notes/README](./README) 的阶段表。下面挑几个里程碑入口：
+完整 58 篇按阶段递进的阅读顺序，见左侧栏或 [notes/README](./README) 的阶段表。下面挑几个里程碑入口：
 
 <ChapterNav>
   <ChapterLink num="07" href="07-2026-06-15-milestone-mainline-linux-boots">里程碑：主线 Linux 首次启动</ChapterLink>
@@ -20,4 +20,5 @@ title: 工程笔记
   <ChapterLink num="50" href="50-2026-07-27-rk3588-first-boot-baud-root-dt">RK3588：首次 boot 到 systemd</ChapterLink>
   <ChapterLink num="48" href="48-2026-08-01-rk3588-gpu-firmware-embedded-gnome-desktop">RK3588：GPU 固件 + GNOME 桌面</ChapterLink>
   <ChapterLink num="57" href="57-2026-08-12-rk3588-vendor-cpufreq-dvfs-port">RK3588：vendor CPUFreq/DVFS 事务移植</ChapterLink>
+  <ChapterLink num="58" href="58-2026-08-15-rk3588-wifi-rtl8723du-rtw88-bringup">RK3588：WiFi RTL8723DU→rtw88 移植全记录</ChapterLink>
 </ChapterNav>

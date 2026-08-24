@@ -1,0 +1,7 @@
+# WiFi 开机自动关联 — stage-rootfs 时烤入镜像(notes/58 §5/§7)。
+# 复制为 wifi.yaml 再填值。注意:模组若是单频 2.4G(如 RK3588 的 RTL8723DU),
+# SSID 必须是 2.4G 那个 —— "-5G" 后缀的连不上(no-carrier 真凶)。
+wifi:
+  ssid: "Your-2.4G-SSID"
+  psk: "your-wifi-passphrase"
+  # iface: wlan0   # udev 改名目标(netplan match wlx*/wlan* 后 set-name);默认 wlan0

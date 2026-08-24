@@ -31,7 +31,13 @@ uboot:
 buildroot:
   defconfig: rk3588_topeet_defconfig    # retained for a future buildroot profile; UNUSED under --rootfs=ubuntu
 
-wifi_driver: ""                         # AP6xxx module = mainline brcmfmac (CONFIG_BRCMFMAC); firmware from Ubuntu linux-firmware
+wifi_driver: ""                         # onboard RTL8723DU WiFi/BT combo, one shared USB2.0 port — real-board VERIFIED
+                                        # 2026-08-15: lsusb 0bda:d723 behind the onboard Terminus hub; matches vendor
+                                        # kernel .config (RK_WIFIBT_CHIP="RTL8723DU"), manual, and vendor driver ID
+                                        # table. Mainline home = CONFIG_RTW88_8723DU (in-tree since 6.2; rtl8xxxu
+                                        # never claimed 8723DU) — see kernel.config; firmware from linux-firmware.
+                                        # No OOT drop. Fallback if rtw88 misbehaves: vendor driver at
+                                        # reference/.../rockchip_wlan/rtl8723du via this field (aes-style route).
 
 storage:
   kind: emmc

@@ -40,6 +40,7 @@ ports.ubuntu.com). Run: ``sudo python3 src/forge/cli.py build --board <id> ubunt
 """
 from __future__ import annotations
 
+import hashlib
 import os
 import shutil
 from pathlib import Path
@@ -50,6 +51,23 @@ from forge.core.log import Log
 from forge.core.proc import Proc
 
 _DEFAULT_GROUPS = ["adm", "sudo", "audio", "video", "render", "input", "plugdev", "netdev"]
+
+
+def tar_cache_digest(pkg_list: Path, source: Path, board_id: str, version: str) -> str:
+    """Content digest of everything that determines the cached rootfs tar.
+
+    The tar cache guard historically checked only file EXISTENCE, so a change
+    to packages.list or to a constant baked into the tar (e.g. the rk3588
+    sysctl block) never invalidated it — the 2026-08-15 miss shipped an image
+    whose sysctl drop-in was three days stale.  The marker file now carries
+    this digest instead of being an empty touch-file.
+    """
+    h = hashlib.sha256()
+    h.update(f"board={board_id} version={version}\n".encode())
+    for p in (pkg_list, Path(__file__)):
+        h.update(f"--- {p.name} {p.stat().st_size}\n".encode())
+        h.update(p.read_bytes())
+    return h.hexdigest()
 
 
 class UbuntuRootfsBuilder:
@@ -68,14 +86,34 @@ class UbuntuRootfsBuilder:
         out_dir = Path(out_dir)
         rootfs_tar = out_dir / "ubuntu-rootfs.tar"
         marker = out_dir / ".ubuntu-rootfs-built"
+        digest = tar_cache_digest(self.pkg_list, Path(__file__), self.board.id, version)
         # Already built (e.g. by a prior `sudo forge build ubuntu-rootfs`) + not
         # --clean → skip the root build entirely. ubuntu-rootfs is the only sudo
         # island (dpkg needs real root); this lets `forge all --rootfs ubuntu` run
         # UNPRIVILEGED for everything else (linux/uboot/pack/assemble) once the
-        # tar exists.
+        # tar exists.  The marker carries a digest over the content-determining
+        # inputs (packages.list + this source file) — an edit to either is a
+        # stale-cache die, never a silent skip (2026-08-15 sysctl miss).
         if not clean and rootfs_tar.is_file() and marker.is_file():
-            self.log.info(f"ubuntu-rootfs already built → {rootfs_tar} (skip; --clean to rebuild)")
-            return
+            recorded = marker.read_text().strip()
+            if not recorded:
+                # legacy empty marker (pre-fingerprint cache): bootstrap the
+                # digest onto the existing tar, one-time trust.
+                marker.write_text(digest + "\n")
+                self.log.info(f"ubuntu-rootfs cache: bootstrapped fingerprint onto existing tar → {rootfs_tar}")
+                return
+            if recorded == digest:
+                self.log.info(f"ubuntu-rootfs already built (fingerprint match) → {rootfs_tar}")
+                return
+            self.log.die(
+                "ubuntu-rootfs tar cache is STALE: packages.list / ubuntu_rootfs.py "
+                "changed since the tar was built, but the tar only refreshes in the "
+                f"sudo build island. Either rebuild:\n  sudo python3 src/forge/cli.py "
+                f"build --board {self.board.id} ubuntu-rootfs --clean\nor, if you know "
+                "the change does not affect tar content, accept the current tar:\n  "
+                f"printf '' > {marker}   # re-bootstrap fingerprint on next run")
+        if clean:
+            marker.unlink(missing_ok=True)
 
         # Needs root (only reached when a build is actually required): dpkg's
         # security check requires a root-OWNED db dir; no unprivileged tool
@@ -127,7 +165,7 @@ class UbuntuRootfsBuilder:
         self.log.info("packing ubuntu-rootfs.tar…")
         self.proc.run(["tar", "-C", str(work_dir), "--owner=0", "--group=0",
                        "-cf", str(rootfs_tar), "."])
-        (out_dir / ".ubuntu-rootfs-built").touch()
+        (out_dir / ".ubuntu-rootfs-built").write_text(digest + "\n")
         self.log.ok(f"Ubuntu rootfs → {rootfs_tar} ({rootfs_tar.stat().st_size} B)")
         self.log.info("next: forge pack (stage-rootfs → pack-emmc) assembles the ext4")
 
@@ -210,7 +248,14 @@ class UbuntuRootfsBuilder:
         (sysctl / "90-rk3588-lockup-diagnostics.conf").write_text(_RK3588_SYSCTL)
 
     def _create_account(self, work_dir: Path) -> None:
-        acct = self.project.ubuntu_account
+        acct = dict(self.project.ubuntu_account)
+        # Personal override: user/account.yaml beats forge.yaml's generic
+        # teaching default (§5.2 keeps the committed YAML generic; identity is
+        # per-developer). Username+password both required for the override.
+        ua = self.project.user.account
+        if ua.username and ua.password:
+            acct.update(username=ua.username, password=ua.password)
+            self.log.info(f"account override from user: {ua.username!r}")
         username = acct.get("username", "rk-forge")
         password = acct.get("password", "rk-forge")
         uid = acct.get("uid", 1000)
@@ -302,4 +347,7 @@ kernel.hung_task_panic = 1
 kernel.hung_task_timeout_secs = 60
 kernel.panic_on_rcu_stall = 1
 kernel.watchdog_thresh = 10
+# With pseudo-NMI the hardlockup detector can NMI every *other* CPU too; this
+# bug wedges multiple CPUs, so dump all stacks on detection.
+kernel.hardlockup_all_cpu_backtrace = 1
 """

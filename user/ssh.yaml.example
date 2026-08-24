@@ -1,0 +1,7 @@
+# 开发公钥烤入镜像 /root/.ssh/authorized_keys。
+# root 账户是空密码,sshd 拒绝密码认证 —— 钥匙是唯一免串口的登录方式(notes/58 §6,DBG-11)。
+ssh:
+  pubkey_files:
+    - "~/.ssh/id_ed25519.pub"
+  # pubkeys:                 # 字面公钥,可与 pubkey_files 并用
+  #   - "ssh-ed25519 AAAA... you@host"

@@ -1,0 +1,221 @@
+From 9e6a7452fea19c82bd3afa68233b8b3901f4aaf2 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 16 Aug 2026 00:34:50 
+Subject: [PATCH] cpufreq: rockchip: port the vendor DSU/L3 frequency coupling
+
+The DSU/L3 cache rides the little cluster's rail, but our 0011 port let
+every cluster transition independently.  Under concurrent multi-cluster
+DVFS (boot-time udev coldplug, hammer) the board wedged: fd880000.i2c
+(RK860X bus) timed out mid-transaction (ipd 0x1b then 0x10), then the
+cluster-leader CPUs hard-locked with IRQs off and the wedge spread to
+every CPU via L3 — buddy-detector capture of 2026-08-16, 16 s into boot.
+
+Port the vendor guardrail (rockchip-cpufreq.c:749-893): when the little
+policy is created, each big cluster attaches a FREQ_QOS_MIN request to
+it; on every big-cluster POSTCHANGE the floor is updated to
+rounddown(freq * 4 / 5, 100 kHz) — L3 can never sag while big cores
+run fast.  The DTS marks the little table with rockchip,opp-shared-dsu.
+
+---
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+index bfef44ddd..e34d774b1 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+@@ -143,6 +143,8 @@ backlight: backlight {
+ &cluster0_opp_table {
+ 	rockchip,grf = <&litcore_grf>;
+ 	rockchip,dsu-grf = <&dsu_grf>;
++	/* DSU/L3 rides the little rail: big clusters floor little at freq*4/5. */
++	rockchip,opp-shared-dsu;
+ 	volt-mem-read-margin = <
+ 		855000 1
+ 		765000 2
+diff --git a/drivers/cpufreq/rockchip-cpufreq.c b/drivers/cpufreq/rockchip-cpufreq.c
+index 3d3477f62..6c2c8ed0c 100644
+--- a/drivers/cpufreq/rockchip-cpufreq.c
++++ b/drivers/cpufreq/rockchip-cpufreq.c
+@@ -22,6 +22,7 @@
+ #include <linux/panic_notifier.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm_opp.h>
++#include <linux/pm_qos.h>
+ #include <linux/regmap.h>
+ #include <linux/regulator/consumer.h>
+ #include <linux/slab.h>
+@@ -56,6 +57,8 @@ struct rockchip_cluster {
+ 	unsigned long cpu_volt;
+ 	unsigned long mem_volt;
+ 	unsigned long cur_freq;
++	struct freq_qos_request dsu_req;
++	bool is_opp_shared_dsu;
+ 	int opp_config_token;
+ 	bool idle_disabled;
+ };
+@@ -483,6 +486,10 @@ static int rockchip_cluster_init(int cpu)
+ 	if (IS_ERR(cluster->dsu_grf))
+ 		cluster->dsu_grf = NULL;
+ 
++	/* DSU/L3 rides this cluster's rail: mark it (vendor: cluster0/little). */
++	cluster->is_opp_shared_dsu = of_property_read_bool(opp_np,
++							   "rockchip,opp-shared-dsu");
++
+ 	ret = rockchip_parse_rm_table(cluster, opp_np);
+ 	if (ret) {
+ 		dev_err(dev, "invalid voltage/read-margin table: %d\n", ret);
+@@ -557,6 +564,99 @@ static int rockchip_cpufreq_idle_state_disable(const struct cpumask *cpus,
+ 	return 0;
+ }
+ 
++/* ── DSU/L3 frequency coupling (vendor rockchip-cpufreq.c:749-893) ──────────
++ * The DSU/L3 cache rides the little cluster's rail.  When any big cluster
++ * runs fast, L3 must stay fed: each big cluster holds a FREQ_QOS_MIN request
++ * on the little policy, floored at rounddown(big_freq * 4/5, 100 kHz).
++ * Without this, concurrent multi-cluster DVFS (hammer / boot-time coldplug)
++ * lets L3 sag while big cores ramp — the observed all-CPU wedge
++ * (fd880000.i2c timeouts → hard LOCKUP on cluster leaders, 2026-08-16). */
++
++#define cpu_to_dsu_freq(freq)  ((freq) * 4 / 5)
++
++static int rockchip_cpufreq_remove_dsu_qos(struct rockchip_cluster *cluster)
++{
++	struct rockchip_cluster *ci;
++
++	if (!cluster->is_opp_shared_dsu)
++		return 0;
++
++	list_for_each_entry(ci, &rockchip_clusters, node) {
++		if (ci->is_opp_shared_dsu)
++			continue;
++		if (freq_qos_request_active(&ci->dsu_req))
++			freq_qos_remove_request(&ci->dsu_req);
++	}
++
++	return 0;
++}
++
++static int rockchip_cpufreq_add_dsu_qos_req(struct rockchip_cluster *cluster,
++					    struct cpufreq_policy *policy)
++{
++	struct rockchip_cluster *ci;
++	int ret;
++
++	if (!cluster->is_opp_shared_dsu)
++		return 0;
++
++	list_for_each_entry(ci, &rockchip_clusters, node) {
++		if (ci->is_opp_shared_dsu)
++			continue;
++		ret = freq_qos_add_request(&policy->constraints, &ci->dsu_req,
++					   FREQ_QOS_MIN,
++					   FREQ_QOS_MIN_DEFAULT_VALUE);
++		if (ret < 0) {
++			dev_err(cluster->dev, "failed to add dsu freq constraint\n");
++			goto error;
++		}
++	}
++
++	return 0;
++
++error:
++	rockchip_cpufreq_remove_dsu_qos(cluster);
++
++	return ret;
++}
++
++static int rockchip_cpufreq_update_dsu_req(struct rockchip_cluster *cluster,
++					   unsigned int freq)
++{
++	unsigned int dsu_freq = rounddown(cpu_to_dsu_freq(freq), 100000);
++
++	if (cluster->is_opp_shared_dsu ||
++	    !freq_qos_request_active(&cluster->dsu_req))
++		return 0;
++
++	dev_dbg(cluster->dev, "cpu to dsu: %u -> %u\n", freq, dsu_freq);
++
++	return freq_qos_update_request(&cluster->dsu_req, dsu_freq);
++}
++
++static int rockchip_cpufreq_policy_notifier(struct notifier_block *nb,
++					    unsigned long event, void *data)
++{
++	struct cpufreq_policy *policy = data;
++	struct rockchip_cluster *cluster;
++
++	cluster = rockchip_cluster_lookup(policy->cpu);
++	if (!cluster)
++		return NOTIFY_BAD;
++
++	if (event == CPUFREQ_CREATE_POLICY)
++		return rockchip_cpufreq_add_dsu_qos_req(cluster, policy) ?
++			NOTIFY_BAD : NOTIFY_OK;
++	if (event == CPUFREQ_REMOVE_POLICY)
++		rockchip_cpufreq_remove_dsu_qos(cluster);
++
++	return NOTIFY_OK;
++}
++
++static struct notifier_block rockchip_cpufreq_policy_nb = {
++	.notifier_call = rockchip_cpufreq_policy_notifier,
++};
++
+ static int rockchip_cpufreq_transition_notifier(struct notifier_block *nb,
+ 						 unsigned long event,
+ 						 void *data)
+@@ -578,6 +678,7 @@ static int rockchip_cpufreq_transition_notifier(struct notifier_block *nb,
+ 		}
+ 	} else if (event == CPUFREQ_POSTCHANGE) {
+ 		cluster->cur_freq = freqs->new;
++		rockchip_cpufreq_update_dsu_req(cluster, freqs->new);
+ 		if (cluster->idle_threshold_freq &&
+ 		    freqs->new < cluster->idle_threshold_freq &&
+ 		    cluster->idle_disabled) {
+@@ -639,6 +740,19 @@ static int rockchip_cpufreq_probe(struct platform_device *pdev)
+ 		goto release_clusters;
+ 	}
+ 
++	/* Registered before the cpufreq-dt device so CREATE_POLICY events
++	 * (where DSU QoS requests attach to the little policy) are seen. */
++	ret = cpufreq_register_notifier(&rockchip_cpufreq_policy_nb,
++					CPUFREQ_POLICY_NOTIFIER);
++	if (ret) {
++		dev_err(&pdev->dev,
++			"failed to register RK3588 CPUFreq policy notifier: %d\n",
++			ret);
++		cpufreq_unregister_notifier(&rockchip_cpufreq_transition_nb,
++					    CPUFREQ_TRANSITION_NOTIFIER);
++		goto release_clusters;
++	}
++
+ 	if (atomic_notifier_chain_register(&panic_notifier_list,
+ 					   &rockchip_cpufreq_panic_nb))
+ 		dev_err(&pdev->dev,
+@@ -657,6 +771,8 @@ static int rockchip_cpufreq_probe(struct platform_device *pdev)
+ 		ret = PTR_ERR(cpufreq_dt_pdev);
+ 		atomic_notifier_chain_unregister(&panic_notifier_list,
+ 						 &rockchip_cpufreq_panic_nb);
++		cpufreq_unregister_notifier(&rockchip_cpufreq_policy_nb,
++					    CPUFREQ_POLICY_NOTIFIER);
+ 		cpufreq_unregister_notifier(&rockchip_cpufreq_transition_nb,
+ 					    CPUFREQ_TRANSITION_NOTIFIER);
+ 		goto release_clusters;
+@@ -676,12 +792,19 @@ static int rockchip_cpufreq_probe(struct platform_device *pdev)
+ static void rockchip_cpufreq_remove(struct platform_device *pdev)
+ {
+ 	struct platform_device *cpufreq_dt_pdev = platform_get_drvdata(pdev);
++	struct rockchip_cluster *cluster, *tmp;
+ 
+ 	platform_device_unregister(cpufreq_dt_pdev);
+ 	atomic_notifier_chain_unregister(&panic_notifier_list,
+ 					 &rockchip_cpufreq_panic_nb);
++	cpufreq_unregister_notifier(&rockchip_cpufreq_policy_nb,
++				    CPUFREQ_POLICY_NOTIFIER);
+ 	cpufreq_unregister_notifier(&rockchip_cpufreq_transition_nb,
+ 				    CPUFREQ_TRANSITION_NOTIFIER);
++	list_for_each_entry_safe(cluster, tmp, &rockchip_clusters, node) {
++		if (freq_qos_request_active(&cluster->dsu_req))
++			freq_qos_remove_request(&cluster->dsu_req);
++	}
+ }
+ 
+ static struct platform_driver rockchip_cpufreq_driver = {

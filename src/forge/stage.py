@@ -14,13 +14,15 @@ just lays the tree down:
 
 The old stage-rootfs's post-extract provisioning (account re-creation, .ko drop,
 firmware belt-and-suspenders, rk3588 console/watchdog) is GONE — moved into the
-base builds (single-source, no build/stage drift). The fakeroot re-exec is
-preserved via ``os.execvpe`` (§4.7); making it an explicit ``fakeroot forge`` is
-F3 (the bash auto re-exec'd too — same behaviour).
+base builds (single-source, no build/stage drift). The fakeroot re-invocation
+forks+waits a child (``fakeroot … forge stage``) — NOT ``os.execvpe``: exec
+replaced the whole forge process, silently truncating ``forge all`` right after
+this stage and never recording the stage-rootfs fingerprint.
 """
 from __future__ import annotations
 
 import os
+import hashlib
 import shutil
 import subprocess
 import sys
@@ -102,7 +104,130 @@ class StageRootfs:
         # under fakeroot this preserves it for pack-emmc's mke2fs.
         self.proc.run(["tar", "--numeric-owner", "--same-owner", "-xf", str(tar),
                        "-C", str(root)])
+        self._provision_runtime_config(root)
         self.log.info("next: forge pack (pack-emmc → rootfs.ext4)")
+
+    def _provision_runtime_config(self, root: Path) -> None:
+        """Bake boot-time runtime config into the staged tree (NOT the cached tar).
+
+        Injected at stage time on purpose: unprivileged, hash-invalidated by any
+        edit to this file, and credentials never enter the rootfs tar / git.
+        Everything here is idempotent static-file writing — no chroot needed.
+
+        Source of truth: ``user/`` drop-ins (see user/README.md
+        and notes/58) — wifi.yaml (SSID/PSK/iface rename), ssh.yaml (pubkeys →
+        /root/.ssh/authorized_keys; root has an empty password so ssh password
+        auth refuses), network.yaml (DNS — this rootfs has no systemd-resolved).
+        FORGE_WIFI_SSID/FORGE_WIFI_PASS/FORGE_DNS env vars override for one-offs.
+        """
+        u = self.project.user
+        for w in u.perm_warnings:
+            self.log.info(f"user-config: {w}")
+
+        # The rootfs tar is built with --owner=0 --group=0 (flat numeric root
+        # ownership), so the login account's home would ship root-owned.  Board-
+        # caught 2026-08-15: root-owned ~/.config/~/.local made gnome-shell /
+        # gvfs / dconf fail en masse and localsearch crash-loop.  Re-establish
+        # it here — this runs inside the stage fakeroot session, so the chown
+        # lands in the saved ownership metadata and thus in rootfs.ext4.
+        acct = dict(self.project.ubuntu_account)
+        ua = self.project.user.account
+        if ua.username and ua.password:
+            acct.update(username=ua.username, password=ua.password)
+        username = acct.get("username", "rk-forge")
+        uid = acct.get("uid", 1000)
+        home = root / "home" / username
+        if home.is_dir():
+            self.proc.run(["chown", "-R", f"{uid}:{uid}", str(home)])
+            self.log.ok(f"home ownership: /home/{username} → {uid}:{uid}")
+        else:
+            self.log.warn(f"no home to chown at {home} — account created at tar-build only")
+
+        # DNS: chroot-era resolv.conf leftover resolves nothing.
+        dns = u.dns or "223.5.5.5"
+        (root / "etc").mkdir(exist_ok=True)
+        (root / "etc/resolv.conf").write_text(f"nameserver {dns}\n")
+
+        # Dev pubkeys (files + literals, deduped) → zero-touch ssh after reflash.
+        keys: list[str] = []
+        for kf in u.ssh.pubkey_files:
+            p = Path(os.path.expanduser(kf))
+            if p.is_file():
+                keys.append(p.read_text().strip())
+            else:
+                self.log.info(f"ssh pubkey file not found (skipped): {p}")
+        keys += [k.strip() for k in u.ssh.pubkeys]
+        keys = [k for k in dict.fromkeys(k for k in keys if k)]
+        if keys:
+            ssh_dir = root / "root" / ".ssh"
+            ssh_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+            (ssh_dir / "authorized_keys").write_text("\n".join(keys) + "\n")
+            os.chmod(ssh_dir / "authorized_keys", 0o600)
+
+        # WiFi auto-connect: netplan only renames + DHCP; credentials live solely
+        # in the wpa_supplicant conf (PSK computed per WPA spec — no host tools).
+        ssid, passphrase, iface = u.wifi.ssid, u.wifi.psk, u.wifi.iface
+        if not ssid or not passphrase:
+            self.log.info("wifi provisioning skipped (fill user/wifi.yaml "
+                          "— see wifi.yaml.example — to enable boot-time auto-connect)")
+            return
+
+        # Pure systemd (netplan dropped for wifi): this netplan wants match.name
+        # as a SCALAR and wifis to define access-points — two generator rejections
+        # on the board (notes/58 §5 坑六), and netplan never writes the boot-time
+        # wpa conf anyway (坑二). The .link keys on the KERNEL name (rtw88
+        # registers wlan0 before udev's predictable rename) and /etc outranks
+        # 99-default.link's MAC policy → the wlx rename never happens; everything
+        # downstream (network/wpa/unit) keys on the stable wlan0. MAC-independent.
+        sd = root / "etc" / "systemd" / "network"
+        sd.mkdir(parents=True, exist_ok=True)
+        (sd / "10-forge-wifi.link").write_text(
+            "[Match]\n"
+            "OriginalName=wlan*\n"
+            "\n"
+            "[Link]\n"
+            f"Name={iface}\n")
+        (sd / "20-forge-wifi.network").write_text(
+            "[Match]\n"
+            f"Name={iface}\n"
+            "\n"
+            "[Network]\n"
+            "DHCP=yes\n")
+        # netplan's systemd-generator is what used to pull networkd up at boot
+        # (it enables it in /run when a netplan config exists). We dropped netplan
+        # → WE must enable networkd ourselves, or nothing runs DHCP (board-caught
+        # 2026-08-15: "systemd-networkd is not running").
+        (root / "etc/systemd/system/multi-user.target.wants").mkdir(parents=True,
+                                                                    exist_ok=True)
+        (root / "etc/systemd/system/multi-user.target.wants" /
+         "systemd-networkd.service").symlink_to(
+            "/usr/lib/systemd/system/systemd-networkd.service")
+
+        psk = hashlib.pbkdf2_hmac("sha1", passphrase.encode(), ssid.encode(), 4096, 32).hex()
+        wpa_dir = root / "etc" / "wpa_supplicant"
+        wpa_dir.mkdir(parents=True, exist_ok=True)
+        (wpa_dir / f"wpa_supplicant-{iface}.conf").write_text(
+            "ctrl_interface=DIR=/run/wpa_supplicant GROUP=root\n"
+            "network={\n"
+            f'  ssid="{ssid}"\n'
+            f"  psk={psk}\n"
+            "  key_mgmt=WPA-PSK\n"
+            "}\n")
+        os.chmod(wpa_dir / f"wpa_supplicant-{iface}.conf", 0o600)
+
+        # enable the unit without a chroot: the same symlink `systemctl enable`
+        # would create (template instance for the renamed interface).
+        wants = root / "etc/systemd/system/multi-user.target.wants"
+        wants.mkdir(parents=True, exist_ok=True)
+        (wants / f"wpa_supplicant@{iface}.service").symlink_to(
+            "/usr/lib/systemd/system/wpa_supplicant@.service")
+
+        # /run is tmpfs and this rootfs ships no tmpfiles entry for the ctrl dir.
+        tmpd = root / "etc/tmpfiles.d"
+        tmpd.mkdir(parents=True, exist_ok=True)
+        (tmpd / "wpa_supplicant.conf").write_text("d /run/wpa_supplicant 0755 root root -\n")
+
+        self.log.ok(f"wifi provisioned: {iface} auto-connects to {ssid!r} on boot")
 
     # ── fakeroot re-exec (ubuntu ownership preservation) ──────────────────────
     def _rerun_under_fakeroot(self, out_dir: Path, profile: str) -> None:
@@ -115,14 +240,20 @@ class StageRootfs:
                    FAKEROOTDONTTRYCHOWN="1",
                    RK_FORGE_STAGE_FAKEROOT="1")
         cli = Path(__file__).resolve().parent / "cli.py"
-        os.execvpe(
-            "fakeroot",
+        # fork+wait (NOT os.execvpe): exec replaced the whole forge process, so
+        # `forge all` silently ended right here — pack-emmc/assemble never ran and
+        # the stage-rootfs fingerprint was never recorded (the exec'd child runs
+        # the bare `stage` leaf, outside StageRunner). Wait for the child instead;
+        # control returns to the orchestrator, which marks the stage and continues.
+        result = subprocess.run(
             ["fakeroot", "-s", str(state), "--",
              sys.executable, str(cli),
              "--root", str(self.project.root),   # global — must precede the subcommand
              "stage", "--board", self.board.id, "--profile", profile,
              "--out", str(out_dir)],
-            env)
+            env=env)
+        if result.returncode != 0:
+            self.log.die(f"fakeroot stage failed ({result.returncode})")
 
     def _find_openwrt_target_dir(self) -> Path | None:
         bd = self.project.src_dir / self.board.id / "openwrt" / "build_dir"

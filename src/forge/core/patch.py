@@ -12,6 +12,7 @@ fields leak into the git process. Run with ``cwd`` = the component worktree.
 """
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 from forge.config.board import Board
@@ -63,7 +64,31 @@ class PatchApplier:
             self.log.ok(f"applied {len(patches)} patches: {pre_head[:8]} -> {new_head[:8]}")
 
     # ── helpers ──────────────────────────────────────────────────────────────
-    def _parse_series(self, series: Path) -> list[Path]:
+    @staticmethod
+    def series_digest(series: Path, base_sha: str) -> str:
+        """Content hash of the whole series: pinned base + series file + every
+        patch it lists, in order.
+
+        This is the apply-skip fingerprint the DAG compares against the last
+        successful apply.  A HEAD-based guard goes stale the moment the series
+        grows while the tree stands still (the 2026-08-15 miss: series grew
+        0011→0017, HEAD never moved, freshly added patches were silently
+        skipped).  A listed-but-missing patch hashes as MISSING — the applier
+        then fails loudly with its normal rollback instead of skipping.
+        """
+        h = hashlib.sha256()
+        h.update(f"base={base_sha}\n".encode())
+        series_bytes = series.read_bytes()
+        h.update(f"series={len(series_bytes)}\n".encode())
+        h.update(series_bytes)
+        for patch in PatchApplier._parse_series(series):
+            data = patch.read_bytes() if patch.is_file() else f"MISSING:{patch.name}".encode()
+            h.update(f"patch={patch.name} len={len(data)}\n".encode())
+            h.update(data)
+        return h.hexdigest()
+
+    @staticmethod
+    def _parse_series(series: Path) -> list[Path]:
         patches: list[Path] = []
         for line in series.read_text().splitlines():
             line = line.split("#", 1)[0].strip()

@@ -93,3 +93,8 @@ dist-pdf/
 .venv/
 __pycache__/
 *.pyc
+# --- per-developer drop-in config (SECRETS: WiFi psk / account password) ---
+# user holds personal credentials; only *.example templates + README are tracked.
+/user/*
+!/user/*.example
+!/user/README.md

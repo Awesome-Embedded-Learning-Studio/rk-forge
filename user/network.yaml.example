@@ -1,0 +1,3 @@
+# DNS 烤入 /etc/resolv.conf(本 rootfs 没有 systemd-resolved —— notes/58 §5 坑五)。
+network:
+  dns: "223.5.5.5"           # 阿里公共 DNS;填家里路由器网关(如 192.168.1.1)也行

@@ -107,24 +107,61 @@ class Orchestrator:
             if b.wifi_driver:
                 DriverDrop(b, self.project, self.proc, self.log).fetch(force=self.force)
 
-        # apply the patch series into each tree, but only if still at the base
-        # (unpatched). apply commits via git am, so guard on HEAD==base.
+        # apply the board patch series into each component tree when (and only
+        # when) its content changed — see _apply_series for the fingerprint.
         if profile != "openwrt":
-            self._apply_if_at_base("linux", self.linux_dir)
-        self._apply_if_at_base("uboot", self.uboot_dir)
+            self._apply_series("linux", self.linux_dir)
+        self._apply_series("uboot", self.uboot_dir)
         if profile == "openwrt":
-            self._apply_if_at_base("openwrt", self.openwrt_dir)
+            self._apply_series("openwrt", self.openwrt_dir)
         self.log.ok(f"setup complete (profile={profile})")
 
-    def _apply_if_at_base(self, component: str, tree: Path) -> None:
+    def _apply_series(self, component: str, tree: Path) -> None:
+        """Apply the board patch series into ``tree`` — but only when it changed.
+
+        The skip guard is a content fingerprint (pinned base + series file +
+        every listed patch, via :meth:`PatchApplier.series_digest`) recorded
+        after a successful apply, PLUS a sanity check that the tree actually
+        moved past the base (covers a tree that was re-fetched clean while the
+        fingerprint survived in out/).  The old HEAD==base guard went stale the
+        moment the series grew while HEAD stood still — freshly added patches
+        were silently skipped (2026-08-15: series 0011→0017, build would have
+        shipped without 0013-0017).
+
+        On mismatch the tree is reset to the pinned base and the whole series
+        replayed via git am: the tree is derived state, edits belong in the
+        patch files (the 9e3de8e1 baud lesson).  ``clean -fdq`` deliberately
+        keeps ignored artifacts (.config, build outputs) so the kernel rebuild
+        stays incremental after a replay.
+        """
         base = self._pin_ref(component)
         if base is None:
             return
-        if self._git_head(tree) == self._git_peel(tree, base):
-            self.log.info(f"[setup] applying {component} patch series")
-            PatchApplier(self.board, self.project, worktree=str(tree), log=self.log).apply(component)
+        series = self.project.root / "boards" / self.board.id / "patches" / component / "series"
+        if not series.is_file():
+            self.log.info(f"[setup] {component}: no patch series — nothing to apply")
+            return
+        base_sha = self._git_peel(tree, base)
+        if not base_sha:
+            self.log.warn(f"[setup] {component}: cannot resolve base ref {base!r} — skip apply")
+            return
+        digest = PatchApplier.series_digest(series, base_sha)
+        fp_file = self.state_dir / f"apply-{component}.fingerprint"
+        if (not self.force and fp_file.is_file()
+                and fp_file.read_text().strip() == digest
+                and self._git_head(tree) != base_sha):
+            self.log.info(f"[setup] {component} series unchanged (fingerprint match) — skip apply")
+            return
+        if fp_file.is_file():
+            self.log.info(f"[setup] {component} series changed since last apply — "
+                          f"resetting tree to {base} and replaying series")
         else:
-            self.log.info(f"[setup] {component} tree already patched — skip apply")
+            self.log.info(f"[setup] applying {component} series (no fingerprint yet)")
+        self._git_in(tree, "reset", "--hard", base_sha)
+        self._git_in(tree, "clean", "-fdq")
+        PatchApplier(self.board, self.project, worktree=str(tree), log=self.log).apply(component)
+        self.state_dir.mkdir(parents=True, exist_ok=True)
+        fp_file.write_text(digest + "\n")
 
     def _pin_ref(self, component: str) -> str | None:
         from forge import fetch
@@ -134,6 +171,10 @@ class Orchestrator:
     def _git_head(self, tree: Path) -> str:
         return self.proc.run(["git", "-C", str(tree), "rev-parse", "HEAD"],
                              capture=True, quiet=True).stdout.strip()
+
+    def _git_in(self, tree: Path, *args: str) -> None:
+        """Run git in ``tree``; dies loudly on failure (Proc default check)."""
+        self.proc.run(["git", "-C", str(tree), *args], capture=True, quiet=True)
 
     def _git_peel(self, tree: Path, ref: str) -> str:
         return self.proc.run(["git", "-C", str(tree), "rev-parse", f"{ref}^{{commit}}"],
@@ -186,6 +227,13 @@ class Orchestrator:
                        str(self.out_dir / ".ubuntu-rootfs-built"), "src/forge/stage.py"],
             "buildroot": [str(self.buildroot / "output" / "images" / "rootfs.tar"), "src/forge/stage.py"],
         }[self.rootfs_profile]
+        # user/ drop-ins (wifi creds, pubkeys, DNS) bake into the staged tree —
+        # they MUST be in the stage-rootfs fingerprint, else a mid-session edit
+        # silently reuses the stale tree (board-caught 2026-08-15: ssid baked
+        # from a stale guess while wifi.yaml already carried the real one).
+        user_d = self.project.root / "user"
+        if user_d.is_dir():
+            stage_inputs += [str(f) for f in sorted(user_d.glob("*.yaml"))]
         self._run("stage-rootfs", stage_inputs,
                   lambda: StageRootfs(b, self.project, self.proc, self.log).stage(
                       out_dir=self.out_dir, profile=self.rootfs_profile))

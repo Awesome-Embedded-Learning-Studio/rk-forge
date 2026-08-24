@@ -11,14 +11,16 @@ write-time still varies → NOT byte-identical, like pack-sd).
 
 Ubuntu rootfs ownership: stage-rootfs records archive ownership in a fakeroot
 database (``.rootfs.fakeroot``); when that exists and we're not already under
-fakeroot, re-exec under fakeroot so mke2fs -d sees root-owned system files. This
-mirrors the bash auto-re-exec exactly (no behaviour change); the §4.7 "explicit
-fakeroot, no auto re-exec" refinement lands at F3.
+fakeroot, fork a fakeroot child that completes the whole pack so mke2fs -d sees
+root-owned system files. Fork+wait (NOT os.execvp): exec replaced the forge
+process, silently truncating ``forge all`` right after pack-emmc (assemble never
+ran, pack-emmc fingerprint never recorded).
 """
 from __future__ import annotations
 
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -55,8 +57,8 @@ class EmPacker:
         state = out_dir / ".rootfs.fakeroot"
         if (state.is_file() and os.geteuid() != 0
                 and os.environ.get("RK_FORGE_ROOTFS_FAKEROOT") != "1"):
-            self._reexec_fakeroot(state)
-            return  # os.execv replaces the process; not reached on success
+            self._pack_under_fakeroot(state)
+            return  # the fakeroot child completed the whole pack; nothing left here
 
         root = out_dir / "rootfs"
         if not root.is_dir():
@@ -95,19 +97,25 @@ class EmPacker:
                 return cand
         self.log.die("mkimage not found (build build-uboot or install u-boot-tools)")
 
-    # ── fakeroot re-exec (Ubuntu ownership preservation; transition — F3 makes it explicit) ─
-    def _reexec_fakeroot(self, state: Path) -> None:
-        from shutil import which
-        if not which("fakeroot"):
+    # ── fakeroot child (Ubuntu ownership preservation) ────────────────────────
+    def _pack_under_fakeroot(self, state: Path) -> None:
+        if not shutil.which("fakeroot"):
             self.log.die("missing host tool: fakeroot (needed to preserve Ubuntu rootfs ownership)")
         self.log.info("packing Ubuntu ext4 under saved fakeroot ownership metadata")
-        os.environ["RK_FORGE_ROOTFS_FAKEROOT"] = "1"   # marker: child skips re-exec
-        os.environ["FAKEROOTDONTTRYCHOWN"] = "1"
+        # fork+wait, NOT os.execvp — exec replaced the whole forge process and
+        # silently truncated `forge all` after pack-emmc (assemble never ran,
+        # pack-emmc fingerprint never recorded). The child runs the full
+        # `pack emmc` under the saved ownership db; we just wait for it.
+        env = dict(os.environ,
+                   RK_FORGE_ROOTFS_FAKEROOT="1",   # marker: child skips the fork
+                   FAKEROOTDONTTRYCHOWN="1")
         cli = self.project.root / "src" / "forge" / "cli.py"
-        os.execvp("fakeroot", [
-            "fakeroot", "-i", str(state), "-s", str(state), "--",
-            sys.executable, str(cli), "pack", "--board", self.board.id, "emmc",
-        ])
+        result = subprocess.run(
+            ["fakeroot", "-i", str(state), "-s", str(state), "--",
+             sys.executable, str(cli), "pack", "--board", self.board.id, "emmc"],
+            env=env)
+        if result.returncode != 0:
+            self.log.die(f"fakeroot pack-emmc failed ({result.returncode})")
 
     def _require_tool(self, tool: str, pkg: str = "") -> None:
         from shutil import which
