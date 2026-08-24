@@ -1,0 +1,6 @@
+# 可选:覆盖 forge.yaml 里 ubuntu.account 的通用教学默认(rk-forge/rk-forge)。
+# username 和 password 必须同时给。改动会触发 ubuntu-rootfs chroot 全量重建
+# (sudo 岛,约 30 分钟)—— 不需要个人账户就别建这个文件。
+account:
+  username: "your-name"
+  password: "your-password"

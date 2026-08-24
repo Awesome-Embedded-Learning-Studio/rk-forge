@@ -1,0 +1,213 @@
+From aa7d92e83811a0b557b75f7a0ce85315f4358bf2 Mon Sep 17 00:00:00 2001
+From: Bitterblue Smith <rtl8821cerfe2@gmail.com>
+Date: Wed, 20 May 2026 17:14:26 +0300
+Subject: wifi: rtw88: Add more validation for the RX descriptor
+
+Some RTL8821CE cards can return frames with corrupted RX descriptor,
+causing warnings and crashes if they are passed to the upper layers.
+
+The PHY status size field is 4 bits wide, but in rtw88 its value should
+only be 0 or 4. Checking this catches most of the corrupt frames.
+
+If a PHY status is present, the PHY status size should not be 0.
+
+The frame size should not be less than or equal to 4 and should not
+exceed 11454.
+
+The rate should not exceed 4SS MCS9.
+
+Discard the frame if any of these checks fail.
+
+Closes: https://bugzilla.kernel.org/show_bug.cgi?id=221286
+Signed-off-by: Bitterblue Smith <rtl8821cerfe2@gmail.com>
+Tested-by: Oleksandr Havrylov <goainwo@gmail.com>
+Acked-by: Ping-Ke Shih <pkshih@realtek.com>
+Signed-off-by: Ping-Ke Shih <pkshih@realtek.com>
+Link: https://patch.msgid.link/5bfecba3-8a90-4e0f-9558-af5cd8a14975@gmail.com
+---
+ drivers/net/wireless/realtek/rtw88/pci.c  | 16 ++++++++++------
+ drivers/net/wireless/realtek/rtw88/rx.c   | 31 +++++++++++++++++++++----------
+ drivers/net/wireless/realtek/rtw88/rx.h   |  6 +++---
+ drivers/net/wireless/realtek/rtw88/sdio.c |  8 +++++++-
+ drivers/net/wireless/realtek/rtw88/usb.c  |  9 ++++++---
+ 5 files changed, 47 insertions(+), 23 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/pci.c b/drivers/net/wireless/realtek/rtw88/pci.c
+index c2bf44e880cf2..a304672289124 100644
+--- a/drivers/net/wireless/realtek/rtw88/pci.c
++++ b/drivers/net/wireless/realtek/rtw88/pci.c
+@@ -1042,20 +1042,21 @@ static int rtw_pci_get_hw_rx_ring_nr(struct rtw_dev *rtwdev,
+ static u32 rtw_pci_rx_napi(struct rtw_dev *rtwdev, struct rtw_pci *rtwpci,
+ 			   u8 hw_queue, u32 limit)
+ {
++	struct rtw_pci_rx_ring *ring = &rtwpci->rx_rings[RTW_RX_QUEUE_MPDU];
+ 	const struct rtw_chip_info *chip = rtwdev->chip;
+ 	struct napi_struct *napi = &rtwpci->napi;
+-	struct rtw_pci_rx_ring *ring = &rtwpci->rx_rings[RTW_RX_QUEUE_MPDU];
+-	struct rtw_rx_pkt_stat pkt_stat;
++	u32 pkt_desc_sz = chip->rx_pkt_desc_sz;
++	u32 buf_desc_sz = chip->rx_buf_desc_sz;
+ 	struct ieee80211_rx_status rx_status;
++	struct rtw_rx_pkt_stat pkt_stat;
+ 	struct sk_buff *skb, *new;
+ 	u32 cur_rp = ring->r.rp;
+ 	u32 count, rx_done = 0;
+ 	u32 pkt_offset;
+-	u32 pkt_desc_sz = chip->rx_pkt_desc_sz;
+-	u32 buf_desc_sz = chip->rx_buf_desc_sz;
++	dma_addr_t dma;
+ 	u32 new_len;
+ 	u8 *rx_desc;
+-	dma_addr_t dma;
++	int ret;
+ 
+ 	count = rtw_pci_get_hw_rx_ring_nr(rtwdev, rtwpci);
+ 	count = min(count, limit);
+@@ -1067,7 +1068,10 @@ static u32 rtw_pci_rx_napi(struct rtw_dev *rtwdev, struct rtw_pci *rtwpci,
+ 		dma_sync_single_for_cpu(rtwdev->dev, dma, RTK_PCI_RX_BUF_SIZE,
+ 					DMA_FROM_DEVICE);
+ 		rx_desc = skb->data;
+-		rtw_rx_query_rx_desc(rtwdev, rx_desc, &pkt_stat, &rx_status);
++		ret = rtw_rx_query_rx_desc(rtwdev, rx_desc,
++					   &pkt_stat, &rx_status);
++		if (ret)
++			goto next_rp;
+ 
+ 		/* offset from rx_desc to payload */
+ 		pkt_offset = pkt_desc_sz + pkt_stat.drv_info_sz +
+diff --git a/drivers/net/wireless/realtek/rtw88/rx.c b/drivers/net/wireless/realtek/rtw88/rx.c
+index d9e11343d4988..01fd299abb7fe 100644
+--- a/drivers/net/wireless/realtek/rtw88/rx.c
++++ b/drivers/net/wireless/realtek/rtw88/rx.c
+@@ -3,6 +3,7 @@
+  */
+ 
+ #include "main.h"
++#include "mac.h"
+ #include "rx.h"
+ #include "ps.h"
+ #include "debug.h"
+@@ -261,9 +262,9 @@ static void rtw_rx_fill_rx_status(struct rtw_dev *rtwdev,
+ 	}
+ }
+ 
+-void rtw_rx_query_rx_desc(struct rtw_dev *rtwdev, void *rx_desc8,
+-			  struct rtw_rx_pkt_stat *pkt_stat,
+-			  struct ieee80211_rx_status *rx_status)
++int rtw_rx_query_rx_desc(struct rtw_dev *rtwdev, void *rx_desc8,
++			 struct rtw_rx_pkt_stat *pkt_stat,
++			 struct ieee80211_rx_status *rx_status)
+ {
+ 	u32 desc_sz = rtwdev->chip->rx_pkt_desc_sz;
+ 	struct rtw_rx_desc *rx_desc = rx_desc8;
+@@ -295,20 +296,28 @@ void rtw_rx_query_rx_desc(struct rtw_dev *rtwdev, void *rx_desc8,
+ 
+ 	pkt_stat->tsf_low = le32_get_bits(rx_desc->w5, RTW_RX_DESC_W5_TSFL);
+ 
+-	if (unlikely(pkt_stat->rate >= DESC_RATE_MAX)) {
+-		rtw_dbg(rtwdev, RTW_DBG_UNEXP,
+-			"unexpected RX rate=0x%x\n", pkt_stat->rate);
++	if (unlikely(pkt_stat->rate >= DESC_RATE_MAX))
++		return -EINVAL;
+ 
+-		pkt_stat->rate = DESC_RATE1M;
+-		pkt_stat->bw = RTW_CHANNEL_WIDTH_20;
+-	}
++	if (unlikely(pkt_stat->drv_info_sz &&
++		     pkt_stat->drv_info_sz != PHY_STATUS_SIZE))
++		return -EINVAL;
++
++	if (unlikely(pkt_stat->phy_status && !pkt_stat->drv_info_sz))
++		return -EINVAL;
++
++	if (unlikely(pkt_stat->pkt_len > IEEE80211_MAX_MPDU_LEN_VHT_11454))
++		return -EINVAL;
+ 
+ 	/* drv_info_sz is in unit of 8-bytes */
+ 	pkt_stat->drv_info_sz *= 8;
+ 
+ 	/* c2h cmd pkt's rx/phy status is not interested */
+ 	if (pkt_stat->is_c2h)
+-		return;
++		return 0;
++
++	if (unlikely(pkt_stat->pkt_len <= FCS_LEN))
++		return -EINVAL;
+ 
+ 	phy_status = rx_desc8 + desc_sz + pkt_stat->shift;
+ 	hdr = phy_status + pkt_stat->drv_info_sz;
+@@ -318,5 +327,7 @@ void rtw_rx_query_rx_desc(struct rtw_dev *rtwdev, void *rx_desc8,
+ 		rtwdev->chip->ops->query_phy_status(rtwdev, phy_status, pkt_stat);
+ 
+ 	rtw_rx_fill_rx_status(rtwdev, pkt_stat, hdr, rx_status);
++
++	return 0;
+ }
+ EXPORT_SYMBOL(rtw_rx_query_rx_desc);
+diff --git a/drivers/net/wireless/realtek/rtw88/rx.h b/drivers/net/wireless/realtek/rtw88/rx.h
+index 6b7dee245c0ab..74359f641c766 100644
+--- a/drivers/net/wireless/realtek/rtw88/rx.h
++++ b/drivers/net/wireless/realtek/rtw88/rx.h
+@@ -45,9 +45,9 @@ struct rtw_rx_desc {
+ 
+ void rtw_rx_stats(struct rtw_dev *rtwdev, struct ieee80211_vif *vif,
+ 		  struct sk_buff *skb);
+-void rtw_rx_query_rx_desc(struct rtw_dev *rtwdev, void *rx_desc8,
+-			  struct rtw_rx_pkt_stat *pkt_stat,
+-			  struct ieee80211_rx_status *rx_status);
++int rtw_rx_query_rx_desc(struct rtw_dev *rtwdev, void *rx_desc8,
++			 struct rtw_rx_pkt_stat *pkt_stat,
++			 struct ieee80211_rx_status *rx_status);
+ void rtw_update_rx_freq_from_ie(struct rtw_dev *rtwdev, struct sk_buff *skb,
+ 				struct ieee80211_rx_status *rx_status,
+ 				struct rtw_rx_pkt_stat *pkt_stat);
+diff --git a/drivers/net/wireless/realtek/rtw88/sdio.c b/drivers/net/wireless/realtek/rtw88/sdio.c
+index 1318e94f85246..5b40d74b16ee0 100644
+--- a/drivers/net/wireless/realtek/rtw88/sdio.c
++++ b/drivers/net/wireless/realtek/rtw88/sdio.c
+@@ -995,7 +995,13 @@ static void rtw_sdio_rxfifo_recv(struct rtw_dev *rtwdev, u32 rx_len)
+ 
+ 	while (true) {
+ 		rx_desc = skb->data;
+-		rtw_rx_query_rx_desc(rtwdev, rx_desc, &pkt_stat, &rx_status);
++		ret = rtw_rx_query_rx_desc(rtwdev, rx_desc,
++					   &pkt_stat, &rx_status);
++		if (ret) {
++			dev_kfree_skb_any(skb);
++			return;
++		}
++
+ 		pkt_offset = pkt_desc_sz + pkt_stat.drv_info_sz +
+ 			     pkt_stat.shift;
+ 
+diff --git a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
+index 1a0bdbf52cb0d..64e1c3420e0a8 100644
+--- a/drivers/net/wireless/realtek/rtw88/usb.c
++++ b/drivers/net/wireless/realtek/rtw88/usb.c
+@@ -619,8 +619,8 @@ static void rtw_usb_rx_handler(struct work_struct *work)
+ 	u32 max_skb_len = pkt_desc_sz + PHY_STATUS_SIZE * 8 +
+ 			  IEEE80211_MAX_MPDU_LEN_VHT_11454;
+ 	u32 pkt_offset, next_pkt, skb_len;
++	int limit, ret;
+ 	u8 *rx_desc;
+-	int limit;
+ 
+ 	for (limit = 0; limit < 200; limit++) {
+ 		rx_skb = skb_dequeue(&rtwusb->rx_queue);
+@@ -636,8 +636,11 @@ static void rtw_usb_rx_handler(struct work_struct *work)
+ 		rx_desc = rx_skb->data;
+ 
+ 		do {
+-			rtw_rx_query_rx_desc(rtwdev, rx_desc, &pkt_stat,
+-					     &rx_status);
++			ret = rtw_rx_query_rx_desc(rtwdev, rx_desc,
++						   &pkt_stat, &rx_status);
++			if (ret)
++				break;
++
+ 			pkt_offset = pkt_desc_sz + pkt_stat.drv_info_sz +
+ 				     pkt_stat.shift;
+ 
+-- 
+cgit 1.3-korg
+

@@ -72,11 +72,11 @@ index 000000000..000000000
 +		mmc0 = &sdhci;
 +	};
 +
-+	/* Vendor-reserved persistent crash log window; survives watchdog reset. */
++	/* Persistent crash-log window @0x10000000 (the vendor 0x110000 window is cleared by the mainline TPL/ddrbin boot chain). */
 +	reserved-memory {
-+		ramoops: ramoops@110000 {
++		ramoops: ramoops@10000000 {
 +			compatible = "ramoops";
-+			reg = <0x0 0x00110000 0x0 0x000e0000>;
++			reg = <0x0 0x10000000 0x0 0x000e0000>;
 +			record-size = <0x00020000>;
 +			console-size = <0x00080000>;
 +		};

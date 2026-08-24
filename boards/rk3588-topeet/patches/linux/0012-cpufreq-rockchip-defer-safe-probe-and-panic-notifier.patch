@@ -1,0 +1,214 @@
+From 7ae233a884921473558f317ab1997651882805c5 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sat, 15 Aug 2026 20:27:31 
+Subject: [PATCH] cpufreq: rockchip: defer-safe RK3588 helper probe + panic DVFS dump
+
+The RK3588 transition helper registered itself from a bare module_init
+initcall: clk_get() (SCMI CPU clocks) and regulator_get_optional()
+(RK860X on I2C) then race the SCMI/I2C provider registration, and an
+initcall has no deferred-probe retry.  Board log shows the failure:
+
+    [    1.133390] failed to initialize RK3588 CPUFreq cluster for cpu0: -517
+    [    1.141205] arm-scmi arm-scmi.0.auto: Using scmi_smc_transport
+
+The helper permanently died 8 ms before the SCMI transport appeared, so
+CPUFreq never came up on any boot since this driver was introduced.
+
+Move the cluster bring-up into a platform driver probe: the initcall now
+only registers the driver plus a matching platform device, so
+-EPROBE_DEFER from any dependency re-probes once the SCMI clock provider
+and the RK860X regulators appear.  The cpufreq-dt device is still only
+registered after every cluster initialized, preserving the
+OPP-config-before-cpufreq-dt ordering.
+
+Also port Rockchip's panic notifier: on panic, dump each cluster's last
+frequency and rail voltages so the next hard-lock capture (NMI backtrace
++ ramoops) records the DVFS state at the time of the wedge.  The current
+frequency is cached at init and updated from the transition notifier;
+the vendor prints the same fields from its panic path.
+
+---
+diff --git a/drivers/cpufreq/rockchip-cpufreq.c b/drivers/cpufreq/rockchip-cpufreq.c
+--- a/drivers/cpufreq/rockchip-cpufreq.c
++++ b/drivers/cpufreq/rockchip-cpufreq.c
+@@ -17,7 +17,9 @@
+ #include <linux/kernel.h>
+ #include <linux/mfd/syscon.h>
+ #include <linux/module.h>
++#include <linux/notifier.h>
+ #include <linux/of.h>
++#include <linux/panic_notifier.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm_opp.h>
+ #include <linux/regmap.h>
+@@ -53,6 +55,7 @@
+ 	unsigned long intermediate_threshold_freq;
+ 	unsigned long cpu_volt;
+ 	unsigned long mem_volt;
++	unsigned long cur_freq;
+ 	int opp_config_token;
+ 	bool idle_disabled;
+ };
+@@ -385,6 +388,7 @@
+ 		goto out_put_regulators;
+ 	}
+ 	cluster->mem_volt = current_volt;
++	cluster->cur_freq = clk_get_rate(cluster->clk);
+ 
+ 	if (!cluster->rm_table)
+ 		goto out_put_regulators;
+@@ -512,7 +516,6 @@
+ 		goto out_put_node;
+ 	}
+ 
+-	dev_info(dev, "Rockchip RK3588 CPUFreq transition helper initialized\n");
+ 	of_node_put(opp_np);
+ 	return 0;
+ 
+@@ -574,6 +577,7 @@
+ 			cluster->idle_disabled = true;
+ 		}
+ 	} else if (event == CPUFREQ_POSTCHANGE) {
++		cluster->cur_freq = freqs->new;
+ 		if (cluster->idle_threshold_freq &&
+ 		    freqs->new < cluster->idle_threshold_freq &&
+ 		    cluster->idle_disabled) {
+@@ -590,23 +594,38 @@
+ 	.notifier_call = rockchip_cpufreq_transition_notifier,
+ };
+ 
+-static int __init rockchip_cpufreq_driver_init(void)
++static int rockchip_cpufreq_panic_notifier(struct notifier_block *nb,
++					    unsigned long v, void *p)
++{
++	struct rockchip_cluster *cluster;
++
++	list_for_each_entry(cluster, &rockchip_clusters, node)
++		dev_info(cluster->dev,
++			 "cur_freq: %lu Hz, volt_vdd: %lu uV, volt_mem: %lu uV\n",
++			 cluster->cur_freq, cluster->cpu_volt, cluster->mem_volt);
++
++	return 0;
++}
++
++static struct notifier_block rockchip_cpufreq_panic_nb = {
++	.notifier_call = rockchip_cpufreq_panic_notifier,
++};
++
++static int rockchip_cpufreq_probe(struct platform_device *pdev)
+ {
+ 	struct cpufreq_dt_platform_data pdata = {
+ 		.have_governor_per_policy = true,
+ 	};
++	struct platform_device *cpufreq_dt_pdev;
+ 	struct rockchip_cluster *cluster, *tmp;
+-	struct platform_device *pdev;
+ 	int cpu, ret;
+ 
+-	if (!of_machine_is_compatible("rockchip,rk3588"))
+-		return 0;
+-
+ 	for_each_possible_cpu(cpu) {
+ 		ret = rockchip_cluster_init(cpu);
+ 		if (ret) {
+-			pr_err("failed to initialize RK3588 CPUFreq cluster for cpu%d: %d\n",
+-			       cpu, ret);
++			dev_err(&pdev->dev,
++				"failed to initialize RK3588 CPUFreq cluster for cpu%d: %d\n",
++				cpu, ret);
+ 			goto release_clusters;
+ 		}
+ 	}
+@@ -614,20 +633,38 @@
+ 	ret = cpufreq_register_notifier(&rockchip_cpufreq_transition_nb,
+ 					CPUFREQ_TRANSITION_NOTIFIER);
+ 	if (ret) {
+-		pr_err("failed to register RK3588 CPUFreq transition notifier: %d\n",
+-		       ret);
++		dev_err(&pdev->dev,
++			"failed to register RK3588 CPUFreq transition notifier: %d\n",
++			ret);
+ 		goto release_clusters;
+ 	}
+ 
+-	pdev = platform_device_register_data(NULL, "cpufreq-dt", -1, &pdata,
+-					     sizeof(pdata));
+-	if (IS_ERR(pdev)) {
+-		ret = PTR_ERR(pdev);
++	if (atomic_notifier_chain_register(&panic_notifier_list,
++					   &rockchip_cpufreq_panic_nb))
++		dev_err(&pdev->dev,
++			"failed to register RK3588 CPUFreq panic notifier\n");
++
++	/* Registered from probe (not a bare initcall) so that the SCMI clock
++	 * provider and the RK860X regulators on I2C can appear later: any
++	 * -EPROBE_DEFER from the cluster inits below makes the driver core
++	 * re-probe this device instead of permanently giving up.  The cpufreq-dt
++	 * device is only created once every cluster is ready, so cpufreq-dt's
++	 * own probe never races the OPP configuration. */
++	cpufreq_dt_pdev = platform_device_register_data(&pdev->dev, "cpufreq-dt",
++							PLATFORM_DEVID_NONE,
++							&pdata, sizeof(pdata));
++	if (IS_ERR(cpufreq_dt_pdev)) {
++		ret = PTR_ERR(cpufreq_dt_pdev);
++		atomic_notifier_chain_unregister(&panic_notifier_list,
++						 &rockchip_cpufreq_panic_nb);
+ 		cpufreq_unregister_notifier(&rockchip_cpufreq_transition_nb,
+ 					    CPUFREQ_TRANSITION_NOTIFIER);
+ 		goto release_clusters;
+ 	}
+ 
++	platform_set_drvdata(pdev, cpufreq_dt_pdev);
++	dev_info(&pdev->dev,
++		 "Rockchip RK3588 CPUFreq transition helper initialized\n");
+ 	return 0;
+ 
+ release_clusters:
+@@ -635,6 +672,47 @@
+ 		rockchip_cluster_release(cluster);
+ 	return ret;
+ }
++
++static void rockchip_cpufreq_remove(struct platform_device *pdev)
++{
++	struct platform_device *cpufreq_dt_pdev = platform_get_drvdata(pdev);
++
++	platform_device_unregister(cpufreq_dt_pdev);
++	atomic_notifier_chain_unregister(&panic_notifier_list,
++					 &rockchip_cpufreq_panic_nb);
++	cpufreq_unregister_notifier(&rockchip_cpufreq_transition_nb,
++				    CPUFREQ_TRANSITION_NOTIFIER);
++}
++
++static struct platform_driver rockchip_cpufreq_driver = {
++	.probe = rockchip_cpufreq_probe,
++	.remove = rockchip_cpufreq_remove,
++	.driver = {
++		.name = "rockchip-rk3588-cpufreq",
++	},
++};
++
++static int __init rockchip_cpufreq_driver_init(void)
++{
++	struct platform_device *pdev;
++	int ret;
++
++	if (!of_machine_is_compatible("rockchip,rk3588"))
++		return 0;
++
++	ret = platform_driver_register(&rockchip_cpufreq_driver);
++	if (ret)
++		return ret;
++
++	pdev = platform_device_register_simple("rockchip-rk3588-cpufreq",
++					       PLATFORM_DEVID_NONE, NULL, 0);
++	if (IS_ERR(pdev)) {
++		platform_driver_unregister(&rockchip_cpufreq_driver);
++		return PTR_ERR(pdev);
++	}
++
++	return 0;
++}
+ module_init(rockchip_cpufreq_driver_init);
+ 
+ MODULE_AUTHOR("Rockchip Electronics Co., Ltd.");

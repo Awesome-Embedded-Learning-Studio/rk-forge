@@ -19,8 +19,13 @@ iputils-ping
 openssh-server
 openssh-client
 wpasupplicant
+# nmcli + GNOME WiFi applet — absent in the 8/12 rootfs (board-verified: "nmcli:
+# command not found"); interim connects go through netplan + wpa_supplicant above.
+network-manager
 
-# --- WiFi/BT firmware: AP6xxx = Broadcom brcmfmac; linux-firmware carries the blobs ---
+# --- WiFi/BT firmware: RTL8723DU combo → rtw88 (rtw88/rtw8723d_fw.bin) + btusb/btrtl
+#     (rtl_bt/rtl8723d_fw.bin + rtl8723d_config.bin, both verified on board); all from
+#     linux-firmware ---
 linux-firmware
 
 # --- GPU: Mali-G610 → Panthor. mesa 24.x+ ships the Panthor Gallium driver; libgl1-mesa-dri
