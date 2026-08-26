@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""rk3568-lite 一键拉起。纯 Python，Windows 原生可跑。
+"""rk3568-lite / rk3588-lite 一键拉起。纯 Python，Windows 原生可跑。
 
-用法: boot-smoke.py [模式] [--check]      默认 = uboot 交互直入
-模式: uboot   U-Boot shell（bootloader 体验；--check = booti 接力内核三断言）
-      linux   initramfs Linux shell（--check = M0 三断言）
-      rootfs  virtio 真根文件系统直启
-      board   真板 DTS 直启
-      virt    Day-0 参考启动（QEMU 自带 virt 机器）
+用法: boot-smoke.py [板] [模式] [--check]
+  板（默认 rk3568-lite）: rk3568-lite | rk3588-lite
+  模式: uboot | fit | linux | rootfs | board | virt（板级默认见下）
 
---check 走冒烟断言（CI 形态，喂命令+超时+正则）；不带则 stdio 直连串口交互，
-退出按 Ctrl-A x。SMP=1 可降单核调试；LOG= 指定 --check 日志路径。
+  rk3568-lite 默认 uboot：U-Boot shell；--check = booti 接力挂整块真根
+  rk3588-lite 默认 linux：initramfs shell；--check = 8 核异构三断言
+
+--check 走冒烟断言（喂命令+超时+正则）；不带则 stdio 直连串口交互，
+退出 Ctrl-A x。SMP=1 降单核；QEMU 自动发现（third_party/qemu/build 优先）。
 """
+
 import os
 import re
 import shutil
@@ -23,16 +24,42 @@ from pathlib import Path
 
 SIM = Path(__file__).resolve().parent
 ROOT = SIM.parents[2]
-IMAGE = ROOT / "third_party/src/rk3568-atk/linux/arch/arm64/boot/Image"
-INITRD = SIM / "initramfs-rk3568.cpio.gz"
-ROOTFS = ROOT / "out/rk3568-atk/rootfs.ext4"
-FIT = ROOT / "out/rk3568-atk/boot.img"
-REAL_DTB = ROOT / "third_party/src/rk3568-atk/linux/arch/arm64/boot/dts/rockchip/rk3568-atk-evb1-ddr4-v10.dtb"
-UBOOT = ROOT / "third_party/src/rk3568-atk/uboot/u-boot.bin"
+
+BOARDS = {
+    "rk3568-lite": dict(
+        sim_dir=SIM,
+        image=ROOT / "third_party/src/rk3568-atk/linux/arch/arm64/boot/Image",
+        initrd=SIM / "initramfs-rk3568.cpio.gz",
+        rootfs=ROOT / "out/rk3568-atk/rootfs.ext4",
+        uboot=ROOT / "third_party/src/rk3568-atk/uboot/u-boot.bin",
+        fit=ROOT / "out/rk3568-atk/boot.img",
+        real_dtb=ROOT / "third_party/src/rk3568-atk/linux/arch/arm64/boot/dts/rockchip/rk3568-atk-evb1-ddr4-v10.dtb",
+        mem="1G", console="ttyS2", default_mode="uboot",
+    ),
+    "rk3588-lite": dict(
+        sim_dir=ROOT / "boards/rk3588-topeet/sim",
+        image=ROOT / "third_party/src/rk3588-topeet/linux/arch/arm64/boot/Image",
+        initrd=SIM / "initramfs-rk3568.cpio.gz",  # busybox 包板无关，共用
+        rootfs=ROOT / "out/rk3588-topeet/rootfs.ext4",
+        uboot=None,  # U-Boot 线待课题（真板控制台是 ttyFIQ0，需先解决）
+        fit=None,
+        real_dtb=ROOT / "third_party/src/rk3588-topeet/linux/arch/arm64/boot/dts/rockchip/rk3588-topeet.dtb",
+        mem="2G", console="ttyS2", default_mode="linux",
+    ),
+}
 
 argv = sys.argv[1:]
 check = "--check" in argv
-mode = next((a for a in argv if not a.startswith("--")), "uboot")
+args = [a for a in argv if not a.startswith("--")]
+board = args[0] if args and args[0] in BOARDS else "rk3568-lite"
+if args and args[0] in BOARDS:
+    args = args[1:]
+mode = args[0] if args else BOARDS[board]["default_mode"]
+
+B = BOARDS[board]
+SIM_DTB = B["sim_dir"] / f"{board}.dtb"
+SIM_DTS = B["sim_dir"] / f"{board}.dts"
+INITRD = B["initrd"]
 
 
 def find_qemu():
@@ -50,17 +77,16 @@ def die(msg):
 
 
 def ensure_dtb():
-    """dtb 缺失或比 dts 旧时自动重编（需 dtc + 内核 include 树）"""
-    src, dst = SIM / "rk3568-lite.dts", SIM / "rk3568-lite.dtb"
-    if dst.exists() and dst.stat().st_mtime >= src.stat().st_mtime:
+    """dtb 缺失或比 dts 旧时自动重编（需 dtc + 对应内核 include 树）"""
+    if SIM_DTB.exists() and SIM_DTB.stat().st_mtime >= SIM_DTS.stat().st_mtime:
         return
-    inc = ROOT / "third_party/src/rk3568-atk/linux/include"
+    inc = ROOT / f"third_party/src/{'rk3588-topeet' if board == 'rk3588-lite' else 'rk3568-atk'}/linux/include"
     if not shutil.which("dtc") or not (inc / "dt-bindings").is_dir():
-        die(f"{dst.name} 需要从 {src.name} 重编：请安装 dtc 并确保内核树存在")
-    with open(dst, "wb") as f:
+        die(f"{SIM_DTB.name} 需要从 {SIM_DTS.name} 重编：请安装 dtc 并确保内核树存在")
+    with open(SIM_DTB, "wb") as f:
         pre = subprocess.Popen(
             ["cpp", "-nostdinc", "-I", str(inc), "-undef",
-             "-x", "assembler-with-cpp", str(src)], stdout=subprocess.PIPE)
+             "-x", "assembler-with-cpp", str(SIM_DTS)], stdout=subprocess.PIPE)
         post = subprocess.Popen(
             ["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", "-", "-"],
             stdin=pre.stdout, stdout=f)
@@ -68,97 +94,87 @@ def ensure_dtb():
         post.communicate()
         if pre.wait() or post.returncode:
             die("dtb 重编失败")
-    print("[boot-smoke] rk3568-lite.dtb 已从 dts 重新生成")
+    print(f"[boot-smoke] {SIM_DTB.name} 已从 dts 重新生成")
 
 
 def ensure_initramfs():
-    """initramfs 缺失或比 rootfs 旧时自动重打"""
-    initrd = SIM / "initramfs-rk3568.cpio.gz"
     busybox = ROOT / "out/rk3568-atk/rootfs/bin/busybox"
-    if initrd.exists() and busybox.is_file() \
-            and initrd.stat().st_mtime >= busybox.stat().st_mtime:
+    if INITRD.exists() and busybox.is_file() \
+            and INITRD.stat().st_mtime >= busybox.stat().st_mtime:
         return
     subprocess.run([sys.executable, str(SIM / "build-initramfs.py")], check=True)
 
-if not IMAGE.is_file():
-    die(f"内核 Image 缺失: {IMAGE}（跑 forge build）")
 
-cmd = [find_qemu(), "-M", "rk3568-lite", "-smp", os.environ.get("SMP", "4"),
-       "-m", "1G", "-nographic", "-no-reboot"]
-sim_dtb = ["-dtb", str(SIM / "rk3568-lite.dtb")]
+if not B["image"].is_file():
+    die(f"内核 Image 缺失: {B['image']}（跑 forge build）")
+
+cmd = [find_qemu(), "-M", board, "-smp", os.environ.get("SMP", "8" if board == "rk3588-lite" else "4"),
+       "-m", B["mem"], "-nographic", "-no-reboot"]
+dtb = ["-dtb", str(SIM_DTB)]
 smoke_pats = [rb"Linux version 7\.1\.", rb"Run /init as init process",
               rb"RK3568-M0-SHELL-OK"]
 
-if mode == "virt":
+if mode == "virt" and board == "rk3568-lite":
     cmd[cmd.index("-M") + 1] = "virt"
-    cmd += ["-cpu", "cortex-a55", "-kernel", str(IMAGE), "-initrd", str(INITRD),
+    cmd += ["-cpu", "cortex-a55", "-kernel", str(B["image"]),
+            "-initrd", str(INITRD),
             "-append", "console=ttyAMA0 rdinit=/init rk.smoke=1 panic=-1"]
     tmo, pats, feed = 120, smoke_pats, None
 elif mode == "linux":
-    cmd += ["-kernel", str(IMAGE), "-initrd", str(INITRD), *sim_dtb,
-            "-append", "console=ttyS2 rdinit=/init rk.smoke=1 panic=-1"]
+    cmd += ["-kernel", str(B["image"]), "-initrd", str(INITRD), *dtb,
+            "-append", f"console={B['console']} rdinit=/init rk.smoke=1 panic=-1"]
     tmo, pats, feed = 120, smoke_pats, None
-elif mode == "board":
-    cmd += ["-kernel", str(IMAGE), "-initrd", str(INITRD),
-            "-dtb", str(REAL_DTB),
+elif mode == "board" and board == "rk3568-lite":
+    cmd += ["-kernel", str(B["image"]), "-initrd", str(INITRD),
+            "-dtb", str(B["real_dtb"]),
             "-append", "console=ttyS2 earlycon rdinit=/init rk.smoke=1 panic=-1"]
     tmo, pats, feed = 420, smoke_pats, None
 elif mode == "rootfs":
-    if not ROOTFS.is_file():
-        die(f"rootfs 缺失: {ROOTFS}（跑 forge stage）")
-    cmd += ["-kernel", str(IMAGE),
-            "-drive", f"if=none,id=hd,file={ROOTFS},format=raw",
-            "-device", "virtio-blk-device,drive=hd", *sim_dtb,
-            "-append", "console=ttyS2 root=/dev/vda rw init=/bin/sh "
-                       "rk.smoke=1 panic=-1"]
-    feed = [(8, b"echo RK3568-ROOTFS-SHELL-OK\n"), (2, b"poweroff -f\n")]
-    tmo, pats = 240, [rb"VFS: Mounted root \(ext4 filesystem\)",
-                      rb"RK3568-ROOTFS-SHELL-OK"]
-elif mode == "uboot":
-    if not ROOTFS.is_file():
-        die(f"rootfs 缺失: {ROOTFS}（跑 forge stage）")
-    # U-Boot 吃真板 DTB（看不见 virtio），只负责 booti；内核吃七节点 sim DTB
-    # （含 virtio 节点）接过接力棒后挂整块 rootfs.ext4 真根
-    cmd += ["-bios", str(UBOOT), "-dtb", str(REAL_DTB),
-            "-device", f"loader,file={IMAGE},addr=0x02000000",
-            "-device", f"loader,file={SIM / 'rk3568-lite.dtb'},addr=0x0f000000",
-            "-drive", f"if=none,id=hd,file={ROOTFS},format=raw",
+    if not B["rootfs"].is_file():
+        die(f"rootfs 缺失: {B['rootfs']}（跑 forge stage）")
+    cmd += ["-kernel", str(B["image"]),
+            "-drive", f"if=none,id=hd,file={B['rootfs']},format=raw",
+            "-device", "virtio-blk-device,drive=hd", *dtb,
+            "-append", f"console={B['console']} root=/dev/vda rw rootwait "
+                       "init=/bin/sh rk.smoke=1 panic=-1"]
+    feed = [(8, b"echo ROOTFS-SHELL-OK\n"), (2, b"poweroff -f\n")]
+    tmo, pats = 300, [rb"VFS: Mounted root \(ext4 filesystem\)",
+                      rb"ROOTFS-SHELL-OK"]
+elif mode == "uboot" and board == "rk3568-lite":
+    if not B["rootfs"].is_file():
+        die(f"rootfs 缺失: {B['rootfs']}（跑 forge stage）")
+    cmd += ["-bios", str(B["uboot"]), "-dtb", str(B["real_dtb"]),
+            "-device", f"loader,file={B['image']},addr=0x02000000",
+            "-device", f"loader,file={SIM_DTB},addr=0x0f000000",
+            "-drive", f"if=none,id=hd,file={B['rootfs']},format=raw",
             "-device", "virtio-blk-device,drive=hd"]
     feed = [(0.2, b"\n"),
             (5, b"setenv bootargs 'console=ttyS2 root=/dev/vda rw rootwait "
                  b"init=/bin/sh panic=-1'\n"),
             (1, b"booti 0x02000000 - 0x0f000000\n"),
-            (25, b"echo RK3568-UBOOT-ROOTFS-OK\n"),
-            (3, b"poweroff -f\n")]
+            (25, b"echo UBOOT-ROOTFS-OK\n"), (3, b"poweroff -f\n")]
     tmo, pats = 240, [rb"U-Boot 2026", rb"Hit any key to stop autoboot",
                       rb"VFS: Mounted root \(ext4 filesystem\)",
-                      rb"RK3568-UBOOT-ROOTFS-OK"]
-elif mode == "fit":
-    if not ROOTFS.is_file():
-        die(f"rootfs 缺失: {ROOTFS}（跑 forge stage）")
-    if not FIT.is_file():
-        die(f"boot.img 缺失: {FIT}（跑 forge pack）")
-    # 真板同款：forge 的 FIT boot.img + bootm。第三参用外部 sim DTB 覆盖 FIT
-    # 内置真板 DTB——sim 里根盘是 virtio 替身（真板 DTB 无此节点，rootwait
-    # 会永远等不到 /dev/vda）
-    cmd += ["-bios", str(UBOOT), "-dtb", str(REAL_DTB),
-            "-device", f"loader,file={FIT},addr=0x20000000",
-            "-device", f"loader,file={SIM / 'rk3568-lite.dtb'},addr=0x0f000000",
-            "-drive", f"if=none,id=hd,file={ROOTFS},format=raw",
+                      rb"UBOOT-ROOTFS-OK"]
+elif mode == "fit" and board == "rk3568-lite":
+    if not B["fit"].is_file():
+        die(f"boot.img 缺失: {B['fit']}（跑 forge pack）")
+    cmd += ["-bios", str(B["uboot"]), "-dtb", str(B["real_dtb"]),
+            "-device", f"loader,file={B['fit']},addr=0x20000000",
+            "-device", f"loader,file={SIM_DTB},addr=0x0f000000",
+            "-drive", f"if=none,id=hd,file={B['rootfs']},format=raw",
             "-device", "virtio-blk-device,drive=hd"]
     feed = [(0.2, b"\n"),
             (5, b"setenv bootargs 'console=ttyS2 root=/dev/vda rw rootwait "
                  b"init=/bin/sh panic=-1'\n"),
             (1, b"bootm 0x20000000 - 0x0f000000\n"),
-            (30, b"echo RK3568-UBOOT-FIT-OK\n"),
-            (3, b"poweroff -f\n")]
+            (30, b"echo UBOOT-FIT-OK\n"), (3, b"poweroff -f\n")]
     tmo, pats = 300, [rb"U-Boot 2026", rb"Hit any key to stop autoboot",
-                      rb"VFS: Mounted root \(ext4 filesystem\)",
-                      rb"RK3568-UBOOT-FIT-OK"]
+                      rb"VFS: Mounted root \(ext4 filesystem\)", rb"UBOOT-FIT-OK"]
 else:
-    die(f"unknown mode: {mode}")
+    die(f"unknown mode/board: {mode} {board}")
 
-if mode in ("linux", "rootfs", "uboot", "fit"):
+if mode != "virt":
     ensure_dtb()
 if mode in ("linux", "board", "virt"):
     ensure_initramfs()
@@ -169,22 +185,26 @@ if not check:
         if a == "-append":
             cmd[i + 1] = cmd[i + 1].replace("rk.smoke=1", "").replace("  ", " ")
             break
-    bootargs = ("setenv bootargs 'console=ttyS2 root=/dev/vda rw rootwait "
-                "init=/bin/sh panic=-1'")
+    bootargs = (f"setenv bootargs 'console={B['console']} root=/dev/vda rw "
+                "rootwait init=/bin/sh panic=-1'")
     hints = {
-        "uboot": ("裸 Image@0x02000000 + sim-dtb@0x0f000000 + 真根(/dev/vda)",
+        "uboot": (f"裸 Image@0x02000000 + {SIM_DTB.name}@0x0f000000 + 真根(/dev/vda)",
                   f"{bootargs}\n  booti 0x02000000 - 0x0f000000"),
-        "fit": ("FIT boot.img@0x20000000 + sim-dtb@0x0f000000 + 真根(/dev/vda)",
+        "fit": (f"FIT boot.img@0x20000000 + {SIM_DTB.name}@0x0f000000 + 真根(/dev/vda)",
                 f"{bootargs}\n  bootm 0x20000000 - 0x0f000000"),
+        "linux": ("initramfs，/init 自动落 shell", ""),
+        "rootfs": ("真根(/dev/vda) + init=/bin/sh，/init 后即 shell", ""),
     }
     if mode in hints:
         preload, bootcmd = hints[mode]
-        print(f"[boot-smoke] 预载: {preload}\n[boot-smoke] 建议:\n  {bootcmd}",
-              file=sys.stderr)
+        lines = f"[boot-smoke] {board} {mode} 预载: {preload}"
+        if bootcmd:
+            lines += f"\n[boot-smoke] 建议:\n  {bootcmd}"
+        print(lines, file=sys.stderr)
     sys.exit(subprocess.run(cmd).returncode)
 
 log_path = Path(os.environ.get("LOG") or Path(tempfile.gettempdir())
-                / f"rk3568-m0-{mode}-boot.log")
+                / f"rk-m0-{board}-{mode}-boot.log")
 with open(log_path, "wb") as log:
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=log,
                             stderr=subprocess.STDOUT)

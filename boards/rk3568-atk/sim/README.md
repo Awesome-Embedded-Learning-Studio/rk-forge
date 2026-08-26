@@ -9,16 +9,16 @@
 
 | 文件 | 作用 |
 |---|---|
-| boot-smoke.py | 一键拉起（下表六模式 × 交互/断言两形态） |
+| boot-smoke.py | 一键拉起，**双板**（`[rk3568-lite\|rk3588-lite] [模式] [--check]`） |
 | build-initramfs.py | 纯 Python cpio 写 initramfs（不需要 fakeroot/cpio，确定性输出） |
 | rk3568-lite.dts | 七节点最小 DTS，只描述已建模设备 |
-| qemu-rk3568-lite.patch | rk3568-lite 机器模型（对 QEMU v11.1.0 的补丁，构建前 `git apply`） |
+| qemu-sim-machines.patch | rk3568-lite + rk3588-lite 双机器模型（对 QEMU v11.1.0 的补丁，构建前 `git apply`） |
 
 `*.dtb` / `*.cpio.gz` 不入库（gitignore）：boot-smoke.py 启动时自动检查新鲜度并
 重编（dtb 旧于 dts → cpp+dtc 重编；initramfs 旧于 rootfs → 重打），新克隆 +
 `forge stage/build` 后即可直接拉起。
 
-## 拉起
+## 拉起（rk3568 线；rk3588 线见 ../rk3588-topeet/sim/）
 
 ```bash
 python3 boards/rk3568-atk/sim/boot-smoke.py               # 交互直入 U-Boot（默认）
@@ -61,7 +61,7 @@ QEMU 自动发现：`third_party/qemu/build` 优先，PATH 兜底，`QEMU=` 可�
 sudo apt install meson ninja-build libglib2.0-dev libpixman-1-dev device-tree-compiler
 cd third_party/qemu
 git clone --depth 1 --branch v11.1.0 https://github.com/qemu/qemu .   # 空目录时
-git apply ../../boards/rk3568-atk/sim/qemu-rk3568-lite.patch          # 机器模型
+git apply ../../boards/rk3568-atk/sim/qemu-sim-machines.patch         # 双机器模型
 mkdir -p build && cd build && ../configure --target-list=aarch64-softmmu && ninja
 ```
 

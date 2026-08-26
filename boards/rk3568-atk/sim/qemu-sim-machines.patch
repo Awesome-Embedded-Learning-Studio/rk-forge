@@ -1,8 +1,8 @@
 diff --git a/hw/arm/Kconfig b/hw/arm/Kconfig
-index 82e0bc2..5577fb7 100644
+index 82e0bc2..c9739b3 100644
 --- a/hw/arm/Kconfig
 +++ b/hw/arm/Kconfig
-@@ -725,3 +725,14 @@ config ARMSSE
+@@ -725,3 +725,25 @@ config ARMSSE
      select UNIMP
      select SSE_COUNTER
      select SSE_TIMER
@@ -17,15 +17,27 @@ index 82e0bc2..5577fb7 100644
 +    select UNIMP
 +    select VIRTIO_MMIO
 +    select VIRTIO_BLK
++
++config RK3588_LITE
++    bool
++    default y
++    depends on AARCH64
++    depends on TCG
++    select ARM_GICV3
++    select SERIAL_MM
++    select UNIMP
++    select VIRTIO_MMIO
++    select VIRTIO_BLK
 diff --git a/hw/arm/meson.build b/hw/arm/meson.build
-index 4233a80..bc49e6a 100644
+index 4233a80..36d1a78 100644
 --- a/hw/arm/meson.build
 +++ b/hw/arm/meson.build
-@@ -86,6 +86,7 @@ arm_common_ss.add(when: 'CONFIG_FSL_IMX8MP', if_true: files('fsl-imx8mp.c'))
+@@ -86,6 +86,8 @@ arm_common_ss.add(when: 'CONFIG_FSL_IMX8MP', if_true: files('fsl-imx8mp.c'))
  arm_common_ss.add(when: 'CONFIG_FSL_IMX8MP_EVK', if_true: files('imx8mp-evk.c'))
  arm_common_ss.add(when: 'CONFIG_FSL_IMX8MM', if_true: files('fsl-imx8mm.c'))
  arm_common_ss.add(when: 'CONFIG_FSL_IMX8MM_EVK', if_true: files('imx8mm-evk.c'))
 +arm_common_ss.add(when: 'CONFIG_RK3568_LITE', if_true: files('rk3568-lite.c'))
++arm_common_ss.add(when: 'CONFIG_RK3588_LITE', if_true: files('rk3588-lite.c'))
  arm_common_ss.add(when: 'CONFIG_ARM_SMMUV3', if_true: files('smmuv3.c'))
  arm_common_ss.add(when: 'CONFIG_ARM_SMMUV3_ACCEL', if_true: files('smmuv3-accel.c'))
  stub_ss.add(files('smmuv3-accel-stubs.c'))
