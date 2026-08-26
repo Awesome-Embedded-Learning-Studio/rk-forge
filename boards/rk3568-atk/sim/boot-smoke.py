@@ -124,6 +124,14 @@ elif mode == "linux":
     cmd += ["-kernel", str(B["image"]), "-initrd", str(INITRD), *dtb,
             "-append", f"console={B['console']} rdinit=/init rk.smoke=1 panic=-1"]
     tmo, pats, feed = 120, smoke_pats, None
+elif mode == "board" and board == "rk3588-lite":
+    # 真板 DTS：FIQ 调试器被 modify_dtb 挪走、uart2 还给 8250；显式 earlycon
+    # 不依赖 chosen；cpuidle.off=1 规避 TCG 异构下的 hard lockup（笔记 68）
+    cmd += ["-kernel", str(B["image"]), "-initrd", str(INITRD),
+            "-dtb", str(B["real_dtb"]),
+            "-append", "console=ttyS2 earlycon=uart8250,mmio32,0xfeb50000 "
+                       "rdinit=/init rk.smoke=1 panic=-1 cpuidle.off=1"]
+    tmo, pats, feed = 420, smoke_pats, None
 elif mode == "board" and board == "rk3568-lite":
     cmd += ["-kernel", str(B["image"]), "-initrd", str(INITRD),
             "-dtb", str(B["real_dtb"]),

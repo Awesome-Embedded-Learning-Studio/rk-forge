@@ -16,6 +16,6 @@ python3 boards/rk3568-atk/sim/boot-smoke.py rk3588-lite rootfs --check  # Ubuntu
 |---|---|
 | rk3588-lite.dts | 八节点异构最小 DTS（A55@0x0-0x300 + A76@0x400-0x700） |
 
-真板控制台是 ttyFIQ0（FIQ 调试器，靠 BL31）——sim 走普通 8250（uart2@
-0xfeb50000），board/uboot/fit 模式因此待课题。叙事见
+board 模式已通（真板 DTS 三断言，modify_dtb 把 uart2 从 FIQ 调试器还给 8250）；
+uboot/fit 待 SCMI 仿真课题（rk3588 U-Boot 靠 BL31 的 SCMI 服务，笔记 68 §3）。叙事见
 [notes/67](../../../document/notes/67-2026-08-26-rk3588-lite-heterogeneous-ubuntu.md)。
