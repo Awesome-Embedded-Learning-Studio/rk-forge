@@ -1,0 +1,638 @@
+diff --git a/hw/arm/Kconfig b/hw/arm/Kconfig
+index 82e0bc2..5577fb7 100644
+--- a/hw/arm/Kconfig
++++ b/hw/arm/Kconfig
+@@ -725,3 +725,14 @@ config ARMSSE
+     select UNIMP
+     select SSE_COUNTER
+     select SSE_TIMER
++
++config RK3568_LITE
++    bool
++    default y
++    depends on AARCH64
++    depends on TCG
++    select ARM_GICV3
++    select SERIAL_MM
++    select UNIMP
++    select VIRTIO_MMIO
++    select VIRTIO_BLK
+diff --git a/hw/arm/meson.build b/hw/arm/meson.build
+index 4233a80..bc49e6a 100644
+--- a/hw/arm/meson.build
++++ b/hw/arm/meson.build
+@@ -86,6 +86,7 @@ arm_common_ss.add(when: 'CONFIG_FSL_IMX8MP', if_true: files('fsl-imx8mp.c'))
+ arm_common_ss.add(when: 'CONFIG_FSL_IMX8MP_EVK', if_true: files('imx8mp-evk.c'))
+ arm_common_ss.add(when: 'CONFIG_FSL_IMX8MM', if_true: files('fsl-imx8mm.c'))
+ arm_common_ss.add(when: 'CONFIG_FSL_IMX8MM_EVK', if_true: files('imx8mm-evk.c'))
++arm_common_ss.add(when: 'CONFIG_RK3568_LITE', if_true: files('rk3568-lite.c'))
+ arm_common_ss.add(when: 'CONFIG_ARM_SMMUV3', if_true: files('smmuv3.c'))
+ arm_common_ss.add(when: 'CONFIG_ARM_SMMUV3_ACCEL', if_true: files('smmuv3-accel.c'))
+ stub_ss.add(files('smmuv3-accel-stubs.c'))
+diff --git a/hw/arm/rk3568-lite.c b/hw/arm/rk3568-lite.c
+new file mode 100644
+index 0000000..94801f3
+--- /dev/null
++++ b/hw/arm/rk3568-lite.c
+@@ -0,0 +1,601 @@
++/*
++ * Rockchip RK3568-lite: minimal machine model for mainline Linux bring-up.
++ * Models 4x Cortex-A55, GICv3 and UART2 only; DRAM at 0 (CFG_SYS_SDRAM_BASE=0).
++ * The guest DTB (boards/rk3568-atk/sim/rk3568-lite.dts) must describe no more
++ * than what is modeled here — absent nodes must not be probed by the guest.
++ *
++ * SPDX-License-Identifier: GPL-2.0-or-later
++ */
++
++#include "qemu/osdep.h"
++#include <elf.h>
++#include "hw/arm/boot.h"
++#include "hw/arm/bsa.h"
++#include "hw/arm/machines-qom.h"
++#include "hw/core/boards.h"
++#include "hw/core/irq.h"
++#include "hw/core/loader.h"
++#include "hw/char/serial-mm.h"
++#include "hw/core/qdev-properties.h"
++#include "hw/intc/arm_gicv3.h"
++#include "hw/core/sysbus.h"
++#include "hw/misc/unimp.h"
++#include "system/address-spaces.h"
++#include "system/kvm.h"
++#include "system/qtest.h"
++#include "system/system.h"
++#include "target/arm/cpu.h"
++#include "qapi/error.h"
++#include "qemu/error-report.h"
++#include "qemu/datadir.h"
++#include "qemu/units.h"
++#include "qobject/qlist.h"
++
++#define TYPE_RK3568_LITE_MACHINE MACHINE_TYPE_NAME("rk3568-lite")
++OBJECT_DECLARE_SIMPLE_TYPE(Rk3568LiteState, RK3568_LITE_MACHINE)
++
++#define RK3568_LITE_NUM_CPUS 4
++#define RK3568_LITE_NUM_SPIS 256
++#define RK3568_LITE_UART2_SPI 118
++
++/* Addresses from Linux rk356x-base.dtsi (v7.1) */
++enum {
++    RK3568_LITE_GICD = 0xfd400000,
++    RK3568_LITE_GICR = 0xfd460000,
++    RK3568_LITE_UART2 = 0xfe660000,
++    RK3568_LITE_PMUGRF = 0xfdc20000,
++    RK3568_LITE_GRF = 0xfdc60000,
++    RK3568_LITE_PMUCRU = 0xfdd00000,
++    RK3568_LITE_CRU = 0xfdd20000,
++    RK3568_LITE_I2C0 = 0xfdd40000,
++    RK3568_LITE_PMU = 0xfdd90000,
++    RK3568_LITE_I2C1 = 0xfe5a0000,
++    RK3568_LITE_I2C5 = 0xfe5e0000,
++};
++
++/*
++ * rk3x i2c minimal model: no devices are attached in the sim, so every
++ * transfer is answered with an immediate address-phase NACK (REG_INT_NAKRCV).
++ * Events complete synchronously (CON.START/STOP and MTXCNT/MRXCNT writes pend
++ * the matching IPD bit and re-evaluate the irq against IEN), which turns the
++ * 1s-per-transfer timeouts of an unmodeled controller into instant -ENXIO.
++ * Register/bit values from drivers/i2c/busses/i2c-rk3x.c.
++ */
++struct Rk3568LiteI2c {
++    MemoryRegion mmio;
++    qemu_irq irq;
++    uint32_t regs[0x1000 / 4];
++    uint32_t ipd;
++};
++
++static void rk3568_lite_i2c_update(struct Rk3568LiteI2c *s)
++{
++    qemu_set_irq(s->irq, !!(s->ipd & s->regs[0x18 / 4]));
++}
++
++static uint64_t rk3568_lite_i2c_read(void *opaque, hwaddr offset,
++                                     unsigned size)
++{
++    struct Rk3568LiteI2c *s = opaque;
++
++    if (offset == 0x1c) {
++        return s->ipd;
++    }
++    return s->regs[offset >> 2];
++}
++
++static void rk3568_lite_i2c_write(void *opaque, hwaddr offset,
++                                  uint64_t value, unsigned size)
++{
++    struct Rk3568LiteI2c *s = opaque;
++
++    switch (offset) {
++    case 0x00: /* CON */
++        s->regs[0] = value;
++        if (value & BIT(3)) {          /* CON.START */
++            s->ipd |= BIT(4);          /* IPD.START */
++        }
++        if (value & BIT(4)) {          /* CON.STOP */
++            s->ipd |= BIT(5);          /* IPD.STOP */
++        }
++        break;
++    case 0x10: /* MTXCNT */
++    case 0x14: /* MRXCNT */
++        s->regs[offset >> 2] = value;
++        s->ipd |= BIT(6);              /* IPD.NAKRCV: no device answers */
++        break;
++    case 0x1c: /* IPD, write-1-to-clear */
++        s->ipd &= ~value;
++        break;
++    default:
++        s->regs[offset >> 2] = value;
++        break;
++    }
++    rk3568_lite_i2c_update(s);
++}
++
++static const MemoryRegionOps rk3568_lite_i2c_ops = {
++    .read = rk3568_lite_i2c_read,
++    .write = rk3568_lite_i2c_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 4,
++    .valid.max_access_size = 4,
++};
++
++/*
++ * rk3568 OTP minimal model (offsets/bits from U-Boot rockchip-otp.c): reads
++ * answer zeros — no cpuid is fused in the sim — but INT_STATUS @0x304
++ * self-sets its done bits when the driver kicks SBPI (@0x20) or a user read
++ * (@0x108), otherwise misc_init_r() times out waiting for the OTP.
++ */
++static uint64_t rk3568_lite_otp_read(void *opaque, hwaddr offset,
++                                     unsigned size)
++{
++    uint32_t *regs = opaque;
++
++    return regs[offset >> 2];
++}
++
++static void rk3568_lite_otp_write(void *opaque, hwaddr offset,
++                                  uint64_t value, unsigned size)
++{
++    uint32_t *regs = opaque;
++
++    regs[offset >> 2] = value;
++    switch (offset) {
++    case 0x20:  /* SBPI start */
++        regs[0x304 / 4] |= BIT(1);
++        break;
++    case 0x108: /* user-mode FSM enable */
++        if (value & BIT(0)) {
++            regs[0x304 / 4] |= BIT(2);
++        }
++        break;
++    case 0x304: /* INT_STATUS, write-1-to-clear */
++        regs[0x304 / 4] &= ~value;
++        break;
++    }
++}
++
++static const MemoryRegionOps rk3568_lite_otp_ops = {
++    .read = rk3568_lite_otp_read,
++    .write = rk3568_lite_otp_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++};
++
++struct Rk3568LiteState {
++    MachineState parent_obj;
++
++    ARMCPU *cpu[RK3568_LITE_NUM_CPUS];
++    MemoryRegion uart2_ext;
++    MemoryRegion cru, pmucru, grf, pmugrf, pmu, otp;
++    uint32_t cru_regs[0x1000 / 4], pmucru_regs[0x1000 / 4];
++    uint32_t pmu_regs[0x1000 / 4], otp_regs[0x4000 / 4];
++    uint32_t pmugrf_regs[0x1000 / 4];
++    struct arm_boot_info boot_info;
++    struct Rk3568LiteI2c i2c[3];
++};
++
++
++/*
++ * DW-APB-UART ext space outside the 16550 window. Linux 8250_dw reads the
++ * component regs to learn FIFO depth: with 0s it bails out of dw8250_setup_port
++ * without UART_CAP_FIFO and the tty TX path goes dead (console polling still
++ * works — the confusing part). Answer honestly per RK3568 TRM:
++ *   CPR @0xf4 = 32-deep FIFO (GENMASK(23,16) * 16), 32-bit APB data width
++ *   UCV @0xf8 = any nonzero version string
++ * All other ext offsets (RS485 @0xac/0xb0/0xb4, DLF @0xc0) read 0: no hw
++ * RS485, no DLF — the driver falls back to emulated rs485 / plain divisor.
++ */
++static uint64_t rk3568_lite_uart2_ext_read(void *opaque, hwaddr offset,
++                                           unsigned size)
++{
++    switch (offset) {
++    case 0xf4: return 0x00020002;
++    case 0xf8: return 0x342e30; /* "4.0" */
++    default:   return 0;
++    }
++}
++
++static void rk3568_lite_uart2_ext_write(void *opaque, hwaddr offset,
++                                        uint64_t value, unsigned size)
++{
++}
++
++static const MemoryRegionOps rk3568_lite_uart2_ext_ops = {
++    .read = rk3568_lite_uart2_ext_read,
++    .write = rk3568_lite_uart2_ext_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++};
++
++
++/*
++ * GRF/PMUGRF/PMU "yes-man": reads report all-ones. GRF SOC_STATUS0 @0x580
++ * must show every PLL locked or the clock framework poll-waits forever; the
++ * PMU power-domain driver needs ack bits set or each domain burns a timeout.
++ */
++static uint64_t rk3568_lite_yesman_read(void *opaque, hwaddr offset,
++                                        unsigned size)
++{
++    return 0xffffffff;
++}
++
++static void rk3568_lite_yesman_write(void *opaque, hwaddr offset,
++                                     uint64_t value, unsigned size)
++{
++}
++
++static const MemoryRegionOps rk3568_lite_yesman_ops = {
++    .read = rk3568_lite_yesman_read,
++    .write = rk3568_lite_yesman_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 1,
++    .valid.max_access_size = 8,
++};
++
++static void rk3568_lite_add_yesman(MachineState *machine, MemoryRegion *mr,
++                                   const char *name, hwaddr base)
++{
++    memory_region_init_io(mr, OBJECT(machine), &rk3568_lite_yesman_ops,
++                          NULL, name, 0x1000);
++    memory_region_add_subregion(get_system_memory(), base, mr);
++}
++
++/*
++ * PMUGRF shadow, RAM-backed. The machine plays TPL's role for DRAM sizing:
++ * OS_REG2 @0x208 / OS_REG3 @0x20c are pre-written with a 1 GiB encoding
++ * (sdram.c decode: 1ch, 1rank, DDR3, 16row/9col/8bank/32bit
++ * = 1 << (16+9+3+0+2-20) MB) so U-Boot sizes DRAM exactly like a real board
++ * whose TPL programmed these — no U-Boot patch involved.
++ */
++static uint64_t rk3568_lite_pmugrf_read(void *opaque, hwaddr offset,
++                                        unsigned size)
++{
++    uint32_t *regs = opaque;
++
++    return regs[offset >> 2];
++}
++
++static void rk3568_lite_pmugrf_write(void *opaque, hwaddr offset,
++                                     uint64_t value, unsigned size)
++{
++    uint32_t *regs = opaque;
++
++    regs[offset >> 2] = value;
++}
++
++static const MemoryRegionOps rk3568_lite_pmugrf_ops = {
++    .read = rk3568_lite_pmugrf_read,
++    .write = rk3568_lite_pmugrf_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 1,
++    .valid.max_access_size = 8,
++};
++
++/*
++ * PMU power-management shadow (offsets from pm-domains.c rk3568_pmu and
++ * DOMAIN_RK3568 → DOMAIN_M masks: req/idle/ack share the req bit, status
++ * shares the pwr bit):
++ *   req   @0x50 — driver writes idle-request bits
++ *   ack   @0x60, idle @0x68 — poll targets, mirror req
++ *   pwr   @0xa0 — power switch (bit set = powered down)
++ *   status@0x98 — is_on poll target (bit set = OFF per driver comment
++ *                 "1'b0: power on, 1'b1: power off"), mirrors pwr directly
++ * Following the driver's own writes makes every handshake resolve instantly
++ * in both directions; anything stateless (or wrong-polarity) burns 10ms×N.
++ */
++static uint64_t rk3568_lite_pmu_read(void *opaque, hwaddr offset,
++                                     unsigned size)
++{
++    uint32_t *regs = opaque;
++
++    if (offset == 0x60 || offset == 0x68) {
++        return regs[0x50 / 4];
++    }
++    if (offset == 0x98) {
++        return regs[0xa0 / 4];
++    }
++    return regs[offset >> 2];
++}
++
++static void rk3568_lite_pmu_write(void *opaque, hwaddr offset,
++                                  uint64_t value, unsigned size)
++{
++    uint32_t *regs = opaque;
++
++    regs[offset >> 2] = value;
++}
++
++static const MemoryRegionOps rk3568_lite_pmu_ops = {
++    .read = rk3568_lite_pmu_read,
++    .write = rk3568_lite_pmu_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 1,
++    .valid.max_access_size = 8,
++};
++
++/*
++ * CRU/PMUCRU shadow: RAM-backed, writes stick, reads return the stored value
++ * with the PLL lock bit forced on (PLL blocks sit at 0x20 stride, CON1 at +4,
++ * rk3036-style lock = BIT(10)). Zeros everywhere else are deliberate: muxes
++ * park on their first parent (xin24m for the UARTs → sane 24MHz baud clock,
++ * all-ones here instead yields garbage rates and dw-apb-uart bails with
++ * EINVAL) and dividers of 0 are read as divide-by-1 by the driver.
++ */
++static uint64_t rk3568_lite_cru_read(void *opaque, hwaddr offset,
++                                     unsigned size)
++{
++    uint32_t *regs = opaque;
++    uint32_t v = regs[offset >> 2];
++
++    if ((offset & 0x1f) == 4) {
++        v |= BIT(10);
++    }
++    return v;
++}
++
++static void rk3568_lite_cru_write(void *opaque, hwaddr offset,
++                                  uint64_t value, unsigned size)
++{
++    uint32_t *regs = opaque;
++
++    regs[offset >> 2] = value;
++}
++
++static const MemoryRegionOps rk3568_lite_cru_ops = {
++    .read = rk3568_lite_cru_read,
++    .write = rk3568_lite_cru_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 1,
++    .valid.max_access_size = 8,
++};
++
++static void rk3568_lite_init(MachineState *machine)
++{
++    Rk3568LiteState *s = RK3568_LITE_MACHINE(machine);
++    MemoryRegion *sysmem = get_system_memory();
++    DeviceState *gicdev;
++    int i;
++
++    if (machine->smp.cpus > RK3568_LITE_NUM_CPUS) {
++        error_report("rk3568-lite: at most %d CPUs", RK3568_LITE_NUM_CPUS);
++        exit(1);
++    }
++
++    for (i = 0; i < machine->smp.cpus; i++) {
++        Object *cpu = object_new(machine->cpu_type);
++
++        if (machine->smp.cpus > 1 &&
++                object_property_find(cpu, "reset-cbar")) {
++            object_property_set_int(cpu, "reset-cbar", RK3568_LITE_GICD,
++                                    &error_abort);
++        }
++        object_property_set_int(cpu, "cntfrq", 24000000, &error_abort);
++        /* match DT cpus reg = 0x0/0x100/0x200/0x300 (Aff1 = index) so PSCI
++         * CPU_ON finds secondaries; default build_mp_affinity gives Aff0 */
++        ARM_CPU(cpu)->mp_affinity = (uint64_t)i << 8;
++        object_property_set_bool(cpu, "has_el2", !kvm_enabled(), &error_abort);
++        /* no EL3: firmware (U-Boot) enters at EL2 and hands the kernel EL2;
++         * with EL3 on, QEMU disables the SMC PSCI conduit for EL3 firmware
++         * entry and the kernel dies on its first smc */
++        object_property_set_bool(cpu, "has_el3", false, &error_abort);
++        if (i) {
++            object_property_set_bool(cpu, "start-powered-off", true,
++                                     &error_abort);
++        }
++        qdev_realize(DEVICE(cpu), NULL, &error_fatal);
++        s->cpu[i] = ARM_CPU(cpu);
++    }
++
++    gicdev = qdev_new(gicv3_class_name());
++    qdev_prop_set_uint32(gicdev, "num-cpu", machine->smp.cpus);
++    qdev_prop_set_uint32(gicdev, "num-irq",
++                         RK3568_LITE_NUM_SPIS + GIC_INTERNAL);
++    {
++        QList *redist_region_count = qlist_new();
++        qlist_append_int(redist_region_count, machine->smp.cpus);
++        qdev_prop_set_array(gicdev, "redist-region-count", redist_region_count);
++    }
++    object_property_set_link(OBJECT(gicdev), "sysmem", OBJECT(sysmem),
++                             &error_fatal);
++    sysbus_realize_and_unref(SYS_BUS_DEVICE(gicdev), &error_fatal);
++    sysbus_mmio_map(SYS_BUS_DEVICE(gicdev), 0, RK3568_LITE_GICD);
++    sysbus_mmio_map(SYS_BUS_DEVICE(gicdev), 1, RK3568_LITE_GICR);
++
++    for (i = 0; i < machine->smp.cpus; i++) {
++        DeviceState *cpudev = DEVICE(s->cpu[i]);
++        int intidbase = RK3568_LITE_NUM_SPIS + i * GIC_INTERNAL;
++        qemu_irq irq;
++        static const int timer_irqs[] = {
++            [GTIMER_PHYS] = ARCH_TIMER_NS_EL1_IRQ,
++            [GTIMER_VIRT] = ARCH_TIMER_VIRT_IRQ,
++            [GTIMER_HYP]  = ARCH_TIMER_NS_EL2_IRQ,
++            [GTIMER_SEC]  = ARCH_TIMER_S_EL1_IRQ,
++        };
++
++        for (int j = 0; j < ARRAY_SIZE(timer_irqs); j++) {
++            irq = qdev_get_gpio_in(gicdev, intidbase + timer_irqs[j]);
++            qdev_connect_gpio_out(cpudev, j, irq);
++        }
++        irq = qdev_get_gpio_in(gicdev, intidbase + ARCH_GIC_MAINT_IRQ);
++        qdev_connect_gpio_out_named(cpudev, "gicv3-maintenance-interrupt",
++                                    0, irq);
++        irq = qdev_get_gpio_in(gicdev, intidbase + VIRTUAL_PMU_IRQ);
++        qdev_connect_gpio_out_named(cpudev, "pmu-interrupt", 0, irq);
++
++        sysbus_connect_irq(SYS_BUS_DEVICE(gicdev), i,
++                           qdev_get_gpio_in(cpudev, ARM_CPU_IRQ));
++        sysbus_connect_irq(SYS_BUS_DEVICE(gicdev), i + machine->smp.cpus,
++                           qdev_get_gpio_in(cpudev, ARM_CPU_FIQ));
++        sysbus_connect_irq(SYS_BUS_DEVICE(gicdev), i + 2 * machine->smp.cpus,
++                           qdev_get_gpio_in(cpudev, ARM_CPU_VIRQ));
++        sysbus_connect_irq(SYS_BUS_DEVICE(gicdev), i + 3 * machine->smp.cpus,
++                           qdev_get_gpio_in(cpudev, ARM_CPU_VFIQ));
++    }
++
++    /* DW ext space under the 16550 window; serial_mm added later wins the
++     * standard window (equal-priority subregions: last added takes precedence) */
++    memory_region_init_io(&s->uart2_ext, OBJECT(machine),
++                          &rk3568_lite_uart2_ext_ops, NULL,
++                          "rk3568-lite.uart2-ext", 0x100);
++    memory_region_add_subregion(sysmem, RK3568_LITE_UART2, &s->uart2_ext);
++
++    /* sim-only virtio-mmio transports (no real RK3568 counterpart); addresses
++     * and SPIs match the dts nodes in boards/rk3568-atk/sim/rk3568-lite.dts */
++    for (i = 0; i < 4; i++) {
++        sysbus_create_simple("virtio-mmio", 0xfea00000 + i * 0x200,
++                             qdev_get_gpio_in(gicdev, 160 + i));
++    }
++
++    /* gicv3 sysbus gpio-in[n] IS SPI n (INTID = n + 32, see gicv3_set_irq) */
++    serial_mm_init(sysmem, RK3568_LITE_UART2, 2, /* regshift=2 per DT reg-shift */
++                   qdev_get_gpio_in(gicdev, RK3568_LITE_UART2_SPI),
++                   24000000 / 16, serial_hd(0), DEVICE_LITTLE_ENDIAN);
++
++    /* peripheral-space blanket at explicit low priority: always loses to any
++     * real region regardless of insertion order (ties are not to be trusted) */
++    {
++        DeviceState *dev = qdev_new(TYPE_UNIMPLEMENTED_DEVICE);
++        qdev_prop_set_string(dev, "name", "peripherals");
++        qdev_prop_set_uint64(dev, "size", 0x10000000);
++        sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
++        memory_region_add_subregion_overlap(
++            sysmem, 0xf0000000,
++            sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 0), -100);
++    }
++
++    memory_region_init_io(&s->cru, OBJECT(machine), &rk3568_lite_cru_ops,
++                          s->cru_regs, "rk3568-lite.cru", 0x1000);
++    memory_region_add_subregion(sysmem, RK3568_LITE_CRU, &s->cru);
++    memory_region_init_io(&s->pmucru, OBJECT(machine), &rk3568_lite_cru_ops,
++                          s->pmucru_regs, "rk3568-lite.pmucru", 0x1000);
++    memory_region_add_subregion(sysmem, RK3568_LITE_PMUCRU, &s->pmucru);
++    rk3568_lite_add_yesman(machine, &s->grf, "rk3568-lite.grf", RK3568_LITE_GRF);
++    s->pmugrf_regs[0x208 / 4] = 0x60c0;    /* OS_REG2: 1 GiB DDR3 encoding */
++    memory_region_init_io(&s->pmugrf, OBJECT(machine), &rk3568_lite_pmugrf_ops,
++                          s->pmugrf_regs, "rk3568-lite.pmugrf", 0x1000);
++    memory_region_add_subregion(sysmem, RK3568_LITE_PMUGRF, &s->pmugrf);
++    memory_region_init_io(&s->pmu, OBJECT(machine), &rk3568_lite_pmu_ops,
++                          s->pmu_regs, "rk3568-lite.pmu", 0x1000);
++    memory_region_add_subregion(sysmem, RK3568_LITE_PMU, &s->pmu);
++
++    for (i = 0; i < 3; i++) {
++        static const struct {
++            hwaddr base;
++            int spi;
++        } i2cs[] = {
++            { RK3568_LITE_I2C0, 46 },
++            { RK3568_LITE_I2C1, 47 },
++            { RK3568_LITE_I2C5, 51 },
++        };
++        g_autofree char *name = g_strdup_printf("rk3568-lite.i2c%d", i);
++
++        memory_region_init_io(&s->i2c[i].mmio, OBJECT(machine),
++                              &rk3568_lite_i2c_ops, &s->i2c[i], name, 0x1000);
++        memory_region_add_subregion(sysmem, i2cs[i].base, &s->i2c[i].mmio);
++        s->i2c[i].irq = qdev_get_gpio_in(gicdev, i2cs[i].spi);
++    }
++
++    memory_region_init_io(&s->otp, OBJECT(machine), &rk3568_lite_otp_ops,
++                          s->otp_regs, "rk3568-lite.otp", 0x4000);
++    memory_region_add_subregion(sysmem, 0xfe38c000, &s->otp);
++
++    memory_region_add_subregion(sysmem, 0, machine->ram);
++
++    s->boot_info = (struct arm_boot_info) {
++        .loader_start = 0, /* DRAM base 0 */
++        .board_id = -1,
++        .ram_size = machine->ram_size,
++        .psci_conduit = QEMU_PSCI_CONDUIT_SMC,
++    };
++
++    /* -bios (U-Boot proper ELF): arm_load_kernel does not load it — loading
++     * firmware is the machine's own job. Entry comes from the ELF headers;
++     * the DTB (if passed) lands at loader_start via the firmware boot path. */
++    if (machine->firmware) {
++        char *fname = qemu_find_file(QEMU_FILE_TYPE_BIOS, machine->firmware);
++        uint64_t entry = 0;
++
++        if (!fname) {
++            error_report("firmware not found: %s", machine->firmware);
++            exit(1);
++        }
++        if (load_elf_as(fname, NULL, NULL, NULL, &entry, NULL, NULL, NULL,
++                        ELFDATA2LSB, EM_AARCH64, 1, 0, NULL) < 0) {
++            /* raw image (u-boot.bin: OF_SEPARATE dtb is appended, not in the
++             * ELF) — load at CONFIG_TEXT_BASE and enter there */
++            if (load_image_targphys_as(fname, 0x00800000,
++                                       machine->ram_size, NULL,
++                                       &error_fatal) < 0) {
++                error_report("failed to load firmware: %s", fname);
++                exit(1);
++            }
++            entry = 0x00800000;
++        }
++        g_free(fname);
++        s->boot_info.entry = entry;
++        s->boot_info.firmware_loaded = true;
++    }
++
++    if (!qtest_enabled()) {
++        arm_load_kernel(s->cpu[0], machine, &s->boot_info);
++    }
++
++    if (machine->firmware) {
++        CPUState *cs;
++
++        /* firmware-boot convention leaves env->boot_info NULL so the PC
++         * stays at the reset vector 0; the machine knows the ELF entry,
++         * so wire boot_info ourselves and let do_cpu_reset set the PC */
++        CPU_FOREACH(cs) {
++            ARM_CPU(cs)->env.boot_info = &s->boot_info;
++        }
++    }
++}
++
++static const char *rk3568_lite_get_default_cpu_type(const MachineState *ms)
++{
++    if (kvm_enabled()) {
++        return ARM_CPU_TYPE_NAME("host");
++    }
++    return ARM_CPU_TYPE_NAME("cortex-a55");
++}
++
++static void rk3568_lite_machine_class_init(ObjectClass *oc, const void *data)
++{
++    MachineClass *mc = MACHINE_CLASS(oc);
++
++    mc->desc = "Rockchip RK3568 minimal (mainline Linux bring-up)";
++    mc->init = rk3568_lite_init;
++    mc->default_cpus = RK3568_LITE_NUM_CPUS;
++    mc->max_cpus = RK3568_LITE_NUM_CPUS;
++    mc->default_ram_id = "rk3568-lite.ram";
++    mc->default_ram_size = 1 * GiB;
++    mc->get_default_cpu_type = rk3568_lite_get_default_cpu_type;
++}
++
++static const TypeInfo rk3568_lite_machine_types[] = {
++    {
++        .name = TYPE_RK3568_LITE_MACHINE,
++        .parent = TYPE_MACHINE,
++        .class_init = rk3568_lite_machine_class_init,
++        .instance_size = sizeof(Rk3568LiteState),
++        .interfaces = aarch64_machine_interfaces,
++    },
++};
++
++DEFINE_TYPES(rk3568_lite_machine_types)
