@@ -160,6 +160,20 @@ elif mode == "rootfs":
         feed = [(8, b"echo ROOTFS-SHELL-OK\n"), (2, b"poweroff -f\n")]
         tmo = 300
     pats = [rb"VFS: Mounted root \(ext4 filesystem\)", rb"ROOTFS-SHELL-OK"]
+elif mode == "systemd" and board == "rk3588-lite":
+    # Ubuntu 全量开机：systemd 259 → 图形目标排队 → 串口 login（TCG 下约
+    # 4-5 分钟到提示符）。GNOME 不可用（无 GPU，见 68 号前分析）。
+    if not B["rootfs"].is_file():
+        die(f"rootfs 缺失: {B['rootfs']}（跑 forge stage）")
+    cmd += ["-kernel", str(B["image"]),
+            "-drive", f"if=none,id=hd,file={B['rootfs']},format=raw",
+            "-device", "virtio-blk-device,drive=hd",
+            "-dtb", str(B["real_dtb"]),
+            "-append", "console=ttyS2 earlycon=uart8250,mmio32,0xfeb50000 "
+                       "root=/dev/vda rw rootwait init=/sbin/init panic=-1 "
+                       "cpuidle.off=1"]
+    tmo, pats, feed = 480, [rb"running in system mode",
+                            rb"Welcome to .*Ubuntu 26", rb"login:"], None
 elif mode == "uboot" and board == "rk3568-lite":
     if not B["rootfs"].is_file():
         die(f"rootfs 缺失: {B['rootfs']}（跑 forge stage）")
