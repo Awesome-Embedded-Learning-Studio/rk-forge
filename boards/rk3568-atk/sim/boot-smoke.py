@@ -187,6 +187,20 @@ if mode != "virt":
 if mode in ("linux", "board", "virt"):
     ensure_initramfs()
 
+soak = int(os.environ.get("SOAK", "0"))
+if check and soak and mode in ("linux", "board"):
+    # 存活浸泡：去掉自动关机，shell 每 5s 一拍心跳，全到齐后关机——
+    # 防「断言过完就挂」（cpuidle 锁死类故障在 30s+ 才发作）
+    for i, a in enumerate(cmd):
+        if a == "-append":
+            cmd[i + 1] = cmd[i + 1].replace("rk.smoke=1", "")
+    beats = soak // 5
+    feed = [(8, f"echo BEAT-0\n".encode())]
+    feed += [(5, f"echo BEAT-{n}\n".encode()) for n in range(1, beats)]
+    feed.append((3, b"poweroff -f\n"))
+    tmo = soak + 150
+    pats = [f"BEAT-{n}".encode() for n in range(beats)]
+
 if not check:
     # 交互直入：去掉自动关机开关，stdio 直连串口
     for i, a in enumerate(cmd):

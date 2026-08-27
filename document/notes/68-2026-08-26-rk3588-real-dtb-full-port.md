@@ -49,8 +49,33 @@ rk3588 U-Boot `initf_dm` 即死于 `scmi-over-smccc`（它靠 BL31 的 SCMI 服�
 函数号做固件接口仿真**——和 PSCI 拦截同一机制，是「仿真器扮演固件」系列
 （TPL→OS_REG 之后的第二课）的招牌题目。
 
-## 4. 复现
+## 4. SOAK 存活浸泡与一次误诊（同日，用户问责推动）
+
+用户质问「断言过就是过了？开机后立马挂找你算账」——完全成立：原断言只覆盖
+「到 shell + 立即关机」，而 cpuidle 硬锁死那类故障在 30s+ 才发作，恰在断言
+窗口外。补 **SOAK 机制**（`SOAK=秒数`）：去掉自动关机，shell 每 5s 一拍
+`BEAT-n` 心跳回显，全到齐后手动关机——「跑通」升级为「活着」。
+
+**一次诚实的误诊记录**：首版 SOAK 两板都在 ~45s 掉拍，我诊断成「MTTCG 异构
+竞态」并上了 `-accel tcg,thread=single`（用户当场质疑：多线程的 bug 不测
+了？）。复查发现掉拍位置两板一致、且手动测试全过——真凶是**喂拍代码自身**：
+`(8+n*5)` 被当作逐拍 sleep 累加，节拍越来越稀，末拍落在超时之外。修为固定
+节奏 + 撤掉单线程后，MTTCG 全过：
+
+| 浸泡 | 结果 |
+|---|---|
+| rk3588-lite board（真板 DTS，8 核异构，MTTCG） | 60s 12/12、**120s 24/24** |
+| rk3568-lite board（真板 DTS，MTTCG） | 60s 12/12 |
+| 全模式回归 | 两板八模式 PASS |
+
+结论：MTTCG 无此问题；唯一真实的规避仍是 `cpuidle.off=1`（那次锁死有
+watchdog panic 实锤，根因仍在册）。教训两条：①「断言绿」≠「系统稳」，存活
+浸泡必须是一等公民；②给基础设施下结论前，先排除测试自身的 bug——两板同位
+置掉拍就是测试代码的指纹。
+
+## 5. 复现
 
 ```bash
 python3 boards/rk3568-atk/sim/boot-smoke.py rk3588-lite board --check
+SOAK=120 python3 boards/rk3568-atk/sim/boot-smoke.py rk3588-lite board --check  # 存活浸泡
 ```
