@@ -15,7 +15,7 @@ from pathlib import Path
 SIM = Path(__file__).resolve().parent
 ROOT = SIM.parents[2]
 ROOTFS = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "out/rk3568-atk/rootfs"
-OUT = SIM / "initramfs-rk3568.cpio.gz"
+OUT = SIM / "initramfs-busybox.cpio.gz"
 
 INIT = """#!/bin/sh
 mount -t proc none /proc 2>/dev/null
