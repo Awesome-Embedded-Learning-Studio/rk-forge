@@ -49,6 +49,25 @@ def collect():
             out.append((top, 0o755, "dir", None))
             add_tree(ROOTFS / top)
 
+    # busybox applet 符号链接零成本补全（clear/vi/top 等在 usr/bin）：
+    # 只摘指向 busybox 的链接，真文件不抄——防止包再膨胀（65 号笔记 20MB 教训）
+    usr_added = False
+    for top in ("usr/bin", "usr/sbin"):
+        base = ROOTFS / top
+        if not base.is_dir():
+            continue
+        if not usr_added:
+            out.append(("usr", 0o755, "dir", None))
+            usr_added = True
+        out.append((top, 0o755, "dir", None))
+        for p in sorted(base.iterdir(), key=lambda x: x.name):
+            st = p.lstat()
+            if stat.S_ISLNK(st.st_mode):
+                target = os.readlink(p)
+                if "busybox" in target:
+                    out.append((p.relative_to(ROOTFS).as_posix(),
+                                0o777, "link", target))
+
     for d in ("proc", "sys", "root", "home", "mnt", "run", "dev"):
         out.append((d, 0o1777 if d == "tmp" else 0o755, "dir", None))
     out.append(("tmp", 0o1777, "dir", None))

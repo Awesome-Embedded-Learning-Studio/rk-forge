@@ -48,3 +48,8 @@ QEMU 自动发现本地 build 优先、PATH 兜底——不再要求用户传 QE
    190MB（U-Boot 的 192MB 改写），解包期内存压力 → `Initramfs unpacking failed:
    write error`（短写）；linux 模式看满 1G 同包无恙——差分定位。/init 不再需要
    usr 后整块撤除，回到 8.3M。遗留课题真解：让 U-Boot 知道真实 DRAM 大小。
+
+补记（2026-08-26，rk3588 交互实测）：`clear: not found` 暴露同类缺口——busybox
+的 clear/vi/top 等 applet 装在 usr/bin。零成本正解：**只摘指向 busybox 的符号
+链接**（本体 /bin/busybox 已在包内，每个链接几十字节；当年膨胀是因为连真
+二进制一起抄）。108 个链接 +1KB，guest 实测 `command -v clear vi top` 全中。
