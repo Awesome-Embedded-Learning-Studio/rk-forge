@@ -9,7 +9,7 @@
 ```bash
 python3 boards/rk3568-atk/sim/boot-smoke.py rk3588-lite           # 交互直入（initramfs shell）
 python3 boards/rk3568-atk/sim/boot-smoke.py rk3588-lite linux --check   # 8 核异构三断言
-python3 boards/rk3568-atk/sim/boot-smoke.py rk3588-lite rootfs --check  # Ubuntu 真根直启
+python3 boards/rk3568-atk/sim/boot-smoke.py rk3588-lite rootfs --check  # 真板 DTS + Ubuntu 真根合体
 ```
 
 | 文件 | 作用 |

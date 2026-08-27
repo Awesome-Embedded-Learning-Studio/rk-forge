@@ -140,14 +140,26 @@ elif mode == "board" and board == "rk3568-lite":
 elif mode == "rootfs":
     if not B["rootfs"].is_file():
         die(f"rootfs 缺失: {B['rootfs']}（跑 forge stage）")
-    cmd += ["-kernel", str(B["image"]),
-            "-drive", f"if=none,id=hd,file={B['rootfs']},format=raw",
-            "-device", "virtio-blk-device,drive=hd", *dtb,
-            "-append", f"console={B['console']} root=/dev/vda rw rootwait "
-                       "init=/bin/sh rk.smoke=1 panic=-1"]
-    feed = [(8, b"echo ROOTFS-SHELL-OK\n"), (2, b"poweroff -f\n")]
-    tmo, pats = 300, [rb"VFS: Mounted root \(ext4 filesystem\)",
-                      rb"ROOTFS-SHELL-OK"]
+    if board == "rk3588-lite":
+        # 真板 DTS + Ubuntu 真根合体：modify_dtb 补种 virtio（真板无此节点）
+        cmd += ["-kernel", str(B["image"]),
+                "-drive", f"if=none,id=hd,file={B['rootfs']},format=raw",
+                "-device", "virtio-blk-device,drive=hd",
+                "-dtb", str(B["real_dtb"]),
+                "-append", "console=ttyS2 earlycon=uart8250,mmio32,0xfeb50000 "
+                           "root=/dev/vda rw rootwait init=/bin/sh panic=-1 "
+                           "cpuidle.off=1"]
+        feed = [(25, b"echo ROOTFS-SHELL-OK\n"), (3, b"poweroff -f\n")]
+        tmo = 600
+    else:
+        cmd += ["-kernel", str(B["image"]),
+                "-drive", f"if=none,id=hd,file={B['rootfs']},format=raw",
+                "-device", "virtio-blk-device,drive=hd", *dtb,
+                "-append", f"console={B['console']} root=/dev/vda rw rootwait "
+                           "init=/bin/sh rk.smoke=1 panic=-1"]
+        feed = [(8, b"echo ROOTFS-SHELL-OK\n"), (2, b"poweroff -f\n")]
+        tmo = 300
+    pats = [rb"VFS: Mounted root \(ext4 filesystem\)", rb"ROOTFS-SHELL-OK"]
 elif mode == "uboot" and board == "rk3568-lite":
     if not B["rootfs"].is_file():
         die(f"rootfs 缺失: {B['rootfs']}（跑 forge stage）")
