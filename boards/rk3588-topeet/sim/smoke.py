@@ -45,7 +45,10 @@ def real_args(extra: str) -> list:
     显式 earlycon 不依赖 chosen；cpuidle.off=1 规避 TCG 异构 lockup（笔记 68）"""
     return ["-dtb", str(REAL_DTB),
             "-append", f"console=ttyS2 earlycon=uart8250,mmio32,0xfeb50000 {extra} "
-                       "panic=-1 cpuidle.off=1"]
+                       "panic=-1 cpuidle.off=1 "
+                       # sim 无 FIQ 调试器/无 WiFi：屏蔽对应 getty/wpa 省两轮 90s 等待
+                       "systemd.mask=serial-getty@ttyFIQ0.service "
+                       "systemd.mask=wpa_supplicant@wlan0.service"]
 
 if mode == "linux":
     cmd += ["-kernel", str(IMAGE), "-initrd", str(INITRD),

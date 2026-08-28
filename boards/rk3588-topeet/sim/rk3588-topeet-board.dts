@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * 真板 DTB 的 sim 叠加层：include rk3588-topeet.dts 后做最小手术。
+ * dtc 保证结构合法（运行时 fdt_delprop 会让内核 OF 遍历死循环——of_clk_init
+ * 活锁，见笔记 72）。差异诚实清单：
+ *   - vin-supply 删除：vcc3v3-lcd-n 不再挂 SPI PMIC 的 dcdc-reg8 下游
+ *     （PMIC 需 SPI 行为模型，挂账课题），regulator-fixed 独立成立。
+ */
+/dts-v1/;
+
+#include "rk3588-topeet.dts"
+
+/ {
+};
+
+&vcc3v3_lcd_n {
+	/delete-property/ vin-supply;
+};
