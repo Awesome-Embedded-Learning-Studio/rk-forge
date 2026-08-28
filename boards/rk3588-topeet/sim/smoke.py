@@ -46,6 +46,10 @@ def real_args(extra: str) -> list:
     return ["-dtb", str(REAL_DTB),
             "-append", f"console=ttyS2 earlycon=uart8250,mmio32,0xfeb50000 {extra} "
                        "panic=-1 cpuidle.off=1 "
+                       # fbdev client 的首次 modeset 会死锁（runtime PM ×
+                       # flip_done，笔记 73）——绕过后 KMS 用户态路径完整，
+                       # gdm/weston/modetest 均可用；fbcon 挂账战役四
+                       "drm_client_lib.active=none "
                        # sim 无 FIQ 调试器/无 WiFi：屏蔽对应 getty/wpa 省两轮 90s 等待
                        "systemd.mask=serial-getty@ttyFIQ0.service "
                        "systemd.mask=wpa_supplicant@wlan0.service"]
