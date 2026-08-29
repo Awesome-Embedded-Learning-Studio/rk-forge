@@ -38,5 +38,7 @@ title: 工程笔记
   <ChapterLink num="73" href="73-2026-08-28-vop2-campaign3-kms-userspace">RK3588：VOP2 战役三，KMS 用户态解放 + gdm 上机</ChapterLink>
   <ChapterLink num="74" href="74-2026-08-29-vop2-campaign4-desktop-lights">RK3588：VOP2 战役四，GNOME 桌面点亮 + 冷启动地板</ChapterLink>
   <ChapterLink num="75" href="75-2026-08-29-virtio-gpu-retreat-discipline">RK3588：virtio-gpu 探路撤退 + 研究线纪律定音</ChapterLink>
+  <ChapterLink num="76" href="76-2026-08-29-mali-csf-emulation-feasibility">RK3588：Mali CSF 仿真预研（外部报告）</ChapterLink>
   <ChapterLink num="77" href="77-2026-08-29-same-dtb-cmdline-virtio-desktop">RK3588：同 DTB 的 cmdline virtio 桌面路径</ChapterLink>
+  <ChapterLink num="78" href="78-2026-08-30-virgl-desktop-host-gl-blocked">RK3588：virgl 桌面加演，宿主 GL 四路验尸 + dxg 根因</ChapterLink>
 </ChapterNav>
