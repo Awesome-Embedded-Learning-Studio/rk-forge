@@ -40,6 +40,16 @@
 #        sg_cpu publication (f0a3f042293a), OPP add/lookup kref
 #        (f5e1cc9a284b), and the rtw88 trio incl. the 8723du-relevant TX
 #        report timeout (c80788f7c, 6b964941b, aa7d92e83).
+# 0020 — cluster AFBC modifier lists split per SoC (modifier tables are SoC
+#        hardware capability tables; rk3576 already had its own — the
+#        rk3568/rk3588 sharing let RK3588 silently inherit RK3568's genuine
+#        AFBC-only restriction). rk3568 keeps AFBC-only (its check rejects
+#        LINEAR); rk3588 appends LINEAR after the nine AFBC variants, priority
+#        preserved — mod_supported() already accepts LINEAR on every RK3588
+#        window, but the AFBC-only IN_FORMATS blob made modifier-negotiating
+#        clients with a software renderer (sim/llvmpipe) fail GBM allocation
+#        with EGL_BAD_ALLOC. Found in sim campaign 4 (mutter
+#        lock_front_buffer failure).
 # 0007/0008 were a coupled I2C-v5 + GT911 polling experiment. Candidate
 #        c670a208... did not reach login reliably, so both are intentionally
 #        excluded below. Keep the patch files only as failed-test evidence.
@@ -64,3 +74,6 @@
 0017-wifi-rtw88-add-more-validation-for-the-rx-descriptor.patch
 0018-arm64-dts-rk3588-topeet-cap-big-2.208ghz-diagnostic.patch
 0019-cpufreq-rockchip-port-dsu-l3-frequency-coupling.patch
+0020-drm-rockchip-vop2-advertise-linear-modifier-on-rk3588-cluster-windows.patch
+0021-drm-rockchip-vop2-drop-afbc-only-10bpc-formats-from-rk3588-cluster-windows.patch
+0022-PM-runtime-SIM-DIAG-prints-for-runtime-error-origin.patch

@@ -648,3 +648,1023 @@ index 0000000..94801f3
 +};
 +
 +DEFINE_TYPES(rk3568_lite_machine_types)
+diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
+new file mode 100644
+index 0000000..7875a3c
+--- /dev/null
++++ b/hw/arm/rk3588-lite.c
+@@ -0,0 +1,1014 @@
++/*
++ * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
++ * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
++ * The guest DTB must describe no more than what is modeled here.
++ *
++ * SPDX-License-Identifier: GPL-2.0-or-later
++ */
++
++#include "qemu/osdep.h"
++#include <stddef.h>
++#include "qemu/timer.h"
++#include <elf.h>
++#include <libfdt.h>
++#include "hw/arm/boot.h"
++#include "hw/arm/bsa.h"
++#include "hw/arm/machines-qom.h"
++#include "hw/core/boards.h"
++#include "hw/core/irq.h"
++#include "hw/core/loader.h"
++#include "hw/char/serial-mm.h"
++#include "hw/core/qdev-properties.h"
++#include "hw/intc/arm_gicv3.h"
++#include "hw/core/sysbus.h"
++#include "hw/misc/unimp.h"
++#include "system/address-spaces.h"
++#include "system/physmem.h"
++#include "ui/console.h"
++#include "ui/surface.h"
++#include "system/kvm.h"
++#include "system/qtest.h"
++#include "system/system.h"
++#include "target/arm/cpu.h"
++#include "qapi/error.h"
++#include "qemu/error-report.h"
++#include "qemu/datadir.h"
++#include "qemu/units.h"
++#include "qobject/qlist.h"
++
++#define TYPE_RK3588_LITE_MACHINE MACHINE_TYPE_NAME("rk3588-lite")
++OBJECT_DECLARE_SIMPLE_TYPE(Rk3588LiteState, RK3588_LITE_MACHINE)
++
++#define RK3588_LITE_NUM_CPUS 8
++#define RK3588_LITE_NUM_SPIS 512
++#define RK3588_LITE_UART2_SPI 333
++
++/* Addresses from Linux rk3588-base.dtsi (v7.1) */
++enum {
++    RK3588_LITE_PMU1GRF = 0xfd58a000,
++    RK3588_LITE_SYS_GRF = 0xfd58c000,
++    RK3588_LITE_PMU = 0xfd8d8000,
++    RK3588_LITE_CRU = 0xfd7c0000,
++    RK3588_LITE_GICD = 0xfe600000,
++    RK3588_LITE_GICR = 0xfe680000,
++    RK3588_LITE_UART2 = 0xfeb50000,
++    RK3588_LITE_VIRTIO = 0xfea00000, /* sim-only, no real counterpart */
++};
++
++#define RK3588_LITE_CRU_SIZE 0x5c000
++
++struct Rk3588LiteVop {
++    MemoryRegion mmio;
++    qemu_irq irq;
++    QEMUTimer *frame_timer;
++    uint32_t *pd_pwr;             /* -> PMU pwr@0x150 word: PD_VOP lives here */
++    uint32_t regs[0x4000 / 4];    /* window blocks live at 0x1000+ */
++    uint32_t fb_mst, fb_dsp, fb_vir;
++    uint32_t fb_phys;                    /* mst 经 vop_mmu 翻译后的物理地址 */
++    uint32_t *mmu_dte, *mmu_status;   /* -> vop_mmu shadow: IOVA translation */
++    QemuConsole *con;             /* scanout goes here (same push model as ramfb) */
++    DisplaySurface *surface;
++    uint32_t last_mst, last_dsp, last_vir;
++};
++
++/* PD_VOP = BIT(1) in pwr@0x150 (cascade table); bit set = powered down.
++ * Real silicon produces no frame interrupts with the domain powered off. */
++static bool rk3588_lite_vop_powered(struct Rk3588LiteVop *s)
++{
++    return s->pd_pwr && !(s->pd_pwr[0x150 / 4] & BIT(1));
++}
++
++/* scanout push — ramfb model: wrap guest RAM in a surface, hand it to the
++ * console, full-screen update per frame tick */
++static void rk3588_lite_vop_unmap_surface(pixman_image_t *image, void *unused)
++{
++    void *data = pixman_image_get_data(image);
++    int stride = pixman_image_get_stride(image);
++    int height = pixman_image_get_height(image);
++
++    physical_memory_unmap(data, stride * height, 0, 0);
++}
++
++/* vop_mmu IOVA→phys: the kernel programs YRGB_MST with an IOVA once the
++ * vop_mmu is attached; scanout must walk the guest's 2-level DTE/PTE tables
++ * (4KB pages, rockchip-iommu v2 layout) to find the physical fb.  A gbm bo
++ * is one contiguous gem object, so translating the base and keeping the
++ * stride math linear is correct.  Paging disabled → identity. */
++static hwaddr rk3588_lite_vop_iova_phys(struct Rk3588LiteVop *s, hwaddr iova)
++{
++    uint32_t dte, pte;
++
++    if (!s->mmu_status || !(*s->mmu_status & BIT(0))) {
++        return iova;
++    }
++    if (address_space_read(&address_space_memory, *s->mmu_dte + 4 * (iova >> 20),
++                           MEMTXATTRS_UNSPECIFIED, &dte, 4) != MEMTX_OK
++        || !(dte & 1)) {
++        return iova;
++    }
++    if (address_space_read(&address_space_memory, (dte & 0xfffff000)
++                               + 4 * ((iova >> 12) & 0x3ff),
++                           MEMTXATTRS_UNSPECIFIED, &pte, 4) != MEMTX_OK
++        || !(pte & 1)) {
++        return iova;
++    }
++    return (pte & 0xfffff000) | (iova & 0xfff);
++}
++
++static void rk3588_lite_vop_scanout(struct Rk3588LiteVop *s)
++{
++    uint32_t width = (s->fb_dsp & 0x1FFF) + 1;      /* DSP_INFO: hact-1 */
++    uint32_t height = ((s->fb_dsp >> 16) & 0x1FFF) + 1;
++    hwaddr stride, mapsize, linesize, fb;
++    void *data;
++
++    fb = rk3588_lite_vop_iova_phys(s, s->fb_mst);
++    s->fb_phys = fb;
++    if (width < 16 || height < 16 || width > 4096 || height > 4096
++        || fb < 0x100000) {
++        return;
++    }
++    if (s->fb_mst == s->last_mst && s->fb_dsp == s->last_dsp
++        && s->fb_vir == s->last_vir && s->last_mst) {
++        qemu_console_update_full(s->con);    /* geometry unchanged: refresh */
++        return;
++    }
++
++    linesize = width * 4;
++    stride = s->fb_vir ? s->fb_vir * 4 : linesize;
++    if (stride < linesize) {
++        stride = linesize;
++    }
++    mapsize = stride * (height - 1) + linesize;
++    data = physical_memory_map(fb, &mapsize, false);
++    if (!data || mapsize < stride * (height - 1) + linesize) {
++        if (data) {
++            physical_memory_unmap(data, mapsize, 0, 0);
++        }
++        return;
++    }
++
++    qemu_free_displaysurface(s->surface);
++    s->surface = qemu_create_displaysurface_from(width, height,
++                                                 PIXMAN_x8r8g8b8, stride,
++                                                 data);
++    pixman_image_set_destroy_function(s->surface->image,
++                                      rk3588_lite_vop_unmap_surface, NULL);
++    s->last_mst = s->fb_mst;
++    s->last_dsp = s->fb_dsp;
++    s->last_vir = s->fb_vir;
++    qemu_console_set_surface(s->con, s->surface);
++    s->surface = NULL;    /* ownership moved to the console */
++    qemu_console_update_full(s->con);
++}
++
++struct Rk3588LiteState {
++    MachineState parent_obj;
++
++    ARMCPU *cpu[RK3588_LITE_NUM_CPUS];
++    MemoryRegion uart2_ext;
++    MemoryRegion cru, sys_grf, pmu1grf, pmu;
++    MemoryRegion amba_id[3], dsi0, dcphy, vop_mmu;
++    uint32_t mmu_regs[0x200 / 4];
++    struct Rk3588LiteVop vop;
++    uint32_t cru_regs[RK3588_LITE_CRU_SIZE / 4];
++    uint32_t pmu_regs[0x400 / 4];
++    uint32_t dcphy_regs[0x4000 / 4];
++    uint32_t last_req;    /* 最近一次 req 写（0x10c/0x110 任一） */
++    struct arm_boot_info boot_info;
++};
++
++/* DW-APB-UART ext space outside the 16550 window (see rk3568-lite.c). */
++static uint64_t rk3588_lite_uart2_ext_read(void *opaque, hwaddr offset,
++                                           unsigned size)
++{
++    switch (offset) {
++    case 0xf4: return 0x00020002;
++    case 0xf8: return 0x342e30;
++    default:   return 0;
++    }
++}
++
++static void rk3588_lite_uart2_ext_write(void *opaque, hwaddr offset,
++                                        uint64_t value, unsigned size)
++{
++}
++
++static const MemoryRegionOps rk3588_lite_uart2_ext_ops = {
++    .read = rk3588_lite_uart2_ext_read,
++    .write = rk3588_lite_uart2_ext_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++};
++
++/* CRU shadow (see rk3568-lite.c): RAM-backed. rk3588 PLL lock status is
++ * PLLCON6 BIT(15) (clk-pll.c: RK3588_PLLCON6_LOCK_STATUS), polled at
++ * (offset & 0x1f) == 0x18. Zeros elsewhere park muxes on parent 0. */
++static uint64_t rk3588_lite_cru_read(void *opaque, hwaddr offset,
++                                     unsigned size)
++{
++    uint32_t *regs = opaque;
++    uint32_t v = regs[offset >> 2];
++
++    if ((offset & 0x1f) == 0x18) {
++        v |= BIT(15);
++    }
++    if ((offset & 0x1f) == 0x04 && (v & 0x3f) == 0) {
++        v |= 2;    /* p=0 (half-written set_rate) heals to p=2, rate nonzero */
++    }
++    return v;
++}
++
++static void rk3588_lite_cru_write(void *opaque, hwaddr offset,
++                                  uint64_t value, unsigned size)
++{
++    uint32_t *regs = opaque;
++
++    regs[offset >> 2] = value;
++}
++
++static const MemoryRegionOps rk3588_lite_cru_ops = {
++    .read = rk3588_lite_cru_read,
++    .write = rk3588_lite_cru_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 1,
++    .valid.max_access_size = 8,
++};
++
++/* GRF/PMU1GRF yes-man: all-ones keeps PLL lock-status reads happy. */
++static uint64_t rk3588_lite_yesman_read(void *opaque, hwaddr offset,
++                                        unsigned size)
++{
++    return 0xffffffff;
++}
++
++static void rk3588_lite_yesman_write(void *opaque, hwaddr offset,
++                                     uint64_t value, unsigned size)
++{
++}
++
++static const MemoryRegionOps rk3588_lite_yesman_ops = {
++    .read = rk3588_lite_yesman_read,
++    .write = rk3588_lite_yesman_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 1,
++    .valid.max_access_size = 8,
++};
++
++/*
++ * PMU power-management shadow (offsets from pm-domains.c rk3588_pmu):
++ * req@0x10c, ack@0x118, idle@0x120, pwr@0x14c, repair_status@0x290.
++ * ack/idle mirror req; repair_status mirrors ~pwr (bit set = powered ON).
++ */
++/* rk3588 电源域级联（自 pm-domains.c DOMAIN_RK3588 表 + dtsi 嵌套生成）：
++ * pwr 掩码 = 自己+祖先——祖先断电位联清掉本域 repair 位。这不是可拆的
++ * 猜测：genpd_add_subdomain 拒绝"父关子开"(-EINVAL)，而 npu 是
++ * need_regulator 域、probe 先下电，nputop 的 repair 位必须跟着 npu 变
++ * off 才能建链（本域制实测让 PMU probe 当场暴毙）。子域 repair 反映
++ * 祖先断电也是物理事实：父域断电，子域无电可报。 */
++static const struct { uint16_t pwr_off; uint32_t pwr_mask; uint16_t rep_off; uint32_t rep_bit; } rk3588_pd_cascade[] = {
++    { 0x14c, 0x00000001, 0x290, 0x00000002 }, /* GPU */
++    { 0x14c, 0x0000000a, 0x290, 0x00000004 }, /* NPUTOP */
++    { 0x14c, 0x0000001a, 0x290, 0x00000008 }, /* NPU1 */
++    { 0x14c, 0x0000002a, 0x290, 0x00000010 }, /* NPU2 */
++    { 0x14c, 0x00000044, 0x290, 0x00000020 }, /* VENC0 */
++    { 0x14c, 0x000000c4, 0x290, 0x00000040 }, /* VENC1 */
++    { 0x14c, 0x00000504, 0x290, 0x00000080 }, /* RKVDEC0 */
++    { 0x14c, 0x00000604, 0x290, 0x00000100 }, /* RKVDEC1 */
++    { 0x14c, 0x00000400, 0x290, 0x00000200 }, /* VDPU */
++    { 0x14c, 0x00000c00, 0x290, 0x00000400 }, /* RGA30 */
++    { 0x14c, 0x00001400, 0x290, 0x00000800 }, /* AV1 */
++    { 0x14c, 0x00002000, 0x290, 0x00001000 }, /* VI */
++    { 0x14c, 0x00006000, 0x290, 0x00002000 }, /* FEC */
++    { 0x14c, 0x0000a000, 0x290, 0x00004000 }, /* ISP1 */
++    { 0x150, 0x00000001, 0x294, 0x00008000 }, /* RGA31 */
++    { 0x150, 0x00000002, 0x294, 0x00010000 }, /* VOP */
++    { 0x150, 0x00000006, 0x294, 0x00020000 }, /* VO0 */
++    { 0x150, 0x00000008, 0x294, 0x00040000 }, /* VO1 */
++    { 0x150, 0x00000010, 0x294, 0x00080000 }, /* AUDIO */
++    { 0x150, 0x00000020, 0x294, 0x00100000 }, /* PHP */
++    { 0x150, 0x00000040, 0x294, 0x00200000 }, /* GMAC */
++    { 0x150, 0x00000080, 0x294, 0x00400000 }, /* PCIE */
++    { 0x150, 0x00000200, 0x294, 0x00800000 }, /* NVM0 */
++    { 0x150, 0x00000400, 0x294, 0x01000000 }, /* SDIO */
++    { 0x150, 0x00000800, 0x294, 0x02000000 }, /* USB */
++    { 0x150, 0x00002000, 0x294, 0x04000000 }, /* SDMMC */
++};
++
++/*
++ * mem-chain (rk3588 pm-domains.c): each domain's memory pwr bit lives in the
++ * 0x1a0 bank at (pwr bank offset, pwr bit), while its status is polled in the
++ * chain/mem words 0x1f0/0x1f8 (+m_offset) at a DIFFERENT bit — the bits don't
++ * line up, so a direct mirror can never satisfy rockchip_pmu_domain_mem_reset.
++ * mem_status bit = set when powered OFF (pwr bit set); chain_status bit = set
++ * when powered ON.  {bank_off, pwr_mask, m_off, status_bit} per DOMAIN_RK3588.
++ */
++static const struct {
++    uint16_t bank_off;
++    uint32_t pwr_mask;
++    uint16_t m_off;
++    uint32_t status_bit;
++} rk3588_mem_chain[] = {
++    { 0x0, 0x0008, 0x0, 1 << 11 }, /* NPUTOP */
++    { 0x0, 0x0010, 0x0, 1 << 12 }, /* NPU1 */
++    { 0x0, 0x0020, 0x0, 1 << 13 }, /* NPU2 */
++    { 0x0, 0x0040, 0x0, 1 << 14 }, /* VENC0 */
++    { 0x0, 0x0080, 0x0, 1 << 15 }, /* VENC1 */
++    { 0x0, 0x0100, 0x0, 1 << 16 }, /* RKVDEC0 */
++    { 0x0, 0x0200, 0x0, 1 << 17 }, /* RKVDEC1 */
++    { 0x0, 0x0400, 0x0, 1 << 18 }, /* VDPU */
++    { 0x0, 0x0800, 0x0, 1 << 19 }, /* RGA30 */
++    { 0x0, 0x1000, 0x0, 1 << 20 }, /* AV1 */
++    { 0x0, 0x2000, 0x0, 1 << 21 }, /* VI */
++    { 0x0, 0x4000, 0x0, 1 << 22 }, /* FEC */
++    { 0x0, 0x8000, 0x0, 1 << 23 }, /* ISP1 */
++    { 0x4, 0x0001, 0x0, 1 << 24 }, /* RGA31 */
++    { 0x4, 0x0002, 0x0, 1 << 25 }, /* VOP */
++    { 0x4, 0x0004, 0x0, 1 << 26 }, /* VO0 */
++    { 0x4, 0x0008, 0x0, 1 << 27 }, /* VO1 */
++    { 0x4, 0x0010, 0x0, 1 << 28 }, /* AUDIO */
++    { 0x4, 0x0020, 0x0, 1 << 29 }, /* PHP */
++    { 0x4, 0x0040, 0x0, 1 << 30 }, /* GMAC */
++    { 0x4, 0x0080, 0x0, 1u << 31 }, /* PCIE */
++    { 0x4, 0x0200, 0x4, 1 << 1 },  /* NVM0 */
++    { 0x4, 0x0400, 0x4, 1 << 2 },  /* SDIO */
++    { 0x4, 0x0800, 0x4, 1 << 3 },  /* USB */
++    { 0x4, 0x2000, 0x4, 1 << 5 },  /* SDMMC */
++};
++
++static uint64_t rk3588_lite_pmu_read(void *opaque, hwaddr offset,
++                                     unsigned size)
++{
++    Rk3588LiteState *s = opaque;
++    uint32_t *regs = s->pmu_regs;
++
++    /* ack/idle are polled at GLOBAL offsets (0x118/0x120) even for domains
++     * whose req write landed in the +4 bank (0x110) — mirror the most
++     * recent req write so both directions satisfy instantly */
++    if (offset >= 0x118 && offset <= 0x124) {
++        return s->last_req;
++    }
++    /* repair is likewise polled at the global 0x290/0x294 — apply every
++     * cascade entry's bit to whichever word is read */
++    if (offset == 0x290 || offset == 0x294) {
++        uint32_t v = 0xffffffff;
++
++        for (unsigned i = 0; i < ARRAY_SIZE(rk3588_pd_cascade); i++) {
++            if ((regs[rk3588_pd_cascade[i].pwr_off / 4]
++                    & rk3588_pd_cascade[i].pwr_mask)) {
++                v &= ~rk3588_pd_cascade[i].rep_bit;
++            }
++        }
++        return v;
++    }
++    if (offset == 0x180 || offset == 0x184) {
++        return regs[(offset == 0x184 ? 0x150 : 0x14c) / 4];
++    }
++    /* mem chain: translate the 0x1a0-bank pwr bits into the per-domain
++     * status bits of the chain/mem words (0x1f0/0x1f8 + m_offset) */
++    if (offset >= 0x1f0 && offset <= 0x1fc && !(offset & 3)) {
++        bool mem_word = offset & 0x8;       /* 0x1f8/0x1fc = mem, 0x1f0/0x1f4 = chain */
++        uint16_t m_off = offset & 0x4;
++        uint32_t v = 0;
++
++        for (unsigned i = 0; i < ARRAY_SIZE(rk3588_mem_chain); i++) {
++            if (rk3588_mem_chain[i].m_off != m_off) {
++                continue;
++            }
++            bool off = regs[(0x1a0 + rk3588_mem_chain[i].bank_off) / 4]
++                       & rk3588_mem_chain[i].pwr_mask;
++            if (off == mem_word) {
++                v |= rk3588_mem_chain[i].status_bit;
++            }
++        }
++        return v;
++    }
++    return regs[offset >> 2];
++}
++
++static void rk3588_lite_pmu_write(void *opaque, hwaddr offset,
++                                  uint64_t value, unsigned size)
++{
++    Rk3588LiteState *s = opaque;
++    uint32_t *regs = s->pmu_regs;
++
++    regs[offset >> 2] = value;
++    if (offset >= 0x10c && offset <= 0x110) {
++        s->last_req = value;
++    }
++}
++
++static const MemoryRegionOps rk3588_lite_pmu_ops = {
++    .read = rk3588_lite_pmu_read,
++    .write = rk3588_lite_pmu_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 1,
++    .valid.max_access_size = 8,
++};
++
++/*
++ * samsung-mipi-dcphy behavioral shadow (feda0000.phy, mipidcphy0): the DSI
++ * path's phy_poweron() polls PLL_STAT0 (0x140) for PLL_LOCK with a 20 ms
++ * deadline (phy-rockchip-samsung-dcphy.c) — the only read-poll in its
++ * power-on path.  Report the PLL as always locked; everything else stores.
++ */
++static uint64_t rk3588_lite_dcphy_read(void *opaque, hwaddr offset,
++                                       unsigned size)
++{
++    Rk3588LiteState *s = opaque;
++    uint32_t v = s->dcphy_regs[offset >> 2];
++
++    if (offset == 0x140) {      /* PLL_STAT0: PLL_LOCK = BIT(0) */
++        v |= BIT(0);
++    }
++    return v;
++}
++
++static void rk3588_lite_dcphy_write(void *opaque, hwaddr offset,
++                                    uint64_t value, unsigned size)
++{
++    Rk3588LiteState *s = opaque;
++
++    s->dcphy_regs[offset >> 2] = value;
++}
++
++static const MemoryRegionOps rk3588_lite_dcphy_ops = {
++    .read = rk3588_lite_dcphy_read,
++    .write = rk3588_lite_dcphy_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 1,
++    .valid.max_access_size = 8,
++};
++
++/*
++ * vop_mmu behavioral shadow (fdd97e00, two 0x100 windows: e00 + f00, regs
++ * per rockchip-iommu.c): rk_iommu_force_reset() at probe writes DTE_ADDR
++ * and READS IT BACK — an all-zeros unimp read made it return -EFAULT, whose
++ * sticky runtime_error then poisoned vop2_enable's pm_runtime_resume with
++ * -EINVAL at every first modeset (SIM-DIAG established the chain).  Model:
++ * plain RW mirror + COMMAND side effects (paging/stall status bits) + reset
++ * clearing DTE (is_reset_done = DTE_ADDR == 0).
++ *   0x00 DTE_ADDR / 0x04 STATUS / 0x08 COMMAND (0 en-page,1 dis-page,
++ *   2 en-stall,3 dis-stall,4 zap,5 fault-done,6 force-reset)
++ */
++static uint64_t rk3588_lite_mmu_read(void *opaque, hwaddr offset, unsigned size)
++{
++    Rk3588LiteState *s = opaque;
++    uint32_t v = s->mmu_regs[offset >> 2];
++
++    if ((offset & 0xFF) == 0x04) {      /* STATUS: always idle + replay drained */
++        v |= BIT(3);
++        v |= BIT(4);
++        if (!(v & BIT(2))) {
++            v |= BIT(31);               /* STALL_NOT_ACTIVE */
++        }
++    }
++    return v;
++}
++
++static void rk3588_lite_mmu_write(void *opaque, hwaddr offset, uint64_t value,
++                                  unsigned size)
++{
++    Rk3588LiteState *s = opaque;
++    uint32_t *st = &s->mmu_regs[(offset & ~0xFFu) / 4 + 1];
++
++    if ((offset & 0xFF) == 0x08) {      /* COMMAND */
++        switch (value & 0xF) {
++        case 0: *st |= BIT(0);  break;          /* ENABLE_PAGING */
++        case 1: *st &= ~BIT(0); break;          /* DISABLE_PAGING */
++        case 2: *st |= BIT(2); *st &= ~BIT(31); break;  /* ENABLE_STALL */
++        case 3: *st &= ~BIT(2); *st |= BIT(31); break;  /* DISABLE_STALL */
++        case 6:                                  /* FORCE_RESET: DTE→0, paging off */
++            s->mmu_regs[(offset & ~0xFFu) / 4] = 0;
++            *st = BIT(31);
++            return;
++        default: break;                         /* ZAP_CACHE / PAGE_FAULT_DONE */
++        }
++        return;
++    }
++    s->mmu_regs[offset >> 2] = value;           /* DTE_ADDR readback + others */
++}
++
++static const MemoryRegionOps rk3588_lite_mmu_ops = {
++    .read = rk3588_lite_mmu_read,
++    .write = rk3588_lite_mmu_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 1,
++    .valid.max_access_size = 8,
++};
++
++/* Grow the passed DTB with the sim's virtio-mmio stand-ins (real boards have
++ * no such nodes; skip when the dtb already carries them, e.g. the sim dts). */
++static void rk3588_lite_fdt_add_virtio(void *fdt)
++{
++    static const uint32_t map[4][2] = {
++        { 0xfea00000, 160 }, { 0xfea00200, 161 },
++        { 0xfea00400, 162 }, { 0xfea00600, 163 },
++    };
++
++    if (fdt_path_offset(fdt, "/virtio_mmio@fea00000") >= 0) {
++        return;
++    }
++    for (int i = 0; i < 4; i++) {
++        char name[32];
++        uint32_t reg[4] = {
++            0, cpu_to_fdt32(map[i][0]), 0, cpu_to_fdt32(0x200),
++        };
++        /* rk3588's GIC is #interrupt-cells = <4>; the 4th cell (partition)
++         * is 0 for SPIs — a 3-cell graft reads as malformed, IRQ index 0
++         * comes back ENXIO and the block device never appears */
++        uint32_t irq[4] = {
++            cpu_to_fdt32(0), cpu_to_fdt32(map[i][1]), cpu_to_fdt32(4),
++            cpu_to_fdt32(0),
++        };
++        int off;
++
++        snprintf(name, sizeof(name), "virtio_mmio@%x", map[i][0]);
++        off = fdt_add_subnode(fdt, 0, name);
++        if (off < 0) {
++            continue;
++        }
++        fdt_setprop_string(fdt, off, "compatible", "virtio,mmio");
++        fdt_setprop(fdt, off, "reg", reg, sizeof(reg));
++        fdt_setprop(fdt, off, "interrupts", irq, sizeof(irq));
++    }
++}
++
++/* AMBA PrimeCell periphid shadow: pl330 dmacs are identified by the
++ * PeriphID/PCellID regs at 0xfe0-0xfff; blanket zeros make the amba bus
++ * reject them silently ("deferred, reason unknown"). PL330 = 0x000413330. */
++static uint64_t rk3588_lite_amba_read(void *opaque, hwaddr offset,
++                                      unsigned size)
++{
++    switch (offset) {
++    case 0xe00: return 0x001e0070;  /* CR0: 8 ch / 16 events, no periph reqs */
++    case 0xe14: return 0x0ff00003;  /* CRD: 64-bit bus, buf_dep 256 */
++    case 0x3fe0: return 0x30;       /* PID0 */
++    case 0x3fe4: return 0x13;       /* PID1 */
++    case 0x3fe8: return 0x24;       /* PID2 */
++    case 0x3fec: return 0x00;       /* PID3 */
++    case 0x3ff0: return 0x0d;       /* CID0 */
++    case 0x3ff4: return 0xf0;       /* CID1 */
++    case 0x3ff8: return 0x05;       /* CID2 */
++    case 0x3ffc: return 0xb1;       /* CID3 */
++    default: return 0;
++    }
++}
++
++static void rk3588_lite_amba_write(void *opaque, hwaddr offset,
++                                   uint64_t value, unsigned size)
++{
++}
++
++static const MemoryRegionOps rk3588_lite_amba_ops = {
++    .read = rk3588_lite_amba_read,
++    .write = rk3588_lite_amba_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 1,
++    .valid.max_access_size = 4,
++};
++
++/*
++ * VOP2 display-engine behavioral shadow (offsets from rockchip_drm_vop2.h):
++ *   0x000 REG_CFG_DONE — every commit ends with a write here; on real硅 a
++ *          frame scanout follows and FS_FIELD fires. The model injects a
++ *          frame-start into every VP whose INT_EN has the bit armed, which
++ *          is exactly what unwinds drm_crtc_commit_wait.
++ *   0x004 VERSION_INFO — the one hard check in the whole display stack
++ *          (0x40176786 = RK3588); zeros leave vop2_enable half-done.
++ *   VP window at 0xA0+vp*0x10: EN / CLR(w1c) / STATUS. FS_FIELD = BIT(5).
++ */
++static void rk3588_lite_vop_update(struct Rk3588LiteVop *s)
++{
++    /* level semantics: the line stays high while any INT_EN-armed STATUS
++     * bit is pending, and drops when the driver w1c-clears it via
++     * VP_INT_CLR — exactly the DT's IRQ_TYPE_LEVEL_HIGH.  (A 100µs pulse
++     * loses the race against vCPU delivery in TCG and the IRQ never
++     * lands; holding the level only storms while vop2_isr refuses to run,
++     * i.e. while runtime PM is broken — fixed by the vop_mmu shadow.) */
++    if (!rk3588_lite_vop_powered(s)) {
++        qemu_set_irq(s->irq, 0);
++        return;
++    }
++    uint32_t pend = 0;
++
++    for (int vp = 0; vp < 4; vp++) {
++        pend |= s->regs[(0xA8 + vp * 0x10) / 4] & s->regs[(0xA0 + vp * 0x10) / 4];
++    }
++    qemu_set_irq(s->irq, !!pend);
++}
++
++static void rk3588_lite_vop_frame_tick(void *opaque);
++
++static void rk3588_lite_vop_frame_tick(void *opaque)
++{
++    struct Rk3588LiteVop *s = opaque;
++
++    if (rk3588_lite_vop_powered(s)) {
++        for (int vp = 0; vp < 4; vp++) {
++            if (s->regs[(0xA0 + vp * 0x10) / 4] & BIT(5)) {
++                s->regs[(0xA8 + vp * 0x10) / 4] |= BIT(5);
++            }
++        }
++        rk3588_lite_vop_scanout(s);
++    }
++    rk3588_lite_vop_update(s);
++    timer_mod(s->frame_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL)
++              + 16666667);    /* 60 fps */
++}
++
++static uint64_t rk3588_lite_vop_read(void *opaque, hwaddr offset,
++                                     unsigned size)
++{
++    struct Rk3588LiteVop *s = opaque;
++
++    if (offset == 0x004) {
++        return 0x40176786;
++    }
++    return s->regs[offset >> 2];
++}
++
++static void rk3588_lite_vop_write(void *opaque, hwaddr offset,
++                                  uint64_t value, unsigned size)
++{
++    struct Rk3588LiteVop *s = opaque;
++
++    if (offset == 0x000) {
++        /* REG_CFG_DONE: arm the scanout ticker; the timer keeps firing
++         * frame-start on every VP with FS_FIELD enabled — real scanout
++         * is continuous, not one-shot per commit */
++        return;
++    }
++    if ((offset & 0xF0) >= 0xA0 && (offset & 0x0F) == 0x04) {
++        /* VP_INT_CLR: write-1-to-clear (driver writes irqs<<16|irqs) */
++        int vp = (offset - 0xA4) / 0x10;
++
++        s->regs[(0xA8 + vp * 0x10) / 4] &= ~(value & 0xffff);
++        rk3588_lite_vop_update(s);
++        return;
++    }
++    s->regs[offset >> 2] = value;
++    /* Cluster0-win0 (primary) scanout: YRGB_MST@0x1010, DSP_INFO@0x1024,
++     * VIR@0x1018 — mirrored for qom export so the host can dump the fb */
++    switch (offset) {
++    case 0x1010: s->fb_mst = value; break;
++    case 0x1018: s->fb_vir = value; break;
++    case 0x1024: s->fb_dsp = value; break;
++    }
++}
++
++static const MemoryRegionOps rk3588_lite_vop_ops = {
++    .read = rk3588_lite_vop_read,
++    .write = rk3588_lite_vop_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 4,
++    .valid.max_access_size = 8,
++};
++
++/* DSI2 (dw-mipi-dsi2) shadow: MODE_STATUS mirrors MODE_CTRL so the
++ * cmd/video-mode switch polls succeed instantly (10ms timeout err only,
++ * but the mirror keeps the log clean and the state honest) */
++static uint64_t rk3588_lite_dsi_read(void *opaque, hwaddr offset,
++                                     unsigned size)
++{
++    uint32_t *regs = opaque;
++
++    if (offset == 0x1c) {
++        return regs[0x18 / 4] & 0x7;
++    }
++    return regs[offset >> 2];
++}
++
++static void rk3588_lite_dsi_write(void *opaque, hwaddr offset,
++                                  uint64_t value, unsigned size)
++{
++    uint32_t *regs = opaque;
++
++    regs[offset >> 2] = value;
++}
++
++static const MemoryRegionOps rk3588_lite_dsi_ops = {
++    .read = rk3588_lite_dsi_read,
++    .write = rk3588_lite_dsi_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 4,
++    .valid.max_access_size = 8,
++};
++
++static void rk3588_lite_modify_dtb(const struct arm_boot_info *info, void *fdt)
++{
++    int offset;
++
++    /* The real board hands UART2 to the FIQ debugger (needs BL31); the sim
++     * has no BL31 — nop the debugger and give the plain 8250 the port. */
++    offset = fdt_node_offset_by_compatible(fdt, -1, "rockchip,fiq-debugger");
++    while (offset >= 0) {
++        fdt_nop_node(fdt, offset);
++        offset = fdt_node_offset_by_compatible(fdt, offset,
++                                               "rockchip,fiq-debugger");
++    }
++    offset = fdt_path_offset(fdt, "/serial@feb50000");
++    if (offset >= 0) {
++        fdt_setprop_string(fdt, offset, "status", "okay");
++    }
++    /* vcc3v3-lcd-n's vin-supply (SPI PMIC chain) is dropped at the dts
++     * layer in boards/rk3588-topeet/sim/rk3588-topeet-board.dts —
++     * runtime fdt surgery on properties corrupts the tree for the
++     * kernel's OF walker (of_clk_init livelock, note 72) */
++    rk3588_lite_fdt_add_virtio(fdt);
++}
++
++static void rk3588_lite_init(MachineState *machine)
++{
++    Rk3588LiteState *s = RK3588_LITE_MACHINE(machine);
++    MemoryRegion *sysmem = get_system_memory();
++    DeviceState *gicdev;
++    int i;
++
++    if (machine->smp.cpus > RK3588_LITE_NUM_CPUS) {
++        error_report("rk3588-lite: at most %d CPUs", RK3588_LITE_NUM_CPUS);
++        exit(1);
++    }
++
++    /* Heterogeneous topology per rk3588-base.dtsi: A55 cluster at mpidr
++     * 0x000-0x300, A76 cores at 0x400-0x700 (mp_affinity Aff1 = index). */
++    for (i = 0; i < machine->smp.cpus; i++) {
++        const char *type = i < 4 ? ARM_CPU_TYPE_NAME("cortex-a55")
++                                 : ARM_CPU_TYPE_NAME("cortex-a76");
++        Object *cpu = object_new(type);
++
++        if (machine->smp.cpus > 1 &&
++                object_property_find(cpu, "reset-cbar")) {
++            object_property_set_int(cpu, "reset-cbar", RK3588_LITE_GICD,
++                                    &error_abort);
++        }
++        object_property_set_int(cpu, "cntfrq", 24000000, &error_abort);
++        ARM_CPU(cpu)->mp_affinity = (uint64_t)i << 8;
++        object_property_set_bool(cpu, "has_el2", !kvm_enabled(), &error_abort);
++        /* no EL3 (see rk3568-lite.c): firmware/kernel enter at EL2 and the
++         * SMC PSCI conduit survives QEMU's boot-EL rule */
++        object_property_set_bool(cpu, "has_el3", false, &error_abort);
++        if (i) {
++            object_property_set_bool(cpu, "start-powered-off", true,
++                                     &error_abort);
++        }
++        qdev_realize(DEVICE(cpu), NULL, &error_fatal);
++        s->cpu[i] = ARM_CPU(cpu);
++    }
++
++    gicdev = qdev_new(gicv3_class_name());
++    qdev_prop_set_uint32(gicdev, "num-cpu", machine->smp.cpus);
++    qdev_prop_set_uint32(gicdev, "num-irq",
++                         RK3588_LITE_NUM_SPIS + GIC_INTERNAL);
++    {
++        QList *redist_region_count = qlist_new();
++        qlist_append_int(redist_region_count, machine->smp.cpus);
++        qdev_prop_set_array(gicdev, "redist-region-count", redist_region_count);
++    }
++    object_property_set_link(OBJECT(gicdev), "sysmem", OBJECT(sysmem),
++                             &error_fatal);
++    sysbus_realize_and_unref(SYS_BUS_DEVICE(gicdev), &error_fatal);
++    sysbus_mmio_map(SYS_BUS_DEVICE(gicdev), 0, RK3588_LITE_GICD);
++    sysbus_mmio_map(SYS_BUS_DEVICE(gicdev), 1, RK3588_LITE_GICR);
++
++    for (i = 0; i < machine->smp.cpus; i++) {
++        DeviceState *cpudev = DEVICE(s->cpu[i]);
++        int intidbase = RK3588_LITE_NUM_SPIS + i * GIC_INTERNAL;
++        qemu_irq irq;
++        static const int timer_irqs[] = {
++            [GTIMER_PHYS] = ARCH_TIMER_NS_EL1_IRQ,
++            [GTIMER_VIRT] = ARCH_TIMER_VIRT_IRQ,
++            [GTIMER_HYP]  = ARCH_TIMER_NS_EL2_IRQ,
++            [GTIMER_SEC]  = ARCH_TIMER_S_EL1_IRQ,
++        };
++
++        for (int j = 0; j < ARRAY_SIZE(timer_irqs); j++) {
++            irq = qdev_get_gpio_in(gicdev, intidbase + timer_irqs[j]);
++            qdev_connect_gpio_out(cpudev, j, irq);
++        }
++        irq = qdev_get_gpio_in(gicdev, intidbase + ARCH_GIC_MAINT_IRQ);
++        qdev_connect_gpio_out_named(cpudev, "gicv3-maintenance-interrupt",
++                                    0, irq);
++        irq = qdev_get_gpio_in(gicdev, intidbase + VIRTUAL_PMU_IRQ);
++        qdev_connect_gpio_out_named(cpudev, "pmu-interrupt", 0, irq);
++
++        sysbus_connect_irq(SYS_BUS_DEVICE(gicdev), i,
++                           qdev_get_gpio_in(cpudev, ARM_CPU_IRQ));
++        sysbus_connect_irq(SYS_BUS_DEVICE(gicdev), i + machine->smp.cpus,
++                           qdev_get_gpio_in(cpudev, ARM_CPU_FIQ));
++        sysbus_connect_irq(SYS_BUS_DEVICE(gicdev), i + 2 * machine->smp.cpus,
++                           qdev_get_gpio_in(cpudev, ARM_CPU_VIRQ));
++        sysbus_connect_irq(SYS_BUS_DEVICE(gicdev), i + 3 * machine->smp.cpus,
++                           qdev_get_gpio_in(cpudev, ARM_CPU_VFIQ));
++    }
++
++    /* DW ext space first; serial_mm added later wins the standard window */
++    memory_region_init_io(&s->uart2_ext, OBJECT(machine),
++                          &rk3588_lite_uart2_ext_ops, NULL,
++                          "rk3588-lite.uart2-ext", 0x100);
++    memory_region_add_subregion(sysmem, RK3588_LITE_UART2, &s->uart2_ext);
++
++    /* gicv3 gpio-in n == SPI n: pass the SPI index, not the INTID */
++    serial_mm_init(sysmem, RK3588_LITE_UART2, 2, /* regshift=2 per DT */
++                   qdev_get_gpio_in(gicdev, RK3588_LITE_UART2_SPI),
++                   24000000 / 16, serial_hd(0), DEVICE_LITTLE_ENDIAN);
++
++    /* sim-only virtio-mmio transports; addresses/SPIs match the sim dts */
++    for (i = 0; i < 4; i++) {
++        sysbus_create_simple("virtio-mmio", RK3588_LITE_VIRTIO + i * 0x200,
++                             qdev_get_gpio_in(gicdev, 160 + i));  /* SPI 160+i */
++    }
++
++    /* pre-write the real PLL blocks (CON indices from clk-rk3588.c) with a
++     * sane encoding m=100, p=2, s=1 -> 24MHz * 100 / 2 >> 1 = 600MHz, so
++     * clock-rate queries through any PLL never return 0 (8250 EINVAL) */
++    {
++        static const int pll_con0[] = { 0, 8, 16, 88, 96, 104, 112, 120, 128 };
++
++        for (i = 0; i < ARRAY_SIZE(pll_con0); i++) {
++            s->cru_regs[pll_con0[i]] = 100;      /* CON0: m */
++            s->cru_regs[pll_con0[i] + 1] = 0x42; /* CON1: p=2, s=1 */
++        }
++        /* clk_uart2_src divider (CLKSEL_CON43 [2:6]) = 1, else the chain
++         * rate errors out and dw-apb-uart bails with EINVAL */
++        s->cru_regs[43] = 1 << 2;
++    }
++    memory_region_init_io(&s->cru, OBJECT(machine), &rk3588_lite_cru_ops,
++                          s->cru_regs, "rk3588-lite.cru", RK3588_LITE_CRU_SIZE);
++    memory_region_add_subregion(sysmem, RK3588_LITE_CRU, &s->cru);
++    memory_region_init_io(&s->sys_grf, OBJECT(machine), &rk3588_lite_yesman_ops,
++                          NULL, "rk3588-lite.sys-grf", 0x1000);
++    memory_region_add_subregion(sysmem, RK3588_LITE_SYS_GRF, &s->sys_grf);
++    memory_region_init_io(&s->pmu1grf, OBJECT(machine), &rk3588_lite_yesman_ops,
++                          NULL, "rk3588-lite.pmu1-grf", 0x1000);
++    memory_region_add_subregion(sysmem, RK3588_LITE_PMU1GRF, &s->pmu1grf);
++    memory_region_init_io(&s->pmu, OBJECT(machine), &rk3588_lite_pmu_ops,
++                          s, "rk3588-lite.pmu", 0x400);
++    memory_region_add_subregion(sysmem, RK3588_LITE_PMU, &s->pmu);
++
++    memory_region_init_io(&s->vop.mmio, OBJECT(machine), &rk3588_lite_vop_ops,
++                          &s->vop, "rk3588-lite.vop", 0x4000);
++    object_property_add_uint32_ptr(OBJECT(machine), "vop-fb-mst",
++                                   &s->vop.fb_mst, OBJ_PROP_FLAG_READ);
++    object_property_add_uint32_ptr(OBJECT(machine), "vop-fb-phys",
++                                   &s->vop.fb_phys, OBJ_PROP_FLAG_READ);
++    object_property_add_uint32_ptr(OBJECT(machine), "vop-fb-dsp",
++                                   &s->vop.fb_dsp, OBJ_PROP_FLAG_READ);
++    object_property_add_uint32_ptr(OBJECT(machine), "vop-fb-vir",
++                                   &s->vop.fb_vir, OBJ_PROP_FLAG_READ);
++    memory_region_add_subregion(sysmem, 0xfdd90000, &s->vop.mmio);
++    s->vop.irq = qdev_get_gpio_in(gicdev, 156);    /* shared vop/vop_mmu */
++    s->vop.pd_pwr = s->pmu_regs;
++    s->vop.mmu_dte = s->mmu_regs;
++    s->vop.mmu_status = &s->mmu_regs[1];
++    {
++        static const GraphicHwOps vop_console_ops = { };
++
++        s->vop.con = qemu_graphic_console_create(NULL, 0, &vop_console_ops,
++                                                 &s->vop);
++        qemu_console_set_surface(s->vop.con,
++                                 qemu_create_placeholder_surface(640, 480,
++                                     "VOP idle - waiting for scanout"));
++    }
++    s->vop.frame_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL,
++                                      rk3588_lite_vop_frame_tick, &s->vop);
++    timer_mod(s->vop.frame_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL)
++              + 16666667);
++
++    memory_region_init_io(&s->dsi0, OBJECT(machine), &rk3588_lite_dsi_ops,
++                          s->pmu_regs, "rk3588-lite.dsi0", 0x1000);
++    memory_region_add_subregion(sysmem, 0xfde20000, &s->dsi0);
++
++    memory_region_init_io(&s->dcphy, OBJECT(machine), &rk3588_lite_dcphy_ops,
++                          s, "rk3588-lite.dcphy", 0x4000);
++    memory_region_add_subregion(sysmem, 0xfeda0000, &s->dcphy);
++
++    memory_region_init_io(&s->vop_mmu, OBJECT(machine), &rk3588_lite_mmu_ops,
++                          s, "rk3588-lite.vop-mmu", 0x200);
++    memory_region_add_subregion(sysmem, 0xfdd97e00, &s->vop_mmu);
++
++    {
++        /* real DTB has exactly three dmacs (fea10000/fea30000/fed10000);
++         * 0xfea00000 is the virtio transports' turf and must stay clear.
++         * Region covers the full dtsi 0x4000 window: CRn at 0xe00 and
++         * PrimeCell IDs at 0x3fe0/0x3ff0 (amba bus reads at size-0x20) */
++        static const hwaddr dmacs[3] = {
++            0xfea10000, 0xfea30000, 0xfed10000
++        };
++        for (i = 0; i < 3; i++) {
++            g_autofree char *name = g_strdup_printf("rk3588-lite.dmac%d", i);
++            memory_region_init_io(&s->amba_id[i], OBJECT(machine),
++                                  &rk3588_lite_amba_ops, NULL, name, 0x4000);
++            memory_region_add_subregion(sysmem, dmacs[i], &s->amba_id[i]);
++        }
++    }
++
++    /* peripheral-space blanket at explicit low priority (ties untrusted) */
++    {
++        DeviceState *dev = qdev_new(TYPE_UNIMPLEMENTED_DEVICE);
++        qdev_prop_set_string(dev, "name", "peripherals");
++        qdev_prop_set_uint64(dev, "size", 0x10000000);
++        sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
++        memory_region_add_subregion_overlap(
++            sysmem, 0xf0000000,
++            sysbus_mmio_get_region(SYS_BUS_DEVICE(dev), 0), -100);
++    }
++
++    memory_region_add_subregion(sysmem, 0, machine->ram);
++
++    s->boot_info = (struct arm_boot_info) {
++        .loader_start = 0, /* DRAM base 0 */
++        .board_id = -1,
++        .ram_size = machine->ram_size,
++        .psci_conduit = QEMU_PSCI_CONDUIT_SMC,
++        .modify_dtb = rk3588_lite_modify_dtb,
++    };
++
++    /* -bios (U-Boot proper ELF or raw u-boot.bin at TEXT_BASE) */
++    if (machine->firmware) {
++        char *fname = qemu_find_file(QEMU_FILE_TYPE_BIOS, machine->firmware);
++        uint64_t entry = 0;
++
++        if (!fname) {
++            error_report("firmware not found: %s", machine->firmware);
++            exit(1);
++        }
++        if (load_elf_as(fname, NULL, NULL, NULL, &entry, NULL, NULL, NULL,
++                        ELFDATA2LSB, EM_AARCH64, 1, 0, NULL) < 0) {
++            if (load_image_targphys_as(fname, 0x00800000,
++                                       machine->ram_size, NULL,
++                                       &error_fatal) < 0) {
++                error_report("failed to load firmware: %s", fname);
++                exit(1);
++            }
++            entry = 0x00800000;
++        }
++        g_free(fname);
++        s->boot_info.entry = entry;
++        s->boot_info.firmware_loaded = true;
++    }
++
++    if (!qtest_enabled()) {
++        arm_load_kernel(s->cpu[0], machine, &s->boot_info);
++    }
++
++    if (machine->firmware) {
++        CPUState *cs;
++
++        /* firmware-boot convention leaves env->boot_info NULL (PC stays 0);
++         * the machine knows the ELF entry, so wire boot_info ourselves */
++        CPU_FOREACH(cs) {
++            ARM_CPU(cs)->env.boot_info = &s->boot_info;
++        }
++    }
++}
++
++static const char *rk3588_lite_get_default_cpu_type(const MachineState *ms)
++{
++    if (kvm_enabled()) {
++        return ARM_CPU_TYPE_NAME("host");
++    }
++    return ARM_CPU_TYPE_NAME("cortex-a55");
++}
++
++static void rk3588_lite_machine_class_init(ObjectClass *oc, const void *data)
++{
++    MachineClass *mc = MACHINE_CLASS(oc);
++
++    mc->desc = "Rockchip RK3588 minimal heterogeneous (mainline Linux bring-up)";
++    mc->init = rk3588_lite_init;
++    mc->default_cpus = RK3588_LITE_NUM_CPUS;
++    mc->max_cpus = RK3588_LITE_NUM_CPUS;
++    mc->default_ram_id = "rk3588-lite.ram";
++    mc->default_ram_size = 2 * GiB;
++    mc->get_default_cpu_type = rk3588_lite_get_default_cpu_type;
++}
++
++static const TypeInfo rk3588_lite_machine_types[] = {
++    {
++        .name = TYPE_RK3588_LITE_MACHINE,
++        .parent = TYPE_MACHINE,
++        .class_init = rk3588_lite_machine_class_init,
++        .instance_size = sizeof(Rk3588LiteState),
++        .interfaces = aarch64_machine_interfaces,
++    },
++};
++
++DEFINE_TYPES(rk3588_lite_machine_types)

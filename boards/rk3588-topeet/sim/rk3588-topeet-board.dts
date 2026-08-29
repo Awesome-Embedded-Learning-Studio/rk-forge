@@ -5,6 +5,11 @@
  * 活锁，见笔记 72）。差异诚实清单：
  *   - vin-supply 删除：vcc3v3-lcd-n 不再挂 SPI PMIC 的 dcdc-reg8 下游
  *     （PMIC 需 SPI 行为模型，挂账课题），regulator-fixed 独立成立。
+ *   - vop 的 iommus 删除：真板走 vop_mmu 翻译（真硬件 iommu 正常）；
+ *     仿真的 rockchip-iommu 两级页表行为未建模完整，dma 半残（fb 的
+ *     iova 映射不完整，plane 拿到内核不认识的地址）。摘掉后 dma 直通，
+ *     fb 地址即物理地址，CMA 连续，扫描输出直读。vop_mmu 影子保留
+ *     （probe 不再因它触发）。见笔记 74。
  */
 /dts-v1/;
 
@@ -15,4 +20,8 @@
 
 &vcc3v3_lcd_n {
 	/delete-property/ vin-supply;
+};
+
+&vop {
+	/delete-property/ iommus;
 };

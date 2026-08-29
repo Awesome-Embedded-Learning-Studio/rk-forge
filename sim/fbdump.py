@@ -5,6 +5,7 @@
   python3 sim/fbdump.py [输出.png]
 读取链：qom-get /machine vop-fb-mst / vop-fb-dsp → xp dump fb → PNG（纯标准库）。
 """
+import os
 import re
 import socket
 import struct
@@ -64,8 +65,10 @@ def read_mem(sk, addr, n):
     return bytes(int(x, 16) for x in m[:n])
 
 
-def png_write(path, w, h, pixels):
-    """XRGB8888（4 字节/像素）→ PNG。"""
+def png_write(path, w, h, pixels, swap=False):
+    """32bpp framebuffer → PNG。字节序由调用方判定：mutter/llvmpipe 在本
+    仿真里实际下的是 XBGR（内存序 R,G,B,X，直拷即可）；换 XR24 客户端时
+    用 swap=True（实测证据：壁纸 Ubuntu 橙 e95420 被采成 2054e9）。"""
     rows = []
     for y in range(h):
         row = bytearray()
@@ -73,7 +76,7 @@ def png_write(path, w, h, pixels):
         base = y * w * 4
         for x in range(w):
             px = pixels[base + x * 4:base + x * 4 + 4]
-            row += bytes((px[2], px[1], px[0]))  # BGR→RGB little-endian XRGB
+            row += bytes((px[2], px[1], px[0])) if swap else bytes(px[:3])
         rows.append(bytes(row))
     raw = b"".join(rows)
 
@@ -92,16 +95,17 @@ def png_write(path, w, h, pixels):
 
 def main():
     out = sys.argv[1] if len(sys.argv) > 1 else "/tmp/sim-screen.png"
-    sk = socket.create_connection(MON, timeout=5)
+    port = int(os.environ.get("MONITOR", "4444"))
+    sk = socket.create_connection(("127.0.0.1", port), timeout=5)
     sk.settimeout(0.4)
     rd(sk, 1.5)
-    mst = qom_get(sk, "vop-fb-mst")
+    mst = qom_get(sk, "vop-fb-phys") or qom_get(sk, "vop-fb-mst")
     dsp = qom_get(sk, "vop-fb-dsp")
     if not mst or not dsp or mst < 0x100000:
         print(f"扫描输出未就绪：mst={mst} dsp={dsp}")
         sys.exit(1)
-    width = dsp & 0x1FFF
-    height = (dsp >> 16) & 0x1FFF
+    width = (dsp & 0x1FFF) + 1           # DSP_INFO 存的是 hact-1/vact-1
+    height = ((dsp >> 16) & 0x1FFF) + 1
     print(f"fb @ 0x{mst:x}  {width}x{height}")
     if width < 16 or height < 16 or width * height > 16 * 1024 * 1024:
         print("尺寸不合理")
@@ -110,7 +114,8 @@ def main():
     if len(fb) < width * height * 4:
         print(f"dump 不足：{len(fb)}/{width * height * 4}")
         sys.exit(1)
-    n = png_write(out, width, height, fb)
+    n = png_write(out, width, height, fb,
+                  swap=os.environ.get("FBFMT", "xb24") == "xr24")
     print(f"OK: {out} ({n} px)")
     sk.close()
 

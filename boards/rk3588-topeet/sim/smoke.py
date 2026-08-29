@@ -24,7 +24,9 @@ IMAGE = ROOT / "third_party/src/rk3588-topeet/linux/arch/arm64/boot/Image"
 LINUX_INC = ROOT / "third_party/src/rk3588-topeet/linux/include"
 INITRD = ROOT / "sim/initramfs-busybox.cpio.gz"
 ROOTFS = ROOT / "out/rk3588-topeet/rootfs.ext4"
-REAL_DTB = ROOT / "third_party/src/rk3588-topeet/linux/arch/arm64/boot/dts/rockchip/rk3588-topeet.dtb"
+# 真板 DTB + sim 手术（vin-supply 摘除，dtc 保证结构）——raw 真板 dtb 的
+# PMIC 链会 defer 死 panel，rockchip-drm 永不 bind（/dev/dri 缺失的根因）
+REAL_DTB = SIM / "rk3588-topeet-board.dtb"
 
 argv = sys.argv[1:]
 check = "--check" in argv
@@ -38,6 +40,13 @@ engine.ensure_dtb(SIM / f"{BOARD}.dts", SIM / f"{BOARD}.dtb", LINUX_INC)
 cmd = [engine.find_qemu(), "-M", BOARD,
        "-smp", os.environ.get("SMP", "8"), "-m", "2G",
        "-nographic", "-no-reboot"]
+if os.environ.get("GUI"):
+    # GUI=1：-nographic 换 -display gtk（WSLg 直接弹 Windows 窗口），串口走 stdio
+    gui = [x for x in ("-nographic",) if False]
+    cmd = [c for c in cmd if c != "-nographic"] + ["-display", "gtk", "-serial", "mon:stdio"]
+if os.environ.get("MONITOR"):
+    # MONITOR=4444 时开 QEMU monitor（fbdump.py 截图用），另终端跑 fbdump
+    cmd += ["-monitor", f"tcp:127.0.0.1:{os.environ['MONITOR']},server,nowait"]
 smoke_pats = [rb"Linux version 7\.1\.", rb"Run /init as init process",
               rb"RK3568-M0-SHELL-OK"]
 def real_args(extra: str) -> list:
@@ -50,9 +59,12 @@ def real_args(extra: str) -> list:
                        # flip_done，笔记 73）——绕过后 KMS 用户态路径完整，
                        # gdm/weston/modetest 均可用；fbcon 挂账战役四
                        "drm_client_lib.active=none "
-                       # sim 无 FIQ 调试器/无 WiFi：屏蔽对应 getty/wpa 省两轮 90s 等待
+                       # sim 无 FIQ 调试器/无 WiFi：屏蔽对应 getty/wpa 省两轮 90s 等待；
+                       # plymouth 的 splash 也是一串 modeset 触发源，一并屏蔽
                        "systemd.mask=serial-getty@ttyFIQ0.service "
-                       "systemd.mask=wpa_supplicant@wlan0.service"]
+                       "systemd.mask=wpa_supplicant@wlan0.service "
+                       "systemd.mask=plymouth-start.service "
+                       "systemd.mask=plymouth-quit-wait.service"]
 
 if mode == "linux":
     cmd += ["-kernel", str(IMAGE), "-initrd", str(INITRD),

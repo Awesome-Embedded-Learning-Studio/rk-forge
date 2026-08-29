@@ -36,4 +36,5 @@ title: 工程笔记
   <ChapterLink num="71" href="71-2026-08-28-vop2-campaign-power-domain-cascade">RK3588：VOP2 战役一，电源域级联 + PrimeCell ID</ChapterLink>
   <ChapterLink num="72" href="72-2026-08-28-vop2-campaign2-drm-initialized">RK3588：VOP2 战役二，DRM 管线在仿真里成立</ChapterLink>
   <ChapterLink num="73" href="73-2026-08-28-vop2-campaign3-kms-userspace">RK3588：VOP2 战役三，KMS 用户态解放 + gdm 上机</ChapterLink>
+  <ChapterLink num="74" href="74-2026-08-29-vop2-campaign4-desktop-lights">RK3588：VOP2 战役四，GNOME 桌面点亮 + 冷启动地板</ChapterLink>
 </ChapterNav>

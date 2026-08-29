@@ -53,7 +53,8 @@ def cmd(f, s):
 
 
 def main():
-    sk = socket.create_connection(("127.0.0.1", 1234), timeout=5)
+    PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 1234
+    sk = socket.create_connection(("127.0.0.1", PORT), timeout=5)
     f = Buf(sk)
     sk.sendall(b"\x03")                      # halt
     time.sleep(0.5)
