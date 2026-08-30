@@ -1,8 +1,37 @@
+diff --git a/hmp-commands.hx b/hmp-commands.hx
+index 7ae2468..be0da29 100644
+--- a/hmp-commands.hx
++++ b/hmp-commands.hx
+@@ -1610,6 +1610,24 @@ SRST
+ 
+ ERST
+ 
++
++    {
++        .name       = "gt911_touch",
++        .args_type  = "x:i,y:i",
++        .params     = "x y",
++        .help       = "inject a touch press at (x,y) on the GT911 model",
++        .cmd        = hmp_gt911_touch,
++    },
++
++SRST
++``gt911_touch`` *x* *y*
++------------------------
++Inject a touch press at (*x*, *y*) on the GT911 touchscreen model: fills
++the coordinate FIFO, asserts the INT line, and the guest kernel's goodix
++IRQ handler reads the point out over the real I2C path.
++ERST
++
++
+     {
+         .name       = "chardev-add",
+         .args_type  = "args:s",
 diff --git a/hw/arm/Kconfig b/hw/arm/Kconfig
-index 82e0bc2..c9739b3 100644
+index 82e0bc2..2796c8c 100644
 --- a/hw/arm/Kconfig
 +++ b/hw/arm/Kconfig
-@@ -725,3 +725,25 @@ config ARMSSE
+@@ -725,3 +725,27 @@ config ARMSSE
      select UNIMP
      select SSE_COUNTER
      select SSE_TIMER
@@ -24,6 +53,8 @@ index 82e0bc2..c9739b3 100644
 +    depends on AARCH64
 +    depends on TCG
 +    select ARM_GICV3
++    select GT911
++    select I2C
 +    select SERIAL_MM
 +    select UNIMP
 +    select VIRTIO_MMIO
@@ -650,10 +681,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..ed033c3
+index 0000000..04fb351
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,996 @@
+@@ -0,0 +1,1385 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -673,6 +704,8 @@ index 0000000..ed033c3
 +#include "hw/core/irq.h"
 +#include "hw/core/loader.h"
 +#include "hw/char/serial-mm.h"
++#include "hw/i2c/i2c.h"
++#include "hw/input/gt911.h"
 +#include "hw/core/qdev-properties.h"
 +#include "hw/intc/arm_gicv3.h"
 +#include "hw/core/sysbus.h"
@@ -708,6 +741,8 @@ index 0000000..ed033c3
 +    RK3588_LITE_GICR = 0xfe680000,
 +    RK3588_LITE_UART2 = 0xfeb50000,
 +    RK3588_LITE_VIRTIO = 0xfea00000, /* sim-only, no real counterpart */
++    RK3588_LITE_I2C2 = 0xfeaa0000,   /* goodix gt911 挂这条总线（DTB: i2c2） */
++    RK3588_LITE_GPIO3 = 0xfec40000,  /* gt911 INT=pin16 / reset=pin17 */
 +};
 +
 +#define RK3588_LITE_CRU_SIZE 0x5c000
@@ -837,6 +872,17 @@ index 0000000..ed033c3
 +    uint32_t dcphy_regs[0x4000 / 4];
 +    uint32_t last_req;    /* 最近一次 req 写（0x10c/0x110 任一） */
 +    struct arm_boot_info boot_info;
++
++    /* i2c2@feaa0000 影子设备（规格：drivers/i2c/busses/i2c-rk3x.c） */
++    struct Rk3588LiteI2c *i2c;
++    /* gpio3@fec40000 影子（规格：drivers/gpio/gpio-rockchip.c 的 v2 双字协议） */
++    struct Rk3588LiteGpio {
++        MemoryRegion mmio;
++        qemu_irq bank_irq;   /* GIC SPI 280 */
++        uint32_t dr, ddr, int_en, int_mask, int_type, polarity, bothedge;
++        uint32_t status, lines;
++    } gpio;
++    qemu_irq gpio_in[32];    /* 外部驱动的输入线（gt911 int → pin16） */
 +};
 +
 +/* DW-APB-UART ext space outside the 16550 window (see rk3568-lite.c). */
@@ -1336,6 +1382,355 @@ index 0000000..ed033c3
 +    .valid.max_access_size = 8,
 +};
 +
++
++#define TYPE_RK3588_LITE_I2C2_DEV "rk3588-lite-i2c2"
++OBJECT_DECLARE_SIMPLE_TYPE(Rk3588LiteI2c, RK3588_LITE_I2C2_DEV)
++
++/* ---- i2c2@feaa0000: rk3x adapter shadow ----------------------------------
++ * 规格 = drivers/i2c/busses/i2c-rk3x.c。时序关键：驱动写 CON|START 时 FIFO
++ * 和计数器还没填（handle_start 之后才 fill/prepare），所以 START 写只 pend
++ * INT_START，真正的搬运由 MTXCNT/MRXCNT 写触发，STOP 位写收尾。寄存器偏移
++ * 0x00 CON/0x04 CLKDIV/0x08 MRXADDR/0x0c MRXRADDR/0x10 MTXCNT/0x14 MRXCNT/
++ * 0x18 IEN/0x1c IPD(w1c)/0x20 FCNT；TXBUFFER@0x100、RXBUFFER@0x200。 */
++struct Rk3588LiteI2c {
++    SysBusDevice parent_obj;
++    MemoryRegion mmio;
++    qemu_irq irq;            /* GIC SPI 319 */
++    I2CBus *bus;
++    uint32_t con, clkdiv, mrxaddr, mrxraddr, mtxcnt, mrxcnt, ien, ipd, fcnt;
++    uint8_t txbuf[0x100], rxbuf[0x100];
++    bool started;            /* START 相已发地址（REGISTER_TX 时含寄存器字节） */
++};
++
++enum {
++    RKI2C_CON = 0x00, RKI2C_CLKDIV, RKI2C_MRXADDR, RKI2C_MRXRADDR,
++    RKI2C_MTXCNT, RKI2C_MRXCNT, RKI2C_IEN, RKI2C_IPD, RKI2C_FCNT,
++};
++#define RKI2C_INT_MBTF   BIT(2)
++#define RKI2C_INT_MBRF   BIT(3)
++#define RKI2C_INT_START  BIT(4)
++#define RKI2C_INT_STOP   BIT(5)
++#define RKI2C_INT_NAKRCV BIT(6)
++
++static void rk3588_lite_i2c_update(struct Rk3588LiteI2c *s)
++{
++    qemu_set_irq(s->irq, !!(s->ipd & s->ien));
++}
++
++/* trig: 0=CON|START（只做 REGISTER_TX 地址相），1=MTXCNT 写（TX 块），
++ * 2=MRXCNT 写（RX 块）——驱动在 handle_start 之后才填 FIFO/计数器。 */
++static void rk3588_lite_i2c_kick(struct Rk3588LiteI2c *s, int trig)
++{
++    unsigned mode = (s->con >> 1) & 3;
++    int i;
++
++    if (!(s->con & BIT(0))) {   /* EN clear → nothing to do */
++        return;
++    }
++    if (!s->started) {
++        uint8_t addr;
++
++        if (mode == 2) {        /* REGISTER_TX: 地址在 MRXADDR，寄存器字节在 MRXRADDR */
++            addr = (s->mrxaddr & 0xff) >> 1;
++            if (i2c_start_send(s->bus, addr) != 0) {
++                s->ipd |= RKI2C_INT_NAKRCV | RKI2C_INT_STOP;
++                rk3588_lite_i2c_update(s);
++                return;
++            }
++            for (i = 0; i < 3; i++) {
++                if (s->mrxraddr & BIT(24 + i)) {
++                    i2c_send(s->bus, (s->mrxraddr >> (8 * i)) & 0xff);
++                }
++            }
++            s->started = true;
++            if (trig == 0) {    /* START 相到此为止，读长度等 MRXCNT */
++                rk3588_lite_i2c_update(s);
++                return;
++            }
++        }
++    }
++    if (trig == 0) {
++        return;                 /* MOD_TX 的地址在 FIFO 里，等 MTXCNT */
++    }
++    if (trig == 1) {            /* TX 块：首块 TXBUFFER[0] 是地址字节 */
++        int base = s->started ? 0 : 1;
++
++        if (!s->started) {
++            if (i2c_start_send(s->bus, s->txbuf[0] >> 1) != 0) {
++                s->ipd |= RKI2C_INT_NAKRCV | RKI2C_INT_STOP;
++                rk3588_lite_i2c_update(s);
++                return;
++            }
++            s->started = true;
++        }
++        for (i = base; i < (int)s->mtxcnt; i++) {
++            if (i2c_send(s->bus, s->txbuf[i]) < 0) {
++                s->ipd |= RKI2C_INT_NAKRCV;
++                break;
++            }
++        }
++        s->fcnt += s->mtxcnt;
++        s->ipd |= RKI2C_INT_MBTF;
++    } else {                    /* RX 块：repeated start 进接收 */
++        uint8_t addr;
++
++        if (!s->started) {      /* 单纯读（无寄存器字节）也走 MRXADDR */
++            addr = (s->mrxaddr & 0xff) >> 1;
++            if (i2c_start_recv(s->bus, addr) != 0) {
++                s->ipd |= RKI2C_INT_NAKRCV | RKI2C_INT_STOP;
++                rk3588_lite_i2c_update(s);
++                return;
++            }
++            s->started = true;
++        } else if (i2c_start_recv(s->bus, (s->mrxaddr & 0xff) >> 1) != 0) {
++            s->ipd |= RKI2C_INT_NAKRCV | RKI2C_INT_STOP;
++            rk3588_lite_i2c_update(s);
++            return;
++        }
++        for (i = 0; i < (int)s->mrxcnt; i++) {
++            s->rxbuf[i] = i2c_recv(s->bus);
++        }
++        s->fcnt += s->mrxcnt;
++        s->ipd |= RKI2C_INT_MBRF;
++    }
++    rk3588_lite_i2c_update(s);
++}
++
++static uint64_t rk3588_lite_i2c_read(void *opaque, hwaddr offset, unsigned size)
++{
++    struct Rk3588LiteI2c *s = opaque;
++
++    switch (offset) {
++    case RKI2C_CON: return s->con;
++    case RKI2C_CLKDIV: return s->clkdiv;
++    case RKI2C_MRXADDR: return s->mrxaddr;
++    case RKI2C_MRXRADDR: return s->mrxraddr;
++    case RKI2C_MTXCNT: return s->mtxcnt;
++    case RKI2C_MRXCNT: return s->mrxcnt;
++    case RKI2C_IEN: return s->ien;
++    case RKI2C_IPD: return s->ipd;
++    case RKI2C_FCNT: return s->fcnt;
++    }
++    if (offset >= 0x100 && offset < 0x200) {
++        return ldl_le_p(s->txbuf + (offset - 0x100));
++    }
++    if (offset >= 0x200 && offset < 0x300) {
++        return ldl_le_p(s->rxbuf + (offset - 0x200));
++    }
++    return 0;
++}
++
++static void rk3588_lite_i2c_write(void *opaque, hwaddr offset, uint64_t value,
++                                  unsigned size)
++{
++    struct Rk3588LiteI2c *s = opaque;
++
++    switch (offset) {
++    case RKI2C_CON:
++        s->con = value;
++        if ((value & BIT(3)) && !s->started) {  /* START 相：只报 INT_START */
++            unsigned mode = (value >> 1) & 3;
++
++            if (mode == 2) {    /* REGISTER_TX：地址+寄存器字节此刻就发 */
++                rk3588_lite_i2c_kick(s, 0);
++            }
++            s->ipd |= RKI2C_INT_START;
++            rk3588_lite_i2c_update(s);
++        }
++        if (value & BIT(4)) {   /* STOP：收尾 */
++            if (s->started) {
++                i2c_end_transfer(s->bus);
++                s->started = false;
++            }
++            s->ipd |= RKI2C_INT_STOP;
++            rk3588_lite_i2c_update(s);
++        }
++        return;
++    case RKI2C_CLKDIV: s->clkdiv = value; return;
++    case RKI2C_MRXADDR: s->mrxaddr = value; return;
++    case RKI2C_MRXRADDR: s->mrxraddr = value; return;
++    case RKI2C_MTXCNT:
++        s->mtxcnt = value;
++        rk3588_lite_i2c_kick(s, 1);   /* 块数据搬运的真正触发器 */
++        return;
++    case RKI2C_MRXCNT:
++        s->mrxcnt = value;
++        rk3588_lite_i2c_kick(s, 2);
++        return;
++    case RKI2C_IEN:
++        s->ien = value;
++        rk3588_lite_i2c_update(s);
++        return;
++    case RKI2C_IPD:
++        s->ipd &= ~value;       /* w1c */
++        rk3588_lite_i2c_update(s);
++        return;
++    }
++    if (offset >= 0x100 && offset < 0x200) {
++        stl_le_p(s->txbuf + (offset - 0x100), value);
++    } else if (offset >= 0x200 && offset < 0x300) {
++        stl_le_p(s->rxbuf + (offset - 0x200), value);
++    }
++}
++
++static const MemoryRegionOps rk3588_lite_i2c_ops = {
++    .read = rk3588_lite_i2c_read,
++    .write = rk3588_lite_i2c_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 1,
++    .valid.max_access_size = 4,
++};
++
++/* ---- gpio3@fec40000: rockchip gpio v2 影子 -------------------------------
++ * 规格 = drivers/gpio/gpio-rockchip.c：每个逻辑寄存器两个半字（+0 = pin0-15，
++ * +4 = pin16-31），枚举偏移 dr0x00/ddr0x08/int_en0x10/mask0x18/type0x20/
++ * polarity0x28/bothedge0x30/status0x50/raw0x58/eoi0x60(w1c)/ext0x70/ver0x78。
++ * 输入线电平在 ext_port 可读（goodix 探测期把 INT 当 GPIO 读）；边沿检测
++ * 置 status，经 bank IRQ（SPI 280）进 GIC，EOI 清。 */
++static void rk3588_lite_gpio_update(struct Rk3588LiteGpio *g)
++{
++    qemu_set_irq(g->bank_irq, !!(g->status & g->int_en & ~g->int_mask));
++}
++
++static void rk3588_lite_gpio_set(void *opaque, int n, int level)
++{
++    struct Rk3588LiteGpio *g = opaque;
++    uint32_t old = g->lines;
++    uint32_t fire = 0, i;
++
++    if (level) {
++        g->lines |= BIT(n);
++    } else {
++        g->lines &= ~BIT(n);
++    }
++    for (i = 0; i < 32; i++) {
++        uint32_t b = BIT(i);
++        bool now;
++
++        if (!(b & (old ^ g->lines)) || !(g->int_en & b) || (g->int_mask & b)) {
++            continue;
++        }
++        now = extract32(g->lines, i, 1);
++        if (g->bothedge & b) {
++            fire |= b;
++        } else if (g->int_type & b) {       /* edge */
++            fire |= (g->polarity & b) ? (now ? b : 0) : (now ? 0 : b);
++        } else {                            /* level */
++            fire |= (g->polarity & b) ? (now ? b : 0) : (now ? 0 : b);
++        }
++    }
++    if (fire) {
++        g->status |= fire;
++    }
++    rk3588_lite_gpio_update(g);
++}
++
++static uint64_t rk3588_lite_gpio_read(void *opaque, hwaddr offset, unsigned size)
++{
++    struct Rk3588LiteGpio *g = opaque;
++    uint32_t v = 0;
++    bool high = offset & 4;
++
++    switch (offset & ~4) {
++    case 0x00: v = g->dr; break;
++    case 0x08: v = g->ddr; break;
++    case 0x10: v = g->int_en; break;
++    case 0x18: v = g->int_mask; break;
++    case 0x20: v = g->int_type; break;
++    case 0x28: v = g->polarity; break;
++    case 0x30: v = g->bothedge; break;
++    case 0x50: case 0x58: v = g->status; break;
++    case 0x70: v = (g->lines & ~g->ddr) | (g->dr & g->ddr); break;
++    case 0x78: return high ? 0 : 0x010219C8;   /* GPIO_VER_ID = V2_2（readl 单读） */
++    default: return 0;
++    }
++    return high ? (v >> 16) : (v & 0xffff);
++}
++
++static void rk3588_lite_gpio_write(void *opaque, hwaddr offset, uint64_t value,
++                                   unsigned size)
++{
++    struct Rk3588LiteGpio *g = opaque;
++    uint32_t *dst = NULL;
++    bool high = offset & 4;
++
++    switch (offset & ~4) {
++    case 0x00: dst = &g->dr; break;
++    case 0x08: dst = &g->ddr; break;
++    case 0x10: dst = &g->int_en; break;
++    case 0x18: dst = &g->int_mask; break;
++    case 0x20: dst = &g->int_type; break;
++    case 0x28: dst = &g->polarity; break;
++    case 0x30: dst = &g->bothedge; break;
++    case 0x60:                                /* EOI w1c（按半字） */
++        g->status &= ~(high ? (uint32_t)((value & 0xffff) << 16)
++                            : (value & 0xffff));
++        rk3588_lite_gpio_update(g);
++        return;
++    default: return;
++    }
++    if (high) {
++        *dst = (*dst & 0xffff) | ((value & 0xffff) << 16);
++    } else {
++        *dst = (*dst & 0xffff0000) | (value & 0xffff);
++    }
++}
++
++static const MemoryRegionOps rk3588_lite_gpio_ops = {
++    .read = rk3588_lite_gpio_read,
++    .write = rk3588_lite_gpio_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 4,
++    .valid.max_access_size = 4,
++};
++
++static void rk3588_lite_i2c2_realize(DeviceState *dev, Error **errp)
++{
++    Rk3588LiteI2c *s = RK3588_LITE_I2C2_DEV(dev);
++    SysBusDevice *sbd = SYS_BUS_DEVICE(dev);
++
++    /* 总线的 parent 必须是真设备（qbus 断言），控制器自己就是正主 */
++    s->bus = i2c_init_bus(dev, "i2c2");
++    memory_region_init_io(&s->mmio, OBJECT(dev), &rk3588_lite_i2c_ops, s,
++                          "rk3588-lite.i2c2", 0x300);
++    sysbus_init_mmio(sbd, &s->mmio);
++    sysbus_init_irq(sbd, &s->irq);
++}
++
++static void rk3588_lite_i2c2_class_init(ObjectClass *oc, const void *data)
++{
++    DeviceClass *dc = DEVICE_CLASS(oc);
++
++    dc->realize = rk3588_lite_i2c2_realize;
++    dc->user_creatable = false;
++}
++
++static const TypeInfo rk3588_lite_i2c2_info = {
++    .name = TYPE_RK3588_LITE_I2C2_DEV,
++    .parent = TYPE_SYS_BUS_DEVICE,
++    .instance_size = sizeof(Rk3588LiteI2c),
++    .class_init = rk3588_lite_i2c2_class_init,
++};
++
++static void rk3588_lite_i2c2_register_types(void)
++{
++    type_register_static(&rk3588_lite_i2c2_info);
++}
++
++type_init(rk3588_lite_i2c2_register_types)
++
++/* HMP gt911_touch/gt911_release 的寻址钩子（monitor 侧 extern 声明） */
++static GT911State *g_gt911;
++
++GT911State *rk3588_lite_gt911(void)
++{
++    return g_gt911;
++}
++
 +static void rk3588_lite_init(MachineState *machine)
 +{
 +    Rk3588LiteState *s = RK3588_LITE_MACHINE(machine);
@@ -1443,6 +1838,31 @@ index 0000000..ed033c3
 +        sysbus_connect_irq(SYS_BUS_DEVICE(dev), 0,
 +                           qdev_get_gpio_in(gicdev, 160 + i)); /* SPI 160+i */
 +    }
++
++    /* i2c2@feaa0000 + gt911@0x14：真 I2C 总线挂 goodix 影子（DTB 节点现成，
++     * goodix 驱动照常 probe）。INT → gpio3/pin16（DTB interrupts/irq-gpios） */
++    {
++        DeviceState *i2cdev = sysbus_create_simple(
++            TYPE_RK3588_LITE_I2C2_DEV, RK3588_LITE_I2C2,
++            qdev_get_gpio_in(gicdev, 0x13f));              /* SPI 319 */
++
++        s->i2c = RK3588_LITE_I2C2_DEV(i2cdev);
++    }
++
++    /* gpio3@fec40000：32 输入线 + bank IRQ（goodix 探测期还把 INT 当 GPIO 读） */
++    memory_region_init_io(&s->gpio.mmio, OBJECT(machine), &rk3588_lite_gpio_ops,
++                          &s->gpio, "rk3588-lite.gpio3", 0x80);
++    memory_region_add_subregion(sysmem, RK3588_LITE_GPIO3, &s->gpio.mmio);
++    s->gpio.bank_irq = qdev_get_gpio_in(gicdev, 0x118);     /* SPI 280 */
++    for (i = 0; i < 32; i++) {
++        s->gpio_in[i] = qemu_allocate_irq(rk3588_lite_gpio_set, &s->gpio, i);
++    }
++    qemu_set_irq(s->gpio_in[16], 1);   /* INT 平时高（去断言），等 gt911 接管 */
++
++    /* create_simple 已把设备挂在总线归属下（手动 add_child 会双亲断言）；
++     * 机器存静态指针供 HMP 注入寻址 */
++    g_gt911 = GT911(i2c_slave_create_simple(s->i2c->bus, TYPE_GT911, 0x14));
++    qdev_connect_gpio_out_named(DEVICE(g_gt911), "gt911-int", 0, s->gpio_in[16]);
 +
 +    /* pre-write the real PLL blocks (CON indices from clk-rk3588.c) with a
 +     * sane encoding m=100, p=2, s=1 -> 24MHz * 100 / 2 >> 1 = 600MHz, so
@@ -1650,3 +2070,88 @@ index 0000000..ed033c3
 +};
 +
 +DEFINE_TYPES(rk3588_lite_machine_types)
+diff --git a/hw/input/Kconfig b/hw/input/Kconfig
+index a116cb8..65e744d 100644
+--- a/hw/input/Kconfig
++++ b/hw/input/Kconfig
+@@ -33,3 +33,7 @@ config VHOST_USER_INPUT
+ 
+ config LASIPS2
+     select PS2
++
++config GT911
++    bool
++    depends on I2C
+diff --git a/hw/input/meson.build b/hw/input/meson.build
+index 90a2149..26e7dec 100644
+--- a/hw/input/meson.build
++++ b/hw/input/meson.build
+@@ -10,3 +10,4 @@ system_ss.add(when: 'CONFIG_VIRTIO_INPUT', if_true: files('virtio-input-hid.c'))
+ system_ss.add(when: 'CONFIG_VIRTIO_INPUT_HOST', if_true: files('virtio-input-host.c'))
+ 
+ system_ss.add(when: 'CONFIG_LASIPS2', if_true: files('lasips2.c'))
++system_ss.add(when: 'CONFIG_GT911', if_true: files('gt911.c'))
+diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
+index 9258a04..7bfcfa6 100644
+--- a/include/monitor/hmp.h
++++ b/include/monitor/hmp.h
+@@ -57,6 +57,8 @@ void hmp_info_tpm(Monitor *mon, const QDict *qdict);
+ void hmp_info_iothreads(Monitor *mon, const QDict *qdict);
+ void hmp_quit(Monitor *mon, const QDict *qdict);
+ void hmp_stop(Monitor *mon, const QDict *qdict);
++void hmp_gt911_touch(Monitor *mon, const QDict *qdict);
++void hmp_gt911_release(Monitor *mon, const QDict *qdict);
+ void hmp_sync_profile(Monitor *mon, const QDict *qdict);
+ void hmp_system_reset(Monitor *mon, const QDict *qdict);
+ void hmp_system_powerdown(Monitor *mon, const QDict *qdict);
+diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
+index e9fb8d8..1b8c4cc 100644
+--- a/monitor/hmp-cmds.c
++++ b/monitor/hmp-cmds.c
+@@ -33,6 +33,7 @@
+ #include "block/block-hmp-cmds.h"
+ #include "qobject/qdict.h"
+ #include "qemu/cutils.h"
++#include "hw/input/gt911.h"
+ #include "qemu/log.h"
+ #include "net/slirp.h"
+ #include "system/device_tree.h"
+@@ -136,6 +137,38 @@ void hmp_quit(Monitor *mon, const QDict *qdict)
+     qmp_quit(NULL);
+ }
+ 
++static GT911State *gt911_find(Monitor *mon)
++{
++    GT911State *s = rk3588_lite_gt911();
++
++    if (!s) {
++        monitor_printf(mon, "gt911: no gt911 device on this machine\n");
++    }
++    return s;
++}
++
++void hmp_gt911_touch(Monitor *mon, const QDict *qdict)
++{
++    int x = qdict_get_int(qdict, "x");
++    int y = qdict_get_int(qdict, "y");
++    GT911State *s = gt911_find(mon);
++
++    if (s) {
++        gt911_touch(s, x, y);
++        monitor_printf(mon, "gt911_touch: (%d, %d) INT asserted\n", x, y);
++    }
++}
++
++void hmp_gt911_release(Monitor *mon, const QDict *qdict)
++{
++    GT911State *s = gt911_find(mon);
++
++    if (s) {
++        gt911_release(s);
++        monitor_printf(mon, "gt911_release: INT asserted\n");
++    }
++}
++
+ void hmp_stop(Monitor *mon, const QDict *qdict)
+ {
+     qmp_stop(NULL);

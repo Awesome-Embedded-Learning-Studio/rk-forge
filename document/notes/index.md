@@ -41,4 +41,5 @@ title: 工程笔记
   <ChapterLink num="76" href="76-2026-08-29-mali-csf-emulation-feasibility">RK3588：Mali CSF 仿真预研（外部报告）</ChapterLink>
   <ChapterLink num="77" href="77-2026-08-29-same-dtb-cmdline-virtio-desktop">RK3588：同 DTB 的 cmdline virtio 桌面路径</ChapterLink>
   <ChapterLink num="78" href="78-2026-08-30-virgl-desktop-host-gl-blocked">RK3588：virgl 桌面加演，宿主 GL 四路验尸 + dxg 根因</ChapterLink>
+  <ChapterLink num="79" href="79-2026-08-30-gt911-touch-i2c-campaign">RK3588：GT911 触摸真路径战役，i2c/gpio 影子成军</ChapterLink>
 </ChapterNav>
