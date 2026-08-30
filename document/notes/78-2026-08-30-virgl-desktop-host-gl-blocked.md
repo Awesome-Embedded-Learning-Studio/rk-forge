@@ -69,9 +69,20 @@ GL 无解，只能 wsl --update 解锁"。**错误**：
   字符即敲 guest console（后台任务的 stdio 也能做交互串口）
 - PPM 判活：色度差采样（chroma ≥3/9）防文本屏误报
 
-## 6. 待办
+## 6. 冷启动计时成绩（用户肉眼停表，2026-08-30）
 
-- virgl 桌面的冷启动/首帧计时 vs 79s llvmpipe 地板（宿主 GL 代劳应显著低）
+| 配置 | 开机→壁纸露脸 |
+|---|---|
+| llvmpipe（VOP2 旧流） | 79s（五轮自动实测地板） |
+| virgl 宿主 GL | 50s |
+| virgl + FAST（quiet loglevel=3 + fw_devlink=off，smoke.py FAST=1） | **45s** |
+
+分解：QEMU 起 ~2s + 内核 ~6s + systemd→login ~16s + gdm→shell(JS×TCG)→上色 ~21s。
+剩余大头是 TCG 啃 systemd/gnome-shell 的 CPU 模拟税——继续抠预期收益 ≤5s；
+真正的下一档提速 = vmstate 快照战役（秒回桌面），冷启动 45s 定为本线当前地板。
+
+## 6.1 待办（原）
+
 - VOP2 影子在同 DTB 流下的回归验证（real DTB 的 vop 带 iommus，desktop 现在
   走 virtio-gpu，board 模式的 VOP 窗口是否还活需复测）
 - 老债：framehunt/snapshot 移植同 DTB 流、qemu-sim-machines.patch 重导、

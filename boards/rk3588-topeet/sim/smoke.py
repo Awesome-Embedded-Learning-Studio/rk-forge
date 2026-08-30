@@ -83,9 +83,12 @@ smoke_pats = [rb"Linux (?:version |\(none\) )7\.1\.", rb"Run /init as init proce
               rb"RK3568-M0-SHELL-OK"]
 def real_args(extra: str) -> list:
     """真板 DTB 公共参数；hvc0 和其他 virtio transport 只由 cmdline 枚举。"""
+    # FAST=1 提速档（sim bootargs=宪法许可层）：quiet 砍内核期串口 MMIO 退出；
+    # fw_devlink=off 放行未建模设备的供应者等待（defer 风暴）
+    fast = "quiet loglevel=3 fw_devlink=off " if os.environ.get("FAST") == "1" else ""
     return ["-dtb", str(REAL_DTB),
             "-append", f"console=hvc0 {VIRTIO_MMIO} {extra} "
-                       "panic=-1 cpuidle.off=1 "
+                       f"panic=-1 cpuidle.off=1 {fast}"
                        # fbdev client 的首次 modeset 会死锁（runtime PM ×
                        # flip_done，笔记 73）——绕过后 KMS 用户态路径完整，
                        # gdm/weston/modetest 均可用；fbcon 挂账战役四
