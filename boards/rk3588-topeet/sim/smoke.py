@@ -64,11 +64,15 @@ if os.environ.get("MONITOR"):
     # MONITOR=4444 时开 QEMU monitor（fbdump.py 截图用），另终端跑 fbdump
     cmd += ["-monitor", f"tcp:127.0.0.1:{os.environ['MONITOR']},server,nowait"]
 if mode in ("desktop", "gpu-probe"):
-    gpu = ("virtio-gpu-device" if os.environ.get("GPU_BACKEND") == "2d"
-           else "virtio-gpu-gl-device")
+    if os.environ.get("GPU_BACKEND") == "vop":
+        gpu = None                     # 真面板形态：rockchipdrm 是唯一 DRM 卡
+    else:
+        gpu = ("virtio-gpu-device" if os.environ.get("GPU_BACKEND") == "2d"
+               else "virtio-gpu-gl-device")
     # id 给 HMP screendump 点名用（多控制台时裸 screendump 抓到的是默认台）。
     # VIRTIO_INPUT=0 撤掉 virtio 键鼠——M2 终审用：窗口鼠标只剩 gt911 真路径
-    cmd += ["-device", f"{gpu},id=gpu0"]
+    if gpu:
+        cmd += ["-device", f"{gpu},id=gpu0"]
     if os.environ.get("VIRTIO_INPUT", "1") == "1":
         cmd += ["-device", "virtio-tablet-device", "-device", "virtio-keyboard-device"]
     if gpu == "virtio-gpu-gl-device":
@@ -87,9 +91,12 @@ def real_args(extra: str) -> list:
     """真板 DTB 公共参数；hvc0 和其他 virtio transport 只由 cmdline 枚举。"""
     # FAST=1 提速档（sim bootargs=宪法许可层）：quiet 砍内核期串口 MMIO 退出；
     # fw_devlink=off 放行未建模设备的供应者等待（defer 风暴）
-    # initcall_blacklist：rk806 供电链活了以后 DSI 面板会 probe 出第二张 DRM 卡
-    # （card1-DSI-1），mutter 对双屏不知所措直接"纯炸"——FAST 档一并掐掉
-    fast = ("quiet loglevel=3 fw_devlink=off initcall_blacklist=rockchip_drm_init "
+    # initcall_blacklist：rk806 供电链活了以后 DSI 面板会 probe 出第二张 DRM 卡，
+    # virtio-gpu 桌面形态下 mutter 对双屏不知所措——掐掉 rockchipdrm。
+    # GPU_BACKEND=vop（真面板桌面）则必须让它活
+    blacklist = ("" if os.environ.get("GPU_BACKEND") == "vop"
+                 else " initcall_blacklist=rockchip_drm_init")
+    fast = ("quiet loglevel=3 fw_devlink=off" + blacklist
             if os.environ.get("FAST") == "1" else "")
     return ["-dtb", str(REAL_DTB),
             "-append", f"console=hvc0 {VIRTIO_MMIO} {extra} "

@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..591d404
+index 0000000..5686ada
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,1622 @@
+@@ -0,0 +1,1641 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -806,13 +806,11 @@ index 0000000..591d404
 +
 +/* scanout push — ramfb model: wrap guest RAM in a surface, hand it to the
 + * console, full-screen update per frame tick */
-+static void rk3588_lite_vop_unmap_surface(pixman_image_t *image, void *unused)
++static void rk3588_lite_vop_unmap_staged(pixman_image_t *image, void *unused)
 +{
 +    void *data = pixman_image_get_data(image);
-+    int stride = pixman_image_get_stride(image);
-+    int height = pixman_image_get_height(image);
 +
-+    physical_memory_unmap(data, stride * height, 0, 0);
++    g_free(data);
 +}
 +
 +/* vop_mmu IOVA→phys: the kernel programs YRGB_MST with an IOVA once the
@@ -822,12 +820,17 @@ index 0000000..591d404
 + * stride math linear is correct.  Paging disabled → identity. */
 +static hwaddr rk3588_lite_vop_iova_phys(struct Rk3588LiteVop *s, hwaddr iova)
 +{
++    /* rockchip IOMMU **v2** 页表（compatible rk3568/3588-iommu → iommu_data_ops_v2，
++     * 见 rockchip-iommu.c of_match）：DTE 索引 = iova>>22（4MB 段），表项编码
++     * bit0=valid、11:8=地址 bit35:32、7:4=bit39:36——RAM<4GB 时掩 0xfffff000 即可；
++     * DTE_ADDR 寄存器值同编码（读回 0x5c2a001 实证带 valid 位）。 */
 +    uint32_t dte, pte;
 +
 +    if (!s->mmu_status || !(*s->mmu_status & BIT(0))) {
 +        return iova;
 +    }
-+    if (address_space_read(&address_space_memory, *s->mmu_dte + 4 * (iova >> 20),
++    if (address_space_read(&address_space_memory,
++                           (*s->mmu_dte & 0xfffff000) + 4 * (iova >> 22),
 +                           MEMTXATTRS_UNSPECIFIED, &dte, 4) != MEMTX_OK
 +        || !(dte & 1)) {
 +        return iova;
@@ -871,12 +874,24 @@ index 0000000..591d404
 +        stride = linesize;
 +    }
 +    mapsize = stride * (height - 1) + linesize;
-+    data = physical_memory_map(fb, &mapsize, false);
-+    if (!data || mapsize < stride * (height - 1) + linesize) {
-+        if (data) {
-+            physical_memory_unmap(data, mapsize, 0, 0);
++    /* 逐页缝合：bo 的 iova 映射不保证物理连续（页表实测跨 4MB DTE 边界
++     * 时拓扑会变），线性 base+stride 映射会读错段（花屏带）。每 4KB 页
++     * 单独走 iova 翻译后拷进连续 staging，对任意拓扑都正确 */
++    data = g_malloc(mapsize);
++    {
++        hwaddr off = 0;
++
++        while (off < mapsize) {
++            hwaddr pg = MIN(4096 - ((s->fb_mst + off) & 0xfff), mapsize - off);
++            hwaddr src = rk3588_lite_vop_iova_phys(s, s->fb_mst + off);
++
++            if (address_space_read(&address_space_memory, src,
++                                   MEMTXATTRS_UNSPECIFIED,
++                                   (uint8_t *)data + off, pg) != MEMTX_OK) {
++                memset((uint8_t *)data + off, 0, pg);
++            }
++            off += pg;
 +        }
-+        return;
 +    }
 +
 +    qemu_free_displaysurface(s->surface);
@@ -884,7 +899,7 @@ index 0000000..591d404
 +                                                 PIXMAN_x8r8g8b8, stride,
 +                                                 data);
 +    pixman_image_set_destroy_function(s->surface->image,
-+                                      rk3588_lite_vop_unmap_surface, NULL);
++                                      rk3588_lite_vop_unmap_staged, NULL);
 +    s->last_mst = s->fb_mst;
 +    s->last_dsp = s->fb_dsp;
 +    s->last_vir = s->fb_vir;
@@ -2172,6 +2187,10 @@ index 0000000..591d404
 +                                   &s->vop.fb_dsp, OBJ_PROP_FLAG_READ);
 +    object_property_add_uint32_ptr(OBJECT(machine), "vop-fb-vir",
 +                                   &s->vop.fb_vir, OBJ_PROP_FLAG_READ);
++    object_property_add_uint32_ptr(OBJECT(machine), "mmu-dte",
++                                   &s->mmu_regs[0], OBJ_PROP_FLAG_READ);
++    object_property_add_uint32_ptr(OBJECT(machine), "mmu-status",
++                                   &s->mmu_regs[1], OBJ_PROP_FLAG_READ);
 +    memory_region_add_subregion(sysmem, 0xfdd90000, &s->vop.mmio);
 +    s->vop.irq = qdev_get_gpio_in(gicdev, 156);    /* shared vop/vop_mmu */
 +    s->vop.pd_pwr = s->pmu_regs;
