@@ -37,6 +37,29 @@
 - 结论：缺陷收敛到**多 vCPU 的跨核/定时器状态恢复**（TCG 多核 savevm 本就是
   人迹罕至路径）；单核形态可用作稳定工作流
 
+## 1.8 二轮攻坚实录（08-31 凌晨）：理论逐一枪毙
+
+| 实验 | 结果 | 枪毙了什么 |
+|---|---|---|
+| post_load `qemu_cpu_kick` 全核 | 锁死依旧 | "halted vCPU 没被踢醒"论 |
+| 冷启动直跑 qcow2（无迁移）8 分钟 | 零锁死 | "qcow2/盘的问题"论 |
+| 晚点快照（guest 232s，过了 104s 负载峰） | 恢复后 guest 244s 照锁（这回 cpu3） | "apt-check 负载触发"论 |
+| `-accel tcg,thread=single` | 照锁 | "MTTCG 线程模型"论 |
+| **`idle=poll`（内核永不 WFI）** | **照锁**（polling 的 CPU 也硬锁） | **"睡死等闹钟"论——最有力的一条** |
+
+**存活事实链**：冷启动任意盘型都好；loadvm 后 ~1-2 分钟，任一 CPU 的定时器中断
+投递静默死亡（polling 也一样收不到）→ 伙伴看门狗判死。SMP=1 唯一例外。
+定论：**loadvm 缺失某个 per-CPU 运行时链接**——vtimer 的 QEMUTimer 与 GIC
+PPI 的运行时通路在恢复后断掉一核（迁移流里字段都在：gt_timer 两枚都装了、
+gicr_waker/ienabler0 都装了——但某处运行时重建没发生）。TCG 8 核 savevm
+本就是无人走的路，上游缺一环不奇怪。
+
+**下役刀口**：锁死瞬间读该核 CNTV_CTL/CVAL/CNTVCT + 在 gicv3_cpuif_update
+挂计数器，看断在"定时器没到期"还是"到期了没送达"。
+
+**现行可用**：SMP=1 快照（稳定）；或日用 FAST 冷启动 45s。idle=poll/watchdog=0
+试验参数已从 snapshot.py 撤掉（无效）。
+
 ## 2. hardlockup 嫌疑清单（下役入口）
 
 1. **丢失的 pending 状态**：GIC/GICR 迁移了，但某 vCPU 快照时正 WFI 等

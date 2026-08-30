@@ -86,7 +86,7 @@ def qemu_argv(load=False):
         + " ".join(
             f"virtio_mmio.device=0x200@0x{0xfea00000 + i * 0x200:x}:spi{160 + i}:{i}"
             for i in range(6))
-        + " root=/dev/vda rw rootwait init=/sbin/init panic=-1 cpuidle.off=1 watchdog=0 "
+        + " root=/dev/vda rw rootwait init=/sbin/init panic=-1 cpuidle.off=1 "
         "drm_client_lib.active=none quiet loglevel=3 fw_devlink=off "
         "systemd.mask=serial-getty@ttyFIQ0.service "
         "systemd.mask=wpa_supplicant@wlan0.service "

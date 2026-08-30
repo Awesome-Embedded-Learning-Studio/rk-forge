@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..927f840
+index 0000000..20f63cd
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,1760 @@
+@@ -0,0 +1,1769 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -745,6 +745,7 @@ index 0000000..927f840
 +#include "hw/core/qdev-properties.h"
 +#include "hw/intc/arm_gicv3.h"
 +#include "hw/core/sysbus.h"
++#include "system/cpus.h"
 +#include "hw/misc/unimp.h"
 +#include "system/address-spaces.h"
 +#include "system/physmem.h"
@@ -1832,6 +1833,14 @@ index 0000000..927f840
 +    s->vop.last_mst = s->vop.last_dsp = s->vop.last_vir = 0;
 +    timer_mod(s->vop.frame_timer,
 +              qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + 16666667);
++    /* 多核迟发锁死（note 81 §1.5）：TCG 下 halted（WFI）vCPU 若快照时正等
++     * 某个未被迁移重建的事件，恢复后永不重估中断——主动 kick 全核逼其
++     * 重新评估 CPU_INTERRUPT_HARD / 定时器到期条件 */
++    CPUState *cpu;
++
++    CPU_FOREACH(cpu) {
++        qemu_cpu_kick(cpu);
++    }
 +    return 0;
 +}
 +
