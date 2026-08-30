@@ -17,6 +17,23 @@
 | **M0（goodix probe）** | ⛔ 卡在供电链：goodix → AVDD28 → vcc3v3_lcd0_n（已注册）→ vin → **vcc_3v3_s3 = rk806 SPI PMIC dcdc-reg8（未建模，永不注册）** → regulator 核心对 vin 未解析的 rdev 永远 -EPROBE_DEFER（devices_deferred 实证，手动 bind = EAGAIN）。这正是旧 overlay 用 /delete-property/ vin-supply 绕掉的挂账（现禁手术） |
 | 次生坑 | goodix 还有 panel 供应者（vendor `panel=<&panel>` phandle，fw_devlink）——同样依赖显示链起活，与供电链同根 |
 
+## 0.5 战役二补录（同日）：rk806 SPI PMC 影子 + M0 全通
+
+| 项 | 结果 |
+|---|---|
+| **rk806 SPI 从设备** | ✅ hw/ssi/rk806.c：rk8xx-spi 协议（cmd[READ=0/WRITE=BIT7\|len-1] + 2 字节地址 + 数据，CS 拉高帧复位）；probe 不校验芯片名（variant 由 compatible 硬编码），寄存器堆应答即足 |
+| **spi2 控制器影子** | ✅ feb20000（DW 风格）：TXDR 写即全双工打钟应答进 RX fifo；**RO 模式（XFM=2）在 SSIENR 使能时按 CTRLR1 自动打钟**（驱动 RX-only 不写 TXDR）；VERSION 必答 0x00110002 |
+| **M0 铁证** | ✅ `rk8xx-spi spi2.0` probe 通过（无超时）→ vcc_3v3_s3 注册 → 供电链解锁 → `Goodix-TS 2-0014: ID 911, version: 0020`（I2C rx trace: `39 31 31 00 20 00`）→ `input: Goodix Capacitive TouchScreen` input0 注册 |
+| M1 注点 | 🔧 HMP `gt911_touch 700 400` → INT → gpio 边沿 → demux → goodix 线程经真 I2C 读回 `81 00 bc02 9001`（=1 触点@700,400）——报告已进驱动；evdev 落盘验证被 initramfs 工具链阻塞，最终验收挪到 M2 桌面 |
+
+**连环坑清单（全 trace 实证后修）**：
+1. SSI 基类 `ssi_peripheral_realize` **无条件调 .realize**——不给就空指针段错误（QEMU 秒死无输出）
+2. SPI RF_FULL 判据差一：`rn > rxftlr`（驱动按 len 设水位线）
+3. i2c 寄存器**枚举按 1 递增而偏移按 4**——除 CON 外全部 case 未命中，写被静默丢弃
+4. 内核 CON 模式枚举：TX=0、**REGISTER_TX=1**、RX=2（我写反 1/2，地址相从未跑对 → ID 读全零）
+5. gpio v2 混合访问风格：配置寄存器走半字协议，但 demux 的 int_status 是**裸 32 位 readl**——按半字应答会把 BIT(16) 折半归零（风暴+无 EOI）
+6. goodix 在本 DTB 下把 pin16 配成**上升沿**（imx 板是下降沿）——assert 脉冲 0→1
+
 ## 1. M1+ 待续
 
 - M0 收官 = **rk806 SPI PMIC 影子**（spi@feb20000 控制器 + rk806 命令协议最小应答 →
