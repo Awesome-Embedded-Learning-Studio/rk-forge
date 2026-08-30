@@ -1,11 +1,43 @@
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 7ae2468..be0da29 100644
+index 7ae2468..1510dd4 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
-@@ -1610,6 +1610,24 @@ SRST
+@@ -1610,6 +1610,56 @@ SRST
  
  ERST
  
++
++    {
++        .name       = "gt911_release",
++        .args_type  = "",
++        .params     = "",
++        .help       = "release the touch on the GT911 model",
++        .cmd        = hmp_gt911_release,
++    },
++
++SRST
++``gt911_release``
++------------------
++Lift the finger: the next IRQ reports 0 contacts, closing a press opened by
++``gt911_touch`` or the host-mouse bridge.
++ERST
++
++    {
++        .name       = "gt911_mouse",
++        .args_type  = "on:b",
++        .params     = "on|off",
++        .help       = "toggle the GT911 host-mouse bridge (off when virtio pointer present)",
++        .cmd        = hmp_gt911_mouse,
++    },
++
++SRST
++``gt911_mouse`` *on|off*
++------------------------
++Toggle the host-mouse-to-touch bridge. Turn it off when a virtio pointer is
++attached to the guest: two simultaneous press streams fight over GNOME's
++grab and window dragging breaks.
++ERST
++
 +
 +    {
 +        .name       = "gt911_touch",
@@ -683,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..1123f79
+index 0000000..591d404
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,1612 @@
+@@ -0,0 +1,1622 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -2090,7 +2122,17 @@ index 0000000..1123f79
 +
 +    /* create_simple 已把设备挂在总线归属下（手动 add_child 会双亲断言）；
 +     * 机器存静态指针供 HMP 注入寻址 */
-+    g_gt911 = GT911(i2c_slave_create_simple(s->i2c->bus, TYPE_GT911, 0x14));
++    {
++        /* 两步创建以传属性：virtio 键鼠在场（transport 里有输入设备）时
++         * gt911 宿主鼠标桥避让，防两路 grab 抢窗口拖动（M2b 教训）。
++         * 机器不感知 smoke 的设备清单——用 monitor 命令桥接：属性默认 on，
++         * HMP gt911_mouse off 可运行时关 */
++        I2CSlave *gt = i2c_slave_new(TYPE_GT911, 0x14);
++
++        qdev_prop_set_bit(DEVICE(gt), "host-mouse", true);
++        i2c_slave_realize_and_unref(gt, s->i2c->bus, &error_fatal);
++        g_gt911 = GT911(gt);
++    }
 +    qdev_connect_gpio_out_named(DEVICE(g_gt911), "gt911-int", 0, s->gpio_in[16]);
 +
 +    /* pre-write the real PLL blocks (CON indices from clk-rk3588.c) with a
@@ -2341,20 +2383,21 @@ index 6afb1ea..44c7809 100644
  system_ss.add(when: 'CONFIG_PNV_SPI', if_true: files('pnv_spi.c'))
 +system_ss.add(when: 'CONFIG_RK806', if_true: files('rk806.c'))
 diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
-index 9258a04..7bfcfa6 100644
+index 9258a04..6e89b6d 100644
 --- a/include/monitor/hmp.h
 +++ b/include/monitor/hmp.h
-@@ -57,6 +57,8 @@ void hmp_info_tpm(Monitor *mon, const QDict *qdict);
+@@ -57,6 +57,9 @@ void hmp_info_tpm(Monitor *mon, const QDict *qdict);
  void hmp_info_iothreads(Monitor *mon, const QDict *qdict);
  void hmp_quit(Monitor *mon, const QDict *qdict);
  void hmp_stop(Monitor *mon, const QDict *qdict);
 +void hmp_gt911_touch(Monitor *mon, const QDict *qdict);
 +void hmp_gt911_release(Monitor *mon, const QDict *qdict);
++void hmp_gt911_mouse(Monitor *mon, const QDict *qdict);
  void hmp_sync_profile(Monitor *mon, const QDict *qdict);
  void hmp_system_reset(Monitor *mon, const QDict *qdict);
  void hmp_system_powerdown(Monitor *mon, const QDict *qdict);
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index e9fb8d8..1b8c4cc 100644
+index e9fb8d8..d43055a 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -33,6 +33,7 @@
@@ -2365,7 +2408,7 @@ index e9fb8d8..1b8c4cc 100644
  #include "qemu/log.h"
  #include "net/slirp.h"
  #include "system/device_tree.h"
-@@ -136,6 +137,38 @@ void hmp_quit(Monitor *mon, const QDict *qdict)
+@@ -136,6 +137,49 @@ void hmp_quit(Monitor *mon, const QDict *qdict)
      qmp_quit(NULL);
  }
  
@@ -2377,6 +2420,17 @@ index e9fb8d8..1b8c4cc 100644
 +        monitor_printf(mon, "gt911: no gt911 device on this machine\n");
 +    }
 +    return s;
++}
++
++void hmp_gt911_mouse(Monitor *mon, const QDict *qdict)
++{
++    GT911State *s = rk3588_lite_gt911();
++
++    if (s) {
++        s->mouse_bridge = qdict_get_bool(qdict, "on");
++        monitor_printf(mon, "gt911 host-mouse bridge: %s\n",
++                       s->mouse_bridge ? "on" : "off");
++    }
 +}
 +
 +void hmp_gt911_touch(Monitor *mon, const QDict *qdict)

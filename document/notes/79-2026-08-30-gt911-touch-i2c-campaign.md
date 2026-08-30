@@ -34,6 +34,18 @@
 5. gpio v2 混合访问风格：配置寄存器走半字协议，但 demux 的 int_status 是**裸 32 位 readl**——按半字应答会把 BIT(16) 折半归零（风暴+无 EOI）
 6. goodix 在本 DTB 下把 pin16 配成**上升沿**（imx 板是下降沿）——assert 脉冲 0→1
 
+## 0.7 M2 战报（同日）：真路径验证通过，桌面分工定局
+
+| 项 | 结果 |
+|---|---|
+| M2 纯触摸 | ✅ 链路全通——用户鼠标拖动/点击经 gt911→I2C→驱动→input0（实时 rx trace 可见坐标流），注入 (512,300) 精确回读 `81 00 0002 2c01` |
+| **"纯炸"黑屏真凶** | **不是输入**——rk806 救活供电链后 DSI 面板 probe 出第二张 DRM 卡（card1-DSI-1），mutter 双屏拓扑精神分裂。修：FAST 档 `initcall_blacklist=rockchip_drm_init`（宪法层 bootargs） |
+| 拖不动窗口 | virtio 指针 grab 与 gt911 触摸手势两路按下抢方向盘——gt911 加 `host-mouse` 属性 + HMP `gt911_mouse on\|off` 运行时避让 |
+| 纯触摸"看着死了" | 事件在流但 GNOME 无指针模式藏掉 dock/光标/hover——无反馈目标，非链路问题 |
+| **节流** | 拖动上报按 guest 虚拟时钟 33ms 合并（逐事件全价报告会饱和 mutter → 黑屏假死，CPU 215% 实证） |
+| **意外大捷** | **DSI 面板链路被 rk806 解锁**（card1-DSI-1 能 probe）——"桌面走真面板"从不可想象变成就差最后一程（VOP 扫描输出 + mutter 选卡），值得单独立役 |
+| 最终分工 | 日用驾驶 = virtio 键鼠 + `gt911_mouse off`；gt911 = 真触摸验证通道（`gt911_mouse on` / `gt911_touch x y` 随时唤醒）——用户验收通过 |
+
 ## 1. M1+ 待续
 
 - M0 收官 = **rk806 SPI PMIC 影子**（spi@feb20000 控制器 + rk806 命令协议最小应答 →

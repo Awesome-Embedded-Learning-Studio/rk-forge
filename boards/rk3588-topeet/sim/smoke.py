@@ -66,9 +66,11 @@ if os.environ.get("MONITOR"):
 if mode in ("desktop", "gpu-probe"):
     gpu = ("virtio-gpu-device" if os.environ.get("GPU_BACKEND") == "2d"
            else "virtio-gpu-gl-device")
-    # id 给 HMP screendump 点名用（多控制台时裸 screendump 抓到的是默认台）
-    cmd += ["-device", f"{gpu},id=gpu0",
-            "-device", "virtio-tablet-device", "-device", "virtio-keyboard-device"]
+    # id 给 HMP screendump 点名用（多控制台时裸 screendump 抓到的是默认台）。
+    # VIRTIO_INPUT=0 撤掉 virtio 键鼠——M2 终审用：窗口鼠标只剩 gt911 真路径
+    cmd += ["-device", f"{gpu},id=gpu0"]
+    if os.environ.get("VIRTIO_INPUT", "1") == "1":
+        cmd += ["-device", "virtio-tablet-device", "-device", "virtio-keyboard-device"]
     if gpu == "virtio-gpu-gl-device":
         # virgl 要带 GL 的显示后端：GUI=1 → gtk,gl=on；headless → egl-headless。
         # WSLg 上 gtk 的 EGL 路不通（无 /dev/dri → 窗口建废，连接器报
@@ -85,7 +87,10 @@ def real_args(extra: str) -> list:
     """真板 DTB 公共参数；hvc0 和其他 virtio transport 只由 cmdline 枚举。"""
     # FAST=1 提速档（sim bootargs=宪法许可层）：quiet 砍内核期串口 MMIO 退出；
     # fw_devlink=off 放行未建模设备的供应者等待（defer 风暴）
-    fast = "quiet loglevel=3 fw_devlink=off " if os.environ.get("FAST") == "1" else ""
+    # initcall_blacklist：rk806 供电链活了以后 DSI 面板会 probe 出第二张 DRM 卡
+    # （card1-DSI-1），mutter 对双屏不知所措直接"纯炸"——FAST 档一并掐掉
+    fast = ("quiet loglevel=3 fw_devlink=off initcall_blacklist=rockchip_drm_init "
+            if os.environ.get("FAST") == "1" else "")
     return ["-dtb", str(REAL_DTB),
             "-append", f"console=hvc0 {VIRTIO_MMIO} {extra} "
                        f"panic=-1 cpuidle.off=1 {fast}"
