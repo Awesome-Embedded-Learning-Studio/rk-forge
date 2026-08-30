@@ -21,6 +21,22 @@
 - `xp` 读 transport 寄存器见 device id=0 是**红鲱鱼**（正常启动也这样，
   未 probe 的 virtio-mmio 就是 0）
 
+## 1.5 深挖后补（同日晚）：流无恙，单核即稳
+
+- **vmstate 流完好**：restore 开 trace（savevm_state_*/vmstate_*）——397 段全部
+  装载成功、无错；机器字段往返正确（vop-fb-phys/dsp、mmu-status/dte 全对）；
+  那些 `load_bad` 是可选子段探测的正常噪音
+- **guest 是先活后死**：restore 后 ~60s（guest ~100s）cpu0 才被 CPU7 的伙伴
+  看门狗判死（`watchdog: CPU7: ... hard LOCKUP on cpu 0`），panic 落在当时
+  运行的用户进程（apt-check）上
+- **SMP=1 create → SMP=1 restore 稳定 ≥5min**：零 panic、串口应答、QEMU 88%
+  在干活；5min 屏幕变黑 = GNOME 空闲息屏（快照流不挂输入设备，预期行为）
+- gdbfreezegrab 在 loadvm 后读到多个"毒化 PC"（0xffffbad4…/0xffffbc1a…，
+  每次值不同、冻结不动）——**判为 gdbstub 对 halted vCPU 的读取假象**，
+  非真实执行状态（guest 同期明明健康）
+- 结论：缺陷收敛到**多 vCPU 的跨核/定时器状态恢复**（TCG 多核 savevm 本就是
+  人迹罕至路径）；单核形态可用作稳定工作流
+
 ## 2. hardlockup 嫌疑清单（下役入口）
 
 1. **丢失的 pending 状态**：GIC/GICR 迁移了，但某 vCPU 快照时正 WFI 等

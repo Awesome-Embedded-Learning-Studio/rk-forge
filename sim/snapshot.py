@@ -12,11 +12,12 @@ savevm/loadvm 走 monitor。
   python3 sim/snapshot.py restore  # loadvm desktop → 留守运行（串口 4446/监视 4445）
   python3 sim/snapshot.py drop     # 删 overlay（基盘 rootfs.ext4 变了就要重造）
 注意：快照绑基盘内容——rootfs.ext4 / 内核 Image 更新后快照即作废，drop 重来。
-现状（2026-08-29）：savevm/loadvm 机制上走得通，但 rk3588-lite 机器模型的
-11 个影子设备全部没有 VMStateDescription——restore 后 VOP 寄存器归零
-（fb=None 实证）、驱动行为崩坏，guest 在 ~10s 内 watchdog/RCU Stall panic。
-要启用本工作流，先给 4 个带状态影子（VOP、vop_mmu、PMU mem-chain、DCPHY）
-补 vmstate；在那之前 create 只当 80s 冷启动计时器用。
+现状（2026-08-30，战役六后）：vmsd 全量在库（机器级+设备级），restore 9s
+出完整桌面。**SMP=1 create → SMP=1 restore 已验证稳定 ≥5min**（屏幕 5min
+变黑是 GNOME 空闲息屏——本流程不挂输入设备，属预期）。8 核 restore 仍有
+迟发 hardlockup（~1min 后 cpu0 被伙伴看门狗判死，watchdog=0 无效）——vmstate
+流本身完好（trace 全段装载成功、机器字段往返正确），嫌疑收敛到多 vCPU 的
+跨核/定时器状态恢复，单核即规避。SMP 环境变量同值使用。
 """
 import os
 import subprocess
