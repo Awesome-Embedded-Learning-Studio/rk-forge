@@ -70,15 +70,21 @@ def qemu_argv(load=False):
         "-display", "none", "-no-reboot",
         "-chardev", f"socket,id=ser0,host=127.0.0.1,port={SPORT},server=on,"
                     f"wait=off,logfile=/tmp/snapshot-serial.log",
-        "-serial", "chardev:ser0",
+        "-device", "virtio-serial-device",
+        "-device", "virtconsole,chardev=ser0",
+        "-serial", "null",
         "-monitor", f"tcp:127.0.0.1:{PORT},server,nowait",
         "-kernel", str(ROOT / "third_party/src/rk3588-topeet/linux/arch/arm64/boot/Image"),
         "-drive", f"if=none,id=hd,file={OVERLAY},format=qcow2",
         "-device", "virtio-blk-device,drive=hd",
-        "-dtb", str(ROOT / "boards/rk3588-topeet/sim/rk3588-topeet-board.dtb"),
+        # 同 DTB 宪法（note 77）：真板 dtb 直用，virtio 只由 cmdline 枚举
+        "-dtb", str(ROOT / "third_party/src/rk3588-topeet/linux/arch/arm64/boot/"
+                    "dts/rockchip/rk3588-topeet.dtb"),
         "-append",
-        "console=ttyS2 earlycon=uart8250,mmio32,0xfeb50000 root=/dev/vda rw rootwait "
-        "init=/sbin/init panic=-1 cpuidle.off=1 drm_client_lib.active=none "
+        "console=hvc0 virtio_mmio.device=0x200@0xfea00000:spi160:0 "
+        "virtio_mmio.device=0x200@0xfea00200:spi161:1 "
+        "root=/dev/vda rw rootwait init=/sbin/init panic=-1 cpuidle.off=1 "
+        "drm_client_lib.active=none "
         "systemd.mask=serial-getty@ttyFIQ0.service "
         "systemd.mask=wpa_supplicant@wlan0.service "
         "systemd.mask=plymouth-start.service "

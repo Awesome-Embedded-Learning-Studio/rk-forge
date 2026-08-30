@@ -71,3 +71,12 @@
   hw/arm/rk3588-lite.c（i2c2/gpio3 影子 + 布线 + HMP 钩子 rk3588_lite_gt911()）、
   Kconfig×2/meson×2/hmp-commands.hx/hmp.h/hmp-cmds.c
 - HMP：`gt911_touch x y` / `gt911_release`（M1 的注点工具，待 M0 后验收）
+
+## 7. 收官杂项（同日晚）
+
+- 内核树提交 a638d960f（0023 virtio_mmio cmdline SPI 映射）；旧 overlay 死资产
+  （rk3588-topeet-board.dts/dtb）已删；snapshot.py 移植同 DTB 流（savevm 仍等 vmstate）
+- **VOP2 回归 PASS**（board 模式非 FAST）：rockchipdrm 绑定出 card0-DSI-1，
+  `echo detect` 后 **connected**——rk806 供电链 + DSI 影子全链健康，面板检测通过
+  （战役一以来的第一次：以前 panel 因供电链 probe 不了）。enabled=disabled 属预期
+  （initramfs 无 KMS 客户端）
