@@ -43,4 +43,5 @@ title: 工程笔记
   <ChapterLink num="78" href="78-2026-08-30-virgl-desktop-host-gl-blocked">RK3588：virgl 桌面加演，宿主 GL 四路验尸 + dxg 根因</ChapterLink>
   <ChapterLink num="79" href="79-2026-08-30-gt911-touch-i2c-campaign">RK3588：GT911 触摸真路径战役，i2c/gpio 影子成军</ChapterLink>
   <ChapterLink num="80" href="80-2026-08-30-real-panel-desktop">RK3588：真面板桌面，VOP2→DSI 全真管线贯通</ChapterLink>
+  <ChapterLink num="81" href="81-2026-08-30-vmstate-snapshot">RK3588：vmstate 快照，9.2s 回桌面 + 迟发 hardlockup 挂账</ChapterLink>
 </ChapterNav>

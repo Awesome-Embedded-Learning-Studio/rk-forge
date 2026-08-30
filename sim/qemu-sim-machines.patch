@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..5686ada
+index 0000000..927f840
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,1641 @@
+@@ -0,0 +1,1760 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -740,6 +740,7 @@ index 0000000..5686ada
 +#include "hw/char/serial-mm.h"
 +#include "hw/i2c/i2c.h"
 +#include "hw/ssi/ssi.h"
++#include "migration/vmstate.h"
 +#include "hw/input/gt911.h"
 +#include "hw/core/qdev-properties.h"
 +#include "hw/intc/arm_gicv3.h"
@@ -1654,6 +1655,34 @@ index 0000000..5686ada
 +    .valid.max_access_size = 4,
 +};
 +
++static int rk3588_lite_i2c2_post_load(void *opaque, int version_id)
++{
++    rk3588_lite_i2c_update(opaque);
++    return 0;
++}
++
++static const VMStateDescription vmstate_rk3588_lite_i2c2 = {
++    .name = "rk3588-lite-i2c2",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .post_load = rk3588_lite_i2c2_post_load,
++    .fields = (const VMStateField[]) {
++        VMSTATE_UINT32(con, Rk3588LiteI2c),
++        VMSTATE_UINT32(clkdiv, Rk3588LiteI2c),
++        VMSTATE_UINT32(mrxaddr, Rk3588LiteI2c),
++        VMSTATE_UINT32(mrxraddr, Rk3588LiteI2c),
++        VMSTATE_UINT32(mtxcnt, Rk3588LiteI2c),
++        VMSTATE_UINT32(mrxcnt, Rk3588LiteI2c),
++        VMSTATE_UINT32(ien, Rk3588LiteI2c),
++        VMSTATE_UINT32(ipd, Rk3588LiteI2c),
++        VMSTATE_UINT32(fcnt, Rk3588LiteI2c),
++        VMSTATE_UINT8_ARRAY(txbuf, Rk3588LiteI2c, 0x100),
++        VMSTATE_UINT8_ARRAY(rxbuf, Rk3588LiteI2c, 0x100),
++        VMSTATE_BOOL(started, Rk3588LiteI2c),
++        VMSTATE_END_OF_LIST()
++    },
++};
++
 +/* ---- gpio3@fec40000: rockchip gpio v2 影子 -------------------------------
 + * 规格 = drivers/gpio/gpio-rockchip.c：每个逻辑寄存器两个半字（+0 = pin0-15，
 + * +4 = pin16-31），枚举偏移 dr0x00/ddr0x08/int_en0x10/mask0x18/type0x20/
@@ -1763,6 +1792,69 @@ index 0000000..5686ada
 +    .valid.max_access_size = 4,
 +};
 +
++static const VMStateDescription vmstate_rk3588_lite_gpio = {
++    .name = "rk3588-lite/gpio3",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .fields = (const VMStateField[]) {
++        VMSTATE_UINT32(dr, struct Rk3588LiteGpio),
++        VMSTATE_UINT32(ddr, struct Rk3588LiteGpio),
++        VMSTATE_UINT32(int_en, struct Rk3588LiteGpio),
++        VMSTATE_UINT32(int_mask, struct Rk3588LiteGpio),
++        VMSTATE_UINT32(int_type, struct Rk3588LiteGpio),
++        VMSTATE_UINT32(polarity, struct Rk3588LiteGpio),
++        VMSTATE_UINT32(bothedge, struct Rk3588LiteGpio),
++        VMSTATE_UINT32(status, struct Rk3588LiteGpio),
++        VMSTATE_UINT32(lines, struct Rk3588LiteGpio),
++        VMSTATE_END_OF_LIST()
++    },
++};
++
++static const VMStateDescription vmstate_rk3588_lite_vop = {
++    .name = "rk3588-lite/vop",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .fields = (const VMStateField[]) {
++        VMSTATE_UINT32_ARRAY(regs, struct Rk3588LiteVop, 0x4000 / 4),
++        VMSTATE_UINT32(fb_mst, struct Rk3588LiteVop),
++        VMSTATE_UINT32(fb_dsp, struct Rk3588LiteVop),
++        VMSTATE_UINT32(fb_vir, struct Rk3588LiteVop),
++        VMSTATE_UINT32(fb_phys, struct Rk3588LiteVop),
++        VMSTATE_END_OF_LIST()
++    },
++};
++
++static int rk3588_lite_post_load(void *opaque, int version_id)
++{
++    Rk3588LiteState *s = opaque;
++
++    /* 帧 ticker 不迁移：load 后重挂；清 last_* 强制扫描输出重建 surface */
++    s->vop.last_mst = s->vop.last_dsp = s->vop.last_vir = 0;
++    timer_mod(s->vop.frame_timer,
++              qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + 16666667);
++    return 0;
++}
++
++static const VMStateDescription vmstate_rk3588_lite = {
++    .name = "rk3588-lite",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .post_load = rk3588_lite_post_load,
++    .fields = (const VMStateField[]) {
++        VMSTATE_STRUCT(vop, Rk3588LiteState, 0, vmstate_rk3588_lite_vop,
++                       struct Rk3588LiteVop),
++        VMSTATE_UINT32_ARRAY(mmu_regs, Rk3588LiteState, 0x200 / 4),
++        VMSTATE_UINT32_ARRAY(cru_regs, Rk3588LiteState,
++                             RK3588_LITE_CRU_SIZE / 4),
++        VMSTATE_UINT32_ARRAY(pmu_regs, Rk3588LiteState, 0x400 / 4),
++        VMSTATE_UINT32_ARRAY(dcphy_regs, Rk3588LiteState, 0x4000 / 4),
++        VMSTATE_UINT32(last_req, Rk3588LiteState),
++        VMSTATE_STRUCT(gpio, Rk3588LiteState, 0, vmstate_rk3588_lite_gpio,
++                       struct Rk3588LiteGpio),
++        VMSTATE_END_OF_LIST()
++    },
++};
++
 +static void rk3588_lite_i2c2_realize(DeviceState *dev, Error **errp)
 +{
 +    Rk3588LiteI2c *s = RK3588_LITE_I2C2_DEV(dev);
@@ -1781,6 +1873,7 @@ index 0000000..5686ada
 +    DeviceClass *dc = DEVICE_CLASS(oc);
 +
 +    dc->realize = rk3588_lite_i2c2_realize;
++    dc->vmsd = &vmstate_rk3588_lite_i2c2;
 +    dc->user_creatable = false;
 +}
 +
@@ -1963,6 +2056,28 @@ index 0000000..5686ada
 +    .valid.max_access_size = 4,
 +};
 +
++static const VMStateDescription vmstate_rk3588_lite_spi2 = {
++    .name = "rk3588-lite-spi2",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .fields = (const VMStateField[]) {
++        VMSTATE_UINT32(ctrlr0, Rk3588LiteSpi),
++        VMSTATE_UINT32(ctrlr1, Rk3588LiteSpi),
++        VMSTATE_UINT32(ssienr, Rk3588LiteSpi),
++        VMSTATE_UINT32(ser, Rk3588LiteSpi),
++        VMSTATE_UINT32(baudr, Rk3588LiteSpi),
++        VMSTATE_UINT32(txftlr, Rk3588LiteSpi),
++        VMSTATE_UINT32(rxftlr, Rk3588LiteSpi),
++        VMSTATE_UINT32(imr, Rk3588LiteSpi),
++        VMSTATE_UINT32(isr, Rk3588LiteSpi),
++        VMSTATE_UINT8_ARRAY(txf, Rk3588LiteSpi, 64),
++        VMSTATE_UINT8_ARRAY(rxf, Rk3588LiteSpi, 64),
++        VMSTATE_INT32(tn, Rk3588LiteSpi),
++        VMSTATE_INT32(rn, Rk3588LiteSpi),
++        VMSTATE_END_OF_LIST()
++    },
++};
++
 +static void rk3588_lite_spi2_realize(DeviceState *dev, Error **errp)
 +{
 +    Rk3588LiteSpi *s = RK3588_LITE_SPI2_DEV(dev);
@@ -1980,6 +2095,7 @@ index 0000000..5686ada
 +    DeviceClass *dc = DEVICE_CLASS(oc);
 +
 +    dc->realize = rk3588_lite_spi2_realize;
++    dc->vmsd = &vmstate_rk3588_lite_spi2;
 +    dc->user_creatable = false;
 +}
 +
@@ -1996,6 +2112,7 @@ index 0000000..5686ada
 +}
 +
 +type_init(rk3588_lite_spi2_register_types)
++
 +
 +static void rk3588_lite_init(MachineState *machine)
 +{
@@ -2149,6 +2266,8 @@ index 0000000..5686ada
 +        g_gt911 = GT911(gt);
 +    }
 +    qdev_connect_gpio_out_named(DEVICE(g_gt911), "gt911-int", 0, s->gpio_in[16]);
++
++    vmstate_register(NULL, 0, &vmstate_rk3588_lite, s);
 +
 +    /* pre-write the real PLL blocks (CON indices from clk-rk3588.c) with a
 +     * sane encoding m=100, p=2, s=1 -> 24MHz * 100 / 2 >> 1 = 600MHz, so
