@@ -12,7 +12,7 @@ import sys
 import time
 
 # __log_buf 物理地址（KIMAGE 区：virt - ffff800080000000）
-BASE = 0x19217f0
+BASE = 0x2ca9140
 TAIL_BYTES = 128 * 1024   # printk 环尾部 128KB
 
 
