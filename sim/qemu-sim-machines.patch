@@ -650,10 +650,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..7875a3c
+index 0000000..ed033c3
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,1014 @@
+@@ -0,0 +1,996 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -666,7 +666,6 @@ index 0000000..7875a3c
 +#include <stddef.h>
 +#include "qemu/timer.h"
 +#include <elf.h>
-+#include <libfdt.h>
 +#include "hw/arm/boot.h"
 +#include "hw/arm/bsa.h"
 +#include "hw/arm/machines-qom.h"
@@ -780,6 +779,11 @@ index 0000000..7875a3c
 +
 +    fb = rk3588_lite_vop_iova_phys(s, s->fb_mst);
 +    s->fb_phys = fb;
++    if (!s->con) {
++        /* vop-console=off：控制台缺席（virgl 单显示设备形态，GitLab#1727），
++         * fb_phys 照常导出给 fbdump，窗口推送全部跳过 */
++        return;
++    }
 +    if (width < 16 || height < 16 || width > 4096 || height > 4096
 +        || fb < 0x100000) {
 +        return;
@@ -820,6 +824,7 @@ index 0000000..7875a3c
 +
 +struct Rk3588LiteState {
 +    MachineState parent_obj;
++    bool vop_console;         /* -M vop-console=off: virgl 单显示设备形态 */
 +
 +    ARMCPU *cpu[RK3588_LITE_NUM_CPUS];
 +    MemoryRegion uart2_ext;
@@ -1164,43 +1169,6 @@ index 0000000..7875a3c
 +    .valid.max_access_size = 8,
 +};
 +
-+/* Grow the passed DTB with the sim's virtio-mmio stand-ins (real boards have
-+ * no such nodes; skip when the dtb already carries them, e.g. the sim dts). */
-+static void rk3588_lite_fdt_add_virtio(void *fdt)
-+{
-+    static const uint32_t map[4][2] = {
-+        { 0xfea00000, 160 }, { 0xfea00200, 161 },
-+        { 0xfea00400, 162 }, { 0xfea00600, 163 },
-+    };
-+
-+    if (fdt_path_offset(fdt, "/virtio_mmio@fea00000") >= 0) {
-+        return;
-+    }
-+    for (int i = 0; i < 4; i++) {
-+        char name[32];
-+        uint32_t reg[4] = {
-+            0, cpu_to_fdt32(map[i][0]), 0, cpu_to_fdt32(0x200),
-+        };
-+        /* rk3588's GIC is #interrupt-cells = <4>; the 4th cell (partition)
-+         * is 0 for SPIs — a 3-cell graft reads as malformed, IRQ index 0
-+         * comes back ENXIO and the block device never appears */
-+        uint32_t irq[4] = {
-+            cpu_to_fdt32(0), cpu_to_fdt32(map[i][1]), cpu_to_fdt32(4),
-+            cpu_to_fdt32(0),
-+        };
-+        int off;
-+
-+        snprintf(name, sizeof(name), "virtio_mmio@%x", map[i][0]);
-+        off = fdt_add_subnode(fdt, 0, name);
-+        if (off < 0) {
-+            continue;
-+        }
-+        fdt_setprop_string(fdt, off, "compatible", "virtio,mmio");
-+        fdt_setprop(fdt, off, "reg", reg, sizeof(reg));
-+        fdt_setprop(fdt, off, "interrupts", irq, sizeof(irq));
-+    }
-+}
-+
 +/* AMBA PrimeCell periphid shadow: pl330 dmacs are identified by the
 + * PeriphID/PCellID regs at 0xfe0-0xfff; blanket zeros make the amba bus
 + * reject them silently ("deferred, reason unknown"). PL330 = 0x000413330. */
@@ -1368,29 +1336,6 @@ index 0000000..7875a3c
 +    .valid.max_access_size = 8,
 +};
 +
-+static void rk3588_lite_modify_dtb(const struct arm_boot_info *info, void *fdt)
-+{
-+    int offset;
-+
-+    /* The real board hands UART2 to the FIQ debugger (needs BL31); the sim
-+     * has no BL31 — nop the debugger and give the plain 8250 the port. */
-+    offset = fdt_node_offset_by_compatible(fdt, -1, "rockchip,fiq-debugger");
-+    while (offset >= 0) {
-+        fdt_nop_node(fdt, offset);
-+        offset = fdt_node_offset_by_compatible(fdt, offset,
-+                                               "rockchip,fiq-debugger");
-+    }
-+    offset = fdt_path_offset(fdt, "/serial@feb50000");
-+    if (offset >= 0) {
-+        fdt_setprop_string(fdt, offset, "status", "okay");
-+    }
-+    /* vcc3v3-lcd-n's vin-supply (SPI PMIC chain) is dropped at the dts
-+     * layer in boards/rk3588-topeet/sim/rk3588-topeet-board.dts —
-+     * runtime fdt surgery on properties corrupts the tree for the
-+     * kernel's OF walker (of_clk_init livelock, note 72) */
-+    rk3588_lite_fdt_add_virtio(fdt);
-+}
-+
 +static void rk3588_lite_init(MachineState *machine)
 +{
 +    Rk3588LiteState *s = RK3588_LITE_MACHINE(machine);
@@ -1486,10 +1431,17 @@ index 0000000..7875a3c
 +                   qdev_get_gpio_in(gicdev, RK3588_LITE_UART2_SPI),
 +                   24000000 / 16, serial_hd(0), DEVICE_LITTLE_ENDIAN);
 +
-+    /* sim-only virtio-mmio transports; addresses/SPIs match the sim dts */
-+    for (i = 0; i < 4; i++) {
-+        sysbus_create_simple("virtio-mmio", RK3588_LITE_VIRTIO + i * 0x200,
-+                             qdev_get_gpio_in(gicdev, 160 + i));  /* SPI 160+i */
++    /* Sim-only transports, enumerated by the guest command line (never FDT). */
++    for (i = 0; i < 6; i++) {
++        DeviceState *dev = qdev_new("virtio-mmio");
++
++        /* virtio-gpu is a modern-only device; keep every slot consistent. */
++        qdev_prop_set_bit(dev, "force-legacy", false);
++        sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
++        sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0,
++                       RK3588_LITE_VIRTIO + i * 0x200);
++        sysbus_connect_irq(SYS_BUS_DEVICE(dev), 0,
++                           qdev_get_gpio_in(gicdev, 160 + i)); /* SPI 160+i */
 +    }
 +
 +    /* pre-write the real PLL blocks (CON indices from clk-rk3588.c) with a
@@ -1534,7 +1486,7 @@ index 0000000..7875a3c
 +    s->vop.pd_pwr = s->pmu_regs;
 +    s->vop.mmu_dte = s->mmu_regs;
 +    s->vop.mmu_status = &s->mmu_regs[1];
-+    {
++    if (s->vop_console) {
 +        static const GraphicHwOps vop_console_ops = { };
 +
 +        s->vop.con = qemu_graphic_console_create(NULL, 0, &vop_console_ops,
@@ -1594,7 +1546,6 @@ index 0000000..7875a3c
 +        .board_id = -1,
 +        .ram_size = machine->ram_size,
 +        .psci_conduit = QEMU_PSCI_CONDUIT_SMC,
-+        .modify_dtb = rk3588_lite_modify_dtb,
 +    };
 +
 +    /* -bios (U-Boot proper ELF or raw u-boot.bin at TEXT_BASE) */
@@ -1644,6 +1595,9 @@ index 0000000..7875a3c
 +    return ARM_CPU_TYPE_NAME("cortex-a55");
 +}
 +
++static bool rk3588_lite_get_vop_console(Object *obj, Error **errp);
++static void rk3588_lite_set_vop_console(Object *obj, bool value, Error **errp);
++
 +static void rk3588_lite_machine_class_init(ObjectClass *oc, const void *data)
 +{
 +    MachineClass *mc = MACHINE_CLASS(oc);
@@ -1655,6 +1609,33 @@ index 0000000..7875a3c
 +    mc->default_ram_id = "rk3588-lite.ram";
 +    mc->default_ram_size = 2 * GiB;
 +    mc->get_default_cpu_type = rk3588_lite_get_default_cpu_type;
++
++    object_class_property_add_bool(oc, "vop-console",
++                                   rk3588_lite_get_vop_console,
++                                   rk3588_lite_set_vop_console);
++    object_class_property_set_description(oc, "vop-console",
++        "off = no VOP QemuConsole (single-display virgl form, GitLab#1727); "
++        "scanout regs still exported via qom for fbdump");
++}
++
++static bool rk3588_lite_get_vop_console(Object *obj, Error **errp)
++{
++    return RK3588_LITE_MACHINE(obj)->vop_console;
++}
++
++static void rk3588_lite_set_vop_console(Object *obj, bool value, Error **errp)
++{
++    RK3588_LITE_MACHINE(obj)->vop_console = value;
++}
++
++static void rk3588_lite_instance_init(Object *obj)
++{
++    Rk3588LiteState *s = RK3588_LITE_MACHINE(obj);
++
++    /* 默认开 VOP 控制台（board 模式看窗口）；desktop virgl 形态用
++     * -M rk3588-lite,vop-console=off 关掉，躲开 virgl 给第二个显示
++     * 设备建上下文的上游断言（qemu GitLab #1727） */
++    s->vop_console = true;
 +}
 +
 +static const TypeInfo rk3588_lite_machine_types[] = {
@@ -1662,6 +1643,7 @@ index 0000000..7875a3c
 +        .name = TYPE_RK3588_LITE_MACHINE,
 +        .parent = TYPE_MACHINE,
 +        .class_init = rk3588_lite_machine_class_init,
++        .instance_init = rk3588_lite_instance_init,
 +        .instance_size = sizeof(Rk3588LiteState),
 +        .interfaces = aarch64_machine_interfaces,
 +    },

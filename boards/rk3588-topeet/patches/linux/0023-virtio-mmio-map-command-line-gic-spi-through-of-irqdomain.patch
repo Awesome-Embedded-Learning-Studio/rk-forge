@@ -1,0 +1,74 @@
+diff --git a/drivers/virtio/virtio_mmio.c b/drivers/virtio/virtio_mmio.c
+index 595c2274f..d989f92a3 100644
+--- a/drivers/virtio/virtio_mmio.c
++++ b/drivers/virtio/virtio_mmio.c
+@@ -40,10 +40,12 @@
+  *    one device will be created for each one. Syntax:
+  *
+  *		[virtio_mmio.]device=<size>@<baseaddr>:<irq>[:<id>]
++ *		[virtio_mmio.]device=<size>@<baseaddr>:spi<irq>[:<id>]
+  *    where:
+  *		<size>     := size (can use standard suffixes like K, M or G)
+  *		<baseaddr> := physical base address
+  *		<irq>      := interrupt number (as passed to request_irq())
++ *		spi<irq>   := OF GIC SPI number, mapped through the DT irqdomain
+  *		<id>       := (optional) platform device id
+  *    eg.:
+  *		virtio_mmio.device=0x100@0x100b0000:48 \
+@@ -62,6 +64,7 @@
+ #include <linux/list.h>
+ #include <linux/module.h>
+ #include <linux/of.h>
++#include <linux/of_irq.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm.h>
+ #include <linux/slab.h>
+@@ -679,14 +682,22 @@ static int vm_cmdline_set(const char *device,
+ 	unsigned int irq;
+ 	int processed, consumed = 0;
+ 	struct platform_device *pdev;
++	bool gic_spi = false;
+ 
+ 	/* Consume "size" part of the command line parameter */
+ 	size = memparse(device, &str);
+ 
+-	/* Get "@<base>:<irq>[:<id>]" chunks */
+-	processed = sscanf(str, "@%lli:%u%n:%d%n",
++	/* Get "@<base>:[spi]<irq>[:<id>]" chunks. */
++	processed = sscanf(str, "@%lli:spi%u%n:%d%n",
+ 			&base, &irq, &consumed,
+ 			&vm_cmdline_id, &consumed);
++	if (processed >= 2) {
++		gic_spi = true;
++	} else {
++		processed = sscanf(str, "@%lli:%u%n:%d%n",
++				&base, &irq, &consumed,
++				&vm_cmdline_id, &consumed);
++	}
+ 
+ 	/*
+ 	 * sscanf() must process at least 2 chunks; also there
+@@ -696,6 +707,23 @@ static int vm_cmdline_set(const char *device,
+ 	if (processed < 2 || str[consumed] || irq == 0)
+ 		return -EINVAL;
+ 
++	if (gic_spi) {
++		struct device_node *gic;
++		struct of_phandle_args oirq = {
++			.args_count = 4,
++			.args = { 0, irq, IRQ_TYPE_LEVEL_HIGH, 0 },
++		};
++
++		gic = of_find_compatible_node(NULL, NULL, "arm,gic-v3");
++		if (!gic)
++			return -ENODEV;
++		oirq.np = gic;
++		irq = irq_create_of_mapping(&oirq);
++		of_node_put(gic);
++		if (!irq)
++			return -EINVAL;
++	}
++
+ 	resources[0].flags = IORESOURCE_MEM;
+ 	resources[0].start = base;
+ 	resources[0].end = base + size - 1;

@@ -34,7 +34,7 @@ REAL_DTB = (ROOT / "third_party/src/rk3588-topeet/linux/arch/arm64/boot/dts/"
 
 VIRTIO_MMIO = " ".join(
     f"virtio_mmio.device=0x200@0x{0xfea00000 + i * 0x200:x}:spi{160 + i}:{i}"
-    for i in range(4)
+    for i in range(6)
 )
 
 argv = sys.argv[1:]
@@ -67,7 +67,8 @@ if mode in ("desktop", "gpu-probe"):
     gpu = ("virtio-gpu-device" if os.environ.get("GPU_BACKEND") == "2d"
            else "virtio-gpu-gl-device")
     # id 给 HMP screendump 点名用（多控制台时裸 screendump 抓到的是默认台）
-    cmd += ["-device", f"{gpu},id=gpu0"]
+    cmd += ["-device", f"{gpu},id=gpu0",
+            "-device", "virtio-tablet-device", "-device", "virtio-keyboard-device"]
     if gpu == "virtio-gpu-gl-device":
         # virgl 要带 GL 的显示后端：GUI=1 → gtk,gl=on；headless → egl-headless。
         # WSLg 上 gtk 的 EGL 路不通（无 /dev/dri → 窗口建废，连接器报
@@ -75,6 +76,9 @@ if mode in ("desktop", "gpu-probe"):
         cmd[cmd.index("-display") + 1] = (os.environ.get("DISPLAY_BACKEND")
                                           or ("gtk,gl=on" if os.environ.get("GUI")
                                               else "egl-headless"))
+        # virgl 给第二个显示设备建 GL 上下文会撞上游断言（qemu GitLab#1727）
+        # ——VOP 控制台关掉走单显示形态（fb 寄存器仍导出，fbdump 不受影响）
+        cmd[cmd.index("-M") + 1] += ",vop-console=off"
 smoke_pats = [rb"Linux (?:version |\(none\) )7\.1\.", rb"Run /init as init process",
               rb"RK3568-M0-SHELL-OK"]
 def real_args(extra: str) -> list:

@@ -1,61 +1,78 @@
-# 78 — virtio-gpu-gl 桌面加演：管线全通，宿主 GL 四路皆断（2026-08-30）
+# 78 — virtio-gpu-gl 桌面加演：从"宿主四路皆断"误诊到单显示形态点亮（2026-08-30）
 
-> note 77 定的同 DTB + cmdline virtio 路线，2D 档桌面已验证（GNOME 全彩落
-> 在 virtio-gpu 控制台）。本役冲 GL 档（virgl 宿主渲染）：guest 侧全链谈成，
-> **卡死在宿主 WSL 的 GL 供给**，四条路逐一验尸，根因定位到 Windows 侧 dxg
-> 栈半瘫。解锁条件明确，代码零改动可复测。
+> 本役完整弧线：GL 档 guest 侧全链谈成但黑屏 → 一度误诊为"宿主 WSL GL
+> 全废（dxg 半瘫）"**（错误结论，见 §4 更正）** → 用户问责后补课调研 →
+> 真根因是 QEMU 上游 #1727（virgl 给第二个显示设备建 GL 上下文撞断言，
+> 我们的 VOP 控制台正是第二个）→ 机器加 `vop-console` 属性走单显示形态
+> → **virgl 桌面点亮 + virtio 键鼠交互可用**。
 
-## 0. 结论
+## 0. 最终结论
 
 | 项 | 结果 |
 |---|---|
-| 2D 桌面（virtio-gpu + llvmpipe 渲染） | ✅ 复验两次：`Virtual-1` connected、GNOME 全彩（screendump chroma 8/9），速度同 79s 地板（渲染仍 llvmpipe，符合预期） |
-| GL 档 guest 侧 | ✅ `[drm] features: +virgl +edid`（内核与设备谈成）、mutter `Created gbm renderer for /dev/dri/card0`、gnome-shell 全程活着 |
-| GL 档宿主侧 | ⛔ 四路全断（见 §2），根因 `dmesg: dxgk ioctls -22`——**Windows 侧 dxg 栈半瘫**，/dev/dri 永不出现 |
-| QEMU 构建 | ✅ virglrenderer+opengl+sdl 全开（这步已永久落库，解锁后即用） |
+| **virgl 桌面（交互版）** | ✅ `sdl,gl=on`（GLX）+ `virtio-gpu-gl-device` + `-M rk3588-lite,vop-console=off`：GNOME 上 virgl，`QEMU Virtio Keyboard/Tablet` 枚举（/dev/input/event0/1），窗口内可点可敲 |
+| 2D 桌面（对照） | ✅ `virtio-gpu-device` + 同显示后端照常（诊断用，GPU_BACKEND=2d） |
+| guest 侧证据 | `[drm] features: +virgl +edid`、mutter `Created gbm renderer for card0` |
+| QEMU 构建 | virglrenderer+opengl+sdl 全开（meson 重配一次到位） |
+| 宿主 GL 实情 | **GLX 完全健康**：240 FBConfig、AttribsARB、direct ctx、GL 4.5 / Mesa 25.2.8 / llvmpipe（ctypes 探针逐项实证）——渲染落在宿主软件 GL（native x86），比 TCG 里的 guest llvmpipe 快一个量级级差 |
 
-## 1. guest 侧证据链（GL 档为什么说"管线通"）
+## 1. 真根因与修法（qemu GitLab #1727）
 
 ```
-[drm] features: +virgl +edid -resource_blob -host_visible   ← 设备能力谈成
-gnome-shell[359]: Created gbm renderer for '/dev/dri/card0'  ← mutter 原生 KMS 渲染器
-/sys/class/drm/card0-Virtual-1/status: disconnected          ← 但连接器断着
+virtio-gpu-gl + 多显示设备（我们的 VOP QemuConsole 是第二个）
+  → virgl 为第二显示设备建 GL 上下文 → epoxy 断言
+    "Couldn't find current GLX or EGL context" → QEMU 秒退
 ```
 
-mutter 起了、shell 扩展全加载——不是崩溃是**无头模式**：virtio-gpu 的连接器
-状态镜像宿主显示头，宿主 GL 窗口建废 → guest 视角"没插显示器"。
+社区同款经验：多图形设备才触发，单显示 + `display sdl` 可活。修法照抄：
+机器加 `vop-console` bool 属性（`object_class_property_add_bool`，virt.c 同款），
+默认 on（board 模式看 VOP 窗口）；desktop virgl 形态 `-M rk3588-lite,vop-console=off`
+——VOP 影子照常跑，fb 寄存器照常 qom 导出（fbdump 不受影响），只有窗口推送
+跳过（scanout 里 `!s->con` 早退）。
 
-## 2. 宿主四路验尸（全是环境问题，非管线问题）
+## 2. 输入三件套（交互欠账的补法）
 
-| 路线 | 死法 |
+- virtio-gpu 是纯显示设备，机器上原本没有任何输入通路 → 键鼠事件无处去
+- 内核 `CONFIG_VIRTIO_INPUT=y`（kernel.config 同族休眠配置，真机无
+  `virtio_mmio.device=` 参数不激活）
+- 机器 virtio-mmio 槽位 4→6；smoke.py desktop/gpu-probe 自动挂
+  `virtio-tablet-device`（绝对坐标，GNOME 直接吃）+ `virtio-keyboard-device`
+- 踩坑：第一次验证时机器抢先吃到未编 input 驱动的旧 Image（后台编译未收工
+  就启动）——`/sys/bus/virtio/drivers/` 无 `virtio_input` 即可判别；Image
+  与 System.map 符号核对后才重启，事件设备即现
+
+## 3. 宿主显示后端抉择（WSLg 实测矩阵）
+
+| 后端 | 结果 |
 |---|---|
-| `gtk,gl=on`（EGL on X11） | zink/dri2 全败无回落；`LIBGL_ALWAYS_SOFTWARE=1` 后无警告但 virtio-gpu 仍 disconnected（EGL 无 dri 节点支撑） |
-| `egl-headless` | 硬性要求 `/dev/dri/renderD*`——本机根本没有（`egl: no drm render node available`） |
-| `sdl,gl=on`（GLX） | ctypes 探针证明 legacy GLX 上下文可建（direct OK）；但 QEMU/SDL 走 glXChooseFBConfig/Attribs 路线 → epoxy 断言"no current GLX or EGL context" |
-| `LIBGL_ALWAYS_INDIRECT=1` | XWayland GLX 拒 FBConfig 上下文：`X_GLXCreateContext BadValue` |
+| `gtk,gl=on`（EGL） | 无 /dev/dri 支撑，virtio-gpu 连接器报 disconnected（mutter 无头跑） |
+| `egl-headless` | 硬要 `/dev/dri/renderD*`，本机无（启动即拒） |
+| `sdl,gl=on`（GLX）★ | 单显示形态下全通——SDL 走 GLX，WSLg X11 的 GLX 链路健康 |
 
-根因：`dmesg | grep dxg` → `dxgkio_is_feature_enabled/query_adapter_info:
-Ioctl failed: -22`。dxg 设备在、ioctls 全废 → WSLg 系统侧起不了 GPU 集群 →
-用户发行版永远没有 /dev/dri。
+## 4. 误诊更正记录（保留示警）
 
-## 3. 解锁条件（Windows 侧，代码零改动）
+初版笔记曾写"dxgk ioctls -22 → Windows dxg 栈半瘫 → /dev/dri 永远出不来 →
+GL 无解，只能 wsl --update 解锁"。**错误**：
+- `dxgk -22` 是 [microsoft/WSL#11293](https://github.com/microsoft/WSL/issues/11293)
+  一族已知问题，影响 /dev/dxg 的**计算路径**（CUDA 类），不拦 X11/GLX——
+  d3d12_dri.so 与 GLX 探针实证 GL 一直在；
+- 两个 dmesg 错误行 ≠ 栈瘫；连"GLX 只支持 legacy visual"的补丁式猜测也是
+  错的（240 个 FBConfig 打脸）。
+教训入流程：**环境级"无解"结论必须有本地探针 + 外部信源双重实证**，
+拿两行日志写"永远"是被用户当场抓包的武断。
 
-1. `wsl --update`（PowerShell）+ 更新 Windows GPU 驱动，重启 WSL
-2. 验收：用户发行版 `ls /dev/dri` 出现 `renderD128`
-3. 直接跑 `python3 boards/rk3588-topeet/sim/smoke.py desktop`（默认 gl 设备，
-   headless 自动 `egl-headless`）——若 WSLg X 有 GL 窗口也可
-   `DISPLAY_BACKEND=sdl,gl=on GUI=1`
+## 5. 工具增量（本轮沉淀）
 
-## 4. 工具增量
-
-- smoke.py：GPU 设备 `id=gpu0`（screendump 点名）；GL 设备自动配 GL 显示后端
-  （GUI→gtk,gl=on / headless→egl-headless），`DISPLAY_BACKEND` 环境变量可覆盖
+- smoke.py：GPU 设备 `id=gpu0`、GL 显示后端自动配 + `DISPLAY_BACKEND` 覆盖、
+  virgl 自动 `vop-console=off`、键鼠设备、`VIRTIO_MMIO` 6 transport
 - hvc0 交互技巧：`tail -f /tmp/hvc0-feed | … smoke.py desktop`，往文件追加
   字符即敲 guest console（后台任务的 stdio 也能做交互串口）
 - PPM 判活：色度差采样（chroma ≥3/9）防文本屏误报
 
-## 5. 待办
+## 6. 待办
 
-- 解锁后首跑：对比 79s 地板 + glmark2-es2 量化 virgl 收益
-- 旧债未动：framehunt/snapshot 移植同 DTB 流、qemu-sim-machines.patch 重导、
-  virtio_mmio.c 内核树提交
+- virgl 桌面的冷启动/首帧计时 vs 79s llvmpipe 地板（宿主 GL 代劳应显著低）
+- VOP2 影子在同 DTB 流下的回归验证（real DTB 的 vop 带 iommus，desktop 现在
+  走 virtio-gpu，board 模式的 VOP 窗口是否还活需复测）
+- 老债：framehunt/snapshot 移植同 DTB 流、qemu-sim-machines.patch 重导、
+  virtio_mmio.c 内核树提交、旧 overlay 死文件清理

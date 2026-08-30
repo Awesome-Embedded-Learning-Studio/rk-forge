@@ -77,3 +77,4 @@
 0020-drm-rockchip-vop2-advertise-linear-modifier-on-rk3588-cluster-windows.patch
 0021-drm-rockchip-vop2-drop-afbc-only-10bpc-formats-from-rk3588-cluster-windows.patch
 0022-PM-runtime-SIM-DIAG-prints-for-runtime-error-origin.patch
+0023-virtio-mmio-map-command-line-gic-spi-through-of-irqdomain.patch
