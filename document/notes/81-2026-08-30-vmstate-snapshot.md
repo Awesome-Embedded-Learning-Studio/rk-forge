@@ -82,3 +82,29 @@ gicr_waker/ienabler0 都装了——但某处运行时重建没发生）。TCG 8
 
 - snapshot.py：六槽 cmdline + FAST + earlycon（诊断口）+ watchdog=0（试验中）
 - 验收路径：restore → screendump chroma → 串口 login 探活 → 计时
+
+## 1.9 三轮（08-31 晨）：**破了**——post_load 强制全核重算通用定时器
+
+**仪表**（gt_recalc_timer 入口计数 + gicv3_cpuif_update 每核计数，qom 导出
+diag-cpuif-N/diag-vtimer-N）判决书：
+
+```
+锁死前 cpuif 增量：cpu0 +23K, cpu1 +1.6K, cpu2 +170, cpu3 +1(死),
+                   cpu4 +323K, cpu5 +317K, cpu6 +226(死), cpu7 +0(死)
+vtimer recalc 计数：全核恒 = 1
+```
+
+→ **死法 = "到期没送达"**：GIC 对死核的 cpuif_update 停止被调用（PPI 源头
+静默）；vtimer 的 QEMUTimer 只在 load 时触发一次重算，之后永不再武装——
+空闲核等下一个 tick 永不醒。活核靠 SPI 流量（VOP 帧/virtio-IO/串口）苟活。
+
+**修复**（一行灵魂）：`arm_gt_force_recalc_all_cpus()`（helper.c 导出，
+post_load 调用）对每核 `gt_recalc_timer(cpu, GTIMER_VIRT/PHYS)` 重建
+vtimer↔GIC PPI 运行时链接。
+
+**验收**：两次独立 restore，10 分钟 + 5.5 分钟**零锁死**、串口应答、
+CPUif 全 8 标持续增长（665K~1300K，无冻结）。上游 TCG loadvm 缺的正是
+这一环（write_list_to_cpustate 走 raw write 不触发 writefn，定时器重算
+只在 QEMUTimer 到期时被动发生——恢复后没人踢它）。
+
+**SMP=8 快照正式可用**：create ~4.5min → restore **9s 出桌面，长期稳定**。

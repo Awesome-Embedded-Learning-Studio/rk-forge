@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..20f63cd
+index 0000000..1c20aac
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,1769 @@
+@@ -0,0 +1,1801 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -755,7 +755,9 @@ index 0000000..20f63cd
 +#include "system/qtest.h"
 +#include "system/system.h"
 +#include "target/arm/cpu.h"
++#include "target/arm/gtimer.h"
 +#include "qapi/error.h"
++#include "qapi/visitor.h"
 +#include "qemu/error-report.h"
 +#include "qemu/datadir.h"
 +#include "qemu/units.h"
@@ -1825,6 +1827,22 @@ index 0000000..20f63cd
 +    },
 +};
 +
++/* 诊断计数导出（note 81 刀口）：外部链接自 helper.c / arm_gicv3_cpuif.c */
++extern uint64_t rk_forge_gt_recalc[8][7];
++extern uint64_t rk_forge_cpuif_update[8];
++
++static void rk3588_lite_uint64_get(Object *obj, Visitor *v, const char *name,
++                                   void *opaque, Error **errp)
++{
++    visit_type_uint64(v, name, (uint64_t *)opaque, errp);
++}
++
++static void rk3588_lite_add_diag(Object *obj, const char *name, uint64_t *slot)
++{
++    object_property_add(obj, name, "uint64", rk3588_lite_uint64_get, NULL,
++                        NULL, slot);
++}
++
 +static int rk3588_lite_post_load(void *opaque, int version_id)
 +{
 +    Rk3588LiteState *s = opaque;
@@ -1841,6 +1859,9 @@ index 0000000..20f63cd
 +    CPU_FOREACH(cpu) {
 +        qemu_cpu_kick(cpu);
 +    }
++    /* 刀口实证：cpuif 计数在死核冻结 + vtimer recalc 全核仅 1 次——
++     * load 后强制全核重算通用定时器，重建 vtimer↔GIC PPI 运行时链接 */
++    arm_gt_force_recalc_all_cpus();
 +    return 0;
 +}
 +
@@ -2278,6 +2299,17 @@ index 0000000..20f63cd
 +
 +    vmstate_register(NULL, 0, &vmstate_rk3588_lite, s);
 +
++    for (int c = 0; c < 8; c++) {
++        char nm[32];
++
++        snprintf(nm, sizeof(nm), "diag-cpuif-%d", c);
++        rk3588_lite_add_diag(OBJECT(machine), nm, &rk_forge_cpuif_update[c]);
++        snprintf(nm, sizeof(nm), "diag-vtimer-%d", c);
++        rk3588_lite_add_diag(OBJECT(machine), nm, &rk_forge_gt_recalc[c][1]);
++        snprintf(nm, sizeof(nm), "diag-ptimer-%d", c);
++        rk3588_lite_add_diag(OBJECT(machine), nm, &rk_forge_gt_recalc[c][0]);
++    }
++
 +    /* pre-write the real PLL blocks (CON indices from clk-rk3588.c) with a
 +     * sane encoding m=100, p=2, s=1 -> 24MHz * 100 / 2 >> 1 = 600MHz, so
 +     * clock-rate queries through any PLL never return 0 (8250 EINVAL) */
@@ -2605,3 +2637,63 @@ index e9fb8d8..d43055a 100644
  void hmp_stop(Monitor *mon, const QDict *qdict)
  {
      qmp_stop(NULL);
+diff --git a/target/arm/gtimer.h b/target/arm/gtimer.h
+index d49c63c..14b328e 100644
+--- a/target/arm/gtimer.h
++++ b/target/arm/gtimer.h
+@@ -20,4 +20,8 @@ enum {
+ #define NUM_GTIMERS   7
+ };
+ 
++
++/* rk-forge：loadvm 后全核强制重算通用定时器（note 81 刀口） */
++void arm_gt_force_recalc_all_cpus(void);
++
+ #endif
+diff --git a/target/arm/helper.c b/target/arm/helper.c
+index af45234..82e34a8 100644
+--- a/target/arm/helper.c
++++ b/target/arm/helper.c
+@@ -1498,10 +1498,21 @@ uint64_t gt_direct_access_timer_offset(CPUARMState *env, int timeridx)
+     }
+ }
+ 
++uint64_t rk_forge_gt_recalc[8][7];   /* [cpu][timeridx] 诊断计数（note 81 刀口） */
++
+ static void gt_recalc_timer(ARMCPU *cpu, int timeridx)
+ {
+     ARMGenericTimer *gt = &cpu->env.cp15.c14_timer[timeridx];
+ 
++    {
++        CPUState *cs = CPU(cpu);
++        int idx = cs->cpu_index;
++
++        if (idx < 8 && timeridx < 7) {
++            rk_forge_gt_recalc[idx][timeridx]++;
++        }
++    }
++
+     if (gt->ctl & 1) {
+         /*
+          * Timer enabled: calculate and set current ISTATUS, irq, and
+@@ -2026,6 +2037,20 @@ void arm_gt_vtimer_cb(void *opaque)
+     gt_recalc_timer(cpu, GTIMER_VIRT);
+ }
+ 
++/* rk-forge 诊断/修复（note 81 刀口）：loadvm 后 vtimer 只重算一次
++ * （计数实证），空闲核等下一个 tick 永不醒——post_load 强制全核重算 */
++void arm_gt_force_recalc_all_cpus(void)
++{
++    CPUState *cs;
++
++    CPU_FOREACH(cs) {
++        ARMCPU *cpu = ARM_CPU(cs);
++
++        gt_recalc_timer(cpu, GTIMER_VIRT);
++        gt_recalc_timer(cpu, GTIMER_PHYS);
++    }
++}
++
+ void arm_gt_htimer_cb(void *opaque)
+ {
+     ARMCPU *cpu = opaque;
