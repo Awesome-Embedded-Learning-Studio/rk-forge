@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..1c20aac
+index 0000000..6c878f9
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,1801 @@
+@@ -0,0 +1,2108 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -786,6 +786,19 @@ index 0000000..1c20aac
 +};
 +
 +#define RK3588_LITE_CRU_SIZE 0x5c000
++
++/* SCMI 常量（agent 实现在文件后部 scmi 段；post_load 也要用） */
++enum {
++    RK3588_SCMI_SMC_FID    = 0x82000010,  /* DT: firmware/scmi arm,smc-id */
++    RK3588_SCMI_SHMEM      = 0x10f000,    /* DT: reserved-memory no-map 洞 */
++    RK3588_SCMI_CHAN_STAT  = 0x04,        /* shmem = struct scmi_shared_mem */
++    RK3588_SCMI_LENGTH     = 0x14,        /* 4(msg hdr) + payload 字节数 */
++    RK3588_SCMI_MSGHDR     = 0x18,        /* id[7:0] type[9:8] proto[17:10] */
++    RK3588_SCMI_PAYLOAD    = 0x1c,
++    RK3588_SCMI_CHAN_FREE  = BIT(0),
++    RK3588_SCMI_NCLK       = 11,          /* SCMI_CLK_CPUL..DCLK_SD (cru.h) */
++    RK3588_SCMI_NRST_DOM   = 64,          /* 覆到 SCMI_SRST_H_TRNG_NS=48 */
++};
 +
 +struct Rk3588LiteVop {
 +    MemoryRegion mmio;
@@ -912,6 +925,13 @@ index 0000000..1c20aac
 +    qemu_console_update_full(s->con);
 +}
 +
++/* ---- scmi agent 状态（见文件后部 scmi 段） ------------------------------- */
++struct Rk3588LiteScmi {
++    uint64_t rate[11];       /* SCMI_CLK_* 当前频率（Hz） */
++    uint32_t enabled;        /* 按 id 的 enable 位图 */
++    uint64_t served, errs;   /* 诊断计数（qom 属性，不迁移） */
++};
++
 +struct Rk3588LiteState {
 +    MachineState parent_obj;
 +    bool vop_console;         /* -M vop-console=off: virgl 单显示设备形态 */
@@ -939,6 +959,7 @@ index 0000000..1c20aac
 +    } gpio;
 +    qemu_irq gpio_in[32];    /* 外部驱动的输入线（gt911 int → pin16） */
 +    struct Rk3588LiteSpi *spi;
++    struct Rk3588LiteScmi scmi;
 +};
 +
 +/* DW-APB-UART ext space outside the 16550 window (see rk3568-lite.c). */
@@ -1862,8 +1883,14 @@ index 0000000..1c20aac
 +    /* 刀口实证：cpuif 计数在死核冻结 + vtimer recalc 全核仅 1 次——
 +     * load 后强制全核重算通用定时器，重建 vtimer↔GIC PPI 运行时链接 */
 +    arm_gt_force_recalc_all_cpus();
++    /* scmi channel 若快照时正忙则重新置 FREE（恢复后首条消息才发得出去） */
++    address_space_stl_le(&address_space_memory,
++                         RK3588_SCMI_SHMEM + RK3588_SCMI_CHAN_STAT,
++                         RK3588_SCMI_CHAN_FREE, MEMTXATTRS_UNSPECIFIED, NULL);
 +    return 0;
 +}
++
++static const VMStateDescription vmstate_rk3588_lite_scmi;   /* 定义在 scmi 段 */
 +
 +static const VMStateDescription vmstate_rk3588_lite = {
 +    .name = "rk3588-lite",
@@ -1881,6 +1908,8 @@ index 0000000..1c20aac
 +        VMSTATE_UINT32(last_req, Rk3588LiteState),
 +        VMSTATE_STRUCT(gpio, Rk3588LiteState, 0, vmstate_rk3588_lite_gpio,
 +                       struct Rk3588LiteGpio),
++        VMSTATE_STRUCT(scmi, Rk3588LiteState, 0, vmstate_rk3588_lite_scmi,
++                       struct Rk3588LiteScmi),
 +        VMSTATE_END_OF_LIST()
 +    },
 +};
@@ -2144,6 +2173,271 @@ index 0000000..1c20aac
 +type_init(rk3588_lite_spi2_register_types)
 +
 +
++/* ---- scmi agent: TF-A BL31 的 SMC 侧影子 ---------------------------------
++ * 规格（=真机对侧的实现）：drivers/firmware/arm_scmi/ 的 transports/smc.c +
++ * shmem.c + base.c + clock.c + reset.c。真机 GPU（assigned-clocks）/cpufreq
++ * 的时钟走 SCMI：DT firmware/scmi 节点声明 arm,smc-id=0x82000010、shmem=
++ * 0x10f000/0x100（DRAM reserved-memory no-map 洞，非 MMIO）。无 TF-A 的
++ * 仿真里机器自己当 agent：SMC 钩子里同步消费 shmem 消息、写回应答并置
++ * channel FREE——polling 模式合同要求应答在 SMC 返回前落内存。
++ * 协议版本刻意报低（BASE/CLOCK 2.0，RESET 1.0）：低于内核支持上限就不
++ * 触发 NEGOTIATE，也避开 v3 的扩展名字/CONFIG_GET 消息族。
++ */
++/* 名字带 scmi_ 前缀：CLOCK_ATTRIBUTES 的 name 走 clk_register，与 CRU
++ * 同名会 -EEXIST（首轮实测 clk_gpu 撞名丢注册） */
++static const struct {
++    const char *name;
++    uint32_t min_hz, max_hz, step_hz;
++} rk3588_scmi_clks[RK3588_SCMI_NCLK] = {
++    [0]  = { "scmi_clk_cpul",   408000000, 1800000000u, 24000000 },
++    [1]  = { "scmi_clk_dsu",    300000000,  900000000,  30000000 },
++    [2]  = { "scmi_clk_cpub01", 408000000, 2200000000u, 24000000 },
++    [3]  = { "scmi_clk_cpub23", 408000000, 2200000000u, 24000000 },
++    [4]  = { "scmi_clk_ddr",    400000000, 1600000000u,  50000000 },
++    [5]  = { "scmi_clk_gpu",    100000000,  900000000,  50000000 },
++    [6]  = { "scmi_clk_npu",    200000000, 1000000000u,  50000000 },
++    [7]  = { "scmi_clk_sbus",    50000000,  500000000,  50000000 },
++    [8]  = { "scmi_pclk_sbus",   50000000,  300000000,  25000000 },
++    [9]  = { "scmi_cclk_sd",     40000000,  200000000,  40000000 },
++    [10] = { "scmi_dclk_sd",     25000000,  200000000,  25000000 },
++};
++
++static Rk3588LiteState *rk3588_lite_scmi_machine;
++
++static uint32_t rk3588_scmi_le32(hwaddr addr)
++{
++    return address_space_ldl_le(&address_space_memory, addr,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++}
++
++/* out[] 追加一个 SCMI 短名（16B 定长，'\0' 填充），返回新字数 */
++static unsigned rk3588_scmi_put_name(uint32_t *out, unsigned n,
++                                     const char *name)
++{
++    char *p = (char *)&out[n];
++
++    memset(p, 0, 16);
++    strncpy(p, name, 15);
++    return n + 4;
++}
++
++/* 消息分发；返回 SCMI status（0 成功，-1 NOT_SUPPORTED），应答字写入 out */
++static int rk3588_lite_scmi_dispatch(Rk3588LiteState *s, uint8_t proto,
++                                     uint8_t id, const uint32_t *tx,
++                                     uint32_t *out, unsigned *n)
++{
++    unsigned c;
++    uint64_t r;
++
++    *n = 0;
++    switch (proto) {
++    case 0x10:    /* BASE */
++        switch (id) {
++        case 0x0:  /* PROTOCOL_VERSION */
++            out[(*n)++] = 0x00020000;
++            return 0;
++        case 0x1:  /* PROTOCOL_ATTRIBUTES：byte0=proto 数 byte1=agent 数
++                    * （base.c struct scmi_msg_resp_base_attributes，非 spec 位域） */
++            out[(*n)++] = (1u << 8) | 2;
++            return 0;
++        case 0x2:  /* PROTOCOL_MESSAGE_ATTRIBUTES */
++            out[(*n)++] = 0;
++            return 0;
++        case 0x3:  /* DISCOVER_VENDOR */
++        case 0x4:  /* DISCOVER_SUB_VENDOR */
++            *n = rk3588_scmi_put_name(out, 0, id == 0x3 ? "rk-forge" : "sim");
++            return 0;
++        case 0x5:  /* DISCOVER_IMPLEMENT_VERSION */
++            out[(*n)++] = 0x1;
++            return 0;
++        case 0x6:  /* DISCOVER_LIST_PROTOCOLS: 数量[11:0] + id 字节序列 */
++            out[0] = 2;
++            out[1] = 0x16 << 8 | 0x14;    /* clock, reset */
++            *n = 2;
++            return 0;
++        case 0x7:  /* DISCOVER_AGENT(id=0 是自己) */
++            *n = rk3588_scmi_put_name(out, 0, "linux");
++            return 0;
++        case 0x8:  /* NOTIFY_ERRORS */
++            return 0;
++        default:
++            return -1;
++        }
++    case 0x14:    /* CLOCK */
++        switch (id) {
++        case 0x0:
++            out[(*n)++] = 0x00020000;
++            return 0;
++        case 0x1:  /* 时钟数[15:0] */
++            out[(*n)++] = RK3588_SCMI_NCLK;
++            return 0;
++        case 0x2:
++            out[(*n)++] = 0;
++            return 0;
++        case 0x3:  /* CLOCK_ATTRIBUTES */
++        case 0x8:  /* NAME_GET（v3 扩展名路径，顺手应答） */
++            c = tx[0];
++            if (c >= RK3588_SCMI_NCLK) {
++                return -2;
++            }
++            out[(*n)++] = (s->scmi.enabled >> c) & 1;
++            *n = rk3588_scmi_put_name(out, *n, rk3588_scmi_clks[c].name);
++            return 0;
++        case 0x4:  /* DESCRIBE_RATES：线性三元组 returned=3 BIT(12) */
++            c = tx[0];
++            if (c >= RK3588_SCMI_NCLK) {
++                return -2;
++            }
++            out[(*n)++] = 3u | BIT(12);
++            out[(*n)++] = rk3588_scmi_clks[c].min_hz;
++            out[(*n)++] = 0;
++            out[(*n)++] = rk3588_scmi_clks[c].max_hz;
++            out[(*n)++] = 0;
++            out[(*n)++] = rk3588_scmi_clks[c].step_hz;
++            out[(*n)++] = 0;
++            return 0;
++        case 0x5:  /* RATE_SET(id, flags, lo, hi)：夹到量程内存储 */
++            c = tx[0];
++            if (c >= RK3588_SCMI_NCLK) {
++                return -2;
++            }
++            r = (uint64_t)tx[3] << 32 | tx[2];
++            r = MAX(r, rk3588_scmi_clks[c].min_hz);
++            r = MIN(r, rk3588_scmi_clks[c].max_hz);
++            s->scmi.rate[c] = r;
++            return 0;
++        case 0x6:  /* RATE_GET(id) */
++            c = tx[0];
++            if (c >= RK3588_SCMI_NCLK) {
++                return -2;
++            }
++            out[(*n)++] = (uint32_t)s->scmi.rate[c];
++            out[(*n)++] = (uint32_t)(s->scmi.rate[c] >> 32);
++            return 0;
++        case 0x7:  /* CONFIG_SET(id, attrs)：bit0=enable */
++            c = tx[0];
++            if (c >= RK3588_SCMI_NCLK) {
++                return -2;
++            }
++            if (tx[1] & 1) {
++                s->scmi.enabled |= 1u << c;
++            } else {
++                s->scmi.enabled &= ~(1u << c);
++            }
++            return 0;
++        default:
++            return -1;
++        }
++    case 0x16:    /* RESET */
++        switch (id) {
++        case 0x0:
++            out[(*n)++] = 0x00010000;
++            return 0;
++        case 0x1:  /* reset 域数[15:0] */
++            out[(*n)++] = RK3588_SCMI_NRST_DOM;
++            return 0;
++        case 0x2:
++            out[(*n)++] = 0;
++            return 0;
++        case 0x3:  /* DOMAIN_ATTRIBUTES */
++            if (tx[0] >= RK3588_SCMI_NRST_DOM) {
++                return -2;
++            }
++            out[(*n)++] = 0;
++            *n = rk3588_scmi_put_name(out, *n, "scmi_rst");
++            return 0;
++        case 0x4:  /* RESET(domain, flags) */
++            return 0;
++        default:
++            return -1;
++        }
++    default:
++        return -1;
++    }
++}
++
++static bool rk3588_lite_scmi_smc(ARMCPU *cpu, uint32_t fid)
++{
++    static int trace_on = -1;     /* SCMIDBG=1 时逐消息打 stderr */
++    Rk3588LiteState *s = rk3588_lite_scmi_machine;
++    uint32_t hdr, len, tx[4] = { 0 }, out[10];
++    unsigned i, n = 0;
++    int32_t status;
++    hwaddr base = RK3588_SCMI_SHMEM;
++
++    if (trace_on == -1) {
++        trace_on = getenv("SCMIDBG") != NULL;
++        if (trace_on) {
++            fprintf(stderr, "SCMI agent armed (hook reached)\n");
++        }
++    }
++    if (trace_on) {
++        fprintf(stderr, "SCMI hook fid=%08x match=%d\n",
++                fid, fid == RK3588_SCMI_SMC_FID && s != NULL);
++    }
++
++    /* BL31 还兼任 SMCCC 版本应答。QEMU 内建 PSCI 的 FEATURES 只认 PSCI
++     * 函数族，对 0x80000000 答 NOT_SUPPORTED，于是内核 psci_init_smccc
++     * 拿不到版本、arm_smccc_1_1_get_conduit() 判 NONE，SCMI 的 invoke
++     * 直接填 NOT_SUPPORTED——根本不发 SMC。报 1.1（不报 1.2，避开
++     * SOC_ID 探测路径）。 */
++    if (fid == 0x8400000a && cpu->env.xregs[1] == 0x80000000) {
++        cpu->env.xregs[0] = 0;             /* FEATURES: SMCCC_VERSION 可查 */
++        return true;
++    }
++    if (fid == 0x80000000) {
++        cpu->env.xregs[0] = 0x80010000;    /* SMCCC_VERSION = 1.1 */
++        return true;
++    }
++
++    if (fid != RK3588_SCMI_SMC_FID || s == NULL) {
++        return false;
++    }
++
++    hdr = rk3588_scmi_le32(base + RK3588_SCMI_MSGHDR);
++    len = rk3588_scmi_le32(base + RK3588_SCMI_LENGTH);
++    for (i = 0; i < 4 && len >= 8 + 4 * i; i++) {
++        tx[i] = rk3588_scmi_le32(base + RK3588_SCMI_PAYLOAD + 4 * i);
++    }
++    status = rk3588_lite_scmi_dispatch(s, (hdr >> 10) & 0xff, hdr & 0xff,
++                                       tx, out, &n);
++
++    /* 应答 = status + out[]；length = 4(hdr) + 4(status) + n*4，随后 FREE */
++    address_space_stl_le(&address_space_memory, base + RK3588_SCMI_PAYLOAD,
++                         status, MEMTXATTRS_UNSPECIFIED, NULL);
++    for (i = 0; i < n; i++) {
++        address_space_stl_le(&address_space_memory,
++                             base + RK3588_SCMI_PAYLOAD + 4 + 4 * i,
++                             out[i], MEMTXATTRS_UNSPECIFIED, NULL);
++    }
++    address_space_stl_le(&address_space_memory, base + RK3588_SCMI_LENGTH,
++                         8 + 4 * n, MEMTXATTRS_UNSPECIFIED, NULL);
++    address_space_stl_le(&address_space_memory, base + RK3588_SCMI_CHAN_STAT,
++                         RK3588_SCMI_CHAN_FREE, MEMTXATTRS_UNSPECIFIED, NULL);
++
++    s->scmi.served++;
++    if (status != 0) {
++        s->scmi.errs++;
++    }
++    if (trace_on) {
++        fprintf(stderr, "SCMI proto=%02x id=%02x tx0=%08x -> status=%d n=%u\n",
++                (hdr >> 10) & 0xff, hdr & 0xff, tx[0], status, n);
++    }
++    cpu->env.xregs[0] = 0;    /* SMCCC SUCCESS */
++    return true;
++}
++
++static const VMStateDescription vmstate_rk3588_lite_scmi = {
++    .name = "rk3588-lite/scmi",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .fields = (const VMStateField[]) {
++        VMSTATE_UINT64_ARRAY(rate, struct Rk3588LiteScmi, RK3588_SCMI_NCLK),
++        VMSTATE_UINT32(enabled, struct Rk3588LiteScmi),
++        VMSTATE_END_OF_LIST()
++    },
++};
++
 +static void rk3588_lite_init(MachineState *machine)
 +{
 +    Rk3588LiteState *s = RK3588_LITE_MACHINE(machine);
@@ -2309,6 +2603,8 @@ index 0000000..1c20aac
 +        snprintf(nm, sizeof(nm), "diag-ptimer-%d", c);
 +        rk3588_lite_add_diag(OBJECT(machine), nm, &rk_forge_gt_recalc[c][0]);
 +    }
++    rk3588_lite_add_diag(OBJECT(machine), "scmi-served", &s->scmi.served);
++    rk3588_lite_add_diag(OBJECT(machine), "scmi-errs", &s->scmi.errs);
 +
 +    /* pre-write the real PLL blocks (CON indices from clk-rk3588.c) with a
 +     * sane encoding m=100, p=2, s=1 -> 24MHz * 100 / 2 >> 1 = 600MHz, so
@@ -2410,6 +2706,17 @@ index 0000000..1c20aac
 +    }
 +
 +    memory_region_add_subregion(sysmem, 0, machine->ram);
++
++    /* SCMI agent 上岗：挂 SMC 钩子、频率表取量程下限、channel 置 FREE
++     * （真机这两件都是 BL31 在内核起来前干的活） */
++    rk3588_lite_scmi_machine = s;
++    arm_smc_handler = rk3588_lite_scmi_smc;
++    for (unsigned c = 0; c < RK3588_SCMI_NCLK; c++) {
++        s->scmi.rate[c] = rk3588_scmi_clks[c].min_hz;
++    }
++    address_space_stl_le(&address_space_memory,
++                         RK3588_SCMI_SHMEM + RK3588_SCMI_CHAN_STAT,
++                         RK3588_SCMI_CHAN_FREE, MEMTXATTRS_UNSPECIFIED, NULL);
 +
 +    s->boot_info = (struct arm_boot_info) {
 +        .loader_start = 0, /* DRAM base 0 */
@@ -2532,6 +2839,355 @@ index a116cb8..65e744d 100644
 +config GT911
 +    bool
 +    depends on I2C
+diff --git a/hw/input/gt911.c b/hw/input/gt911.c
+new file mode 100644
+index 0000000..4000a11
+--- /dev/null
++++ b/hw/input/gt911.c
+@@ -0,0 +1,343 @@
++/*
++ * Goodix GT911 capacitive touchscreen controller — teaching model.
++ * See include/hw/input/gt911.h for the design rationale.
++ *
++ * The config page reads as all zero, which fails the driver's checksum
++ * test on purpose: goodix_read_config() then falls back to driver
++ * defaults (max 10 contacts), exactly the path a fresh/uncalibrated
++ * chip takes, so no valid config has to be fabricated.
++ *
++ * This work is licensed under the terms of the GNU GPL, version 2 or
++ * later. See the COPYING file in the top-level directory.
++ */
++
++#include "qemu/osdep.h"
++#include "hw/input/gt911.h"
++#include "hw/core/irq.h"
++#include "migration/vmstate.h"
++#include "hw/core/qdev-properties.h"
++#include "qemu/module.h"
++#include "qemu/timer.h"
++#include "ui/input.h"
++
++/* coordinate report at 0x814e, 8-byte contact format (little-endian x/y):
++ *   [0] status: bit7 buffer-ready, bit3:0 touch count
++ *   [1] track id & 0x0f
++ *   [2..3] x LE16, [4..5] y LE16, [6..7] touch width
++ *   [8] key code footer (0 = no key) */
++static void gt911_fill_report(GT911State *s, uint8_t *buf, int len)
++{
++    memset(buf, 0, len);
++    if (s->report_ready) {
++        buf[0] = s->finger_down ? 0x81 : 0x80;   /* ready + contacts */
++        if (s->finger_down) {
++            buf[1] = 0x00;              /* track 0 */
++            buf[2] = s->touch_x & 0xff;
++            buf[3] = s->touch_x >> 8;
++            buf[4] = s->touch_y & 0xff;
++            buf[5] = s->touch_y >> 8;
++            buf[6] = 0x10;              /* width 16 */
++            buf[7] = 0x00;
++        }
++    }
++    /* !report_ready: 0x00 "not ready" — nothing new to report; the driver
++     * retries briefly and gives up silently, which is correct (and keeps
++     * a held press from being re-read as anything else) */
++}
++
++/* factory config page at GT911_REG_CONFIG_DATA, GOODIX_CONFIG_911_LENGTH
++ * (186) bytes; checksum byte last so the driver's sum==0 check passes */
++#define GT911_CONFIG_LEN 186
++#define GT911_CFG_X_RES_LO   1
++#define GT911_CFG_Y_RES_LO   3
++#define GT911_CFG_MAX_TOUCH  5
++#define GT911_CFG_TRIGGER    6
++#define GT911_CFG_CHECKSUM  (GT911_CONFIG_LEN - 1)
++
++static void gt911_config_factory(GT911State *s)
++{
++    uint8_t cfg[GT911_CONFIG_LEN];
++    int i, sum = 0;
++
++    memset(cfg, 0, sizeof(cfg));
++    cfg[GT911_CFG_X_RES_LO]     = 1024 & 0xff;         /* x res LE */
++    cfg[GT911_CFG_X_RES_LO + 1] = 1024 >> 8;
++    cfg[GT911_CFG_Y_RES_LO]     = 600 & 0xff;          /* y res LE */
++    cfg[GT911_CFG_Y_RES_LO + 1] = 600 >> 8;
++    cfg[GT911_CFG_MAX_TOUCH]    = 5;
++    cfg[GT911_CFG_TRIGGER]      = 0x3f;
++
++    for (i = 0; i < GT911_CFG_CHECKSUM; i++) {
++        sum += cfg[i];
++    }
++    cfg[GT911_CFG_CHECKSUM] = (0x100 - sum) & 0xff;
++
++    memcpy(s->config, cfg, sizeof(cfg));
++}
++
++static uint8_t gt911_read_reg(GT911State *s, uint16_t reg)
++{
++    /* ranges outside our window read 0 */
++    if (reg >= GT911_REG_ID && reg < GT911_REG_ID + sizeof(s->id)) {
++        return s->id[reg - GT911_REG_ID];
++    }
++    if (reg == GT911_REG_COMMAND) {
++        return 0x00;
++    }
++    if (reg >= GT911_REG_CONFIG_DATA &&
++        reg < GT911_REG_CONFIG_DATA + GT911_CONFIG_LEN) {
++        return s->config[reg - GT911_REG_CONFIG_DATA];
++    }
++    if (reg >= GT911_REG_COOR && reg < GT911_REG_END) {
++        uint8_t buf[GT911_REG_END - GT911_REG_COOR];
++        gt911_fill_report(s, buf, sizeof(buf));
++        return buf[reg - GT911_REG_COOR];
++    }
++    return 0x00;
++}
++
++static void gt911_set_int(GT911State *s, int level)
++{
++    /* rk3588 port: the named gpio-out ("gt911-int") is wired by the
++     * machine to the GPIO3/pin16 input — the goodix DT node's irq-gpios.
++     * imx-forge 原版走 object_resolve_path("gpio0") 的硬编码板级路径。 */
++    qemu_set_irq(s->int_line, level);
++}
++
++static void gt911_assert_int(GT911State *s)
++{
++    /* rk3588 实测：goodix 经 gpio3 把 pin16 配成边沿+极性位=1（上升沿触发，
++     * GPIODBG trace 实证），与 imx 板（下降沿）相反——先低再高造上升沿。
++     * imx-forge 原注释：纯电平保持不触发，边沿脉冲才是硬道理。 */
++    gt911_set_int(s, 0);
++    gt911_set_int(s, 1);
++}
++
++static void gt911_write_reg(GT911State *s, uint16_t reg, uint8_t val)
++{
++    if (reg == GT911_REG_COOR) {
++        /* the driver writes 0 here to end the interrupt handshake:
++         * the report is consumed, the finger itself is NOT lifted */
++        s->report_ready = false;
++        return;
++    }
++    if (reg >= GT911_REG_CONFIG_DATA &&
++        reg < GT911_REG_CONFIG_DATA + GT911_CONFIG_LEN) {
++        s->config[reg - GT911_REG_CONFIG_DATA] = val;
++        return;
++    }
++    /* the command register is plain storage: accepted, not verified */
++}
++
++static int gt911_event(I2CSlave *i2c, enum i2c_event event)
++{
++    GT911State *s = GT911(i2c);
++
++    if (event == I2C_START_SEND || event == I2C_START_RECV) {
++        s->addr_bytes = 0;
++    }
++    return 0;
++}
++
++static uint8_t gt911_recv(I2CSlave *i2c)
++{
++    GT911State *s = GT911(i2c);
++    uint8_t val = gt911_read_reg(s, s->addr);
++
++    /* Real silicon deasserts INT once the status byte at 0x814e is READ
++     * (not when the driver writes the clear) — otherwise a level-triggered
++     * GPIO bank irq storms between the guest's read and the trailing write
++     * and buries userspace in synthetic release events. */
++    if (s->addr == GT911_REG_COOR) {
++        gt911_set_int(s, 1);
++    }
++
++    s->addr = (s->addr + 1) & 0xffff;
++    return val;
++}
++
++static int gt911_send(I2CSlave *i2c, uint8_t data)
++{
++    GT911State *s = GT911(i2c);
++
++    switch (s->addr_bytes) {
++    case 0:
++        s->addr_latch = data << 8;
++        s->addr_bytes = 1;
++        break;
++    case 1:
++        s->addr = s->addr_latch | data;
++        s->addr_bytes = 2;
++        break;
++    default:
++        gt911_write_reg(s, s->addr, data);
++        s->addr = (s->addr + 1) & 0xffff;
++        break;
++    }
++    return 0;
++}
++
++/* --- touch injection ------------------------------------------------ */
++
++/*
++ * Drive the INT pad (GPIO1_IO9) high-then-low for a guaranteed falling
++ * edge: the pad idles low until the first touch, so a plain assert would
++ * produce no edge for the edge-triggered irq the goodix driver requests.
++ * The GPIO controller is resolved by partial path (the same resolution
++ * order the gpio_set HMP command uses), side-stepping the named-gpio-out
++ * wiring.
++ */
++void gt911_touch(GT911State *s, uint16_t x, uint16_t y)
++{
++    s->touch_x = x;
++    s->touch_y = y;
++    s->finger_down = true;
++    s->report_ready = true;
++    gt911_assert_int(s);
++}
++
++void gt911_release(GT911State *s)
++{
++    s->finger_down = false;
++    s->report_ready = true;    /* the release itself is a report */
++    gt911_assert_int(s);
++}
++
++/* --- host mouse -> touch bridge -------------------------------------------
++ *
++ * Registering an ABS-capable input handler makes the GTK/SDL frontends
++ * switch to absolute pointer mode (the usb-tablet mechanism): mouse
++ * motion over the LCD window arrives as scaled coordinates, a click
++ * becomes a touch press, and release ends it — all through the real
++ * I2C + IRQ chain. */
++static void gt911_input_event(DeviceState *dev, QemuConsole *src,
++                               QemuInputEvent *evt)
++{
++    GT911State *s = GT911(dev);
++
++    /* 双轨避让（M2b 教训：指针按下与触摸按下同时到场，GNOME 的 grab 被
++     * 两路抢、窗口拖动直接取消）——virtio 键鼠在场时 host-mouse=off */
++    if (!s->mouse_bridge) {
++        return;
++    }
++
++    switch (evt->type) {
++    case INPUT_EVENT_KIND_ABS:
++        if (evt->abs.axis == INPUT_AXIS_X) {
++            /* 0..0x7fff host-normalised -> 0..1024 panel */
++            s->host_x = (uint32_t)evt->abs.value * 1024 / 0x8000;
++        } else {
++            s->host_y = (uint32_t)evt->abs.value * 600 / 0x8000;
++        }
++        /* a drag while the finger is down is a TouchUpdate report.
++         * M2 教训：每份报告 = 线程化中断 + I2C 事务 + 合成重绘，TCG 下拖动
++         * 的逐事件流会饱和 guest（黑屏假死）——按 guest 虚拟时钟 ~33ms 合并，
++         * 坐标永远取最新（真 gt911 上报率也只有 ~100Hz） */
++        if (s->finger_down) {
++            int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
++
++            if (now - s->last_move_ns >= 33 * SCALE_MS) {
++                s->last_move_ns = now;
++                s->report_ready = true;
++                gt911_assert_int(s);
++            }
++        }
++        break;
++    case INPUT_EVENT_KIND_BTN:
++        if (evt->btn.button == INPUT_BUTTON_LEFT) {
++            if (evt->btn.down) {
++                gt911_touch(s, s->host_x, s->host_y);
++            } else {
++                gt911_release(s);
++            }
++        }
++        break;
++    default:
++        break;
++    }
++}
++
++static const QemuInputHandler gt911_input_handler = {
++    .name  = "QEMU GT911 TouchScreen",
++    .mask  = INPUT_EVENT_MASK_BTN | INPUT_EVENT_MASK_ABS,
++    .event = gt911_input_event,
++};
++
++static const Property gt911_properties[] = {
++    DEFINE_PROP_BOOL("host-mouse", GT911State, mouse_bridge, true),
++};
++
++static void gt911_reset_hold(Object *obj, ResetType type)
++{
++    GT911State *s = GT911(obj);
++
++    memcpy(s->id, "911\0\x20\0", sizeof(s->id));   /* "911", vid 0x0020 */
++    gt911_config_factory(s);
++    s->addr = 0;
++    s->addr_bytes = 0;
++    s->addr_latch = 0;
++    s->finger_down = false;
++    s->report_ready = false;
++    s->touch_x = 0;
++    s->touch_y = 0;
++    gt911_set_int(s, 1);
++}
++
++static void gt911_init(Object *obj)
++{
++    GT911State *s = GT911(obj);
++
++    qdev_init_gpio_out_named(DEVICE(s), &s->int_line, "gt911-int", 1);
++    s->input_handler = qemu_input_handler_register(DEVICE(s),
++                                                   &gt911_input_handler);
++}
++
++static const VMStateDescription vmstate_gt911 = {
++    .name = "gt911",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .fields = (const VMStateField[]) {
++        VMSTATE_UINT16(addr, GT911State),
++        VMSTATE_UINT8(addr_bytes, GT911State),
++        VMSTATE_UINT16(addr_latch, GT911State),
++        VMSTATE_UINT8_ARRAY(id, GT911State, 6),
++        VMSTATE_UINT8_ARRAY(config, GT911State, 186),
++        VMSTATE_BOOL(finger_down, GT911State),
++        VMSTATE_BOOL(report_ready, GT911State),
++        VMSTATE_UINT16(touch_x, GT911State),
++        VMSTATE_UINT16(touch_y, GT911State),
++        VMSTATE_UINT16(host_x, GT911State),
++        VMSTATE_UINT16(host_y, GT911State),
++        VMSTATE_BOOL(mouse_bridge, GT911State),
++        VMSTATE_END_OF_LIST()
++    },
++};
++
++static void gt911_class_init(ObjectClass *klass, const void *data)
++{
++    I2CSlaveClass *k = I2C_SLAVE_CLASS(klass);
++    DeviceClass *dc = DEVICE_CLASS(klass);
++    ResettableClass *rc = RESETTABLE_CLASS(klass);
++
++    dc->vmsd = &vmstate_gt911;
++    k->event = gt911_event;
++    k->recv = gt911_recv;
++    k->send = gt911_send;
++    device_class_set_props(dc, gt911_properties);
++    rc->phases.hold = gt911_reset_hold;
++}
++
++static const TypeInfo gt911_info = {
++    .name          = TYPE_GT911,
++    .parent        = TYPE_I2C_SLAVE,
++    .instance_size = sizeof(GT911State),
++    .instance_init = gt911_init,
++    .class_init    = gt911_class_init,
++};
++
++static void gt911_register_types(void)
++{
++    type_register_static(&gt911_info);
++}
++
++type_init(gt911_register_types)
 diff --git a/hw/input/meson.build b/hw/input/meson.build
 index 90a2149..26e7dec 100644
 --- a/hw/input/meson.build
@@ -2541,6 +3197,28 @@ index 90a2149..26e7dec 100644
  
  system_ss.add(when: 'CONFIG_LASIPS2', if_true: files('lasips2.c'))
 +system_ss.add(when: 'CONFIG_GT911', if_true: files('gt911.c'))
+diff --git a/hw/intc/arm_gicv3_cpuif.c b/hw/intc/arm_gicv3_cpuif.c
+index 67a0bba..d33f280 100644
+--- a/hw/intc/arm_gicv3_cpuif.c
++++ b/hw/intc/arm_gicv3_cpuif.c
+@@ -1044,8 +1044,17 @@ static bool icc_hppi_can_preempt(GICv3CPUState *cs)
+     return false;
+ }
+ 
++uint64_t rk_forge_cpuif_update[8];   /* 每核投递计数（note 81 刀口） */
++
+ void gicv3_cpuif_update(GICv3CPUState *cs)
+ {
++    {
++        CPUState *cc = CPU(cs->cpu);
++
++        if (cc->cpu_index < 8) {
++            rk_forge_cpuif_update[cc->cpu_index]++;
++        }
++    }
+     /* Tell the CPU about its highest priority pending interrupt */
+     int irqlevel = 0;
+     int fiqlevel = 0;
 diff --git a/hw/ssi/Kconfig b/hw/ssi/Kconfig
 index 1bd5646..316d214 100644
 --- a/hw/ssi/Kconfig
@@ -2561,6 +3239,137 @@ index 6afb1ea..44c7809 100644
  system_ss.add(when: 'CONFIG_BCM2835_SPI', if_true: files('bcm2835_spi.c'))
  system_ss.add(when: 'CONFIG_PNV_SPI', if_true: files('pnv_spi.c'))
 +system_ss.add(when: 'CONFIG_RK806', if_true: files('rk806.c'))
+diff --git a/hw/ssi/rk806.c b/hw/ssi/rk806.c
+new file mode 100644
+index 0000000..309f2dc
+--- /dev/null
++++ b/hw/ssi/rk806.c
+@@ -0,0 +1,125 @@
++/*
++ * Rockchip RK806 PMIC — SPI command-protocol teaching model.
++ *
++ * 规格 = drivers/mfd/rk8xx-spi.c：每帧 cmd(READ=0/WRITE=BIT7 | CRC_DIS=0 |
++ * len-1) + 2 字节大端地址 + 数据；CS 拉高即帧复位。rk8xx-spi 的 probe 按奇
++ * compatible 硬编码 RK806_ID（0x8060），不读芯片名校验，所以整片寄存器按
++ * 存储应答即可——regulator 框架的存在感来自 mfd cells 的注册，而不是读数。
++ *
++ * This work is licensed under the terms of the GNU GPL, version 2 or
++ * later. See the COPYING file in the top-level directory.
++ */
++
++#include "qemu/osdep.h"
++
++#include "hw/ssi/ssi.h"
++#include "migration/vmstate.h"
++#include "qemu/module.h"
++#include "qom/object.h"
++
++#define TYPE_RK806 "rk806"
++OBJECT_DECLARE_SIMPLE_TYPE(RK806State, RK806)
++
++#define RK806_CMD_WRITE  BIT(7)
++
++struct RK806State {
++    SSIPeripheral parent_obj;
++
++    uint8_t regs[0x100];    /* RK806 寄存器空间（0x5A/0x5B = CHIP_NAME/VER） */
++    int phase;              /* 0=cmd 1=addr_hi 2=addr_lo ≥3=data */
++    uint8_t cmd;
++    uint16_t addr;
++};
++
++static uint32_t rk806_transfer(SSIPeripheral *p, uint32_t val)
++{
++    RK806State *s = RK806(p);
++
++    switch (s->phase) {
++    case 0:
++        s->cmd = val;
++        s->phase = 1;
++        return 0;
++    case 1:
++        s->addr = val << 8;
++        s->phase = 2;
++        return 0;
++    case 2:
++        s->addr |= val;
++        s->phase = 3;
++        return 0;
++    default:
++        if (s->cmd & RK806_CMD_WRITE) {
++            s->regs[s->addr & 0xff] = val;
++        } else {
++            val = s->regs[s->addr & 0xff];
++        }
++        s->addr = (s->addr + 1) & 0xffff;
++        return val & 0xff;
++    }
++}
++
++static int rk806_set_cs(SSIPeripheral *p, bool select)
++{
++    if (!select) {
++        RK806(p)->phase = 0;    /* CS 拉高：协议帧复位 */
++    }
++    return 0;
++}
++
++static void rk806_reset_hold(Object *obj, ResetType type)
++{
++    RK806State *s = RK806(obj);
++
++    memset(s->regs, 0, sizeof(s->regs));
++    s->regs[0x5A] = 0x06;   /* CHIP_NAME/VER 低位应 0x8060 族，值仅示义 */
++    s->regs[0x5B] = 0x80;
++    s->phase = 0;
++    s->cmd = 0;
++    s->addr = 0;
++}
++
++static void rk806_realize(SSIPeripheral *dev, Error **errp)
++{
++}
++
++static const VMStateDescription vmstate_rk806 = {
++    .name = "rk806",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .fields = (const VMStateField[]) {
++        VMSTATE_UINT8_ARRAY(regs, RK806State, 0x100),
++        VMSTATE_INT32(phase, RK806State),
++        VMSTATE_UINT8(cmd, RK806State),
++        VMSTATE_UINT16(addr, RK806State),
++        VMSTATE_END_OF_LIST()
++    },
++};
++
++static void rk806_class_init(ObjectClass *klass, const void *data)
++{
++    SSIPeripheralClass *k = SSI_PERIPHERAL_CLASS(klass);
++    DeviceClass *dc = DEVICE_CLASS(klass);
++    ResettableClass *rc = RESETTABLE_CLASS(klass);
++
++    k->realize = rk806_realize;     /* ssi_peripheral_realize 无条件调，必须给 */
++    dc->vmsd = &vmstate_rk806;
++    k->transfer = rk806_transfer;
++    k->set_cs = rk806_set_cs;
++    k->cs_polarity = SSI_CS_LOW;
++    rc->phases.hold = rk806_reset_hold;
++}
++
++static const TypeInfo rk806_info = {
++    .name          = TYPE_RK806,
++    .parent        = TYPE_SSI_PERIPHERAL,
++    .instance_size = sizeof(RK806State),
++    .class_init    = rk806_class_init,
++};
++
++static void rk806_register_types(void)
++{
++    type_register_static(&rk806_info);
++}
++
++type_init(rk806_register_types)
 diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
 index 9258a04..6e89b6d 100644
 --- a/include/monitor/hmp.h
@@ -2637,6 +3446,26 @@ index e9fb8d8..d43055a 100644
  void hmp_stop(Monitor *mon, const QDict *qdict)
  {
      qmp_stop(NULL);
+diff --git a/target/arm/cpu.h b/target/arm/cpu.h
+index c0492c8..13a822d 100644
+--- a/target/arm/cpu.h
++++ b/target/arm/cpu.h
+@@ -1241,6 +1241,15 @@ extern const VMStateDescription vmstate_arm_cpu;
+ void arm_cpu_do_interrupt(CPUState *cpu);
+ void arm_v7m_cpu_do_interrupt(CPUState *cpu);
+ 
++/*
++ * Machine-registered claimant for SMC calls that aren't PSCI (e.g. a board
++ * model acting as the secure firmware answering SCMI over the SMC conduit).
++ * Called before the PSCI NOT_SUPPORTED fallback; return true if the call was
++ * handled (the handler sets the guest's return value itself).
++ */
++typedef bool (*ArmSmcHandlerFn)(ARMCPU *cpu, uint32_t func_id);
++extern ArmSmcHandlerFn arm_smc_handler;
++
+ typedef struct ARMGranuleProtectionConfig {
+     /* GPCCR_EL3 */
+     uint64_t gpccr;
 diff --git a/target/arm/gtimer.h b/target/arm/gtimer.h
 index d49c63c..14b328e 100644
 --- a/target/arm/gtimer.h
@@ -2697,3 +3526,28 @@ index af45234..82e34a8 100644
  void arm_gt_htimer_cb(void *opaque)
  {
      ARMCPU *cpu = opaque;
+diff --git a/target/arm/tcg/psci.c b/target/arm/tcg/psci.c
+index 56754bd..a875f72 100644
+--- a/target/arm/tcg/psci.c
++++ b/target/arm/tcg/psci.c
+@@ -27,6 +27,8 @@
+ #include "target/arm/multiprocessing.h"
+ #include "target/arm/trace.h"
+ 
++ArmSmcHandlerFn arm_smc_handler;
++
+ bool arm_is_psci_call(ARMCPU *cpu, int excp_type)
+ {
+     /*
+@@ -83,6 +85,11 @@ void arm_handle_psci_call(ARMCPU *cpu)
+     trace_arm_psci_call(param[0], param[1], param[2], param[3],
+                         arm_cpu_mp_affinity(cpu));
+ 
++    if (arm_smc_handler != NULL && arm_smc_handler(cpu, (uint32_t)param[0])) {
++        /* Machine firmware emulation (e.g. SCMI) claimed this call. */
++        return;
++    }
++
+     if ((param[0] & QEMU_PSCI_0_2_64BIT) && !is_a64(env)) {
+         ret = QEMU_PSCI_RET_NOT_SUPPORTED;
+         goto err;
