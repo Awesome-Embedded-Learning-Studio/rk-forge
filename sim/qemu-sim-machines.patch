@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..6c878f9
+index 0000000..4df9dda
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,2108 @@
+@@ -0,0 +1,2495 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -932,6 +932,22 @@ index 0000000..6c878f9
 +    uint64_t served, errs;   /* 诊断计数（qom 属性，不迁移） */
 +};
 +
++/* ---- mali-g610 GPU 状态（见文件后部 gpu 段；规格 = panthor 驱动） -------- */
++struct Rk3588LiteGpu {
++    MemoryRegion mmio;
++    qemu_irq job_irq, mmu_irq, gpu_irq;   /* GIC SPI 92/93/94 */
++    uint32_t int_rawstat, int_mask;       /* GPU_IRQ 组（0x20-0x2c） */
++    uint32_t l2_config, pwr_key, pwr_override0, pwr_override1;
++    uint64_t shader_ready, tiler_ready, l2_ready;
++    uint64_t ts_offset;
++    /* MCU/CSF 假固件握手（见 gpu 段注释） */
++    uint32_t mcu_control, mcu_status;
++    uint32_t job_rawstat, job_mask;       /* JOB_IRQ 组（0x1000-）bit31=global */
++    uint32_t mmu_rawstat, mmu_mask;       /* MMU_IRQ 组（0x2000-） */
++    uint64_t as_transtab[8], as_memattr[8], as_transcfg[8];
++    uint64_t reads, unknown;              /* 诊断计数（不迁移） */
++};
++
 +struct Rk3588LiteState {
 +    MachineState parent_obj;
 +    bool vop_console;         /* -M vop-console=off: virgl 单显示设备形态 */
@@ -960,6 +976,7 @@ index 0000000..6c878f9
 +    qemu_irq gpio_in[32];    /* 外部驱动的输入线（gt911 int → pin16） */
 +    struct Rk3588LiteSpi *spi;
 +    struct Rk3588LiteScmi scmi;
++    struct Rk3588LiteGpu gpu;
 +};
 +
 +/* DW-APB-UART ext space outside the 16550 window (see rk3568-lite.c). */
@@ -1891,6 +1908,7 @@ index 0000000..6c878f9
 +}
 +
 +static const VMStateDescription vmstate_rk3588_lite_scmi;   /* 定义在 scmi 段 */
++static const VMStateDescription vmstate_rk3588_lite_gpu;    /* 定义在 gpu 段 */
 +
 +static const VMStateDescription vmstate_rk3588_lite = {
 +    .name = "rk3588-lite",
@@ -1910,6 +1928,8 @@ index 0000000..6c878f9
 +                       struct Rk3588LiteGpio),
 +        VMSTATE_STRUCT(scmi, Rk3588LiteState, 0, vmstate_rk3588_lite_scmi,
 +                       struct Rk3588LiteScmi),
++        VMSTATE_STRUCT(gpu, Rk3588LiteState, 0, vmstate_rk3588_lite_gpu,
++                       struct Rk3588LiteGpu),
 +        VMSTATE_END_OF_LIST()
 +    },
 +};
@@ -2438,6 +2458,362 @@ index 0000000..6c878f9
 +    },
 +};
 +
++/* ---- mali-g610@fb000000: panthor（v7.1）的最小 GPU 影子 -------------------
++ * 规格 = drivers/gpu/drm/panthor/：偏移取 panthor_regs.h，访问序列取
++ * panthor_hw.c/gpu.c（驱动即规格）。GPU_ID=0xa8670005 的 arch major=10
++ * → panthor_hw_match 绑 v10 经典寄存器路线（无 PWR_CTRL 子系统）。
++ * 静态 ID/features 用真机日志值（note 76 §2.3），未采样寄存器取保守 0。
++ * 电源块全同步：写 PWRON 立即就绪、PWRTRANS 恒 0——驱动侧
++ * block_power_on 是纯 readl_poll_timeout，等得住。
++ * GPU_CMD 完成位同步进 RAWSTAT：soft_reset/flush_caches 是
++ * wait_event_timeout + 事后核验 RAWSTAT 的兜底结构，不拉 IRQ 也过；
++ * 仍按电平语义（stat = raw & mask）拉 GPU_IRQ（SPI 94），更贴真机。
++ */
++enum {
++    GPU_IRQ_RESET_COMPLETED          = BIT(8),
++    GPU_IRQ_CLEAN_CACHES_COMPLETED   = BIT(17),
++    GPU_STATUS_ACTIVE                = BIT(0),
++    GPU_STATUS_PWR_ACTIVE            = BIT(1),
++};
++
++static void rk3588_lite_gpu_update_irq(struct Rk3588LiteGpu *g)
++{
++    qemu_set_irq(g->gpu_irq, !!(g->int_rawstat & g->int_mask));
++    qemu_set_irq(g->job_irq, !!(g->job_rawstat & g->job_mask));
++    qemu_set_irq(g->mmu_irq, !!(g->mmu_rawstat & g->mmu_mask));
++}
++
++/* LPAE 走查（驱动 io_pgtable 用 ARM_64_LPAE_S1：48VA/40PA，4K 页+2M/1G
++ * block，表项 64 位 LE，bits[1:0] 01=block/11=table|page）。失败返
++ * HWADDR_MAX——不 fault 不 crash，让驱动侧超时自己报（可见性好）。 */
++static hwaddr rk3588_lite_gpu_va_pa(struct Rk3588LiteGpu *g, uint64_t va)
++{
++    hwaddr tbl = g->as_transtab[0] & 0x0000fffffffff000ull;
++    uint64_t e;
++    int lvl;
++
++    for (lvl = 0; lvl < 3; lvl++) {
++        e = address_space_ldq_le(&address_space_memory,
++                                 tbl + ((va >> (39 - 9 * lvl)) & 0x1ff) * 8,
++                                 MEMTXATTRS_UNSPECIFIED, NULL);
++        if (!(e & 1)) {
++            return HWADDR_MAX;
++        }
++        if ((e & 3) == 1) {    /* block：lvl1=1G lvl2=2M */
++            return (e & 0x0000fffffffff000ull) +
++                   (va & ((1ull << (39 - 9 * lvl)) - 1));
++        }
++        tbl = e & 0x0000fffffffff000ull;
++    }
++    e = address_space_ldq_le(&address_space_memory,
++                             tbl + ((va >> 12) & 0x1ff) * 8,
++                             MEMTXATTRS_UNSPECIFIED, NULL);
++    if ((e & 3) != 3) {
++        return HWADDR_MAX;
++    }
++    return (e & 0x0000fffffffff000ull) + (va & 0xfff);
++}
++
++/* 假 MCU 上电（= note 76 §2.5 的捷径）：真机 MCU 从 shared section 读
++ * control 并写 version；我们直接经 AS0 页表把 CSF_MCU_SHARED_REGION_
++ * START（0x04000000）control.version 写成 1.5.0，然后置 ENABLED +
++ * JOB_INT_GLOBAL_IF。驱动侧合同：fw_boot 1000ms 等 GLOBAL_IF（超时后
++ * 兜底核验 JOB_INT_STAT），fw_init_ifaces 直读 kmap 的 version==0 报错。 */
++static void rk3588_lite_gpu_mcu_boot(struct Rk3588LiteGpu *g)
++{
++    hwaddr pa = rk3588_lite_gpu_va_pa(g, 0x04000000);
++
++    if (pa == HWADDR_MAX) {
++        g->mcu_status = 0;    /* 页表未就绪：驱动会看到 disabled + 超时 */
++        return;
++    }
++    address_space_stl_le(&address_space_memory, pa, 0x01050000,
++                         MEMTXATTRS_UNSPECIFIED, NULL);
++    g->mcu_status = 1;        /* MCU_STATUS_ENABLED */
++    g->job_rawstat |= BIT(31);   /* JOB_INT_GLOBAL_IF */
++    rk3588_lite_gpu_update_irq(g);
++}
++
++/* 全局 doorbell（CSF_DOORBELL(0)）：toggle/ACK 合同（note 76 §2.7）。
++ * 等待方是 read_poll_timeout_atomic 纯轮询——ack 必须在 doorbell 写的
++ * 同一同步路径里追平。shared interface 布局取 panthor_fw.h：
++ * control{+0 version +8 input_va +c output_va}，input{+0 req +8 doorbell_req}，
++ * output{+0 ack +8 doorbell_ack}。MCU 状态按 req 的 GLB_STATE[14:12]
++ * （HALT=1）或老式 GLB_HALT bit0 同步。 */
++static void rk3588_lite_gpu_doorbell(struct Rk3588LiteGpu *g, unsigned id)
++{
++    hwaddr ctl, in_pa, out_pa;
++    uint32_t in_va, out_va, req;
++
++    if (id != 0) {
++        return;    /* CSG doorbell：M1 领域 */
++    }
++    ctl = rk3588_lite_gpu_va_pa(g, 0x04000000);
++    if (ctl == HWADDR_MAX) {
++        return;
++    }
++    in_va = address_space_ldl_le(&address_space_memory, ctl + 8,
++                                 MEMTXATTRS_UNSPECIFIED, NULL);
++    out_va = address_space_ldl_le(&address_space_memory, ctl + 0xc,
++                                  MEMTXATTRS_UNSPECIFIED, NULL);
++    in_pa = rk3588_lite_gpu_va_pa(g, in_va);
++    out_pa = rk3588_lite_gpu_va_pa(g, out_va);
++    if (in_pa == HWADDR_MAX || out_pa == HWADDR_MAX) {
++        return;
++    }
++
++    req = address_space_ldl_le(&address_space_memory, in_pa,
++                               MEMTXATTRS_UNSPECIFIED, NULL);
++    address_space_stl_le(&address_space_memory, out_pa, req,
++                         MEMTXATTRS_UNSPECIFIED, NULL);
++    address_space_stl_le(&address_space_memory, out_pa + 8,
++                         address_space_ldl_le(&address_space_memory, in_pa + 8,
++                                              MEMTXATTRS_UNSPECIFIED, NULL),
++                         MEMTXATTRS_UNSPECIFIED, NULL);
++
++    if (((req >> 12) & 7) == 1 || (req & BIT(0))) {
++        g->mcu_status = 2;    /* HALT（fw_halt_mcu 的目标态） */
++    } else {
++        g->mcu_status = 1;    /* ACTIVE */
++    }
++}
++
++static uint64_t rk3588_lite_gpu_read64(struct Rk3588LiteGpu *g, hwaddr offset)
++{
++    /* 64 位寄存器按两个 32 位访问实现（驱动 gpu_read64 低在 +0 高在 +4） */
++    switch (offset) {
++    case 0x100: return 0x00050005;            /* SHADER_PRESENT（真机） */
++    case 0x110: return 0x1;                    /* TILER_PRESENT */
++    case 0x120: return 0x1;                    /* L2_PRESENT */
++    case 0x140: return g->shader_ready;
++    case 0x150: return g->tiler_ready;
++    case 0x160: return g->l2_ready;
++    case 0x200: case 0x210: case 0x220: return 0;    /* PWRTRANS：无进行中 */
++    case 0x240: return g->shader_ready;              /* PWRACTIVE ≈ ready */
++    case 0x250: return g->tiler_ready;
++    case 0x260: return g->l2_ready;
++    case 0x60:  return 0;                     /* GPU_FEATURES（待采） */
++    default:    return 0;
++    }
++}
++
++static uint64_t rk3588_lite_gpu_read(void *opaque, hwaddr offset, unsigned size)
++{
++    struct Rk3588LiteGpu *g = opaque;
++
++    g->reads++;
++    switch (offset) {
++    case 0x000: return 0xa8670005;            /* GPU_ID（真机） */
++    case 0x004: return 0x07120306;            /* L2_FEATURES（真机） */
++    case 0x008: return 0;                     /* CORE_FEATURES（待采） */
++    case 0x00c: return 0x00000809;            /* TILER_FEATURES（真机） */
++    case 0x010: return 0x00000301;            /* MEM_FEATURES（真机） */
++    case 0x014: return 0x00002830;            /* MMU_FEATURES（真机） */
++    case 0x018: return 0x000000ff;            /* AS_PRESENT（真机） */
++    case 0x01c: return 0x00010500;            /* CSF_ID 1.5.0（真机日志） */
++    case 0x020: return g->int_rawstat;
++    case 0x028: return g->int_mask;
++    case 0x02c: return g->int_rawstat & g->int_mask;
++    case 0x030: return 0;                     /* GPU_CMD 写-only */
++    case 0x034:                               /* STATUS：有 ready 即 active */
++        return (g->l2_ready ? GPU_STATUS_ACTIVE | GPU_STATUS_PWR_ACTIVE : 0);
++    case 0x038: return 0;                     /* FAULT_STATUS */
++    case 0x040: return 0;                     /* FAULT_ADDR */
++    case 0x048: return g->l2_config;
++    case 0x050: return g->pwr_key;
++    case 0x054: return g->pwr_override0;
++    case 0x058: return g->pwr_override1;
++    case 0x088: return (uint32_t)g->ts_offset;
++    case 0x08c: return (uint32_t)(g->ts_offset >> 32);
++    case 0x090:                               /* CYCLE_COUNT：虚拟钟单调 */
++    case 0x094:
++    case 0x098:                               /* TIMESTAMP（offset 后值） */
++    case 0x09c:
++    {
++        uint64_t t = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
++        t = (offset & 8) ? t + g->ts_offset : t;    /* 0x98 组加 offset */
++        return (offset & 4) ? (uint32_t)(t >> 32) : (uint32_t)t;
++    }
++    case 0x0a0: return 0x400;                 /* MAX_THREADS（保守） */
++    case 0x0a4: return 0x200;                 /* MAX_WORKGROUP_SIZE */
++    case 0x0a8: return 0x100;                 /* MAX_BARRIER_SIZE */
++    case 0x0ac: return 0;                     /* THREAD_FEATURES（待采） */
++    case 0x0b0: case 0x0b4: case 0x0b8: case 0x0bc: return 0;  /* TEXTURE */
++    case 0x280: return 0;                     /* REVID（待采） */
++    case 0x300: return 0;                     /* COHERENCY_FEATURES（待采） */
++    case 0x304: return 0;                     /* COHERENCY_PROTOCOL */
++    case 0x700: return g->mcu_control;
++    case 0x704: return g->mcu_status;
++    case 0x1000: return g->job_rawstat;       /* JOB_INT_RAWSTAT */
++    case 0x1008: return g->job_mask;
++    case 0x100c: return g->job_rawstat & g->job_mask;
++    case 0x2000: return g->mmu_rawstat;       /* MMU_INT_RAWSTAT */
++    case 0x2008: return g->mmu_mask;
++    case 0x200c: return g->mmu_rawstat & g->mmu_mask;
++    default:
++        if (offset >= 0x2400 && offset < 0x2400 + 8 * 0x40 && !(offset & 7)) {
++            unsigned as = (offset - 0x2400) >> 6, sub = (offset - 0x2400) & 0x3f;
++
++            switch (sub) {
++            case 0x00: return (uint32_t)g->as_transtab[as];
++            case 0x04: return (uint32_t)(g->as_transtab[as] >> 32);
++            case 0x08: return (uint32_t)g->as_memattr[as];
++            case 0x0c: return (uint32_t)(g->as_memattr[as] >> 32);
++            case 0x28: return 0;              /* AS_STATUS：恒不 active */
++            case 0x30: return (uint32_t)g->as_transcfg[as];
++            case 0x34: return (uint32_t)(g->as_transcfg[as] >> 32);
++            default: return 0;                /* fault/lockaddr 组 */
++            }
++        }
++        if (!(offset & 3)) {
++            /* 64 位成员区（present/ready/trans/active + 0x60 features）：
++             * 低半在 +0 高半在 +4，按对分发 */
++            if ((offset >= 0x100 && offset <= 0x260) || offset == 0x60) {
++                uint64_t v = rk3588_lite_gpu_read64(g, offset & ~4ull);
++                return (offset & 4) ? (uint32_t)(v >> 32) : (uint32_t)v;
++            }
++        }
++        g->unknown++;
++        return 0;
++    }
++}
++
++static void rk3588_lite_gpu_write(void *opaque, hwaddr offset, uint64_t value,
++                                  unsigned size)
++{
++    struct Rk3588LiteGpu *g = opaque;
++    uint64_t v64 = value;    /* 32 位访问的 64 位成员低半 */
++
++    switch (offset) {
++    case 0x024:                              /* INT_CLEAR：W1C */
++        g->int_rawstat &= ~(uint32_t)value;
++        rk3588_lite_gpu_update_irq(g);
++        return;
++    case 0x028:
++        g->int_mask = value;
++        rk3588_lite_gpu_update_irq(g);
++        return;
++    case 0x030: {                            /* GPU_CMD：同步完成 */
++        unsigned type = value & 0xff;
++        if (type == 1) {                     /* soft/hard reset */
++            g->int_rawstat |= GPU_IRQ_RESET_COMPLETED;
++        } else if (type == 4) {              /* flush caches */
++            g->int_rawstat |= GPU_IRQ_CLEAN_CACHES_COMPLETED;
++        }
++        rk3588_lite_gpu_update_irq(g);
++        return;
++    }
++    case 0x048: g->l2_config = value; return;
++    case 0x050: g->pwr_key = value; return;  /* 0x2968A819 unlock（存而不校） */
++    case 0x054: g->pwr_override0 = value; return;
++    case 0x058: g->pwr_override1 = value; return;
++    case 0x088: g->ts_offset = v64; return;
++    case 0x08c: g->ts_offset = (g->ts_offset & 0xffffffff) | (v64 << 32);
++        return;
++    case 0x180: g->shader_ready |= v64; return;   /* SHADER_PWRON */
++    case 0x184: g->shader_ready |= v64 << 32; return;
++    case 0x190: g->tiler_ready |= v64; return;    /* TILER_PWRON */
++    case 0x194: g->tiler_ready |= v64 << 32; return;
++    case 0x1a0: g->l2_ready |= v64; return;       /* L2_PWRON */
++    case 0x1a4: g->l2_ready |= v64 << 32; return;
++    case 0x1c0: g->shader_ready &= ~v64; return;  /* SHADER_PWROFF */
++    case 0x1c4: g->shader_ready &= ~(v64 << 32); return;
++    case 0x1d0: g->tiler_ready &= ~v64; return;   /* TILER_PWROFF */
++    case 0x1d4: g->tiler_ready &= ~(v64 << 32); return;
++    case 0x1e0: g->l2_ready &= ~v64; return;      /* L2_PWROFF */
++    case 0x1e4: g->l2_ready &= ~(v64 << 32); return;
++    case 0x700:                              /* MCU_CONTROL */
++        g->mcu_control = value;
++        if (value & 2) {                     /* AUTO：假 MCU 上电 */
++            rk3588_lite_gpu_mcu_boot(g);
++        } else if (value == 0) {             /* DISABLE */
++            g->mcu_status = 0;
++        }
++        return;
++    case 0x1004:                              /* JOB_INT_CLEAR：W1C */
++        g->job_rawstat &= ~(uint32_t)value;
++        rk3588_lite_gpu_update_irq(g);
++        return;
++    case 0x1008:
++        g->job_mask = value;
++        rk3588_lite_gpu_update_irq(g);
++        return;
++    case 0x2004:                              /* MMU_INT_CLEAR：W1C */
++        g->mmu_rawstat &= ~(uint32_t)value;
++        rk3588_lite_gpu_update_irq(g);
++        return;
++    case 0x2008:
++        g->mmu_mask = value;
++        rk3588_lite_gpu_update_irq(g);
++        return;
++    default:
++        if (offset >= 0x80000 && offset < 0x100000 && !((offset - 0x80000) & 0xffff)) {
++            rk3588_lite_gpu_doorbell(g, (offset - 0x80000) >> 16);
++            return;
++        }
++        if (offset >= 0x2400 && offset < 0x2400 + 8 * 0x40 && !(offset & 7)) {
++            unsigned as = (offset - 0x2400) >> 6, sub = (offset - 0x2400) & 0x3f;
++
++            switch (sub) {
++            case 0x00: g->as_transtab[as] = (g->as_transtab[as] & ~0xffffffffull)
++                         | (uint32_t)value; return;
++            case 0x04: g->as_transtab[as] = (g->as_transtab[as] & 0xffffffff)
++                         | (v64 << 32); return;
++            case 0x08: g->as_memattr[as] = (g->as_memattr[as] & ~0xffffffffull)
++                         | (uint32_t)value; return;
++            case 0x0c: g->as_memattr[as] = (g->as_memattr[as] & 0xffffffff)
++                         | (v64 << 32); return;
++            case 0x18: return;               /* AS_COMMAND：瞬时完成 */
++            case 0x30: g->as_transcfg[as] = (g->as_transcfg[as] & ~0xffffffffull)
++                         | (uint32_t)value; return;
++            case 0x34: g->as_transcfg[as] = (g->as_transcfg[as] & 0xffffffff)
++                         | (v64 << 32); return;
++            default: return;
++            }
++        }
++        g->unknown++;
++        return;
++    }
++}
++
++static const MemoryRegionOps rk3588_lite_gpu_ops = {
++    .read = rk3588_lite_gpu_read,
++    .write = rk3588_lite_gpu_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .valid.min_access_size = 4,
++    .valid.max_access_size = 8,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 8,
++};
++
++static const VMStateDescription vmstate_rk3588_lite_gpu = {
++    .name = "rk3588-lite/gpu",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .fields = (const VMStateField[]) {
++        VMSTATE_UINT32(int_rawstat, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(int_mask, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(l2_config, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(pwr_key, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(pwr_override0, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(pwr_override1, struct Rk3588LiteGpu),
++        VMSTATE_UINT64(shader_ready, struct Rk3588LiteGpu),
++        VMSTATE_UINT64(tiler_ready, struct Rk3588LiteGpu),
++        VMSTATE_UINT64(l2_ready, struct Rk3588LiteGpu),
++        VMSTATE_UINT64(ts_offset, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(mcu_control, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(mcu_status, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(job_rawstat, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(job_mask, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(mmu_rawstat, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(mmu_mask, struct Rk3588LiteGpu),
++        VMSTATE_UINT64_ARRAY(as_transtab, struct Rk3588LiteGpu, 8),
++        VMSTATE_UINT64_ARRAY(as_memattr, struct Rk3588LiteGpu, 8),
++        VMSTATE_UINT64_ARRAY(as_transcfg, struct Rk3588LiteGpu, 8),
++        VMSTATE_END_OF_LIST()
++    },
++};
++
 +static void rk3588_lite_init(MachineState *machine)
 +{
 +    Rk3588LiteState *s = RK3588_LITE_MACHINE(machine);
@@ -2605,6 +2981,8 @@ index 0000000..6c878f9
 +    }
 +    rk3588_lite_add_diag(OBJECT(machine), "scmi-served", &s->scmi.served);
 +    rk3588_lite_add_diag(OBJECT(machine), "scmi-errs", &s->scmi.errs);
++    rk3588_lite_add_diag(OBJECT(machine), "gpu-reads", &s->gpu.reads);
++    rk3588_lite_add_diag(OBJECT(machine), "gpu-unknown", &s->gpu.unknown);
 +
 +    /* pre-write the real PLL blocks (CON indices from clk-rk3588.c) with a
 +     * sane encoding m=100, p=2, s=1 -> 24MHz * 100 / 2 >> 1 = 600MHz, so
@@ -2717,6 +3095,15 @@ index 0000000..6c878f9
 +    address_space_stl_le(&address_space_memory,
 +                         RK3588_SCMI_SHMEM + RK3588_SCMI_CHAN_STAT,
 +                         RK3588_SCMI_CHAN_FREE, MEMTXATTRS_UNSPECIFIED, NULL);
++
++    /* mali-g610@fb000000：2MB 影子盖在零毯区上（常规优先级即胜 -100 毯）。
++     * 三条 IRQ 对 DT interrupts：job/mmu/gpu = SPI 92/93/94 */
++    memory_region_init_io(&s->gpu.mmio, OBJECT(machine), &rk3588_lite_gpu_ops,
++                          &s->gpu, "rk3588-lite.gpu", 0x200000);
++    memory_region_add_subregion(sysmem, 0xfb000000, &s->gpu.mmio);
++    s->gpu.job_irq = qdev_get_gpio_in(gicdev, 92);
++    s->gpu.mmu_irq = qdev_get_gpio_in(gicdev, 93);
++    s->gpu.gpu_irq = qdev_get_gpio_in(gicdev, 94);
 +
 +    s->boot_info = (struct arm_boot_info) {
 +        .loader_start = 0, /* DRAM base 0 */

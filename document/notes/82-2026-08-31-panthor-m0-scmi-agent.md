@@ -1,7 +1,8 @@
-# 82 — panthor 战役开工：侦察定谳 + M-pre0 SCMI agent 落地（2026-08-31）
+# 82 — panthor 战役开工：侦察定谳 + M-pre0 SCMI agent + **M0 达成**（2026-08-31）
 
 > 战役七（note 76 批准的刀口 B）。本文覆盖：开战侦察、SCMI 影子服务端
-> 全链打通、SMCCC conduit 真根因、M-pre0 验收；末尾挂两笔账。
+> 全链打通、SMCCC conduit 真根因、M-pre0 验收、**GPU 影子 + 假 MCU 一举打到
+> M0（render node 出现）**；末尾挂两笔账。
 
 ## 0. 结果
 
@@ -10,9 +11,9 @@
 | **侦察定谳** | ✅ GPU 前置依赖六项里五项已通（见 §1 表），SCMI 是唯一 M0 阻塞——比 note 76 §2.2 预判乐观（regulator 坑被 gt911 战役的 rk806 影子顺带填平） |
 | **M-pre0 SCMI agent** | ✅ QEMU 机器兼任 BL31：SMC 钩子 + shmem 交换 + BASE/CLOCK/RESET 三协议，126 条消息全 status=0 |
 | **SMCCC 真根因** | ✅ 内核 PSCI_FEATURES 问 0x80000000，QEMU 内建 PSCI 答非支持 → `arm_smccc_1_1_get_conduit()=NONE` → **SCMI 的 SMC 指令根本不会执行**（res 全零兜底路径都走不到，直接 a0=-1）。修法：钩子里兼任应答 SMCCC 1.1 |
-| **panthor 首入 probe** | ✅ `panthor fb000000.gpu: [drm] clock rate = 198000000` + `EM: created perf domain` + runtime PM resume 无错；probe 停在 MMIO 前（GPU_ID=0 零毯区）= M0 入口 |
-| **挂账 1：restore 迟发锁死** | ⛔ 新二进制+新快照的 loadvm 在恢复后 ~19-23s 必现 hard LOCKUP（f03d2bb 同 signature），冷启动稳定；快照工作流暂不可用，详见 §5 |
-| **挂账 2：panthor probe 无尾** | ⛔ clock/EM 两行后无任何错误行——clean fail 该有 "Invalid GPU ID"，疑似卡在零毯区上的轮询；见 §6 |
+| **M0 达成（同日打穿）** | ✅ GPU 影子（ID/features/power）→ 假 MCU（AS0 LPAE 走查 + version 写入 + doorbell ACK 引擎）→ **`Initialized panthor 1.8.0 on minor 1` + `/dev/dri/renderD128`**，全链打印与真机日志逐字一致（§3.5） |
+| **挂账 1：restore 迟发锁死** | ⛔ 新二进制+新快照的 loadvm 恢复后 1min 内必现 hard LOCKUP（f03d2bb 同 signature），冷启动稳定；**panthor 嫌疑已排除**（§5） |
+| **挂账 2：桌面×panthor 冲突** | ⛔ renderD128 存在后 mutter 的 EGL 开它卡死在未实现 CSG ioctl（gnome-shell 20s 循环崩）；桌面流 cmdline 临时拉黑 `panthor_init`，M1 后撤（§7） |
 
 ## 1. 侦察：GPU 依赖审计（谁挡了 panthor）
 
@@ -89,6 +90,67 @@ boot 后（snapshot restore 形态）逐项取证：
 
 M-pre0 通过，M0 入口就位。
 
+## 3.5 M0：GPU 影子 + 假 MCU 一举打穿（同日晚场）
+
+### 3.5.1 probe 无尾之谜先解
+
+GPU_ID=0 时 `panthor_hw_gpu_id_init` 返 `-ENXIO` **静默退出**（driver core 只打
+deferred 不打 ENXIO）——上一轮"probe 无尾"是干净哑败，不是卡死。盖最小影子即可
+推进。
+
+### 3.5.2 GPU 影子（v10 经典路线）
+
+GPU_ID=0xa8670005 的 arch major=10 → `panthor_hw_match` 绑 v10 ops（无 PWR_CTRL
+子系统，panthor_pwr.c 是 arch≥14 的新抽象）。最小集（真机值 note 76 §2.3）：
+
+- RO fixture：GPU_ID/features/present（SHADER 0x50005/TILER 1/L2 1）；未采寄存器
+  保守 0（CORE_FEATURES/REVID/COHERENCY/TEXTURE/THREAD）
+- 电源块**全同步**：写 PWRON 立即置 ready（驱动 `block_power_on` 是纯
+  readl_poll_timeout）、PWRTRANS 恒 0、PWRACTIVE≈ready
+- GPU_CMD soft/hard reset→RAWSTAT|=bit8、flush→bit17——驱动是
+  wait_event_timeout + **事后核验 RAWSTAT 的兜底结构**，不拉 IRQ 也过；仍按
+  电平（stat=raw&mask）拉 GPU_IRQ/SPI94
+- AS 寄存器组 0x2400+（TRANSTAB/MEMATTR/TRANSCFG RW、AS_COMMAND 瞬时完成、
+  AS_STATUS 恒不 active）、JOB/MMU IRQ 组（0x1000+/0x2000+，bit31=JOB_GLOBAL_IF）
+- 时间戳组 0x88/0x90/0x98 走 QEMU 虚拟钟
+
+结果（冷启 dmesg，与真机日志逐字一致）：
+
+```
+Mali-G610 id 0xa867 major 0x0 minor 0x0 status 0x5
+Features: L2:0x7120306 Tiler:0x809 Mem:0x301 MMU:0x2830 AS:0xff
+shader_present=0x50005 l2_present=0x1 tiler_present=0x1
+Firmware git sha: 95a25d71030715381f33105394285e1dcc860a65
+```
+
+### 3.5.3 假 MCU（MCU boot + doorbell ACK 引擎）
+
+probe 到 `Failed to boot MCU (status=disabled)` -110（1s 超时）后补齐：
+
+- **MCU boot**：驱动写 MCU_CONTROL=AUTO 后等 JOB_IRQ GLOBAL_IF（超时兜底核验
+  STAT）；假 MCU 在写入同步路径里**经 AS0 LPAE 走查**（驱动用 ARM_64_LPAE_S1：
+  48VA/40PA、4K 页+2M/1G block、表项 bits[1:0] 01=block/11=table|page）把
+  CSF_MCU_SHARED_REGION_START(0x04000000) 的 control.version 写成 0x01050000
+  （镜像初值 0；fw_init_ifaces 直读 kmap 的 version，=0 报"Firmware version is
+  0"）→ MCU_STATUS=ENABLED → RAWSTAT|=bit31
+- **doorbell(0) 引擎**（= note 76 §2.7 toggle/ACK 合同）：autosuspend 的
+  `fw_halt_mcu` 走 input.req + CSF_DOORBELL(0)，等待是
+  read_poll_timeout_atomic **纯轮询**——ack 必须在 doorbell 写的同一同步路径
+  追平。实现：walk control(+8 input_va/+c output_va)→walk input/output→
+  `output.ack=input.req`、`output.doorbell_ack=input.doorbell_req`，按 req 的
+  GLB_STATE[14:12]（HALT=1）或老式 bit0 同步 MCU_STATUS。首版只答 halt 超时
+  循环（15 处/分钟）；补 doorbell 后归零
+- **M0 验收（note 76 §3.3 标准全过）**：
+
+```
+panthor fb000000.gpu: [drm] CSF FW using interface v1.5.0, Features 0x0 Instrumentation features 0x71
+panthor fb000000.gpu: [drm] Using Transparent Hugepage
+[drm] Initialized panthor 1.8.0 for fb000000.gpu on minor 1
+```
+
+`/dev/dri/renderD128` 存在（udevadm DEVNAME 确认）+ card1。真机对照（note 76
+§2.3 表）：CSF 1.5.0 ✓ instrumentation 0x71 ✓ DRM 1.8.0 minor 1 ✓。
+
 ## 4. 工作流变化
 
 - 诊断：QEMU 侧 `SCMIDBG=1`（逐消息 stderr）+ qom `scmi-served`/`scmi-errs`
@@ -96,23 +158,35 @@ M-pre0 通过，M0 入口就位。
 
 ## 5. 挂账 1：restore 迟发 hard LOCKUP 复发（f03d2bb 同族）
 
-新二进制 + 新建快照的 restore **必现**：恢复后 ~19-23s hard LOCKUP（`watchdog_hardlockup_check → do_panic_on_target_cpu`，受害核 1/2/4 浮动），guest 时间戳在同一快照内逐次一致（TCG 确定性复放）。旧二进制+旧快照今晨稳定 15min+，故**嫌疑在本次改动或新快照内容**。
+新二进制 + 新建快照的 restore **必现**：恢复后 ~20-70s hard LOCKUP（`watchdog_hardlockup_check → do_panic_on_target_cpu`，受害核浮动），guest 时间戳在同一快照内逐次一致（TCG 确定性复放）。旧二进制+旧快照今晨稳定 15min+，故嫌疑在本次改动或新快照内容。
 
-- 冷启动稳定：无桌面负载冷启 uptime>128s 无恙；带桌面冷启 80s 首帧 + 180s savevm 窗口无恙（但没活过 guest 116s+，不能完全排除冷启晚死）
-- 法医快照（cmdline 追加 `nmi_watchdog=0 watchdog=0 hardlockup_panic=0`）压制 panic 后验尸：**soft lockup——CPU#4 gnome-shell 在 `do_timerfd_settime` 卡 26s**（lr 在 hrtimer 设定路径）→ 恢复后跨核定时器协作类丢失唤醒，非 SCMI handler 本身死循环
+- 冷启动稳定：带桌面冷启 80s 首帧 + uptime>165s 多轮无恙
+- 法医快照（cmdline 追加 `nmi_watchdog=0 watchdog=0 hardlockup_panic=0`）压制 panic 后验尸：**soft lockup——CPU#4 gnome-shell 在 `do_timerfd_settime` 卡 26s**（lr 在 hrtimer 设定路径）→ 恢复后跨核定时器协作类丢失唤醒，非 SCMI handler 死循环（handler 无循环）
+- **panthor 嫌疑已排除**：cmdline 拉黑 `panthor_init`（桌面纯 llvmpipe）后新快照 restore 照样 guest 160s 死
 - SMP=1 restore 不可测（快照按 8 核建，loadvm 拒载）
-- 待办二分：stash QEMU 改动用旧二进制重建快照 restore ×2 → 定「二进制回归」还是「快照内容时点」；头号嫌疑是 panthor probe 卡在零毯区轮询（见 §6）改变了恢复后早期的核间定时器行为
+- 待办二分：stash QEMU 改动 → 旧二进制重建快照 restore 对照，定「二进制回归（SMCCC/SCMI）」还是「快照内容时点」
 
-## 6. 挂账 2：panthor probe 无尾（M0 第一步）
+## 6. 挂账 2：桌面×panthor 冲突（M1 领域）
 
-clock/EM 两行后**零输出**：clean fail 应有 "Invalid GPU ID" 之类错误行（GPU_ID=0），没有 → 疑似 probe 卡在某等待（L2 ready 轮询 / IRQ 等待 / coherency 特性读）。下一步（M0 开工序）：
+renderD128 存在后 mutter/GNOME 的 EGL 初始化去开它，卡死在未实现的 CSG/queue
+ioctl 上：`org.gnome.Shell@gdm.service` 20s 循环崩、VOP 无帧（快照 create 等首帧
+超时实锤）。临时解：snapshot.py cmdline 加 `initcall_blacklist=panthor_init`
+（sim-only bootargs 自由度，同 smoke.py FAST 档先例；M1 ioctl 打通后撤）。
+panthor 研究流走冷启（diag 脚本已顺）。
 
-1. boot 后 `cat /sys/kernel/debug/devices_deferred` + 长窗口 dmesg 抓 probe 尾部；确认卡点读 v7.1 `panthor_device_init` 源序
-2. 最小 GPU 影子开张：0x000 GPU_ID=0xa8670005 + features/present/ready 三组真机值（note 76 §2.3 表），先让 probe 快速 clean fail/通过
-3. 两笔账可能同源：probe 卡轮询 ↔ 恢复后锁死——GPU_ID 影子落地后先复测 restore
+## 7. M1 展望（下一役）
 
-## 7. 落库清单
+1. `eglinfo -B`（surfaceless + MESA_LOADER_DRIVER_OVERRIDE=panfrost）——note 76
+   §3.4 的 M1 验收；会依次踩 CSG/queue/BO 的 ioctl 族（group create/start、
+   tiler heap、fence），影子按 panthor_drv.c ioctl 表补
+2. latest_flush ID 页（0x10000）、watchdog PING 的周期 ACK、CSG/CS 生命周期
+3. 真机 fixture 补采（CORE_FEATURES/REVID/COHERENCY/THREAD/TEXTURE——note 76
+   §六.2 的一次性 debug dump）
+4. restore 锁死二分（§5）
 
-- `third_party/qemu`：target/arm/cpu.h + tcg/psci.c（钩子）、hw/arm/rk3588-lite.c（scmi 段 + 枚举前置 + vmstate + post_load）
+## 8. 落库清单
+
+- `third_party/qemu`：target/arm/cpu.h + tcg/psci.c（SMC 钩子）、hw/arm/rk3588-lite.c（scmi 段 + gpu 段：fixture/电源/IRQ/AS/JOB/MMU/MCU/doorbell + vmstate + diag 属性 gpu-reads/gpu-unknown）
 - `sim/qemu-sim-machines.patch` 重导（18 文件）
-- 快照已用最终二进制重建（restore 不稳挂账 §5）
+- `sim/snapshot.py`：cmdline 拉黑 panthor_init（§6，M1 后撤）
+- 快照已用最终二进制重建（restore 不稳挂账 §5；桌面可用、秒回不可靠）

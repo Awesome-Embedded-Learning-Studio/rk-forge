@@ -88,6 +88,11 @@ def qemu_argv(load=False):
             for i in range(6))
         + " root=/dev/vda rw rootwait init=/sbin/init panic=-1 cpuidle.off=1 "
         "drm_client_lib.active=none quiet loglevel=3 fw_devlink=off "
+        # panthor M0 后 renderD128 存在，mutter 的 EGL 会去开它并卡死在
+        # 未实现的 CSG ioctl 上（gnome-shell 20s 循环崩，VOP 无帧）。
+        # 桌面工作流临时拉黑；M1（ioctl 全通）后撤除。sim-only bootargs
+        # 手术，同 smoke.py FAST 档 initcall_blacklist 先例。
+        "initcall_blacklist=panthor_init "
         "systemd.mask=serial-getty@ttyFIQ0.service "
         "systemd.mask=wpa_supplicant@wlan0.service "
         "systemd.mask=plymouth-start.service "
