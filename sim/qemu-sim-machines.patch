@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..4df9dda
+index 0000000..610f373
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,2495 @@
+@@ -0,0 +1,2535 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -2529,6 +2529,46 @@ index 0000000..4df9dda
 +    }
 +    address_space_stl_le(&address_space_memory, pa, 0x01050000,
 +                         MEMTXATTRS_UNSPECIFIED, NULL);
++    /* 每组 CSG control（+0x1000 + i*0xa0，8 组）的 suspend/protm_suspend_
++     * size：镜像初值 0，真机由 MCU 上电填写；group_create 拿 0 去 alloc
++     * suspend buf 会 -ENOSPC。必须 8 组全写——驱动校验所有 CSG 槽一致
++     * （"Expecting identical CSG slots"）。0x1000/0x800 为占位，真机值
++     * 待采（note 76 §六.2 fixture）。 */
++    pa = rk3588_lite_gpu_va_pa(g, 0x04001000);
++    if (pa != HWADDR_MAX) {
++        for (unsigned i = 0; i < 8; i++) {
++            address_space_stl_le(&address_space_memory,
++                                 pa + i * 0xa0 + 0xc, 0x1000,
++                                 MEMTXATTRS_UNSPECIFIED, NULL);
++            address_space_stl_le(&address_space_memory,
++                                 pa + i * 0xa0 + 0x10, 0x800,
++                                 MEMTXATTRS_UNSPECIFIED, NULL);
++        }
++        /* 全部 8 CSG × 8 CS 的 control（内核 init 按 group_stride 0xa0
++         * + CSF_STREAM_CONTROL_OFFSET 0x40 + stream_stride 0xc 遍历所有
++         * 槽并校验 features 一致；镜像无初值）。cs_reg_count =
++         * CS_FEATURES_WORK_REGS(features)，0 会让 mesa cs_builder 拿 1
++         * 个寄存器、cs_reg64(72) 越界崩（csf_init_context_v10 段错误）。
++         * features 占位 256 工作寄存器/8 记分板/C+F+T 全开，真机值待采；
++         * input/output VA 落在 64KB shared 段内（内核 kmap 只要求在 BO
++         * 范围内）。 */
++        for (unsigned csg = 0; csg < 8; csg++) {
++            for (unsigned cs = 0; cs < 8; cs++) {
++                hwaddr cs_pa = pa + csg * 0xa0 + 0x40 + cs * 0xc;
++                unsigned idx = csg * 8 + cs;
++
++                address_space_stl_le(&address_space_memory, cs_pa,
++                                     0x000708ff, MEMTXATTRS_UNSPECIFIED,
++                                     NULL);
++                address_space_stl_le(&address_space_memory, cs_pa + 4,
++                                     0x04003400 + idx * 0x10,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++                address_space_stl_le(&address_space_memory, cs_pa + 8,
++                                     0x04007400 + idx * 0x10,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++            }
++        }
++    }
 +    g->mcu_status = 1;        /* MCU_STATUS_ENABLED */
 +    g->job_rawstat |= BIT(31);   /* JOB_INT_GLOBAL_IF */
 +    rk3588_lite_gpu_update_irq(g);

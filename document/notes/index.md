@@ -45,4 +45,5 @@ title: 工程笔记
   <ChapterLink num="80" href="80-2026-08-30-real-panel-desktop">RK3588：真面板桌面，VOP2→DSI 全真管线贯通</ChapterLink>
   <ChapterLink num="81" href="81-2026-08-30-vmstate-snapshot">RK3588：vmstate 快照，9.2s 回桌面 + 迟发 hardlockup 挂账</ChapterLink>
   <ChapterLink num="82" href="82-2026-08-31-panthor-m0-scmi-agent">RK3588：panthor 战役，SCMI agent + SMCCC 根因 + GPU 影子假 MCU 直取 M0</ChapterLink>
+  <ChapterLink num="83" href="83-2026-09-02-panthor-m1-campaign">RK3588：panthor M1，内核侧全通（CSG/CS fixture），mesa cs_builder 崩点取证</ChapterLink>
 </ChapterNav>
