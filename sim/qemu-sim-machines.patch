@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..ab16685
+index 0000000..3da92be
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,2577 @@
+@@ -0,0 +1,2785 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -2224,6 +2224,56 @@ index 0000000..ab16685
 +
 +static Rk3588LiteState *rk3588_lite_scmi_machine;
 +
++/* walk 指定 AS 的 LPAE 页表（与 rk3588_lite_gpu_va_pa 同格式，只是
++ * transtab 可选）。返回 true 时 *pa 有效。 */
++static bool rk3588_lite_gpu_va_pa_in(struct Rk3588LiteGpu *g, uint64_t transtab,
++                                     uint64_t va, hwaddr *pa)
++{
++    hwaddr tbl = transtab & 0x0000fffffffff000ull;
++    uint64_t e;
++    int lvl;
++
++    for (lvl = 0; lvl < 3; lvl++) {
++        e = address_space_ldq_le(&address_space_memory,
++                                 tbl + ((va >> (39 - 9 * lvl)) & 0x1ff) * 8,
++                                 MEMTXATTRS_UNSPECIFIED, NULL);
++        if (!(e & 1)) {
++            return false;
++        }
++        if ((e & 3) == 1) {
++            *pa = (e & 0x0000fffffffff000ull) +
++                  (va & ((1ull << (39 - 9 * lvl)) - 1));
++            return true;
++        }
++        tbl = e & 0x0000fffffffff000ull;
++    }
++    e = address_space_ldq_le(&address_space_memory,
++                             tbl + ((va >> 12) & 0x1ff) * 8,
++                             MEMTXATTRS_UNSPECIFIED, NULL);
++    if ((e & 3) != 3) {
++        return false;
++    }
++    *pa = (e & 0x0000fffffffff000ull) + (va & 0xfff);
++    return true;
++}
++
++/* 用户/组 VM 的 VA 翻译：ring/syncobj 的 GPU VA 不在 fw 的 AS0——扫
++ * AS1..7（内核 group start 时 program 的 transtab），第一个 walk 成功者。 */
++static hwaddr rk3588_lite_gpu_va_pa_user(struct Rk3588LiteGpu *g, uint64_t va)
++{
++    hwaddr pa;
++
++    for (unsigned as = 1; as < 8; as++) {
++        if (!g->as_transtab[as]) {
++            continue;
++        }
++        if (rk3588_lite_gpu_va_pa_in(g, g->as_transtab[as], va, &pa)) {
++            return pa;
++        }
++    }
++    return HWADDR_MAX;
++}
++
 +static uint32_t rk3588_scmi_le32(hwaddr addr)
 +{
 +    return address_space_ldl_le(&address_space_memory, addr,
@@ -2575,6 +2625,10 @@ index 0000000..ab16685
 +    rk3588_lite_gpu_update_irq(g);
 +}
 +
++static void rk3588_lite_gpu_cs_consume(struct Rk3588LiteGpu *g,
++                                       hwaddr csg_ctl, hwaddr csg_in,
++                                       hwaddr csg_out, unsigned cs);
++
 +/* 全局 doorbell（CSF_DOORBELL(0)）+ CSG doorbell（1..8，M2a）：toggle/ACK
 + * 合同（note 76 §2.7）。等待方 panthor_fw_wait_acks 三层兜底（busy-wait →
 + * wait_event → 终查）——ack 在 doorbell 写的同一同步路径追平即可，无需
@@ -2651,6 +2705,29 @@ index 0000000..ab16685
 +                                   MEMTXATTRS_UNSPECIFIED, NULL);
 +        address_space_stl_le(&address_space_memory, c_out, req,
 +                             MEMTXATTRS_UNSPECIFIED, NULL);
++
++        /* M2b：CSG 级 queue doorbell（csg input.doorbell_req 的 cs 位
++         * toggle，与 output.doorbell_ack 比对）。内核 submit 后
++         * panthor_fw_toggle_reqs + ring_csg_doorbells——同样汇到
++         * doorbell(0)。消费 ring 后发 SYNC_UPDATE + cs_irq + JOB_IRQ。 */
++        uint32_t c_db_req = address_space_ldl_le(&address_space_memory,
++                                                 c_in + 8,
++                                                 MEMTXATTRS_UNSPECIFIED, NULL);
++        uint32_t c_db_ack = address_space_ldl_le(&address_space_memory,
++                                                 c_out + 8,
++                                                 MEMTXATTRS_UNSPECIFIED, NULL);
++        uint32_t pend = c_db_req ^ c_db_ack;
++
++        if (pend) {
++            address_space_stl_le(&address_space_memory, c_out + 8, c_db_req,
++                                 MEMTXATTRS_UNSPECIFIED, NULL);
++        }
++        for (unsigned cs = 0; cs < 8 && pend; cs++, pend >>= 1) {
++            if (!(pend & 1)) {
++                continue;
++            }
++            rk3588_lite_gpu_cs_consume(g, ctl, c_in, c_out, cs);
++        }
 +    }
 +
 +    if (((glb_req >> 12) & 7) == 1 || (glb_req & BIT(0))) {
@@ -2658,6 +2735,137 @@ index 0000000..ab16685
 +    } else {
 +        g->mcu_status = 1;    /* ACTIVE */
 +    }
++}
++
++/* M2b wrapper-CS 解释器（note 76 §3.5 的 noop 量具形态）：消费 ring 的
++ * wrapper 段——寄存器文件 192×u64，识别 MOVE48/32、SYNC_ADD32/64（真实
++ * 执行：写 sync 内存）、CALL（跳过用户段）、FLUSH/WAIT/ERROR_BARRIER
++ * （no-op）。完成后 extract=insert、CS ack 追平、CSG SYNC_UPDATE 事件、
++ * cs_irq toggle、JOB_IRQ 拉高。**fake-completion 免责**：fence 会完成、
++ * 调度会推进，但用户段未执行——像素不变，不得宣称渲染。
++ * 指令编码 = mesa genxml v10（opcode@bits[63:56]；MOVE48 imm@[47:0]
++ * dst@[55:48]；SYNC_ADD64/32 addr_reg@[47:40] data_reg@[39:32]）。 */
++static void rk3588_lite_gpu_cs_consume(struct Rk3588LiteGpu *g,
++                                       hwaddr csg_ctl, hwaddr csg_in,
++                                       hwaddr csg_out, unsigned cs)
++{
++    hwaddr cs_pa = csg_ctl + 0x40 + cs * 0xc;    /* CS control 同页（PA） */
++    uint64_t regs[192] = { 0 };
++    uint32_t insert, extract, ring_size;
++    uint64_t ring_base;
++    hwaddr ring_pa, p;
++    unsigned n;
++
++    /* CS control 在 CSG control 区内（csg_ctl+0x40+cs*0xc），拿 CS 的
++     * input_va/output_va（fw VM）。 */
++    uint32_t cs_in_va = address_space_ldl_le(&address_space_memory,
++                                             cs_pa + 4,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++    uint32_t cs_out_va = address_space_ldl_le(&address_space_memory,
++                                              cs_pa + 8,
++                                              MEMTXATTRS_UNSPECIFIED, NULL);
++    hwaddr cs_in = rk3588_lite_gpu_va_pa(g, cs_in_va);
++    hwaddr cs_out = rk3588_lite_gpu_va_pa(g, cs_out_va);
++
++    if (cs_in == HWADDR_MAX || cs_out == HWADDR_MAX) {
++        return;
++    }
++    ring_base = address_space_ldq_le(&address_space_memory, cs_in + 0x10,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++    ring_size = address_space_ldl_le(&address_space_memory, cs_in + 0x18,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++    uint64_t ring_in_ptr = address_space_ldq_le(&address_space_memory,
++                                                cs_in + 0x30,
++                                                MEMTXATTRS_UNSPECIFIED, NULL);
++    uint64_t ring_out_ptr = address_space_ldq_le(&address_space_memory,
++                                                 cs_in + 0x38,
++                                                 MEMTXATTRS_UNSPECIFIED, NULL);
++    hwaddr in_ptr_pa = rk3588_lite_gpu_va_pa(g, ring_in_ptr);
++    hwaddr out_ptr_pa = rk3588_lite_gpu_va_pa(g, ring_out_ptr);
++    if (!ring_size || in_ptr_pa == HWADDR_MAX || out_ptr_pa == HWADDR_MAX) {
++        return;
++    }
++    insert = address_space_ldl_le(&address_space_memory, in_ptr_pa,
++                                  MEMTXATTRS_UNSPECIFIED, NULL);
++    extract = address_space_ldl_le(&address_space_memory, out_ptr_pa,
++                                   MEMTXATTRS_UNSPECIFIED, NULL);
++    if (insert == extract) {
++        /* 无新指令：只追平 CS ack（START 等） */
++        uint32_t cs_req = address_space_ldl_le(&address_space_memory, cs_in,
++                                               MEMTXATTRS_UNSPECIFIED, NULL);
++        address_space_stl_le(&address_space_memory, cs_out, cs_req,
++                             MEMTXATTRS_UNSPECIFIED, NULL);
++        return;
++    }
++
++    for (n = 0; n < 65536 && extract != insert; n++) {
++        uint32_t off = extract % ring_size;
++        uint64_t instr;
++
++        ring_pa = rk3588_lite_gpu_va_pa_user(g, ring_base + off);
++        if (ring_pa == HWADDR_MAX) {
++            break;
++        }
++        instr = address_space_ldq_le(&address_space_memory, ring_pa,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++        switch (instr >> 56) {
++        case 1:    /* MOVE48 */
++            regs[(instr >> 48) & 0xff] = instr & 0xffffffffffffull;
++            break;
++        case 2:    /* MOVE32 */
++            regs[(instr >> 48) & 0xff] = instr & 0xffffffffull;
++            break;
++        case 37: { /* SYNC_ADD32 */
++            uint64_t addr = regs[(instr >> 40) & 0xff];
++            uint32_t val = regs[(instr >> 32) & 0xff];
++
++            p = rk3588_lite_gpu_va_pa_user(g, addr);
++            if (p != HWADDR_MAX) {
++                uint32_t v = address_space_ldl_le(&address_space_memory, p,
++                                                  MEMTXATTRS_UNSPECIFIED, NULL);
++                address_space_stl_le(&address_space_memory, p, v + val,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++            }
++            break;
++        }
++        case 51: { /* SYNC_ADD64 */
++            uint64_t addr = regs[(instr >> 40) & 0xff];
++            uint64_t val = regs[(instr >> 32) & 0xff];
++
++            p = rk3588_lite_gpu_va_pa_user(g, addr);
++            if (p != HWADDR_MAX) {
++                uint64_t v = address_space_ldq_le(&address_space_memory, p,
++                                                  MEMTXATTRS_UNSPECIFIED, NULL);
++                address_space_stq_le(&address_space_memory, p, v + val,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++            }
++            break;
++        }
++        default:
++            /* CALL/WAIT/FLUSH/NOP/ERROR_BARRIER/RUN_*…：跳过（M2b） */
++            break;
++        }
++        extract += 8;
++    }
++
++    /* 完成面：extract 追 insert；CS ack 追平；CSG 发 SYNC_UPDATE 事件
++     * （req bit28，fw 侧置位、内核清）+ cs_irq toggle；JOB_IRQ 拉高。 */
++    address_space_stl_le(&address_space_memory, out_ptr_pa, insert,
++                         MEMTXATTRS_UNSPECIFIED, NULL);
++    uint32_t cs_req = address_space_ldl_le(&address_space_memory, cs_in,
++                                           MEMTXATTRS_UNSPECIFIED, NULL);
++    address_space_stl_le(&address_space_memory, cs_out, cs_req,
++                         MEMTXATTRS_UNSPECIFIED, NULL);
++    uint32_t csg_req = address_space_ldl_le(&address_space_memory, csg_in,
++                                            MEMTXATTRS_UNSPECIFIED, NULL);
++    address_space_stl_le(&address_space_memory, csg_in,
++                         csg_req ^ BIT(28), MEMTXATTRS_UNSPECIFIED, NULL);
++    uint32_t cs_irq = address_space_ldl_le(&address_space_memory, csg_out + 0xc,
++                                           MEMTXATTRS_UNSPECIFIED, NULL);
++    address_space_stl_le(&address_space_memory, csg_out + 0xc,
++                         cs_irq ^ BIT(cs), MEMTXATTRS_UNSPECIFIED, NULL);
++    g->job_rawstat |= 1u << ((csg_ctl - 0x04001000) / 0xa0);
++    rk3588_lite_gpu_update_irq(g);
 +}
 +
 +static uint64_t rk3588_lite_gpu_read64(struct Rk3588LiteGpu *g, hwaddr offset)
