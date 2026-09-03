@@ -34,8 +34,8 @@ ARGV = [
     + " ".join(f"virtio_mmio.device=0x200@0x{0xfea00000 + i * 0x200:x}:"
                f"spi{160 + i}:{i}" for i in range(6))
     + " root=/dev/vda rw rootwait init=/sbin/init panic=-1 cpuidle.off=1 "
-      "drm_client_lib.active=none quiet loglevel=3 fw_devlink=off "
-      "systemd.mask=gdm.service",
+      "drm_client_lib.active=none quiet loglevel=3 fw_devlink=off"
+    + ("" if os.environ.get("GDM") else " systemd.mask=gdm.service"),
 ]
 
 DUR = float(sys.argv[1]) if len(sys.argv) > 1 else 600

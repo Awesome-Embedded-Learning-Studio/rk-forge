@@ -47,4 +47,5 @@ title: 工程笔记
   <ChapterLink num="82" href="82-2026-08-31-panthor-m0-scmi-agent">RK3588：panthor 战役，SCMI agent + SMCCC 根因 + GPU 影子假 MCU 直取 M0</ChapterLink>
   <ChapterLink num="83" href="83-2026-09-02-panthor-m1-campaign">RK3588：panthor M1，内核侧全通（CSG/CS fixture）+ 装备升级，mesa 认出 Panfrost</ChapterLink>
   <ChapterLink num="84" href="84-2026-09-03-panthor-m2a-csg-lifecycle">RK3588：panthor M2a，CSG 生命周期 ACK（toggle 边沿语义），超时噪音归零</ChapterLink>
+  <ChapterLink num="85" href="85-2026-09-03-restore-lockup-bisect-cba">RK3588：CBA 三连——桌面负载验成色（M2b 规格到手）+ restore 锁死定界（多核 loadvm 缺陷）</ChapterLink>
 </ChapterNav>
