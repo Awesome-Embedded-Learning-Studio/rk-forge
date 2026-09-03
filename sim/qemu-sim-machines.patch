@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..3da92be
+index 0000000..1f8de3f
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,2785 @@
+@@ -0,0 +1,2858 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -2737,6 +2737,115 @@ index 0000000..3da92be
 +    }
 +}
 +
++
++/* M2c：RUN_FRAGMENT 的 clear-only 执行。FBD（Framebuffer Parameters，
++ * v10.xml）：w8=宽高-1、w11[22:19]=RT 数-1；RT[i] @FBD+0x80+i*0x40：
++ * w1 bit0=WriteEnable、[7:3]=WritebackFormat（19=R8G8B8A8）、
++ * RT Buffer w8=Base/w10=RowStride、w12=ClearColor0。RGBA8 路径：clear
++ * word 逐像素铺（行距按 stride）。其余格式/AFBC 计数跳过。 */
++static void rk3588_lite_gpu_run_fragment(struct Rk3588LiteGpu *g,
++                                         uint64_t *regs)
++{
++    hwaddr fp = rk3588_lite_gpu_va_pa_user(g, regs[0x28] & ~7ull);
++
++    if (fp == HWADDR_MAX) {
++        return;
++    }
++    uint32_t w8 = address_space_ldl_le(&address_space_memory, fp + 32,
++                                       MEMTXATTRS_UNSPECIFIED, NULL);
++    unsigned w = (w8 & 0xffff) + 1, h = (w8 >> 16) + 1;
++
++    for (unsigned i = 0; i < 8; i++) {
++        hwaddr rt = fp + 0x80 + i * 0x40;
++        uint32_t w1 = address_space_ldl_le(&address_space_memory, rt + 4,
++                                           MEMTXATTRS_UNSPECIFIED, NULL);
++        if (!(w1 & 1) || ((w1 >> 3) & 0x1f) != 19) {
++            continue;    /* 非写回或非 RGBA8：M2c 只铺 RGBA8 */
++        }
++        uint64_t base = address_space_ldq_le(&address_space_memory, rt + 0x20,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++        uint32_t stride = address_space_ldl_le(&address_space_memory, rt + 0x28,
++                                               MEMTXATTRS_UNSPECIFIED, NULL);
++        uint32_t clr = address_space_ldl_le(&address_space_memory, rt + 0x30,
++                                            MEMTXATTRS_UNSPECIFIED, NULL);
++        hwaddr bp = rk3588_lite_gpu_va_pa_user(g, base);
++
++        if (bp == HWADDR_MAX || !stride) {
++            continue;
++        }
++        for (unsigned y = 0; y < h && y < 8192; y++) {
++            hwaddr row = bp + (uint64_t)y * stride;
++            for (unsigned x = 0; x < w && x < 8192; x++) {
++                address_space_stl_le(&address_space_memory, row + x * 4, clr,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++            }
++        }
++    }
++}
++
++/* M2c 单步 CS 解释（wrapper 与用户段共用）：寄存器文件由调用方持有。
++ * MOVE 装寄存器；SYNC_ADD 真执行；CALL 进用户段（一层）；RUN_FRAGMENT
++ * 走 FBD 执行（clear-only）；其余跳过。 */
++static void rk3588_lite_gpu_cs_step(struct Rk3588LiteGpu *g,
++                                    uint64_t *regs, uint64_t instr)
++{
++    hwaddr p;
++
++    switch (instr >> 56) {
++        case 1:    /* MOVE48 */
++            regs[(instr >> 48) & 0xff] = instr & 0xffffffffffffull;
++            break;
++        case 2:    /* MOVE32 */
++            regs[(instr >> 48) & 0xff] = instr & 0xffffffffull;
++            break;
++        case 37: { /* SYNC_ADD32 */
++            uint64_t addr = regs[(instr >> 40) & 0xff];
++            uint32_t val = regs[(instr >> 32) & 0xff];
++
++            p = rk3588_lite_gpu_va_pa_user(g, addr);
++            if (p != HWADDR_MAX) {
++                uint32_t v = address_space_ldl_le(&address_space_memory, p,
++                                                  MEMTXATTRS_UNSPECIFIED, NULL);
++                address_space_stl_le(&address_space_memory, p, v + val,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++            }
++            break;
++        }
++        case 51: { /* SYNC_ADD64 */
++            uint64_t addr = regs[(instr >> 40) & 0xff];
++            uint64_t val = regs[(instr >> 32) & 0xff];
++
++            p = rk3588_lite_gpu_va_pa_user(g, addr);
++            if (p != HWADDR_MAX) {
++                uint64_t v = address_space_ldq_le(&address_space_memory, p,
++                                                  MEMTXATTRS_UNSPECIFIED, NULL);
++                address_space_stq_le(&address_space_memory, p, v + val,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++            }
++            break;
++        }
++        case 7:    /* RUN_FRAGMENT：进入 FBD 执行（M2c） */
++            rk3588_lite_gpu_run_fragment(g, regs);
++            break;
++        case 32: { /* CALL：进入用户段执行（M2c；寄存器文件共享） */
++            uint64_t dst = regs[(instr >> 40) & 0xff];
++            uint32_t len = (instr >> 32) & 0xff;    /* 字节 */
++            hwaddr dp = rk3588_lite_gpu_va_pa_user(g, dst);
++
++            for (unsigned k = 0; dp != HWADDR_MAX && k < len / 8; k++) {
++                uint64_t u = address_space_ldq_le(&address_space_memory,
++                                                  dp + k * 8,
++                                                  MEMTXATTRS_UNSPECIFIED, NULL);
++                rk3588_lite_gpu_cs_step(g, regs, u);
++            }
++            break;
++        }
++        default:
++            /* WAIT/FLUSH/NOP/ERROR_BARRIER/RUN_*…：跳过（M2b） */
++            break;
++    }
++}
++
 +/* M2b wrapper-CS 解释器（note 76 §3.5 的 noop 量具形态）：消费 ring 的
 + * wrapper 段——寄存器文件 192×u64，识别 MOVE48/32、SYNC_ADD32/64（真实
 + * 执行：写 sync 内存）、CALL（跳过用户段）、FLUSH/WAIT/ERROR_BARRIER
@@ -2753,7 +2862,7 @@ index 0000000..3da92be
 +    uint64_t regs[192] = { 0 };
 +    uint32_t insert, extract, ring_size;
 +    uint64_t ring_base;
-+    hwaddr ring_pa, p;
++    hwaddr ring_pa;
 +    unsigned n;
 +
 +    /* CS control 在 CSG control 区内（csg_ctl+0x40+cs*0xc），拿 CS 的
@@ -2800,53 +2909,17 @@ index 0000000..3da92be
 +
 +    for (n = 0; n < 65536 && extract != insert; n++) {
 +        uint32_t off = extract % ring_size;
-+        uint64_t instr;
 +
 +        ring_pa = rk3588_lite_gpu_va_pa_user(g, ring_base + off);
 +        if (ring_pa == HWADDR_MAX) {
 +            break;
 +        }
-+        instr = address_space_ldq_le(&address_space_memory, ring_pa,
-+                                     MEMTXATTRS_UNSPECIFIED, NULL);
-+        switch (instr >> 56) {
-+        case 1:    /* MOVE48 */
-+            regs[(instr >> 48) & 0xff] = instr & 0xffffffffffffull;
-+            break;
-+        case 2:    /* MOVE32 */
-+            regs[(instr >> 48) & 0xff] = instr & 0xffffffffull;
-+            break;
-+        case 37: { /* SYNC_ADD32 */
-+            uint64_t addr = regs[(instr >> 40) & 0xff];
-+            uint32_t val = regs[(instr >> 32) & 0xff];
-+
-+            p = rk3588_lite_gpu_va_pa_user(g, addr);
-+            if (p != HWADDR_MAX) {
-+                uint32_t v = address_space_ldl_le(&address_space_memory, p,
-+                                                  MEMTXATTRS_UNSPECIFIED, NULL);
-+                address_space_stl_le(&address_space_memory, p, v + val,
-+                                     MEMTXATTRS_UNSPECIFIED, NULL);
-+            }
-+            break;
-+        }
-+        case 51: { /* SYNC_ADD64 */
-+            uint64_t addr = regs[(instr >> 40) & 0xff];
-+            uint64_t val = regs[(instr >> 32) & 0xff];
-+
-+            p = rk3588_lite_gpu_va_pa_user(g, addr);
-+            if (p != HWADDR_MAX) {
-+                uint64_t v = address_space_ldq_le(&address_space_memory, p,
-+                                                  MEMTXATTRS_UNSPECIFIED, NULL);
-+                address_space_stq_le(&address_space_memory, p, v + val,
-+                                     MEMTXATTRS_UNSPECIFIED, NULL);
-+            }
-+            break;
-+        }
-+        default:
-+            /* CALL/WAIT/FLUSH/NOP/ERROR_BARRIER/RUN_*…：跳过（M2b） */
-+            break;
-+        }
++        rk3588_lite_gpu_cs_step(
++            g, regs, address_space_ldq_le(&address_space_memory, ring_pa,
++                                          MEMTXATTRS_UNSPECIFIED, NULL));
 +        extract += 8;
 +    }
++    /* 消费循环主体见 cs_step */
 +
 +    /* 完成面：extract 追 insert；CS ack 追平；CSG 发 SYNC_UPDATE 事件
 +     * （req bit28，fw 侧置位、内核清）+ cs_irq toggle；JOB_IRQ 拉高。 */
