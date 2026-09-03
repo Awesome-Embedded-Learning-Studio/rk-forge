@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..16c4944
+index 0000000..ab16685
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,2536 @@
+@@ -0,0 +1,2577 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -2575,27 +2575,31 @@ index 0000000..16c4944
 +    rk3588_lite_gpu_update_irq(g);
 +}
 +
-+/* 全局 doorbell（CSF_DOORBELL(0)）：toggle/ACK 合同（note 76 §2.7）。
-+ * 等待方是 read_poll_timeout_atomic 纯轮询——ack 必须在 doorbell 写的
-+ * 同一同步路径里追平。shared interface 布局取 panthor_fw.h：
-+ * control{+0 version +8 input_va +c output_va}，input{+0 req +8 doorbell_req}，
-+ * output{+0 ack +8 doorbell_ack}。MCU 状态按 req 的 GLB_STATE[14:12]
-+ * （HALT=1）或老式 GLB_HALT bit0 同步。 */
++/* 全局 doorbell（CSF_DOORBELL(0)）+ CSG doorbell（1..8，M2a）：toggle/ACK
++ * 合同（note 76 §2.7）。等待方 panthor_fw_wait_acks 三层兜底（busy-wait →
++ * wait_event → 终查）——ack 在 doorbell 写的同一同步路径追平即可，无需
++ * IRQ。shared interface 布局取 panthor_fw.h：
++ * glb control{+0 version +8 input_va +c output_va}，
++ * input{+0 req +8 doorbell_req}，output{+0 ack +8 doorbell_ack}；
++ * csg control{0x1000+csg*0xa0：+4 input_va +8 output_va}（input/output 同
++ * glb 布局）。MCU 状态按 glb req 的 GLB_STATE[14:12]（HALT=1）或老式
++ * GLB_HALT bit0 同步。
++ * M2a 语义：CSG 的 START/SUSPEND/TERMINATE/ENDPOINT_CONFIG/STATUS_UPDATE
++ * 全部即时完成（ack=req、doorbell 追平），不消费 queue ring——调度/
++ * fence 量具可用，不得宣称渲染（note 76 §3.5）。 */
 +static void rk3588_lite_gpu_doorbell(struct Rk3588LiteGpu *g, unsigned id)
 +{
 +    hwaddr ctl, in_pa, out_pa;
 +    uint32_t in_va, out_va, req;
 +
-+    if (id != 0) {
-+        return;    /* CSG doorbell：M1 领域 */
-+    }
-+    ctl = rk3588_lite_gpu_va_pa(g, 0x04000000);
++    ctl = rk3588_lite_gpu_va_pa(g, id == 0 ? 0x04000000
++                                            : 0x04001000 + (id - 1) * 0xa0);
 +    if (ctl == HWADDR_MAX) {
 +        return;
 +    }
-+    in_va = address_space_ldl_le(&address_space_memory, ctl + 8,
++    in_va = address_space_ldl_le(&address_space_memory, ctl + (id ? 4 : 8),
 +                                 MEMTXATTRS_UNSPECIFIED, NULL);
-+    out_va = address_space_ldl_le(&address_space_memory, ctl + 0xc,
++    out_va = address_space_ldl_le(&address_space_memory, ctl + (id ? 8 : 0xc),
 +                                  MEMTXATTRS_UNSPECIFIED, NULL);
 +    in_pa = rk3588_lite_gpu_va_pa(g, in_va);
 +    out_pa = rk3588_lite_gpu_va_pa(g, out_va);
@@ -2605,14 +2609,51 @@ index 0000000..16c4944
 +
 +    req = address_space_ldl_le(&address_space_memory, in_pa,
 +                               MEMTXATTRS_UNSPECIFIED, NULL);
++    uint32_t glb_req = req;
++
 +    address_space_stl_le(&address_space_memory, out_pa, req,
 +                         MEMTXATTRS_UNSPECIFIED, NULL);
-+    address_space_stl_le(&address_space_memory, out_pa + 8,
-+                         address_space_ldl_le(&address_space_memory, in_pa + 8,
-+                                              MEMTXATTRS_UNSPECIFIED, NULL),
++    uint32_t doorbell_req = address_space_ldl_le(&address_space_memory,
++                                                 in_pa + 8,
++                                                 MEMTXATTRS_UNSPECIFIED, NULL);
++    address_space_stl_le(&address_space_memory, out_pa + 8, doorbell_req,
 +                         MEMTXATTRS_UNSPECIFIED, NULL);
 +
-+    if (((req >> 12) & 7) == 1 || (req & BIT(0))) {
++    if (id != 0) {
++        return;    /* user doorbell（queue 提交通道）：M2b 领域 */
++    }
++
++    /* CSG update 走 glb 通道（panthor_fw_ring_csg_doorbells：toggle glb
++     * input.doorbell_req 的 CSG 位 + 敲 doorbell(0)——不走 doorbell(1..8)
++     * 寄存器）。doorbell_req 是 toggle 语义（位 1→0 也是事件，实证：
++     * STATUS_UPDATE 位漏 ACK），不能按位值过滤——每次 doorbell(0) 对
++     * 全部 CSG 幂等追平 ack（读当前 req 写 ack，已追平的重写无害）。
++     * START/SUSPEND/TERMINATE/ENDPOINT_CONFIG/STATUS_UPDATE 即时完成，
++     * M2a noop 语义。 */
++    (void)doorbell_req;
++    for (unsigned csg = 0; csg < 8; csg++) {
++        hwaddr c_in, c_out;
++
++        ctl = rk3588_lite_gpu_va_pa(g, 0x04001000 + csg * 0xa0);
++        if (ctl == HWADDR_MAX) {
++            continue;
++        }
++        c_in = rk3588_lite_gpu_va_pa(
++            g, address_space_ldl_le(&address_space_memory, ctl + 4,
++                                    MEMTXATTRS_UNSPECIFIED, NULL));
++        c_out = rk3588_lite_gpu_va_pa(
++            g, address_space_ldl_le(&address_space_memory, ctl + 8,
++                                    MEMTXATTRS_UNSPECIFIED, NULL));
++        if (c_in == HWADDR_MAX || c_out == HWADDR_MAX) {
++            continue;
++        }
++        req = address_space_ldl_le(&address_space_memory, c_in,
++                                   MEMTXATTRS_UNSPECIFIED, NULL);
++        address_space_stl_le(&address_space_memory, c_out, req,
++                             MEMTXATTRS_UNSPECIFIED, NULL);
++    }
++
++    if (((glb_req >> 12) & 7) == 1 || (glb_req & BIT(0))) {
 +        g->mcu_status = 2;    /* HALT（fw_halt_mcu 的目标态） */
 +    } else {
 +        g->mcu_status = 1;    /* ACTIVE */
