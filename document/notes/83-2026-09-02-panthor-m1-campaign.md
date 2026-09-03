@@ -11,7 +11,7 @@
 | **GROUP_CREATE 打通** | ✅ 根因：CSG control 的 suspend_size/protm_suspend_size 镜像初值 0，group_create 拿 0 alloc suspend buf 返 -ENOSPC（eglinfo 首个 GROUP_CREATE 即败）。修：假 MCU boot 时全 8 组补写 0x1000/0x800 |
 | **cs_reg_count 0→256** | ✅ 根因：CS control（8 CSG × 8 流，共 64 槽）镜像无初值，features=0 → 内核 cs_reg_count=1 → mesa cs_builder 寄存器空间塌缩。修：假 MCU 全 64 槽写 features=0x000708ff（256 工作寄存器/8 记分板/C+F+T）+ input/output VA（shared 段内 0x04003400/0x04007400 + idx*0x10） |
 | **取证工具链** | ✅ 内核 ftrace 未编 → 自建：fops ioctl/mmap/get_unmapped_area 打点包装 + `kernel/exception-trace`（用户态崩溃 PC/寄存器进 dmesg）+ ddebs 符号包 addr2line + `sim/elfnear.py`/guest 内 PT_LOAD dump（mini readelf） |
-| **M1 验收** | ⛔ 未达：mesa 26.0.3 在 `csf_oom_handler_init → csf_init_context_v10 → cs_function_end`（cs_builder.h:2371）稳定段错误——写 `[x9+小imm]`、x9=NULL。内核侧 ioctl/mmap 全绿（GROUP/HEAP/VM/BO 全 ret=0），崩点纯用户态 |
+| **M1 达成（09-03 收官）** | ✅ `renderer = Mali-G610 MC4 (Panfrost)`、`OpenGL ES 3.1`，零 llvmpipe。最后一坑：CS features 的 work_regs 占位 **256 是错的**（dirty 位图扫描越界 → cs_builder 栈数组打穿）——**192（0xbf）为 v10 正确值**（A/B 实证）。原记录：mesa 26.0.3 在 `csf_oom_handler_init → csf_init_context_v10 → cs_function_end`（cs_builder.h:2371）稳定段错误——写 `[x9+小imm]`、x9=NULL。内核侧 ioctl/mmap 全绿（GROUP/HEAP/VM/BO 全 ret=0），崩点纯用户态 |
 | **fixture 欠账 +1** | CS features 真机值待采（现占位 0x000708ff）——note 76 §六.2 清单再添一项 |
 
 ## 1. 内核侧数据坑全补（QEMU 假 MCU）
@@ -95,3 +95,22 @@ printk 打点、符号靠手写 mini-readelf、崩点只能 exception-trace）�
   不回退（`Initialized panthor 1.8.0 on minor 1` + renderD128）✓。
 - 登录变化：root 不再免密——用 rk-forge/rk-forge（forge.yaml §5.2 教学默认），
   sercmd 探测需适配 `$` 提示符。
+
+## 8. M1 达成（2026-09-03 终稿）
+
+装备升级（§7）后三步闭环：
+
+1. **strace 实锤崩点形态**：`SIGSEGV si_code=SEGV_MAPERR si_addr=栈区下方
+   17MB 无映射处`——帧都不大（≤0x6f0），**栈溢出假说排除**，x9 是坏数据。
+2. **宿主 aarch64-linux-gnu-objdump**（ports 的 mesa-libgallium deb 直接拉）
+   解剖 pc：`str x8, [x11 + x19*16 + 8]`，x11=栈数组基址，**x19=779**——
+   dirty 位图扫描循环失控，12.5KB 写入打穿 400B 帧。
+3. **A/B 定音**：work_regs 256→192（0x000708bf），context/makeCurrent/
+   glGetString 全通——`Mali-G610 MC4 (Panfrost) / OpenGL ES 3.1`。
+
+遗留（M2a 领域，预期内）：context destroy 触发 CSG suspend，假 MCU 只 ACK
+global doorbell(0)，CSG 请求超时（`CSG 0 update request timedout` 噪音，
+escalate 强杀不阻塞）。桌面×panthor 的 snapshot.py 拉黑维持。
+
+M1 收官线（note 76 §3.4）：不 draw、只建 context 的 smoke（glesprobe v4）
++ renderer 断言——全过。
