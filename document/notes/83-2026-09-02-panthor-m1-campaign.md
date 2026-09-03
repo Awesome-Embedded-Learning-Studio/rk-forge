@@ -77,3 +77,21 @@ CSG0 会炸 CSG 校验、只写 CS0 会炸 CS 校验，必须全量**。
   context）+ `sim/elfnear.py`（mini readelf）
 - 内核树诊断打点（PANTHORIOCTL/SIMGRP/SIMGLB/SIMCSREG/SIMMMAP/SIMMUA）：
   **M1 期间保留，收役统一撤**
+
+## 7. 研究机装备升级（2026-09-03，用户提议）
+
+M1 攻坚暴露最小 rootfs 的诊断真空（无 strace/gdb/binutils/ftrace，ioctl 靠
+printk 打点、符号靠手写 mini-readelf、崩点只能 exception-trace）。一次补齐：
+
+- **rootfs**（packages.list +5）：strace / binutils / gdb / xz-utils / sudo。
+  sudoers NOPASSWD 由 stage 注入（`_provision_runtime_config` 写
+  /etc/sudoers.d/010-dev-nopasswd——凭据不进 tar 的设计不变）。
+- **内核**（kernel.config）：FTRACE + KPROBES + KPROBE_EVENTS +
+  FUNCTION_TRACER + DYNAMIC_FTRACE + DEBUG_FS。
+- **工具**：`sim/resboot.py`（研究机冷启：panthor 在、GDM mask、串口 4446）。
+- 重建链踩两坑记 gotchas：WSL binfmt（§9，含 O-flag 二刷）、fakeroot
+  stale-inode（§10，state 按 inode 索引，stage 重铺后须重跑 stage 重存 state）。
+- 验证：sudo -n 免密 ✓、strace 6.19/gdb/readelf/xz 在位 ✓、panthor M0
+  不回退（`Initialized panthor 1.8.0 on minor 1` + renderD128）✓。
+- 登录变化：root 不再免密——用 rk-forge/rk-forge（forge.yaml §5.2 教学默认），
+  sercmd 探测需适配 `$` 提示符。
