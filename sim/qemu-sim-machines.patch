@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..3111357
+index 0000000..26619f1
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,2904 @@
+@@ -0,0 +1,3131 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -951,6 +951,17 @@ index 0000000..3111357
 +    uint64_t cs_regs[192];                /* CS 寄存器文件——跨 job 连续
 +                                           * （mutter：job A 装 regs[76]、
 +                                           * job B 的 LOAD_MULTIPLE 靠它） */
++    uint64_t as_committed[8];             /* AS_COMMAND 提交的 transtab（换出
++                                           * 影子的判据） */
++    uint64_t as_hist[16];                 /* 换出 transtab 影子环（M2e：多 VM
++                                           * 超过 8 槽后的 walk 回退） */
++    uint32_t as_hist_n, as_hist_head;     /* 影子环条数 + 写入位 */
++    uint64_t as_seq[8], as_seq_gen;       /* AS 编程序号（MRU 扫描序） */
++    uint64_t walk_ok, walk_fail, walk_fail_va;   /* 用户 VA walk 诊断（不迁移） */
++    uint64_t rf_fbd_fail, rf_fbd_va;      /* FBD walk 失败诊断（不迁移） */
++    uint32_t cur_as;                      /* 正在消费的组的 AS（csg input
++                                           * config，M2e 权威绑定；0=未绑定） */
++    uint64_t walk_as_ok;                  /* 经 cur_as 命中的 walk（不迁移） */
 +};
 +
 +struct Rk3588LiteState {
@@ -2263,19 +2274,51 @@ index 0000000..3111357
 +}
 +
 +/* 用户/组 VM 的 VA 翻译：ring/syncobj 的 GPU VA 不在 fw 的 AS0——扫
-+ * AS1..7（内核 group start 时 program 的 transtab），第一个 walk 成功者。 */
++ * AS1..7（内核 group start 时 program 的 transtab），第一个 walk 成功者。
++ * M2e 权威路径：cs_consume 读 csg input.config（内核 csg_slot_prog 写
++ * panthor_vm_as(group->vm)）得到组绑定的 AS——有绑定时**只走该表**（真
++ * 固件语义：组换 AS 上下文执行）。多 VM 的堆区 VA 高度别名，首个成功
++ * 的全表扫可能穿错 VM（实测：glClear 在 mutter 并发下 clear 写错物理页，
++ * readback 全零）。未绑定（config 无效）才回退 MRU 扫描 + 换出影子。 */
 +static hwaddr rk3588_lite_gpu_va_pa_user(struct Rk3588LiteGpu *g, uint64_t va)
 +{
 +    hwaddr pa;
++
++    if (g->cur_as >= 1 && g->cur_as < 8 && g->as_transtab[g->cur_as] &&
++        rk3588_lite_gpu_va_pa_in(g, g->as_transtab[g->cur_as], va, &pa)) {
++        g->walk_as_ok++;
++        g->walk_ok++;
++        return pa;
++    }
++    unsigned ord[7], n = 0;
 +
 +    for (unsigned as = 1; as < 8; as++) {
 +        if (!g->as_transtab[as]) {
 +            continue;
 +        }
-+        if (rk3588_lite_gpu_va_pa_in(g, g->as_transtab[as], va, &pa)) {
++        unsigned j = n++;    /* 按 as_seq 降序插入（0=未见 AS_COMMAND=最旧） */
++        while (j && g->as_seq[ord[j - 1]] < g->as_seq[as]) {
++            ord[j] = ord[j - 1];
++            j--;
++        }
++        ord[j] = as;
++    }
++    for (unsigned i = 0; i < n; i++) {
++        if (rk3588_lite_gpu_va_pa_in(g, g->as_transtab[ord[i]], va, &pa)) {
++            g->walk_ok++;
 +            return pa;
 +        }
 +    }
++    for (unsigned i = 0; i < g->as_hist_n; i++) {
++        unsigned h = (g->as_hist_head + 15 - i) & 15;
++
++        if (rk3588_lite_gpu_va_pa_in(g, g->as_hist[h], va, &pa)) {
++            g->walk_ok++;
++            return pa;
++        }
++    }
++    g->walk_fail++;
++    g->walk_fail_va = va;
 +    return HWADDR_MAX;
 +}
 +
@@ -2650,6 +2693,14 @@ index 0000000..3111357
 +{
 +    hwaddr ctl, in_pa, out_pa;
 +    uint32_t in_va, out_va, req;
++    static int dbg = -1;
++
++    if (dbg == -1) {
++        dbg = getenv("GPUDBG") != NULL;
++    }
++    if (dbg) {
++        fprintf(stderr, "GPUDB id=%u\n", id);
++    }
 +
 +    ctl = rk3588_lite_gpu_va_pa(g, id == 0 ? 0x04000000
 +                                            : 0x04001000 + (id - 1) * 0xa0);
@@ -2679,7 +2730,16 @@ index 0000000..3111357
 +                         MEMTXATTRS_UNSPECIFIED, NULL);
 +
 +    if (id != 0) {
-+        return;    /* user doorbell（queue 提交通道）：M2b 领域 */
++        /* M2e：user doorbell（queue 提交通道）——内核 on-slot submit 直接写
++         * CSF_DOORBELL(doorbell_id)（panthor_sched.c group_submit_locked），
++         * 不 toggle csg doorbell_req；真 FW 收到即消费该组 ring。此前忽略
++         * 它 = 组的第二个 job 起永远无人消费（job timeout 楔死根因；第一
++         * 个 job 靠 START 路径 doorbell(0) sweep 碰到）。doorbell_id = csg_id+1
++         * （group_bind_locked），扫该组全部 CS，insert==extract 的幂等追平。 */
++        for (unsigned cs = 0; cs < 8; cs++) {
++            rk3588_lite_gpu_cs_consume(g, ctl, in_pa, out_pa, cs);
++        }
++        return;
 +    }
 +
 +    /* CSG update 走 glb 通道（panthor_fw_ring_csg_doorbells：toggle glb
@@ -2723,6 +2783,10 @@ index 0000000..3111357
 +                                                 MEMTXATTRS_UNSPECIFIED, NULL);
 +        uint32_t pend = c_db_req ^ c_db_ack;
 +
++        if (getenv("GPUDBG") && pend) {
++            fprintf(stderr, "GPUDB csg=%u pend=%x ctl=%llx\n",
++                    csg, pend, (unsigned long long)c_in);
++        }
 +        if (pend) {
 +            address_space_stl_le(&address_space_memory, c_out + 8, c_db_req,
 +                                 MEMTXATTRS_UNSPECIFIED, NULL);
@@ -2755,6 +2819,8 @@ index 0000000..3111357
 +
 +    g->rf_count++;
 +    if (fp == HWADDR_MAX) {
++        g->rf_fbd_fail++;
++        g->rf_fbd_va = regs[0x28];
 +        return;
 +    }
 +    uint32_t w8 = address_space_ldl_le(&address_space_memory, fp + 32,
@@ -2791,11 +2857,65 @@ index 0000000..3111357
 +    }
 +}
 +
-+/* M2c 单步 CS 解释（wrapper 与用户段共用）：寄存器文件由调用方持有。
-+ * MOVE 装寄存器；SYNC_ADD 真执行；CALL 进用户段（一层）；RUN_FRAGMENT
-+ * 走 FBD 执行（clear-only）；其余跳过。 */
-+static void rk3588_lite_gpu_cs_step(struct Rk3588LiteGpu *g,
-+                                    uint64_t *regs, uint64_t instr)
++/* M2e 语义开关（GPUM2D=1 回退 M2d 行为：不执行 BRANCH/JUMP/ADD_IMM、
++ * 不做 AS 绑定）——多跑楔死的归属 A/B 对照用，平时不开。 */
++static bool rk3588_lite_gpu_m2d(void)
++{
++    static int on = -1;
++
++    if (on == -1) {
++        on = getenv("GPUM2D") != NULL;
++    }
++    return on;
++}
++
++/* M2c/M2e 单步 CS 解释（wrapper 与用户段共用）：寄存器文件由调用方持有。
++ * 返回 BRANCH 跳转增量（指令数；0=顺序下一条；taken 时 1+offset，
++ * target = 本条位置 + 1 + offset —— cs_builder cs_set_label 语义）。
++ * MOVE 装寄存器；ADD_IMM 补寄存器算术；SYNC_ADD 真执行；CALL 进用户段；
++ * RUN_FRAGMENT 走 FBD 执行（clear-only）；JUMP 由段循环处理；WAIT/FLUSH
++ * 等按顺序执行语义跳过。编码 = mesa genxml v10（BRANCH：offset 16 位有
++ * 符号@0、condition@28、value 寄存器@40；ADD_IMM：imm 有符号@0、src@40、
++ * dst@48）。 */
++static int64_t rk3588_lite_gpu_cs_step(struct Rk3588LiteGpu *g,
++                                       uint64_t *regs, uint64_t instr);
++
++/* M2e 线性段执行（CALL 用户段 / JUMP 换段共用）：BRANCH 按 delta 跳，
++ * JUMP 换段递归（mesa chunk 溢出链：MOVE 装地址/长度寄存器后 JUMP 到
++ * 新缓冲）。budget 是共享指令预算，防分支/JUMP 活锁。 */
++static void rk3588_lite_gpu_cs_run(struct Rk3588LiteGpu *g, uint64_t *regs,
++                                   hwaddr base, uint32_t ninstr,
++                                   uint64_t *budget)
++{
++    int64_t k = 0;
++
++    while (k >= 0 && (uint32_t)k < ninstr && *budget) {
++        uint64_t instr = address_space_ldq_le(&address_space_memory,
++                                              base + k * 8,
++                                              MEMTXATTRS_UNSPECIFIED, NULL);
++        int64_t d;
++
++        (*budget)--;
++        if (!rk3588_lite_gpu_m2d() && (instr >> 56) == 33) {
++            /* JUMP：换段（长度字节，cs_wrap_chunk） */
++            hwaddr jp = rk3588_lite_gpu_va_pa_user(
++                g, regs[(instr >> 40) & 0xff]);
++            uint32_t len = (instr >> 32) & 0xff;
++
++            g->op_hist[33]++;
++            if (jp != HWADDR_MAX) {
++                rk3588_lite_gpu_cs_run(g, regs, jp, len / 8, budget);
++            }
++            k++;
++            continue;
++        }
++        d = rk3588_lite_gpu_cs_step(g, regs, instr);
++        k += d ? d : 1;
++    }
++}
++
++static int64_t rk3588_lite_gpu_cs_step(struct Rk3588LiteGpu *g,
++                                       uint64_t *regs, uint64_t instr)
 +{
 +    hwaddr p;
 +
@@ -2807,6 +2927,40 @@ index 0000000..3111357
 +        case 2:    /* MOVE32 */
 +            regs[(instr >> 48) & 0xff] = instr & 0xffffffffull;
 +            break;
++        case 16:   /* ADD_IMM32：dst = src + imm（32 位回绕） */
++            if (!rk3588_lite_gpu_m2d()) {
++                regs[(instr >> 48) & 0xff] =
++                    (uint32_t)regs[(instr >> 40) & 0xff] + (int32_t)instr;
++            }
++            break;
++        case 17:   /* ADD_IMM64：dst = src + imm（符号扩展） */
++            if (!rk3588_lite_gpu_m2d()) {
++                regs[(instr >> 48) & 0xff] =
++                    regs[(instr >> 40) & 0xff] + (int32_t)instr;
++            }
++            break;
++        case 22: { /* BRANCH：条件对 (u32)regs[value] 与 0 比较 */
++            uint32_t v = (uint32_t)regs[(instr >> 40) & 0xff];
++            bool t = false;
++
++            if (rk3588_lite_gpu_m2d()) {
++                break;    /* M2d：顺序执行语义 */
++            }
++
++            switch ((instr >> 28) & 0xf) {
++            case 0:  t = (int32_t)v <= 0; break;    /* Lequal */
++            case 1:  t = (int32_t)v > 0;  break;    /* Greater */
++            case 2:  t = !v;              break;    /* Equal */
++            case 3:  t = v != 0;          break;    /* Nequal */
++            case 4:  t = (int32_t)v < 0;  break;    /* Less */
++            case 5:  t = (int32_t)v >= 0; break;    /* Gequal */
++            default: t = true;            break;    /* Always */
++            }
++            if (t) {
++                return 1 + (int16_t)(instr & 0xffff);
++            }
++            break;
++        }
 +        case 37: { /* SYNC_ADD32 */
 +            uint64_t addr = regs[(instr >> 40) & 0xff];
 +            uint32_t val = regs[(instr >> 32) & 0xff];
@@ -2867,20 +3021,19 @@ index 0000000..3111357
 +            uint64_t dst = regs[(instr >> 40) & 0xff];
 +            uint32_t len = (instr >> 32) & 0xff;    /* 字节 */
 +            hwaddr dp = rk3588_lite_gpu_va_pa_user(g, dst);
++            uint64_t budget = 65536;
 +
-+            for (unsigned k = 0; dp != HWADDR_MAX && k < len / 8; k++) {
-+                uint64_t u = address_space_ldq_le(&address_space_memory,
-+                                                  dp + k * 8,
-+                                                  MEMTXATTRS_UNSPECIFIED, NULL);
-+                rk3588_lite_gpu_cs_step(g, regs, u);
++            if (dp != HWADDR_MAX) {
++                rk3588_lite_gpu_cs_run(g, regs, dp, len / 8, &budget);
 +            }
 +            break;
 +        }
 +        default:
-+            /* WAIT/FLUSH/NOP/BRANCH/RUN_*…：顺序执行语义下跳过（BRANCH
-+             * 的 if/else 双装载恰好终值=else 路径，mesa 首帧成立） */
++            /* WAIT/FLUSH/NOP/RUN_*…：顺序执行语义下跳过（M2e 起 BRANCH/
++             * JUMP/ADD_IMM 已实现，不再是盲区） */
 +            break;
 +    }
++    return 0;
 +}
 +
 +/* M2b wrapper-CS 解释器（note 76 §3.5 的 noop 量具形态）：消费 ring 的
@@ -2897,7 +3050,7 @@ index 0000000..3111357
 +{
 +    hwaddr cs_pa = csg_ctl + 0x40 + cs * 0xc;    /* CS control 同页（PA） */
 +    uint64_t *regs = g->cs_regs;
-+    uint32_t insert, extract, ring_size;
++    uint32_t cfg, insert, extract, ring_size;
 +    uint64_t ring_base;
 +    hwaddr ring_pa;
 +    unsigned n;
@@ -2914,7 +3067,18 @@ index 0000000..3111357
 +    hwaddr cs_out = rk3588_lite_gpu_va_pa(g, cs_out_va);
 +
 +    if (cs_in == HWADDR_MAX || cs_out == HWADDR_MAX) {
++        if (getenv("GPUDBG")) {
++            fprintf(stderr, "CONSUME-EARLY cswalk cs=%u\n", cs);
++        }
 +        return;
++    }
++    /* M2e：组的 AS 绑定（csg input+0x50 config = panthor_vm_as(group->vm)，
++     * panthor_sched.c csg_slot_prog_locked）——本组所有用户 VA walk 的
++     * 权威 AS。consume 同步无嵌套，入口直接覆盖即可。 */
++    if (!rk3588_lite_gpu_m2d()) {
++        cfg = address_space_ldl_le(&address_space_memory, csg_in + 0x50,
++                                   MEMTXATTRS_UNSPECIFIED, NULL);
++        g->cur_as = (cfg & 0xff) < 8 ? (cfg & 0xff) : 0;
 +    }
 +    ring_base = address_space_ldq_le(&address_space_memory, cs_in + 0x10,
 +                                     MEMTXATTRS_UNSPECIFIED, NULL);
@@ -2929,6 +3093,9 @@ index 0000000..3111357
 +    hwaddr in_ptr_pa = rk3588_lite_gpu_va_pa(g, ring_in_ptr);
 +    hwaddr out_ptr_pa = rk3588_lite_gpu_va_pa(g, ring_out_ptr);
 +    if (!ring_size || in_ptr_pa == HWADDR_MAX || out_ptr_pa == HWADDR_MAX) {
++        if (getenv("GPUDBG")) {
++            fprintf(stderr, "CONSUME-EARLY ptrwalk cs=%u\n", cs);
++        }
 +        return;
 +    }
 +    insert = address_space_ldl_le(&address_space_memory, in_ptr_pa,
@@ -2941,20 +3108,46 @@ index 0000000..3111357
 +                                               MEMTXATTRS_UNSPECIFIED, NULL);
 +        address_space_stl_le(&address_space_memory, cs_out, cs_req,
 +                             MEMTXATTRS_UNSPECIFIED, NULL);
++        if (getenv("GPUDBG")) {
++            fprintf(stderr, "CONSUME-EMPTY cs=%u\n", cs);
++        }
 +        return;
 +    }
++    if (getenv("GPUDBG")) {
++        fprintf(stderr, "CONSUME csg_ctl=%llx cs=%u ins=%x ext=%x as=%u\n",
++                (unsigned long long)csg_ctl, cs, insert, extract, g->cur_as);
++    }
 +
-+    for (n = 0; n < 65536 && extract != insert; n++) {
++    uint64_t budget = 1 << 20;
++    for (n = 0; n < 65536 && extract != insert && budget; n++) {
 +        uint32_t off = extract % ring_size;
 +
 +        ring_pa = rk3588_lite_gpu_va_pa_user(g, ring_base + off);
 +        if (ring_pa == HWADDR_MAX) {
 +            break;
 +        }
-+        rk3588_lite_gpu_cs_step(
-+            g, regs, address_space_ldq_le(&address_space_memory, ring_pa,
-+                                          MEMTXATTRS_UNSPECIFIED, NULL));
-+        extract += 8;
++        uint64_t instr = address_space_ldq_le(&address_space_memory, ring_pa,
++                                              MEMTXATTRS_UNSPECIFIED, NULL);
++        budget--;
++        if (!rk3588_lite_gpu_m2d() && (instr >> 56) == 33) {
++            /* JUMP：ring 内罕见，按段外线性执行 */
++            hwaddr jp = rk3588_lite_gpu_va_pa_user(
++                g, regs[(instr >> 40) & 0xff]);
++            uint32_t len = (instr >> 32) & 0xff;
++
++            g->op_hist[33]++;
++            if (jp != HWADDR_MAX) {
++                rk3588_lite_gpu_cs_run(g, regs, jp, len / 8, &budget);
++            }
++            extract += 8;
++            continue;
++        }
++        int64_t d = rk3588_lite_gpu_cs_step(g, regs, instr);
++
++        extract += (d && !rk3588_lite_gpu_m2d()) ? 8 * d : 8;
++        if (d > 0 && extract > insert) {
++            break;    /* 前跳越过 insert：交完成面收尾 */
++        }
 +    }
 +    /* 消费循环主体见 cs_step */
 +
@@ -3163,7 +3356,21 @@ index 0000000..3111357
 +                         | (uint32_t)value; return;
 +            case 0x0c: g->as_memattr[as] = (g->as_memattr[as] & 0xffffffff)
 +                         | (v64 << 32); return;
-+            case 0x18: return;               /* AS_COMMAND：瞬时完成 */
++            case 0x18: { /* AS_COMMAND：瞬时完成。UPDATE 时 transtab 生效——
++                          * 记 MRU 序号；换出的表进影子环（M2e 多 VM 回退） */
++                uint64_t t = g->as_transtab[as];
++
++                if (t != g->as_committed[as]) {
++                    if (g->as_committed[as] && g->as_committed[as] != t) {
++                        g->as_hist[g->as_hist_head] = g->as_committed[as];
++                        g->as_hist_head = (g->as_hist_head + 1) & 15;
++                        g->as_hist_n = MIN(g->as_hist_n + 1, 16u);
++                    }
++                    g->as_committed[as] = t;
++                    g->as_seq[as] = ++g->as_seq_gen;
++                }
++                return;
++            }
 +            case 0x30: g->as_transcfg[as] = (g->as_transcfg[as] & ~0xffffffffull)
 +                         | (uint32_t)value; return;
 +            case 0x34: g->as_transcfg[as] = (g->as_transcfg[as] & 0xffffffff)
@@ -3210,6 +3417,12 @@ index 0000000..3111357
 +        VMSTATE_UINT64_ARRAY(as_transtab, struct Rk3588LiteGpu, 8),
 +        VMSTATE_UINT64_ARRAY(as_memattr, struct Rk3588LiteGpu, 8),
 +        VMSTATE_UINT64_ARRAY(as_transcfg, struct Rk3588LiteGpu, 8),
++        VMSTATE_UINT64_ARRAY(as_committed, struct Rk3588LiteGpu, 8),
++        VMSTATE_UINT64_ARRAY(as_hist, struct Rk3588LiteGpu, 16),
++        VMSTATE_UINT64_ARRAY(as_seq, struct Rk3588LiteGpu, 8),
++        VMSTATE_UINT64(as_seq_gen, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(as_hist_n, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(as_hist_head, struct Rk3588LiteGpu),
 +        VMSTATE_UINT64_ARRAY(cs_regs, struct Rk3588LiteGpu, 192),
 +        VMSTATE_END_OF_LIST()
 +    },
@@ -3391,6 +3604,20 @@ index 0000000..3111357
 +    rk3588_lite_add_diag(OBJECT(machine), "op-run-compute", &s->gpu.op_hist[4]);
 +    rk3588_lite_add_diag(OBJECT(machine), "op-run-tiling", &s->gpu.op_hist[5]);
 +    rk3588_lite_add_diag(OBJECT(machine), "op-run-idvs", &s->gpu.op_hist[6]);
++    rk3588_lite_add_diag(OBJECT(machine), "op-branch", &s->gpu.op_hist[22]);
++    rk3588_lite_add_diag(OBJECT(machine), "op-jump", &s->gpu.op_hist[33]);
++    rk3588_lite_add_diag(OBJECT(machine), "op-add-imm32", &s->gpu.op_hist[16]);
++    rk3588_lite_add_diag(OBJECT(machine), "gpu-walk-ok", &s->gpu.walk_ok);
++    rk3588_lite_add_diag(OBJECT(machine), "gpu-walk-as-ok",
++                         &s->gpu.walk_as_ok);
++    rk3588_lite_add_diag(OBJECT(machine), "gpu-walk-fail",
++                         &s->gpu.walk_fail);
++    rk3588_lite_add_diag(OBJECT(machine), "gpu-walk-fail-va",
++                         &s->gpu.walk_fail_va);
++    rk3588_lite_add_diag(OBJECT(machine), "gpu-rf-fbd-fail",
++                         &s->gpu.rf_fbd_fail);
++    rk3588_lite_add_diag(OBJECT(machine), "gpu-rf-fbd-va",
++                         &s->gpu.rf_fbd_va);
 +    rk3588_lite_add_diag(OBJECT(machine), "op-call", &s->gpu.op_hist[32]);
 +
 +    /* pre-write the real PLL blocks (CON indices from clk-rk3588.c) with a
@@ -4166,6 +4393,89 @@ index 0000000..309f2dc
 +}
 +
 +type_init(rk806_register_types)
+diff --git a/include/hw/input/gt911.h b/include/hw/input/gt911.h
+new file mode 100644
+index 0000000..bac99af
+--- /dev/null
++++ b/include/hw/input/gt911.h
+@@ -0,0 +1,77 @@
++/*
++ * Goodix GT911 capacitive touchscreen controller (I2C).
++ *
++ * Register-level teaching model aligned with the Linux goodix driver
++ * (drivers/input/touchscreen/goodix.c) as configured on the AES board:
++ * the touch IC answers as a GT911 (ID register "911", 8-byte contacts,
++ * 186-byte config page) even though the DT node is named gt9147 — the
++ * driver's chip-data table routes "911" to the gt911_chip_data.
++ *
++ * 16-bit register addressing (MSB first), matching goodix_i2c_read/write.
++ * Touch events are injected from the monitor:
++ *   (qemu) gt911_touch 512 300     # finger down at (512,300)
++ *   (qemu) gt911_release
++ * which fills the coordinate FIFO at 0x814e, raises the INT line
++ * (wired to GPIO1_IO9 by the machine), and the guest kernel's IRQ
++ * handler reads the point out through the real I2C path. Writing
++ * 0x814e (which the driver does after each read) clears the pending
++ * status and releases INT — the true GT911 handshake.
++ *
++ * This work is licensed under the terms of the GNU GPL, version 2 or
++ * later. See the COPYING file in the top-level directory.
++ */
++
++#ifndef HW_INPUT_GT911_H
++#define HW_INPUT_GT911_H
++
++#include "hw/i2c/i2c.h"
++#include "ui/input.h"
++#include "qom/object.h"
++
++#define TYPE_GT911 "gt911"
++OBJECT_DECLARE_SIMPLE_TYPE(GT911State, GT911)
++
++/* register map the driver touches */
++#define GT911_REG_COMMAND      0x8040
++#define GT911_REG_CONFIG_DATA  0x8047
++#define GT911_REG_ID           0x8140
++#define GT911_REG_COOR         0x814e
++#define GT911_REG_END          0x8158
++
++struct GT911State {
++    /*< private >*/
++    I2CSlave parent_obj;
++
++    /*< public >*/
++    uint16_t addr;          /* current register address (auto-increment) */
++    uint8_t addr_bytes;     /* 0/1/2: how many address bytes received */
++    uint16_t addr_latch;    /* MSB-first latch */
++
++    uint8_t id[6];          /* 0x8140: "911\0" + vid */
++    uint8_t config[186];    /* 0x8047: factory default, see gt911.c */
++
++    /* two independent states, like the real silicon: finger_down is
++     * the physical press (survives the report handshake), report_ready
++     * is "unread data in the FIFO" (cleared by the 0x814e handshake) */
++    bool finger_down;
++    bool report_ready;
++    uint16_t touch_x;
++    uint16_t touch_y;
++
++    qemu_irq int_line;      /* asserted low while a touch is pending */
++
++    /* host-mouse bridge (GTK/SDL absolute pointer) */
++    uint16_t host_x, host_y;
++    QemuInputHandlerState *input_handler;
++    int64_t last_move_ns;     /* 拖动上报节流（TCG 下逐事件全价报告会噎死 mutter） */
++    bool mouse_bridge;        /* host-mouse=off：virtio 键鼠在场时避让（grab 冲突） */
++};
++
++/* monitor-side injection (hmp gt911_touch / gt911_release) */
++void gt911_touch(GT911State *s, uint16_t x, uint16_t y);
++void gt911_release(GT911State *s);
++
++/* rk3588-lite 机器注册实例的访问器（machine 文件里定义，HMP 寻址用） */
++GT911State *rk3588_lite_gt911(void);
++
++#endif /* HW_INPUT_GT911_H */
 diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
 index 9258a04..6e89b6d 100644
 --- a/include/monitor/hmp.h
