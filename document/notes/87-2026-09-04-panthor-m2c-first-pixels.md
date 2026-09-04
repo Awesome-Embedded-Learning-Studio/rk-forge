@@ -59,3 +59,28 @@
    DCD 解析 + 定点光栅化（无 shader 的纯色 quad 就能出桌面底色）
 3. 三角形：vertex fetch + 光栅 + fragment shader 调用——真正深水区
 4. 执行器结构化：FBD/RT 解析抽成描述符表驱动，为多格式扩展铺路
+
+## 5. M2d 加章（同日深夜）：mutter 真桌面 job 到达执行器
+
+装备复用（PANTHORIOCTL 直方图 + SIMUSR 用户段 dump）后的三个新协议真相：
+
+1. **readback 无侥幸**：glClear 全程只有一次 RUN_FRAGMENT——16×16 太小
+   mesa 用 linear 布局，glReadPixels 直接 CPU memcpy，无 blit job。
+2. **寄存器文件跨 job 连续**（协议真相 #3）：mutter 的 init job 装
+   regs[76]（tiler OOM ctx 指针），后续 draw job 的 LOAD_MULTIPLE 链式
+   依赖它。M2b 的局部清零数组断链——寄存器移入设备状态
+   （`cs_regs[192]`，迁移）。
+3. **真应用的 FBD 载体**：`cs_load64_to(FBD_POINTER ← oom_ctx)` 编译为
+   **LOAD_MULTIPLE(20) base=40 mask=0x3**（glClear 探针的 MOVE48 是
+   小应用特例）。实现 LOAD/STORE_MULTIPLE（offset@15:0 有符号、
+   mask@31:16 选 16 寄存器、addr reg@47:40、base reg@55:48）。
+
+**里程碑**：mutter 的真桌面 job（**1024×600 RGBA8**、slot1、stride 0x2000、
+writeback 0x7ffffe800000）被执行器完整解析——首次解析真桌面帧描述符。
+
+**边界（screendump 实证 0% 非黑）**：该 job 的 clear word =
+0x00000000——mutter 用 **fragment shader 合成**桌面，clear-only 执行器
+按定义只能铺黑。桌面可见 = shader/tiler 深水区（note 76 原判不变）。
+BRANCH 未实现（顺序执行双装载终值=else 路径，恰好对；M2e 复核项）。
+
+commit 53c6c6e。
