@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..1f8de3f
+index 0000000..3111357
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,2858 @@
+@@ -0,0 +1,2904 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -946,6 +946,11 @@ index 0000000..1f8de3f
 +    uint32_t mmu_rawstat, mmu_mask;       /* MMU_IRQ 组（0x2000-） */
 +    uint64_t as_transtab[8], as_memattr[8], as_transcfg[8];
 +    uint64_t reads, unknown;              /* 诊断计数（不迁移） */
++    uint64_t op_hist[64];                 /* CS opcode 直方图（M2d 侦察） */
++    uint64_t rf_count;                    /* RUN_FRAGMENT 次数 */
++    uint64_t cs_regs[192];                /* CS 寄存器文件——跨 job 连续
++                                           * （mutter：job A 装 regs[76]、
++                                           * job B 的 LOAD_MULTIPLE 靠它） */
 +};
 +
 +struct Rk3588LiteState {
@@ -2748,6 +2753,7 @@ index 0000000..1f8de3f
 +{
 +    hwaddr fp = rk3588_lite_gpu_va_pa_user(g, regs[0x28] & ~7ull);
 +
++    g->rf_count++;
 +    if (fp == HWADDR_MAX) {
 +        return;
 +    }
@@ -2755,6 +2761,8 @@ index 0000000..1f8de3f
 +                                       MEMTXATTRS_UNSPECIFIED, NULL);
 +    unsigned w = (w8 & 0xffff) + 1, h = (w8 >> 16) + 1;
 +
++    /* nrt 元数据不含空置槽（实测 RT0 空占位、真 RT 在槽 1）——扫全 8 槽，
++     * 按 WriteEnable+格式过滤。 */
 +    for (unsigned i = 0; i < 8; i++) {
 +        hwaddr rt = fp + 0x80 + i * 0x40;
 +        uint32_t w1 = address_space_ldl_le(&address_space_memory, rt + 4,
@@ -2791,6 +2799,7 @@ index 0000000..1f8de3f
 +{
 +    hwaddr p;
 +
++    g->op_hist[instr >> 56]++;
 +    switch (instr >> 56) {
 +        case 1:    /* MOVE48 */
 +            regs[(instr >> 48) & 0xff] = instr & 0xffffffffffffull;
@@ -2827,6 +2836,33 @@ index 0000000..1f8de3f
 +        case 7:    /* RUN_FRAGMENT：进入 FBD 执行（M2c） */
 +            rk3588_lite_gpu_run_fragment(g, regs);
 +            break;
++        case 20:   /* LOAD_MULTIPLE：mutter 的 FBD 载体（从 sync 内存批量
++                    * 恢复寄存器：base reg + offset 处起，mask 位选装） */
++        case 21: { /* STORE_MULTIPLE：反向 */
++            int off = (int16_t)(instr & 0xffff);
++            uint16_t mask = (instr >> 16) & 0xffff;
++            unsigned areg = (instr >> 40) & 0xff, breg = (instr >> 48) & 0xff;
++            hwaddr ap = rk3588_lite_gpu_va_pa_user(g, regs[areg] + off);
++
++            if (ap == HWADDR_MAX || breg >= 192 - 16) {
++                break;
++            }
++            for (unsigned i = 0; i < 16; i++, ap += 8) {
++                if (!(mask & BIT(i))) {
++                    continue;
++                }
++                if ((instr >> 56) == 20) {
++                    regs[breg + i] = address_space_ldq_le(
++                        &address_space_memory, ap, MEMTXATTRS_UNSPECIFIED,
++                        NULL);
++                } else {
++                    address_space_stq_le(&address_space_memory, ap,
++                                         regs[breg + i],
++                                         MEMTXATTRS_UNSPECIFIED, NULL);
++                }
++            }
++            break;
++        }
 +        case 32: { /* CALL：进入用户段执行（M2c；寄存器文件共享） */
 +            uint64_t dst = regs[(instr >> 40) & 0xff];
 +            uint32_t len = (instr >> 32) & 0xff;    /* 字节 */
@@ -2841,7 +2877,8 @@ index 0000000..1f8de3f
 +            break;
 +        }
 +        default:
-+            /* WAIT/FLUSH/NOP/ERROR_BARRIER/RUN_*…：跳过（M2b） */
++            /* WAIT/FLUSH/NOP/BRANCH/RUN_*…：顺序执行语义下跳过（BRANCH
++             * 的 if/else 双装载恰好终值=else 路径，mesa 首帧成立） */
 +            break;
 +    }
 +}
@@ -2859,7 +2896,7 @@ index 0000000..1f8de3f
 +                                       hwaddr csg_out, unsigned cs)
 +{
 +    hwaddr cs_pa = csg_ctl + 0x40 + cs * 0xc;    /* CS control 同页（PA） */
-+    uint64_t regs[192] = { 0 };
++    uint64_t *regs = g->cs_regs;
 +    uint32_t insert, extract, ring_size;
 +    uint64_t ring_base;
 +    hwaddr ring_pa;
@@ -3173,6 +3210,7 @@ index 0000000..1f8de3f
 +        VMSTATE_UINT64_ARRAY(as_transtab, struct Rk3588LiteGpu, 8),
 +        VMSTATE_UINT64_ARRAY(as_memattr, struct Rk3588LiteGpu, 8),
 +        VMSTATE_UINT64_ARRAY(as_transcfg, struct Rk3588LiteGpu, 8),
++        VMSTATE_UINT64_ARRAY(cs_regs, struct Rk3588LiteGpu, 192),
 +        VMSTATE_END_OF_LIST()
 +    },
 +};
@@ -3346,6 +3384,14 @@ index 0000000..1f8de3f
 +    rk3588_lite_add_diag(OBJECT(machine), "scmi-errs", &s->scmi.errs);
 +    rk3588_lite_add_diag(OBJECT(machine), "gpu-reads", &s->gpu.reads);
 +    rk3588_lite_add_diag(OBJECT(machine), "gpu-unknown", &s->gpu.unknown);
++    rk3588_lite_add_diag(OBJECT(machine), "gpu-rf", &s->gpu.rf_count);
++    rk3588_lite_add_diag(OBJECT(machine), "op-run-frag", &s->gpu.op_hist[7]);
++    rk3588_lite_add_diag(OBJECT(machine), "op-run-fullscreen",
++                         &s->gpu.op_hist[8]);
++    rk3588_lite_add_diag(OBJECT(machine), "op-run-compute", &s->gpu.op_hist[4]);
++    rk3588_lite_add_diag(OBJECT(machine), "op-run-tiling", &s->gpu.op_hist[5]);
++    rk3588_lite_add_diag(OBJECT(machine), "op-run-idvs", &s->gpu.op_hist[6]);
++    rk3588_lite_add_diag(OBJECT(machine), "op-call", &s->gpu.op_hist[32]);
 +
 +    /* pre-write the real PLL blocks (CON indices from clk-rk3588.c) with a
 +     * sane encoding m=100, p=2, s=1 -> 24MHz * 100 / 2 >> 1 = 600MHz, so
