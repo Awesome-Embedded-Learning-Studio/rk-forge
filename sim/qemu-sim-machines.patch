@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..7cd78f2
+index 0000000..99599bb
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,3280 @@
+@@ -0,0 +1,3426 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -945,6 +945,10 @@ index 0000000..7cd78f2
 +    uint32_t job_rawstat, job_mask;       /* JOB_IRQ 组（0x1000-）bit31=global */
 +    uint32_t csg_live;                    /* M2f：内核 GROUP_CREATE 过的槽位
 +                                           * （req 状态机推，扫 ring 的门） */
++    /* M2h：最近一次 clear 铺过的图（blit 启发式 src——单客户端场景下
++     * readback blit 的源就是它；SRT 链全解析是正道，先走捷径并留痕） */
++    uint64_t last_img_va, last_img_stride;
++    uint32_t last_img_w, last_img_h, last_img_bf;
 +    uint32_t mmu_rawstat, mmu_mask;       /* MMU_IRQ 组（0x2000-） */
 +    uint64_t as_transtab[8], as_memattr[8], as_transcfg[8];
 +    uint64_t reads, unknown;              /* 诊断计数（不迁移） */
@@ -2850,6 +2854,8 @@ index 0000000..7cd78f2
 + * w1 bit0=WriteEnable、[7:3]=WritebackFormat（19=R8G8B8A8）、
 + * RT Buffer w8=Base/w10=RowStride、w12=ClearColor0。RGBA8 路径：clear
 + * word 逐像素铺（行距按 stride）。其余格式/AFBC 计数跳过。 */
++static bool rk3588_lite_gpu_try_blit(struct Rk3588LiteGpu *g, hwaddr fp,
++                                     unsigned w, unsigned h);
 +static void rk3588_lite_gpu_run_fragment(struct Rk3588LiteGpu *g,
 +                                         uint64_t *regs)
 +{
@@ -2865,14 +2871,22 @@ index 0000000..7cd78f2
 +                                       MEMTXATTRS_UNSPECIFIED, NULL);
 +    unsigned w = (w8 & 0xffff) + 1, h = (w8 >> 16) + 1;
 +
++    /* M2h：先试 blit（src=最近 clear 的图、dst=本 FBD 的 RT）。命中则
++     * 本 job 是搬运面——clear 铺设会让位（否则 clear word 盖掉 blit）。 */
++    if (rk3588_lite_gpu_try_blit(g, fp, w, h)) {
++        return;
++    }
++
 +    /* nrt 元数据不含空置槽（实测 RT0 空占位、真 RT 在槽 1）——扫全 8 槽，
 +     * 按 WriteEnable+格式过滤。 */
 +    for (unsigned i = 0; i < 8; i++) {
 +        hwaddr rt = fp + 0x80 + i * 0x40;
 +        uint32_t w1 = address_space_ldl_le(&address_space_memory, rt + 4,
 +                                           MEMTXATTRS_UNSPECIFIED, NULL);
-+        if (!(w1 & 1) || ((w1 >> 3) & 0x1f) != 19) {
-+            continue;    /* 非写回或非 RGBA8：M2c 只铺 RGBA8 */
++        if (!(w1 & 1) || ((w1 >> 3) & 0x1f) != 19 || !(w1 & BIT(31))) {
++            continue;    /* 非写回/非 RGBA8/非 clear（Clean Tile Write
++                          * Enable，pan_fb.c clear 才置）——M2h 起 clear
++                          * 路径只认真 clear，不再误铺 blit dst */
 +        }
 +        unsigned bf = (w1 >> 8) & 0xf;    /* Block Format（v10.xml） */
 +        uint64_t base = address_space_ldq_le(&address_space_memory, rt + 0x20,
@@ -2914,6 +2928,11 @@ index 0000000..7cd78f2
 +                    }
 +                }
 +            }
++            g->last_img_va = base;    /* M2h：blit 启发式 src 登记 */
++            g->last_img_stride = stride;
++            g->last_img_w = w;
++            g->last_img_h = h;
++            g->last_img_bf = 1;
 +        } else if (bf == 2) {
 +            /* Linear：行距=字段裸字节（v10.xml 无修饰）。 */
 +            for (unsigned y = 0; y < h && y < 8192; y++) {
@@ -2926,6 +2945,85 @@ index 0000000..7cd78f2
 +        }
 +        /* AFBC(12/13)/其余 block format：计数跳过（诚实边界）。 */
 +    }
++}
++
++/* M2h：U-interleave tile 内偏移（pan_tiling.c 权威移植）：
++ * index = bit_dup[y&15] ^ space4[x&15]，tile 内像素序 = 空间填充曲线。 */
++static const uint8_t rk3588_tiled_bitdup[16] = {
++    0x00, 0x03, 0x0c, 0x0f, 0x30, 0x33, 0x3c, 0x3f,
++    0xc0, 0xc3, 0xcc, 0xcf, 0xf0, 0xf3, 0xfc, 0xff,
++};
++static const uint8_t rk3588_tiled_space4[16] = {
++    0x00, 0x01, 0x04, 0x05, 0x10, 0x11, 0x14, 0x15,
++    0x40, 0x41, 0x44, 0x45, 0x50, 0x51, 0x54, 0x55,
++};
++
++static hwaddr rk3588_tiled_pixel(hwaddr base, uint32_t stride,
++                                 unsigned x, unsigned y)
++{
++    return base + (y >> 4) * (uint64_t)stride + (x >> 4) * 1024 +
++           ((rk3588_tiled_bitdup[y & 15] ^ rk3588_tiled_space4[x & 15]) * 4);
++}
++
++/* M2h：blit 整图拷贝（真数据搬运）——src=最近 clear 过的 U-tiled 图，
++ * dst=本 RUN_FRAGMENT 的 RGBA8 RT（bf=2 线性 staging 或 bf=1 tiled）。
++ * 同尺寸 1:1。启发式留痕：正道是 SRT 链解析纹理描述符（note 91 §3）。
++ * 返回 true=已搬运（run_fragment 跳过 clear 铺设）。 */
++static bool rk3588_lite_gpu_try_blit(struct Rk3588LiteGpu *g, hwaddr fp,
++                                     unsigned w, unsigned h)
++{
++    if (!g->last_img_va || g->last_img_bf != 1 ||
++        g->last_img_w != w || g->last_img_h != h) {
++        return false;
++    }
++    hwaddr src = rk3588_lite_gpu_va_pa_user(g, g->last_img_va);
++    if (src == HWADDR_MAX) {
++        return false;
++    }
++    for (unsigned i = 0; i < 8; i++) {
++        hwaddr rt = fp + 0x80 + i * 0x40;
++        uint32_t w1 = address_space_ldl_le(&address_space_memory, rt + 4,
++                                           MEMTXATTRS_UNSPECIFIED, NULL);
++        unsigned bf = (w1 >> 8) & 0xf;
++        if ((w1 & 1) && (w1 & BIT(31))) {
++            return false;   /* Clean Tile Write Enable=1：这是 clear job
++                             * （pan_fb.c：clear 才置位）——不是 blit 面，
++                             * 交给 clear 路径，同时躲开陈旧 last_img */
++        }
++        if (!(w1 & 1) || ((w1 >> 3) & 0x1f) != 19 ||
++            (bf != 1 && bf != 2)) {
++            continue;    /* 只认 RGBA8 线性/tiled dst */
++        }
++        uint64_t base = address_space_ldq_le(&address_space_memory, rt + 0x20,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++        uint32_t stride = address_space_ldl_le(&address_space_memory,
++                                               rt + 0x28,
++                                               MEMTXATTRS_UNSPECIFIED, NULL);
++        hwaddr dp = rk3588_lite_gpu_va_pa_user(g, base);
++        if (dp == HWADDR_MAX || !stride) {
++            continue;
++        }
++        if (getenv("GPUDBG")) {
++            fprintf(stderr, "GPUBLIT %ux%u bf=%u src=%llx dst=%llx "
++                    "stride=%x\n", w, h, bf, (unsigned long long)src,
++                    (unsigned long long)dp, stride);
++        }
++        for (unsigned y = 0; y < h; y++) {
++            for (unsigned x = 0; x < w; x++) {
++                uint32_t px = address_space_ldl_le(
++                    &address_space_memory,
++                    rk3588_tiled_pixel(src, g->last_img_stride, x, y),
++                    MEMTXATTRS_UNSPECIFIED, NULL);
++                hwaddr o = bf == 1
++                    ? (uintptr_t)rk3588_tiled_pixel(dp, stride, x, y) - dp
++                    : (uint64_t)y * stride + x * 4;
++                address_space_stl_le(&address_space_memory, dp + o, px,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++            }
++        }
++        return true;    /* 只搬第一个命中的 RT */
++    }
++    return false;
 +}
 +
 +/* M2e 语义开关（GPUM2D=1 回退 M2d 行为：不执行 BRANCH/JUMP/ADD_IMM、
@@ -3058,7 +3156,15 @@ index 0000000..7cd78f2
 +            }
 +            break;
 +        }
-+        case 7:    /* RUN_FRAGMENT：进入 FBD 执行（M2c） */
++        case 7:    /* RUN_FRAGMENT：进入 FBD 执行（M2c）；
++         * FRAGMENT SR（v10.xml）：FBD=regs[40]、bbox=42/43 */
++            if (getenv("GPURUN")) {
++                fprintf(stderr,
++                        "GPURUN op=7 r40=%llx r42=%llx r43=%llx\n",
++                        (unsigned long long)regs[40],
++                        (unsigned long long)regs[42],
++                        (unsigned long long)regs[43]);
++            }
 +            rk3588_lite_gpu_run_fragment(g, regs);
 +            break;
 +        case 20:   /* LOAD_MULTIPLE：mutter 的 FBD 载体（从 sync 内存批量
@@ -3116,26 +3222,61 @@ index 0000000..7cd78f2
 +            }
 +            break;
 +        }
-+        case 6:    /* RUN_IDVS（M2h 侦察：dump SR 寄存器面） */
-+        case 8: {  /* RUN_FULLSCREEN（DCD 寄存器号@[47:40]） */
++        case 6:    /* RUN_IDVS（M2h：SR 面侦察，v10.xml IDVS SR 枚举） */
++        case 8: {  /* RUN_FULLSCREEN（DCD 寄存器号@[47:40]）；
++                    * RUN_FRAGMENT 的 SR 面（FBD=regs[40]）走 case 7 */
 +            if (getenv("GPURUN")) {
 +                unsigned dcd_reg = (instr >> 40) & 0xff;
-+                /* cs_builder.h SR_MASK：regs 40-43 = FBD/tiler 块
-+                 * （RUN_FRAGMENT 的 FBD=regs[40] 实证同源），56/61-63
-+                 * 为 v11+ 追加。RUN_IDVS 的描述符经 SRT/SPD/TSD/FAU
-+                 * select 间接引用，先记寄存器原文。 */
 +                fprintf(stderr,
-+                        "GPURUN op=%u flags=%08x r40=%llx r41=%llx "
-+                        "r42=%llx r43=%llx r56=%llx dcd_reg=%u "
-+                        "dcd=%llx\n",
-+                        (unsigned)(instr >> 56), (unsigned)(instr & 0xffffffff),
-+                        (unsigned long long)regs[40],
-+                        (unsigned long long)regs[41],
-+                        (unsigned long long)regs[42],
-+                        (unsigned long long)regs[43],
-+                        (unsigned long long)regs[56], dcd_reg,
-+                        (unsigned long long)(dcd_reg < 192
-+                            ? regs[dcd_reg] : 0));
++                        "GPURUN op=%u flags=%08x", (unsigned)(instr >> 56),
++                        (unsigned)(instr & 0xffffffff));
++                /* SR 面：SRT 0/2/4/6、SPD 16-22、TSD 24-30、
++                 * TILER_CTX 40、DCD0/1 57/58 等全打（非零） */
++                for (unsigned r = 0; r < 64; r++) {
++                    if (regs[r]) {
++                        fprintf(stderr, " r%u=%llx", r,
++                                (unsigned long long)regs[r]);
++                    }
++                }
++                fprintf(stderr, "\n");
++                if ((instr >> 56) == 6) {
++                    /* SRT_2（fragment 资源表）指针 = regs[4]：表内槽位
++                     * {tagged_ptr, size} 对指向纹理描述符，追 dump 本体 */
++                    hwaddr srt = rk3588_lite_gpu_va_pa_user(g,
++                                                            regs[4] & ~7ull);
++                    if (srt != HWADDR_MAX) {
++                        for (unsigned e = 0; e < 4; e++) {
++                            uint64_t ent0 = address_space_ldq_le(
++                                &address_space_memory, srt + e * 16,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++                            uint64_t ent1 = address_space_ldq_le(
++                                &address_space_memory, srt + e * 16 + 8,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++                            if (!ent0 || !ent1) {
++                                continue;
++                            }
++                            hwaddr td = rk3588_lite_gpu_va_pa_user(
++                                g, ent0 & 0xffffffffffull);
++                            fprintf(stderr,
++                                    "GPURUN srt2[%u]=%llx/%llx td@%llx:",
++                                    e, (unsigned long long)ent0,
++                                    (unsigned long long)ent1,
++                                    (unsigned long long)td);
++                            if (td != HWADDR_MAX) {
++                                for (unsigned k = 0; k < 8; k++) {
++                                    fprintf(stderr, " %016llx",
++                                            (unsigned long long)
++                                            address_space_ldq_le(
++                                                &address_space_memory,
++                                                td + k * 8,
++                                                MEMTXATTRS_UNSPECIFIED,
++                                                NULL));
++                                }
++                            }
++                            fprintf(stderr, "\n");
++                        }
++                    }
++                }
 +                if ((instr >> 56) == 8) {
 +                    hwaddr dp = rk3588_lite_gpu_va_pa_user(
 +                        g, regs[dcd_reg < 192 ? dcd_reg : 0] & ~7ull);
@@ -3560,6 +3701,11 @@ index 0000000..7cd78f2
 +        VMSTATE_UINT32(mcu_status, struct Rk3588LiteGpu),
 +        VMSTATE_UINT32(job_rawstat, struct Rk3588LiteGpu),
 +        VMSTATE_UINT32(csg_live, struct Rk3588LiteGpu),
++        VMSTATE_UINT64(last_img_va, struct Rk3588LiteGpu),
++        VMSTATE_UINT64(last_img_stride, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(last_img_w, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(last_img_h, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(last_img_bf, struct Rk3588LiteGpu),
 +        VMSTATE_UINT32(job_mask, struct Rk3588LiteGpu),
 +        VMSTATE_UINT32(mmu_rawstat, struct Rk3588LiteGpu),
 +        VMSTATE_UINT32(mmu_mask, struct Rk3588LiteGpu),

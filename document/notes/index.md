@@ -54,4 +54,5 @@ title: 工程笔记
   <ChapterLink num="89" href="89-2026-09-05-panthor-m2f-jobirq-bit19-brownout">RK3588：panthor M2f，JOB_IRQ bit19 移位根修——brownout 真凶落网，mutter 并发 glClear 4× PASS</ChapterLink>
   <ChapterLink num="90" href="90-2026-09-05-panthor-m2g-draw-stream-lives">RK3588：panthor M2g，draw 全指令流穿执行器——CALL Length 寄存器操作数 + FBO U-tiled 破题</ChapterLink>
   <ChapterLink num="91" href="91-2026-09-05-panthor-m2h-blit-recon">RK3588：panthor M2h 侦察，readback blit 指令形态（RUN_IDVS 双件套）+ r40=FBD 寄存器地图</ChapterLink>
+  <ChapterLink num="92" href="92-2026-09-06-panthor-m2h-first-blit-pixels">RK3588：panthor M2h 达成，第一个真 blit 像素（u-interleave 数据搬运 + Clean Tile 位分家）</ChapterLink>
 </ChapterNav>
