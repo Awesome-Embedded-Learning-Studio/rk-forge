@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..83b1fcf
+index 0000000..89d86b4
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,3179 @@
+@@ -0,0 +1,3243 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -2801,11 +2801,13 @@ index 0000000..83b1fcf
 +        } else if (live_req) {
 +            g->csg_live |= (1u << csg);
 +        }
++        /* ACK 追平对死组也必须做（M2a 契约：TERMINATE 等 ack，跳过 =
++         * CSG update timedout，净机实锤）——门只拦 ring 消费。 */
++        address_space_stl_le(&address_space_memory, c_out, req,
++                             MEMTXATTRS_UNSPECIFIED, NULL);
 +        if (!(g->csg_live & (1u << csg))) {
 +            continue;
 +        }
-+        address_space_stl_le(&address_space_memory, c_out, req,
-+                             MEMTXATTRS_UNSPECIFIED, NULL);
 +
 +        /* M2b：CSG 级 queue doorbell（csg input.doorbell_req 的 cs 位
 +         * toggle，与 output.doorbell_ack 比对）。内核 submit 后
@@ -2872,6 +2874,7 @@ index 0000000..83b1fcf
 +        if (!(w1 & 1) || ((w1 >> 3) & 0x1f) != 19) {
 +            continue;    /* 非写回或非 RGBA8：M2c 只铺 RGBA8 */
 +        }
++        unsigned bf = (w1 >> 8) & 0xf;    /* Block Format（v10.xml） */
 +        uint64_t base = address_space_ldq_le(&address_space_memory, rt + 0x20,
 +                                             MEMTXATTRS_UNSPECIFIED, NULL);
 +        uint32_t stride = address_space_ldl_le(&address_space_memory, rt + 0x28,
@@ -2880,16 +2883,48 @@ index 0000000..83b1fcf
 +                                            MEMTXATTRS_UNSPECIFIED, NULL);
 +        hwaddr bp = rk3588_lite_gpu_va_pa_user(g, base);
 +
++        if (getenv("GPUDBG")) {
++            /* M2g：clear 落点取证——净机上曾把 clear word 铺进页表页
++             * （内核 Bad page map，pte 值=像素图案），落点链必须可审计。 */
++            fprintf(stderr,
++                    "GPUFBG as=%u fbd=%llx->%llx w=%ux%u rt%u bf=%u "
++                    "base=%llx->%llx stride=%x clr=%x tt1=%llx\n",
++                    g->cur_as, (unsigned long long)(regs[0x28] & ~7ull),
++                    (unsigned long long)fp, w, h, i, bf,
++                    (unsigned long long)base, (unsigned long long)bp,
++                    stride, clr, (unsigned long long)g->as_transtab[1]);
++        }
 +        if (bp == HWADDR_MAX || !stride) {
 +            continue;
 +        }
-+        for (unsigned y = 0; y < h && y < 8192; y++) {
-+            hwaddr row = bp + (uint64_t)y * stride;
-+            for (unsigned x = 0; x < w && x < 8192; x++) {
-+                address_space_stl_le(&address_space_memory, row + x * 4, clr,
-+                                     MEMTXATTRS_UNSPECIFIED, NULL);
++        if (bf == 1) {
++            /* M2g：Tiled U-Interleaved——16×16 RGBA8 tile=1024B，整 tile
++             * 填 clear word。RowStride 是 tile 行距（16×16 实测 0x400=
++             * 1 tile；1024 宽=64 tile=0x10000）。整 tile 才铺（边缘
++             * 半 tile 跳过——诚实边界，partial tile 需 swizzle）。 */
++            unsigned tx = (w + 15) / 16, ty = (h + 15) / 16;
++            for (unsigned y = 0; y < ty; y++) {
++                hwaddr row = bp + (uint64_t)y * stride;
++                for (unsigned x = 0; x < tx; x++) {
++                    hwaddr tile = row + (uint64_t)x * 1024;
++                    for (unsigned o = 0; o < 1024; o += 4) {
++                        address_space_stl_le(&address_space_memory, tile + o,
++                                             clr, MEMTXATTRS_UNSPECIFIED,
++                                             NULL);
++                    }
++                }
++            }
++        } else if (bf == 2) {
++            /* Linear：行距=字段裸字节（v10.xml 无修饰）。 */
++            for (unsigned y = 0; y < h && y < 8192; y++) {
++                hwaddr row = bp + (uint64_t)y * stride;
++                for (unsigned x = 0; x < w && x < 8192; x++) {
++                    address_space_stl_le(&address_space_memory, row + x * 4,
++                                         clr, MEMTXATTRS_UNSPECIFIED, NULL);
++                }
 +            }
 +        }
++        /* AFBC(12/13)/其余 block format：计数跳过（诚实边界）。 */
 +    }
 +}
 +
@@ -2933,10 +2968,10 @@ index 0000000..83b1fcf
 +
 +        (*budget)--;
 +        if (!rk3588_lite_gpu_m2d() && (instr >> 56) == 33) {
-+            /* JUMP：换段（长度字节，cs_wrap_chunk） */
++            /* JUMP：换段（M2g：Length 同 CALL 是寄存器操作数） */
 +            hwaddr jp = rk3588_lite_gpu_va_pa_user(
 +                g, regs[(instr >> 40) & 0xff]);
-+            uint32_t len = (instr >> 32) & 0xff;
++            uint32_t len = (uint32_t)regs[(instr >> 32) & 0xff];
 +
 +            g->op_hist[33]++;
 +            if (jp != HWADDR_MAX) {
@@ -3053,12 +3088,29 @@ index 0000000..83b1fcf
 +            }
 +            break;
 +        }
-+        case 32: { /* CALL：进入用户段执行（M2c；寄存器文件共享） */
++        case 32: { /* CALL：进入用户段执行（M2c；寄存器文件共享）
++         * M2g 根修：Address/Length 都是寄存器操作数（内核 wrapper：
++         * MOV48 addr_reg,cs.start + MOV32 val_reg,cs.size + CALL）。
++         * 旧解拿 val_reg 字段本身当字节数（=190=寄存器号，190/8=23 条
++         * 截断）——clear batch ≤23 条侥幸未露馅，draw batch 被砍在
++         * RUN_IDVS 之前。 */
 +            uint64_t dst = regs[(instr >> 40) & 0xff];
-+            uint32_t len = (instr >> 32) & 0xff;    /* 字节 */
++            uint32_t len = (uint32_t)regs[(instr >> 32) & 0xff];
 +            hwaddr dp = rk3588_lite_gpu_va_pa_user(g, dst);
 +            uint64_t budget = 65536;
 +
++            if (getenv("GPUSEG")) {
++                fprintf(stderr, "SEG dst=%llx len=%u pa=%llx:",
++                        (unsigned long long)dst, len,
++                        (unsigned long long)dp);
++                for (unsigned k = 0; k < 16 && dp != HWADDR_MAX; k++) {
++                    uint64_t w = address_space_ldq_le(
++                        &address_space_memory, dp + k * 8,
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                    fprintf(stderr, " %x", (unsigned)(w >> 56));
++                }
++                fprintf(stderr, "\n");
++            }
 +            if (dp != HWADDR_MAX) {
 +                rk3588_lite_gpu_cs_run(g, regs, dp, len / 8, &budget);
 +            }
@@ -3216,6 +3268,18 @@ index 0000000..83b1fcf
 +     * sched_process_csg_irq_locked drm_WARN_ON ×67 + 调度锁长持 brownout。 */
 +    g->job_rawstat |= 1u << csg;
 +    rk3588_lite_gpu_update_irq(g);
++
++    if (getenv("GPUHIST")) {
++        /* M2g：opcode 直方图快照（累计值，差分看 job 间增量） */
++        fprintf(stderr, "HIST csg=%u cs=%u:", csg, cs);
++        for (unsigned op = 0; op < 64; op++) {
++            if (g->op_hist[op]) {
++                fprintf(stderr, " %u:%llu", op,
++                        (unsigned long long)g->op_hist[op]);
++            }
++        }
++        fprintf(stderr, "\n");
++    }
 +}
 +
 +static uint64_t rk3588_lite_gpu_read64(struct Rk3588LiteGpu *g, hwaddr offset)
