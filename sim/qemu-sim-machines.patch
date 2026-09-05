@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..46c41e1
+index 0000000..0fd6e40
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,3581 @@
+@@ -0,0 +1,3628 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -951,6 +951,7 @@ index 0000000..46c41e1
 +    uint32_t last_img_w, last_img_h, last_img_bf;
 +    uint64_t last_fbd_va;                 /* M2i：clear 时的 FBD VA（锚点扫描窗） */
 +    uint64_t blit_src_parsed;             /* M2i：结构匹配定位 src 的次数 */
++    uint64_t afbc_clear_sb;               /* M2j：AFBC solid-header clear 的 sb 数 */
 +    uint32_t mmu_rawstat, mmu_mask;       /* MMU_IRQ 组（0x2000-） */
 +    uint64_t as_transtab[8], as_memattr[8], as_transcfg[8];
 +    uint64_t reads, unknown;              /* 诊断计数（不迁移） */
@@ -2946,7 +2947,33 @@ index 0000000..46c41e1
 +                }
 +            }
 +        }
-+        /* AFBC(12/13)/其余 block format：计数跳过（诚实边界）。 */
++        if (bf == 12) {
++            /* M2j：AFBC clear——硬件语义是"只写 header"的 solid color
++             * 编码（pan_afbc.h headerblock union：subblock_sizes 全 0
++             * + rgba8888@+8..11；pan_afbc.c 判据 sizes[0]&0x3f==0）。
++             * RT base=header 区指针、stride=header 行距（mutter 实测
++             * 1027 宽=65 superblock×16B=0x410 自洽）。 */
++            unsigned tx = (w + 15) / 16, ty = (h + 15) / 16;
++            for (unsigned y = 0; y < ty; y++) {
++                hwaddr row = bp + (uint64_t)y * stride;
++                for (unsigned x = 0; x < tx; x++) {
++                    hwaddr hdr = row + (uint64_t)x * 16;
++                    address_space_stq_le(&address_space_memory, hdr, 0,
++                                         MEMTXATTRS_UNSPECIFIED, NULL);
++                    address_space_stl_le(&address_space_memory, hdr + 8, clr,
++                                         MEMTXATTRS_UNSPECIFIED, NULL);
++                    address_space_stl_le(&address_space_memory, hdr + 12, 0,
++                                         MEMTXATTRS_UNSPECIFIED, NULL);
++                }
++            }
++            g->afbc_clear_sb += (uint64_t)tx * ty;
++            g->last_img_va = base;    /* M2j：AFBC clear 也登记（bf=12） */
++            g->last_img_stride = stride;
++            g->last_img_w = w;
++            g->last_img_h = h;
++            g->last_img_bf = 12;
++        }
++        /* AFRC(13)/其余 block format：计数跳过（诚实边界）。 */
 +    }
 +}
 +
@@ -2997,9 +3024,11 @@ index 0000000..46c41e1
 +                                               pp + o + 24,
 +                                               MEMTXATTRS_UNSPECIFIED, NULL);
 +            if (b < 0x7fffff000000ull || b >= 0x800000000000ull
-+                || st < 0x400 || st > 0x100000 || (st & (st - 1))
-+                || (dm >> 32) != ((((uint64_t)h - 1) << 16) | (w - 1))) {
-+                continue;
++                || st < 0x40 || st > 0x100000 || (st & (st - 1))
++                || ((dm >> 32) & 0xffff) < w - 1
++                || ((dm >> 48) & 0xffff) < h - 1) {
++                continue;    /* plane ≥ dst（readback 子区域）；stride 放宽
++                              * 到 0x40（AFBC header 行距也是 2 的幂） */
 +            }
 +            found++;
 +            *base_va = b;
@@ -3024,8 +3053,9 @@ index 0000000..46c41e1
 +                                          &src_stride)) {
 +        parsed = true;
 +        g->blit_src_parsed++;
-+    } else if (g->last_img_va && g->last_img_bf == 1
-+               && g->last_img_w == w && g->last_img_h == h) {
++    } else if (g->last_img_va
++               && (g->last_img_bf == 1 || g->last_img_bf == 12)
++               && g->last_img_w >= w && g->last_img_h >= h) {
 +        src_va = g->last_img_va;
 +        src_stride = g->last_img_stride;
 +    } else {
@@ -3066,10 +3096,20 @@ index 0000000..46c41e1
 +        }
 +        for (unsigned y = 0; y < h; y++) {
 +            for (unsigned x = 0; x < w; x++) {
-+                uint32_t px = address_space_ldl_le(
++                /* M2j：src 读双形态——superblock 头 16B 全零 payloads =
++                 * AFBC solid（色在 +8）；否则按 U-tiled 像素读。 */
++                hwaddr sb = src + (y >> 4) * (uint64_t)src_stride
++                          + (x >> 4) * 16;
++                uint64_t h04 = address_space_ldq_le(&address_space_memory,
++                                                    sb,
++                                                    MEMTXATTRS_UNSPECIFIED,
++                                                    NULL);
++                uint32_t px = h04 ? address_space_ldl_le(
 +                    &address_space_memory,
-+                    rk3588_tiled_pixel(src, g->last_img_stride, x, y),
-+                    MEMTXATTRS_UNSPECIFIED, NULL);
++                    rk3588_tiled_pixel(src, src_stride, x, y),
++                    MEMTXATTRS_UNSPECIFIED, NULL)
++                    : address_space_ldl_le(&address_space_memory, sb + 8,
++                                           MEMTXATTRS_UNSPECIFIED, NULL);
 +                hwaddr o = bf == 1
 +                    ? (uintptr_t)rk3588_tiled_pixel(dp, stride, x, y) - dp
 +                    : (uint64_t)y * stride + x * 4;
@@ -3295,6 +3335,10 @@ index 0000000..46c41e1
 +                    }
 +                }
 +                fprintf(stderr, "\n");
++                fprintf(stderr, "GPUANCH? op=%llu anch=%llx env=%d\n",
++                        (unsigned long long)(instr >> 56),
++                        (unsigned long long)g->last_img_va,
++                        getenv("GPUANCH") != NULL);
 +                if ((instr >> 56) == 6 && getenv("GPUANCH")
 +                    && g->last_img_va) {
 +                    /* M2i 锚点反查：src 图像基址 VA（last_img_va）必被
@@ -3310,18 +3354,19 @@ index 0000000..46c41e1
 +                    /* 终审：堆区扫描（上次 FBD ±32MB，12K 页——实测堆对象
 +                     * 聚在 0x7fffffe 与 0x7ffffff 段) */
 +                    for (unsigned wi = 0; wi < 1; wi++) {
-+                        int64_t lo = (int64_t)(g->last_fbd_va
-+                                               & ~0xfffffull) - 0x2000000;
-+                        int64_t hi = (int64_t)(g->last_fbd_va
-+                                               & ~0xfffffull) + 0x1000000;
++                        int64_t lo = (int64_t)g->last_fbd_va - 0x2000000;
++                        int64_t hi = (int64_t)g->last_fbd_va + 0x1000000;
++                        unsigned npg = 0, nmapped = 0;
 +                        (void)wi;
 +                        for (int64_t va = lo & ~0xfffull; va < hi;
 +                             va += 0x1000) {
 +                            hwaddr pp = rk3588_lite_gpu_va_pa_user(
 +                                g, (uint64_t)va);
++                            npg++;
 +                            if (pp == HWADDR_MAX) {
 +                                continue;
 +                            }
++                            nmapped++;
 +                            for (unsigned o = 0; o + 8 <= 0x1000; o += 8) {
 +                                uint64_t v = address_space_ldq_le(
 +                                    &address_space_memory, pp + o,
@@ -3355,6 +3400,8 @@ index 0000000..46c41e1
 +                                }
 +                            }
 +                        }
++                        fprintf(stderr, "GPUANCH scan pages=%u mapped=%u\n",
++                                npg, nmapped);
 +                    }
 +                }
 +                if ((instr >> 56) == 6) {
