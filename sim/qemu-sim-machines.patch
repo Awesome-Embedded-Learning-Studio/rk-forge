@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..89d86b4
+index 0000000..7cd78f2
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,3243 @@
+@@ -0,0 +1,3280 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3116,9 +3116,46 @@ index 0000000..89d86b4
 +            }
 +            break;
 +        }
++        case 6:    /* RUN_IDVS（M2h 侦察：dump SR 寄存器面） */
++        case 8: {  /* RUN_FULLSCREEN（DCD 寄存器号@[47:40]） */
++            if (getenv("GPURUN")) {
++                unsigned dcd_reg = (instr >> 40) & 0xff;
++                /* cs_builder.h SR_MASK：regs 40-43 = FBD/tiler 块
++                 * （RUN_FRAGMENT 的 FBD=regs[40] 实证同源），56/61-63
++                 * 为 v11+ 追加。RUN_IDVS 的描述符经 SRT/SPD/TSD/FAU
++                 * select 间接引用，先记寄存器原文。 */
++                fprintf(stderr,
++                        "GPURUN op=%u flags=%08x r40=%llx r41=%llx "
++                        "r42=%llx r43=%llx r56=%llx dcd_reg=%u "
++                        "dcd=%llx\n",
++                        (unsigned)(instr >> 56), (unsigned)(instr & 0xffffffff),
++                        (unsigned long long)regs[40],
++                        (unsigned long long)regs[41],
++                        (unsigned long long)regs[42],
++                        (unsigned long long)regs[43],
++                        (unsigned long long)regs[56], dcd_reg,
++                        (unsigned long long)(dcd_reg < 192
++                            ? regs[dcd_reg] : 0));
++                if ((instr >> 56) == 8) {
++                    hwaddr dp = rk3588_lite_gpu_va_pa_user(
++                        g, regs[dcd_reg < 192 ? dcd_reg : 0] & ~7ull);
++                    if (dp != HWADDR_MAX) {
++                        fprintf(stderr, "GPURUN dcd@%llx:", (unsigned long long)dp);
++                        for (unsigned k = 0; k < 8; k++) {
++                            fprintf(stderr, " %016llx",
++                                    (unsigned long long)address_space_ldq_le(
++                                        &address_space_memory, dp + k * 8,
++                                        MEMTXATTRS_UNSPECIFIED, NULL));
++                        }
++                        fprintf(stderr, "\n");
++                    }
++                }
++            }
++            break;
++        }
 +        default:
-+            /* WAIT/FLUSH/NOP/RUN_*…：顺序执行语义下跳过（M2e 起 BRANCH/
-+             * JUMP/ADD_IMM 已实现，不再是盲区） */
++            /* WAIT/FLUSH/NOP/RUN_COMPUTE/TILING…：顺序执行语义下跳过
++             * （M2e 起 BRANCH/JUMP/ADD_IMM 已实现，不再是盲区） */
 +            break;
 +    }
 +    return 0;
