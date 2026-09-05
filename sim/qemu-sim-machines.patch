@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..6d3937c
+index 0000000..46c41e1
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,3463 @@
+@@ -0,0 +1,3581 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -949,6 +949,8 @@ index 0000000..6d3937c
 +     * readback blit 的源就是它；SRT 链全解析是正道，先走捷径并留痕） */
 +    uint64_t last_img_va, last_img_stride;
 +    uint32_t last_img_w, last_img_h, last_img_bf;
++    uint64_t last_fbd_va;                 /* M2i：clear 时的 FBD VA（锚点扫描窗） */
++    uint64_t blit_src_parsed;             /* M2i：结构匹配定位 src 的次数 */
 +    uint32_t mmu_rawstat, mmu_mask;       /* MMU_IRQ 组（0x2000-） */
 +    uint64_t as_transtab[8], as_memattr[8], as_transcfg[8];
 +    uint64_t reads, unknown;              /* 诊断计数（不迁移） */
@@ -2855,7 +2857,7 @@ index 0000000..6d3937c
 + * RT Buffer w8=Base/w10=RowStride、w12=ClearColor0。RGBA8 路径：clear
 + * word 逐像素铺（行距按 stride）。其余格式/AFBC 计数跳过。 */
 +static bool rk3588_lite_gpu_try_blit(struct Rk3588LiteGpu *g, hwaddr fp,
-+                                     unsigned w, unsigned h);
++                                     unsigned w, unsigned h, uint64_t spd2);
 +static void rk3588_lite_gpu_run_fragment(struct Rk3588LiteGpu *g,
 +                                         uint64_t *regs)
 +{
@@ -2873,7 +2875,7 @@ index 0000000..6d3937c
 +
 +    /* M2h：先试 blit（src=最近 clear 的图、dst=本 FBD 的 RT）。命中则
 +     * 本 job 是搬运面——clear 铺设会让位（否则 clear word 盖掉 blit）。 */
-+    if (rk3588_lite_gpu_try_blit(g, fp, w, h)) {
++    if (rk3588_lite_gpu_try_blit(g, fp, w, h, regs[20])) {
 +        return;
 +    }
 +
@@ -2929,6 +2931,7 @@ index 0000000..6d3937c
 +                }
 +            }
 +            g->last_img_va = base;    /* M2h：blit 启发式 src 登记 */
++            g->last_fbd_va = regs[0x28] & ~7ull;
 +            g->last_img_stride = stride;
 +            g->last_img_w = w;
 +            g->last_img_h = h;
@@ -2965,18 +2968,70 @@ index 0000000..6d3937c
 +           ((rk3588_tiled_bitdup[y & 15] ^ rk3588_tiled_space4[x & 15]) * 4);
 +}
 +
-+/* M2h：blit 整图拷贝（真数据搬运）——src=最近 clear 过的 U-tiled 图，
-+ * dst=本 RUN_FRAGMENT 的 RGBA8 RT（bf=2 线性 staging 或 bf=1 tiled）。
-+ * 同尺寸 1:1。启发式留痕：正道是 SRT 链解析纹理描述符（note 91 §3）。
-+ * 返回 true=已搬运（run_fragment 跳过 clear 铺设）。 */
-+static bool rk3588_lite_gpu_try_blit(struct Rk3588LiteGpu *g, hwaddr fp,
-+                                     unsigned w, unsigned h)
++/* M2i：blit src 结构匹配定位——纹理 plane 描述符（锚点反查实锤）：
++ * 64B，image 基址@+8、RowStride@+16（2 的幂 0x400..0x100000）、尺寸
++ * @+24 高半=((H-1)<<16)|(W-1)。批池区（SPD_2=regs[20] 邻域）扫描，
++ * 尺寸与 dst 相等且唯一命中者即 src。 */
++static bool rk3588_lite_gpu_find_src_plane(struct Rk3588LiteGpu *g,
++                                           uint64_t center, unsigned w,
++                                           unsigned h, uint64_t *base_va,
++                                           uint32_t *stride)
 +{
-+    if (!g->last_img_va || g->last_img_bf != 1 ||
-+        g->last_img_w != w || g->last_img_h != h) {
++    int found = 0;
++    int64_t lo = (int64_t)(center & ~0xfffull) - 0x8000;
++    int64_t hi = (int64_t)(center & ~0xfffull) + 0x8000;
++
++    for (int64_t va = lo; va < hi; va += 0x1000) {
++        hwaddr pp = rk3588_lite_gpu_va_pa_user(g, (uint64_t)va);
++        if (pp == HWADDR_MAX) {
++            continue;
++        }
++        for (unsigned o = 0; o + 32 <= 0x1000; o += 8) {
++            uint64_t b = address_space_ldq_le(&address_space_memory,
++                                              pp + o + 8,
++                                              MEMTXATTRS_UNSPECIFIED, NULL);
++            uint64_t st = address_space_ldq_le(&address_space_memory,
++                                               pp + o + 16,
++                                               MEMTXATTRS_UNSPECIFIED, NULL);
++            uint64_t dm = address_space_ldq_le(&address_space_memory,
++                                               pp + o + 24,
++                                               MEMTXATTRS_UNSPECIFIED, NULL);
++            if (b < 0x7fffff000000ull || b >= 0x800000000000ull
++                || st < 0x400 || st > 0x100000 || (st & (st - 1))
++                || (dm >> 32) != ((((uint64_t)h - 1) << 16) | (w - 1))) {
++                continue;
++            }
++            found++;
++            *base_va = b;
++            *stride = (uint32_t)st;
++        }
++    }
++    return found == 1;    /* 唯一命中才可信 */
++}
++
++/* M2h/M2i：blit 整图拷贝（真数据搬运）——src=结构匹配（plane 描述符）
++ * 或回退 last_img 启发式，dst=本 RUN_FRAGMENT 的 RGBA8 RT（bf=1/2）。
++ * 同尺寸 1:1。返回 true=已搬运（run_fragment 跳过 clear 铺设）。 */
++static bool rk3588_lite_gpu_try_blit(struct Rk3588LiteGpu *g, hwaddr fp,
++                                     unsigned w, unsigned h, uint64_t spd2)
++{
++    uint64_t src_va = 0;
++    uint32_t src_stride = 0;
++    bool parsed = false;
++
++    if (spd2
++        && rk3588_lite_gpu_find_src_plane(g, spd2, w, h, &src_va,
++                                          &src_stride)) {
++        parsed = true;
++        g->blit_src_parsed++;
++    } else if (g->last_img_va && g->last_img_bf == 1
++               && g->last_img_w == w && g->last_img_h == h) {
++        src_va = g->last_img_va;
++        src_stride = g->last_img_stride;
++    } else {
 +        return false;
 +    }
-+    hwaddr src = rk3588_lite_gpu_va_pa_user(g, g->last_img_va);
++    hwaddr src = rk3588_lite_gpu_va_pa_user(g, src_va);
 +    if (src == HWADDR_MAX) {
 +        return false;
 +    }
@@ -3004,8 +3059,9 @@ index 0000000..6d3937c
 +            continue;
 +        }
 +        if (getenv("GPUDBG")) {
-+            fprintf(stderr, "GPUBLIT %ux%u bf=%u src=%llx dst=%llx "
++            fprintf(stderr, "GPUBLIT %ux%u bf=%u src=%llx(%s) dst=%llx "
 +                    "stride=%x\n", w, h, bf, (unsigned long long)src,
++                    parsed ? "parsed" : "heur",
 +                    (unsigned long long)dp, stride);
 +        }
 +        for (unsigned y = 0; y < h; y++) {
@@ -3239,6 +3295,68 @@ index 0000000..6d3937c
 +                    }
 +                }
 +                fprintf(stderr, "\n");
++                if ((instr >> 56) == 6 && getenv("GPUANCH")
++                    && g->last_img_va) {
++                    /* M2i 锚点反查：src 图像基址 VA（last_img_va）必被
++                     * 纹理/平面描述符持有——在 SRT 与上次 FBD 邻域的
++                     * VA 窗内逐页扫 8 字节等值，找到即知字段落点。 */
++                    uint64_t anchors[2];
++                    unsigned nanch = 1;
++
++                    anchors[0] = g->last_img_va;
++                    if (g->last_fbd_va) {
++                        anchors[nanch++] = g->last_fbd_va;
++                    }
++                    /* 终审：堆区扫描（上次 FBD ±32MB，12K 页——实测堆对象
++                     * 聚在 0x7fffffe 与 0x7ffffff 段) */
++                    for (unsigned wi = 0; wi < 1; wi++) {
++                        int64_t lo = (int64_t)(g->last_fbd_va
++                                               & ~0xfffffull) - 0x2000000;
++                        int64_t hi = (int64_t)(g->last_fbd_va
++                                               & ~0xfffffull) + 0x1000000;
++                        (void)wi;
++                        for (int64_t va = lo & ~0xfffull; va < hi;
++                             va += 0x1000) {
++                            hwaddr pp = rk3588_lite_gpu_va_pa_user(
++                                g, (uint64_t)va);
++                            if (pp == HWADDR_MAX) {
++                                continue;
++                            }
++                            for (unsigned o = 0; o + 8 <= 0x1000; o += 8) {
++                                uint64_t v = address_space_ldq_le(
++                                    &address_space_memory, pp + o,
++                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                                for (unsigned ai = 0; ai < nanch; ai++) {
++                                    /* 等值或同页（带 flag/低位变形） */
++                                    if (v == anchors[ai]
++                                        || ((v & ~0xfffull)
++                                            == (anchors[ai] & ~0xfffull)
++                                            && (v >> 48) == 0
++                                            && (v & 0xfffull) < 0x100)) {
++                                        fprintf(stderr,
++                                                "GPUANCH a%u @va=%llx+%x "
++                                                "= %llx\n", ai,
++                                                (unsigned long long)va, o,
++                                                (unsigned long long)v);
++                                        /* 命中处所在的 64B 描述符原文 */
++                                        hwaddr db = pp + (o & ~0x3full);
++                                        fprintf(stderr, "GPUANCH desc:");
++                                        for (unsigned q = 0; q < 8; q++) {
++                                            fprintf(stderr, " %016llx",
++                                                    (unsigned long long)
++                                                    address_space_ldq_le(
++                                                        &address_space_memory,
++                                                        db + q * 8,
++                                                        MEMTXATTRS_UNSPECIFIED,
++                                                        NULL));
++                                        }
++                                        fprintf(stderr, "\n");
++                                    }
++                                }
++                            }
++                        }
++                    }
++                }
 +                if ((instr >> 56) == 6) {
 +                    /* M2i：SRT 链正解——SRT_2=regs[4]（低 3 位 flag），
 +                     * SRE 实测 16B/项 {addr56|tag(0x01<<56), size32}
