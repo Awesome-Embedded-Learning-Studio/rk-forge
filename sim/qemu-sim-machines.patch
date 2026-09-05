@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..26619f1
+index 0000000..83b1fcf
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,3131 @@
+@@ -0,0 +1,3179 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -943,6 +943,8 @@ index 0000000..26619f1
 +    /* MCU/CSF 假固件握手（见 gpu 段注释） */
 +    uint32_t mcu_control, mcu_status;
 +    uint32_t job_rawstat, job_mask;       /* JOB_IRQ 组（0x1000-）bit31=global */
++    uint32_t csg_live;                    /* M2f：内核 GROUP_CREATE 过的槽位
++                                           * （req 状态机推，扫 ring 的门） */
 +    uint32_t mmu_rawstat, mmu_mask;       /* MMU_IRQ 组（0x2000-） */
 +    uint64_t as_transtab[8], as_memattr[8], as_transcfg[8];
 +    uint64_t reads, unknown;              /* 诊断计数（不迁移） */
@@ -2627,6 +2629,19 @@ index 0000000..26619f1
 +    }
 +    address_space_stl_le(&address_space_memory, pa, 0x01050000,
 +                         MEMTXATTRS_UNSPECIFIED, NULL);
++    if (getenv("GPUDBG")) {
++        /* M2f：blob 铺进 BO 的 glb control 原文（内核 group_num/csg_slot_
++         * count 的唯一来源）——0x10=group_num、0x14=group_stride。 */
++        fprintf(stderr, "GLBCTL in=%x out=%x group_num=%u stride=%x\n",
++                address_space_ldl_le(&address_space_memory, pa + 8,
++                                     MEMTXATTRS_UNSPECIFIED, NULL),
++                address_space_ldl_le(&address_space_memory, pa + 0xc,
++                                     MEMTXATTRS_UNSPECIFIED, NULL),
++                address_space_ldl_le(&address_space_memory, pa + 0x10,
++                                     MEMTXATTRS_UNSPECIFIED, NULL),
++                address_space_ldl_le(&address_space_memory, pa + 0x14,
++                                     MEMTXATTRS_UNSPECIFIED, NULL));
++    }
 +    /* 每组 CSG control（+0x1000 + i*0xa0，8 组）的 suspend/protm_suspend_
 +     * size：镜像初值 0，真机由 MCU 上电填写；group_create 拿 0 去 alloc
 +     * suspend buf 会 -ENOSPC。必须 8 组全写——驱动校验所有 CSG 槽一致
@@ -2675,7 +2690,8 @@ index 0000000..26619f1
 +
 +static void rk3588_lite_gpu_cs_consume(struct Rk3588LiteGpu *g,
 +                                       hwaddr csg_ctl, hwaddr csg_in,
-+                                       hwaddr csg_out, unsigned cs);
++                                       hwaddr csg_out, unsigned csg,
++                                       unsigned cs);
 +
 +/* 全局 doorbell（CSF_DOORBELL(0)）+ CSG doorbell（1..8，M2a）：toggle/ACK
 + * 合同（note 76 §2.7）。等待方 panthor_fw_wait_acks 三层兜底（busy-wait →
@@ -2699,7 +2715,9 @@ index 0000000..26619f1
 +        dbg = getenv("GPUDBG") != NULL;
 +    }
 +    if (dbg) {
-+        fprintf(stderr, "GPUDB id=%u\n", id);
++        /* M2f：墙钟 ms——门铃风暴/长消费的 host 侧计时 */
++        fprintf(stderr, "GPUDB id=%u t=%lld\n", id,
++                (long long)(qemu_clock_get_ns(QEMU_CLOCK_REALTIME) / 1000000));
 +    }
 +
 +    ctl = rk3588_lite_gpu_va_pa(g, id == 0 ? 0x04000000
@@ -2737,7 +2755,7 @@ index 0000000..26619f1
 +         * 个 job 靠 START 路径 doorbell(0) sweep 碰到）。doorbell_id = csg_id+1
 +         * （group_bind_locked），扫该组全部 CS，insert==extract 的幂等追平。 */
 +        for (unsigned cs = 0; cs < 8; cs++) {
-+            rk3588_lite_gpu_cs_consume(g, ctl, in_pa, out_pa, cs);
++            rk3588_lite_gpu_cs_consume(g, ctl, in_pa, out_pa, id - 1, cs);
 +        }
 +        return;
 +    }
@@ -2752,6 +2770,7 @@ index 0000000..26619f1
 +    (void)doorbell_req;
 +    for (unsigned csg = 0; csg < 8; csg++) {
 +        hwaddr c_in, c_out;
++        uint32_t state, live_req;
 +
 +        ctl = rk3588_lite_gpu_va_pa(g, 0x04001000 + csg * 0xa0);
 +        if (ctl == HWADDR_MAX) {
@@ -2768,6 +2787,23 @@ index 0000000..26619f1
 +        }
 +        req = address_space_ldl_le(&address_space_memory, c_in,
 +                                   MEMTXATTRS_UNSPECIFIED, NULL);
++
++        /* M2f：CSG 存活门——req 状态机（panthor_fw.h 的 CSG_STATE、
++         * ENDPOINT_CONFIG、STATUS_UPDATE 位）只有内核 GROUP_CREATE→START
++         * 之后才会出现；TERMINATE 收组。blob 静态页缺省态可能随机像
++         * "活"，但只影响幂等追平（无害）；ring 消费必须有 START 痕迹，
++         * 否则对垃圾页假消费 + 置错 IRQ 位。SUSPEND(2) 保持原存活判定。 */
++        state = req & 7;
++        live_req = (state == 1 || state == 3) ||
++                   (req & (BIT(4) | BIT(5)));
++        if (state == 0 && !(req & (BIT(4) | BIT(5)))) {
++            g->csg_live &= ~(1u << csg);
++        } else if (live_req) {
++            g->csg_live |= (1u << csg);
++        }
++        if (!(g->csg_live & (1u << csg))) {
++            continue;
++        }
 +        address_space_stl_le(&address_space_memory, c_out, req,
 +                             MEMTXATTRS_UNSPECIFIED, NULL);
 +
@@ -2795,7 +2831,7 @@ index 0000000..26619f1
 +            if (!(pend & 1)) {
 +                continue;
 +            }
-+            rk3588_lite_gpu_cs_consume(g, ctl, c_in, c_out, cs);
++            rk3588_lite_gpu_cs_consume(g, ctl, c_in, c_out, csg, cs);
 +        }
 +    }
 +
@@ -3046,7 +3082,8 @@ index 0000000..26619f1
 + * dst@[55:48]；SYNC_ADD64/32 addr_reg@[47:40] data_reg@[39:32]）。 */
 +static void rk3588_lite_gpu_cs_consume(struct Rk3588LiteGpu *g,
 +                                       hwaddr csg_ctl, hwaddr csg_in,
-+                                       hwaddr csg_out, unsigned cs)
++                                       hwaddr csg_out, unsigned csg,
++                                       unsigned cs)
 +{
 +    hwaddr cs_pa = csg_ctl + 0x40 + cs * 0xc;    /* CS control 同页（PA） */
 +    uint64_t *regs = g->cs_regs;
@@ -3114,8 +3151,14 @@ index 0000000..26619f1
 +        return;
 +    }
 +    if (getenv("GPUDBG")) {
-+        fprintf(stderr, "CONSUME csg_ctl=%llx cs=%u ins=%x ext=%x as=%u\n",
-+                (unsigned long long)csg_ctl, cs, insert, extract, g->cur_as);
++        static int64_t last_ms;    /* M2f：距上次真消费的墙钟间隔 */
++        int64_t now = qemu_clock_get_ns(QEMU_CLOCK_REALTIME) / 1000000;
++
++        fprintf(stderr,
++                "CONSUME csg_ctl=%llx cs=%u ins=%x ext=%x as=%u dt=%lld\n",
++                (unsigned long long)csg_ctl, cs, insert, extract, g->cur_as,
++                (long long)(now - last_ms));
++        last_ms = now;
 +    }
 +
 +    uint64_t budget = 1 << 20;
@@ -3167,7 +3210,11 @@ index 0000000..26619f1
 +                                           MEMTXATTRS_UNSPECIFIED, NULL);
 +    address_space_stl_le(&address_space_memory, csg_out + 0xc,
 +                         cs_irq ^ BIT(cs), MEMTXATTRS_UNSPECIFIED, NULL);
-+    g->job_rawstat |= 1u << ((csg_ctl - 0x04001000) / 0xa0);
++    /* M2f 根修：bit 索引必须用 slot 序号。M2a 版本拿 csg_ctl（物理地址）
++     * 减 VA 基址再移位，0x622d000 算出 0x37553，AArch64 LSL 按 mod 32
++     * 折叠 → 每次消费稳定置 bit19 → 内核 csg_id=19 ≥ slot_count →
++     * sched_process_csg_irq_locked drm_WARN_ON ×67 + 调度锁长持 brownout。 */
++    g->job_rawstat |= 1u << csg;
 +    rk3588_lite_gpu_update_irq(g);
 +}
 +
@@ -3411,6 +3458,7 @@ index 0000000..26619f1
 +        VMSTATE_UINT32(mcu_control, struct Rk3588LiteGpu),
 +        VMSTATE_UINT32(mcu_status, struct Rk3588LiteGpu),
 +        VMSTATE_UINT32(job_rawstat, struct Rk3588LiteGpu),
++        VMSTATE_UINT32(csg_live, struct Rk3588LiteGpu),
 +        VMSTATE_UINT32(job_mask, struct Rk3588LiteGpu),
 +        VMSTATE_UINT32(mmu_rawstat, struct Rk3588LiteGpu),
 +        VMSTATE_UINT32(mmu_mask, struct Rk3588LiteGpu),

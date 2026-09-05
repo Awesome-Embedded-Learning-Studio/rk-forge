@@ -51,4 +51,5 @@ title: 工程笔记
   <ChapterLink num="86" href="86-2026-09-03-panthor-m2b-noop-completion">RK3588：panthor M2b 终章，wrapper-CS 解释器，fence 全通桌面渲染循环活（像素免责）</ChapterLink>
   <ChapterLink num="87" href="87-2026-09-04-panthor-m2c-first-pixels">RK3588：panthor M2c，首个真像素——glClear readback PASS，note 76 执行器证据门被推翻</ChapterLink>
   <ChapterLink num="88" href="88-2026-09-05-panthor-m2e-controlflow-as-binding">RK3588：panthor M2e，控制流指令 + 权威 AS 绑定 + 用户门铃修复（M2b 期楔死根因）</ChapterLink>
+  <ChapterLink num="89" href="89-2026-09-05-panthor-m2f-jobirq-bit19-brownout">RK3588：panthor M2f，JOB_IRQ bit19 移位根修——brownout 真凶落网，mutter 并发 glClear 4× PASS</ChapterLink>
 </ChapterNav>
