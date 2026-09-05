@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""M2h 侦察：GPU blit 路径。64×64 U-tiled FBO clear 红 → glReadPixels。
-大图 readback 无法走 CPU 快路（tiled→linear detile 必须 blitter），
-预期 mesa 发 RUN_FULLSCREEN(8)+DCD。验收：4×4 采样块全红 =
-blit 真数据搬运（非 clear 铺设）的第二个真像素里程碑。
+"""M2h 验收：GPU blit 真数据搬运。16×16 U-tiled FBO（bf=1，clear 可铺）
+→ glReadPixels → blitter detile 到线性 staging → 采样验证全红。
+（64×64 的 FBO mesa 会选 AFBC——那是 M2h 之后的战役。）
 """
 import ctypes
 import os
@@ -10,7 +9,7 @@ import sys
 
 os.environ.setdefault("EGL_PLATFORM", "gbm")
 NODE = "/dev/dri/renderD128"
-W = H = 64
+W = H = 16
 
 libc = ctypes.CDLL("libc.so.6", use_errno=True)
 E = ctypes.CDLL("libEGL.so.1")
@@ -59,12 +58,13 @@ G.glClearColor(ctypes.c_float(1.0), ctypes.c_float(0.0),
 G.glClear(0x4000)
 print("clear err =", hex(G.glGetError()))
 
-buf = (ctypes.c_ubyte * (W * 4))()
+buf = (ctypes.c_ubyte * (W * 4 * 4))()   # 16 宽 × 4 行 × RGBA8（曾只给
+                                          # W*4=64B 被 mesa 写爆 → 堆损坏段错误）
 G.glReadPixels(0, 0, W, 4, 0x1908, 0x1401, buf)
 print("read err =", hex(G.glGetError()))
 bad = []
 for y in range(4):
-    for x in range(0, W, 16):
+    for x in range(0, W, 4):    # 每 4px 采样——detile swizzle 错一点就露馅
         p = list(buf[(y * W + x) * 4:(y * W + x) * 4 + 4])
         if p != [255, 0, 0, 255]:
             bad.append((x, y, p))
