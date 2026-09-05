@@ -58,4 +58,5 @@ title: 工程笔记
   <ChapterLink num="93" href="93-2026-09-06-panthor-m2i-srt-recon">RK3588：panthor M2i 侦察，SRT 链三层挖掘（16B SRE 实测格式 + GPUSRT 仪器落库，链未竟）</ChapterLink>
   <ChapterLink num="94" href="94-2026-09-06-panthor-m2i-parsed-blit-src">RK3588：panthor M2i 达成，锚点反查破案——plane 终点实锤，blit src 升级为结构匹配</ChapterLink>
   <ChapterLink num="95" href="95-2026-09-06-panthor-m2j-afbc-clear-readback">RK3588：panthor M2j，AFBC solid-header clear + 读路径 + 子区域 readback 全链 PASS</ChapterLink>
+  <ChapterLink num="96" href="96-2026-09-06-panthor-m2k-afbc-write-and-vop-decode">RK3588：panthor M2k，AFBC 写路径 + VOP 解码——基建闭环，桌面可见判定仍归 shader</ChapterLink>
 </ChapterNav>
