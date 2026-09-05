@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..99599bb
+index 0000000..6d3937c
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,3426 @@
+@@ -0,0 +1,3463 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3240,38 +3240,75 @@ index 0000000..99599bb
 +                }
 +                fprintf(stderr, "\n");
 +                if ((instr >> 56) == 6) {
-+                    /* SRT_2（fragment 资源表）指针 = regs[4]：表内槽位
-+                     * {tagged_ptr, size} 对指向纹理描述符，追 dump 本体 */
++                    /* M2i：SRT 链正解——SRT_2=regs[4]（低 3 位 flag），
++                     * SRE 实测 16B/项 {addr56|tag(0x01<<56), size32}
++                     * （v1 dump 实证；xml 的 32B Resource 与内存不符）。
++                     * size=0x40 → 64B 纹理描述符：W/H-1@w1、Surfaces@w4
++                     * → Generic Plane 64B：Pointer@w2、RowStride@w4。 */
 +                    hwaddr srt = rk3588_lite_gpu_va_pa_user(g,
-+                                                            regs[4] & ~7ull);
++                                                        regs[4] & ~0x3full);
 +                    if (srt != HWADDR_MAX) {
 +                        for (unsigned e = 0; e < 4; e++) {
-+                            uint64_t ent0 = address_space_ldq_le(
++                            uint64_t a = address_space_ldq_le(
 +                                &address_space_memory, srt + e * 16,
 +                                MEMTXATTRS_UNSPECIFIED, NULL);
-+                            uint64_t ent1 = address_space_ldq_le(
++                            uint32_t sz = address_space_ldl_le(
 +                                &address_space_memory, srt + e * 16 + 8,
 +                                MEMTXATTRS_UNSPECIFIED, NULL);
-+                            if (!ent0 || !ent1) {
-+                                continue;
++                            if (!a || sz != 0x40) {
++                                continue;    /* 只追纹理描述符（0x40） */
 +                            }
 +                            hwaddr td = rk3588_lite_gpu_va_pa_user(
-+                                g, ent0 & 0xffffffffffull);
-+                            fprintf(stderr,
-+                                    "GPURUN srt2[%u]=%llx/%llx td@%llx:",
-+                                    e, (unsigned long long)ent0,
-+                                    (unsigned long long)ent1,
++                                g, a & 0xffffffffffffffull);
++                            if (td == HWADDR_MAX) {
++                                continue;
++                            }
++                            fprintf(stderr, "GPUSRT e%u raw@%llx:", e,
 +                                    (unsigned long long)td);
-+                            if (td != HWADDR_MAX) {
-+                                for (unsigned k = 0; k < 8; k++) {
-+                                    fprintf(stderr, " %016llx",
-+                                            (unsigned long long)
-+                                            address_space_ldq_le(
-+                                                &address_space_memory,
-+                                                td + k * 8,
-+                                                MEMTXATTRS_UNSPECIFIED,
-+                                                NULL));
-+                                }
++                            for (unsigned k = 0; k < 8; k++) {
++                                fprintf(stderr, " %016llx",
++                                        (unsigned long long)
++                                        address_space_ldq_le(
++                                            &address_space_memory,
++                                            td + k * 8,
++                                            MEMTXATTRS_UNSPECIFIED, NULL));
++                            }
++                            fprintf(stderr, "\n");
++                            /* 实测 SRE 目标 64B 是中间层：真正的纹理描述符
++                             * 在 w5（指向 FBO 邻域的堆 VA）——SRT 链实为
++                             * SRE→64B 中介→Texture。 */
++                            uint64_t tw5 = address_space_ldq_le(
++                                &address_space_memory, td + 40,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++                            hwaddr t2 = rk3588_lite_gpu_va_pa_user(
++                                g, tw5 & ~0x3full);
++                            if (t2 == HWADDR_MAX) {
++                                continue;
++                            }
++                            uint64_t xw1 = address_space_ldq_le(
++                                &address_space_memory, t2 + 8,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++                            uint64_t xw4 = address_space_ldq_le(
++                                &address_space_memory, t2 + 32,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++                            hwaddr pl = rk3588_lite_gpu_va_pa_user(
++                                g, xw4 & ~0x3full);
++                            fprintf(stderr,
++                                    "GPUSRT e%u tex2@%llx %ux%u surf=%llx",
++                                    e, (unsigned long long)t2,
++                                    (unsigned)(xw1 & 0xffff) + 1,
++                                    (unsigned)((xw1 >> 16) & 0xffff) + 1,
++                                    (unsigned long long)xw4);
++                            if (pl != HWADDR_MAX) {
++                                uint64_t pw2 = address_space_ldq_le(
++                                    &address_space_memory, pl + 16,
++                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                                uint32_t pw4 = address_space_ldl_le(
++                                    &address_space_memory, pl + 32,
++                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                                fprintf(stderr,
++                                        " plane_ptr=%llx row_stride=%x",
++                                        (unsigned long long)pw2, pw4);
 +                            }
 +                            fprintf(stderr, "\n");
 +                        }
