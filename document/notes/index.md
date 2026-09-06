@@ -62,4 +62,5 @@ title: 工程笔记
   <ChapterLink num="97" href="97-2026-09-06-panthor-m2l-constant-fs-recon">RK3588：panthor M2l 侦察，常量不在内存里（FAU 页选编码+立即数烤入），M2l=Valhall 解码</ChapterLink>
   <ChapterLink num="98" href="98-2026-09-06-panthor-m2l-variant-diff-cipher">RK3588：panthor M2l，四变体 diff 密码攻击——FS 代码定位+常量指纹+序列变化三发现</ChapterLink>
   <ChapterLink num="99" href="99-2026-09-06-panthor-m2l-constant-fs-executed">RK3588：panthor M2l 达成——常量色 FS 执行，shader 语义像素 13/13 PASS</ChapterLink>
+  <ChapterLink num="100" href="100-2026-09-06-panthor-m2m-desktop-session-gpulive">RK3588：panthor M2m，桌面会话全负载活，GPLANES 定界：桌面可见=采样合成深水区</ChapterLink>
 </ChapterNav>

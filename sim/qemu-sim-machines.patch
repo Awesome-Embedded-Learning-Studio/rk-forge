@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..e142121
+index 0000000..f80b3d1
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,4019 @@
+@@ -0,0 +1,4062 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3089,6 +3089,36 @@ index 0000000..e142121
 +    int64_t lo = (int64_t)(center & ~0xfffull) - 0x8000;
 +    int64_t hi = (int64_t)(center & ~0xfffull) + 0x8000;
 +
++    if (getenv("GPUDBG")) {
++        /* M2m：dst=%ux%u 时的 plane 候选普查 */
++        fprintf(stderr, "GPLANES dst=%ux%u:", w, h);
++        for (int64_t va2 = lo; va2 < hi; va2 += 0x1000) {
++            hwaddr pp2 = rk3588_lite_gpu_va_pa_user(g, (uint64_t)va2);
++            if (pp2 == HWADDR_MAX) {
++                continue;
++            }
++            for (unsigned o = 0; o + 32 <= 0x1000; o += 8) {
++                uint64_t b = address_space_ldq_le(&address_space_memory,
++                                                  pp2 + o + 8,
++                                                  MEMTXATTRS_UNSPECIFIED, NULL);
++                uint64_t st = address_space_ldq_le(&address_space_memory,
++                                                   pp2 + o + 16,
++                                                   MEMTXATTRS_UNSPECIFIED, NULL);
++                uint64_t dm = address_space_ldq_le(&address_space_memory,
++                                                   pp2 + o + 24,
++                                                   MEMTXATTRS_UNSPECIFIED, NULL);
++                if (b >= 0x7fffff000000ull && b < 0x800000000000ull
++                    && st >= 0x40 && st <= 0x100000 && !(st & (st - 1))) {
++                    fprintf(stderr, " %x/%x@%llx",
++                            (unsigned)((dm >> 32) & 0xffff) + 1,
++                            (unsigned)((dm >> 48) & 0xffff) + 1,
++                            (unsigned long long)(va2 + o));
++                }
++            }
++        }
++        fprintf(stderr, "\n");
++    }
++
 +    for (int64_t va = lo; va < hi; va += 0x1000) {
 +        hwaddr pp = rk3588_lite_gpu_va_pa_user(g, (uint64_t)va);
 +        if (pp == HWADDR_MAX) {
@@ -3239,6 +3269,19 @@ index 0000000..e142121
 +                    r1 = val;
 +                    has1 = true;
 +                }
++            }
++            if (getenv("GPUDBG")) {
++                /* M2m：非匹配 FS 的指令形态 dump（采样 FS 侦察） */
++                fprintf(stderr, "GPUFSX ops@%llx:", (unsigned long long)va + o);
++                for (unsigned k = 0; k < 8; k++) {
++                    uint64_t q = address_space_ldq_le(
++                        &address_space_memory, pp + o + k * 8,
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                    fprintf(stderr, " %03x/%02x",
++                            (unsigned)((q >> 48) & 0x1ff),
++                            (unsigned)((q >> 40) & 0x3f));
++                }
++                fprintf(stderr, "\n");
 +            }
 +            if (has0 && has1) {
 +                uint32_t rgba = rk3588_f16_to_u8(r0 & 0xffff)
