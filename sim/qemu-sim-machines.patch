@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..a631d5c
+index 0000000..fde7a52
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,4832 @@
+@@ -0,0 +1,4883 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1027,6 +1027,7 @@ index 0000000..a631d5c
 +    uint8_t fs_plane_type;                /* plane w0[7:4]：1=Generic 6=AFBC */
 +    uint8_t fs_plane_order;               /* Generic clump ordering：1=U 2=线性 */
 +    uint8_t fs_pixel_uv;                  /* TEX_FETCH(0x125)：uv=像素坐标 */
++    uint8_t fs_plane_thdr;                /* AFBC plane w0 bit19：tiled hdr */
 +    uint16_t fs_tex_w, fs_tex_h;
 +    uint32_t mmu_rawstat, mmu_mask;       /* MMU_IRQ 组（0x2000-） */
 +    uint64_t as_transtab[8], as_memattr[8], as_transcfg[8];
@@ -2939,6 +2940,8 @@ index 0000000..a631d5c
 +                                                 uint64_t spd2);
 +static hwaddr rk3588_tiled_pixel(hwaddr base, uint32_t stride,
 +                                 unsigned x, unsigned y);
++static hwaddr rk3588_afbc_hdr(hwaddr base, uint32_t stride, unsigned bx,
++                              unsigned by, bool tiled);
 +/* M2n：采样 FS 侦察——mutter 合成全走 RUN_FRAGMENT（无 RUN_IDVS，
 + * note 100），提取器旧挂点抓不到。批池扫 varying/tex/var_tex 族
 + * opcode（ISA.xml），命中页整页 dump 全字。去重按 PA+内容哈希：
@@ -3215,6 +3218,7 @@ index 0000000..a631d5c
 +                                          MEMTXATTRS_UNSPECIFIED, NULL);
 +    uint8_t ptype = (pw0 >> 4) & 0xf;
 +    uint8_t porder = (pw0 >> 8) & 0xf;
++    g->fs_plane_thdr = (pw0 >> 19) & 1;    /* AFBC Tiled header（bf=13） */
 +    /* sb 尺寸字段(bits[10:8])实测=0 但 payload/header 几何实测 32×8
 +     * 条带（渐变明文 256/256）——字段语义与 genxml 枚举不符，以数据
 +     * 为准不做门。 */
@@ -3269,6 +3273,23 @@ index 0000000..a631d5c
 +                                                 MEMTXATTRS_UNSPECIFIED,
 +                                                 NULL);
 +        }
++        quad_ok = rk3588_quad_sane(g->fs_quad);
++    }
++    if (!quad_ok && vbuf[0] != HWADDR_MAX) {
++        /* D：步长 32B 交错（pos.xy@+0、uv.xy@+16，后 16B padding）——
++         * mesa 上载 blit quad 实测（uv=像素坐标配 TEX_FETCH） */
++        uint32_t q[16];
++        for (unsigned v = 0; v < 4; v++) {
++            for (unsigned c = 0; c < 2; c++) {
++                q[v * 4 + c] = address_space_ldl_le(
++                    &address_space_memory, vbuf[0] + v * 32 + c * 4,
++                    MEMTXATTRS_UNSPECIFIED, NULL);
++                q[v * 4 + 2 + c] = address_space_ldl_le(
++                    &address_space_memory, vbuf[0] + v * 32 + 16 + c * 4,
++                    MEMTXATTRS_UNSPECIFIED, NULL);
++            }
++        }
++        memcpy(g->fs_quad, q, sizeof(q));
 +        quad_ok = rk3588_quad_sane(g->fs_quad);
 +    }
 +    if (!quad_ok && vbuf[0] != HWADDR_MAX && vbuf[1] != HWADDR_MAX) {
@@ -3350,7 +3371,8 @@ index 0000000..a631d5c
 +                                    rk3588_tiled_pixel(sp, stride, x, y),
 +                                    MEMTXATTRS_UNSPECIFIED, NULL);
 +    }
-+    hwaddr hdr = sp + (y >> 4) * (uint64_t)stride + (x >> 4) * 16;
++    hwaddr hdr = rk3588_afbc_hdr(sp, stride, x >> 4, y >> 4,
++                                g->fs_plane_thdr);
 +    uint64_t h04 = address_space_ldq_le(&address_space_memory, hdr,
 +                                        MEMTXATTRS_UNSPECIFIED, NULL);
 +    if (!h04) {
@@ -3378,7 +3400,7 @@ index 0000000..a631d5c
 +                                           MEMTXATTRS_UNSPECIFIED, NULL);
 +        uint8_t bf = (w1 >> 8) & 0xf;
 +        if (!(w1 & 1) || ((w1 >> 3) & 0x1f) != 19
-+            || (bf != 1 && bf != 2 && bf != 12)) {
++            || (bf != 1 && bf != 2 && bf != 12 && bf != 13)) {
 +            continue;    /* 非写回/非 RGBA8/非已知 bf */
 +        }
 +        uint64_t base = address_space_ldq_le(&address_space_memory,
@@ -3413,10 +3435,20 @@ index 0000000..a631d5c
 +            }
 +            continue;
 +        }
-+        /* 线性 staging（quad 域内直接采样） */
++        /* 线性 staging（quad 域内直接采样）。RT 带 clear 位（bit31，
++         * mesa 把 glClear 合并进 draw job 的 FBD）时 quad 外=clear 色
++         * ——否则 readback 拿到残内存。 */
 +        uint32_t *stage = g_malloc_n(w, h * sizeof(uint32_t));
 +        if (!stage) {
 +            return false;
++        }
++        if (w1 & BIT(31)) {
++            uint32_t clr = address_space_ldl_le(&address_space_memory,
++                                                rt + 0x30,
++                                                MEMTXATTRS_UNSPECIFIED, NULL);
++            for (unsigned ci = 0; ci < (uint64_t)w * h; ci++) {
++                stage[ci] = clr;
++            }
 +        }
 +        unsigned drawn = 0;
 +        for (unsigned py = 0; py < h && py < 8192; py++) {
@@ -3468,12 +3500,14 @@ index 0000000..a631d5c
 +                }
 +            }
 +        } else {
-+            /* bf=12：M2k sb 布局（solid header / body+header） */
++            /* bf=12/13：M2k sb 布局（solid header / body+header）；
++             * 13=AFBC Tiled（header u-interleave，mutter 字形图集） */
 +            unsigned tx = w / 16, ty2 = h / 16;
 +            hwaddr body_base = (bp + (uint64_t)ty2 * stride + 63) & ~63ull;
 +            for (unsigned by = 0; by < ty2; by++) {
 +                for (unsigned bx = 0; bx < tx; bx++) {
-+                    hwaddr hdr = bp + (uint64_t)by * stride + bx * 16;
++                    hwaddr hdr = rk3588_afbc_hdr(bp, stride, bx, by,
++                                                 bf == 13);
 +                    hwaddr body = body_base
 +                        + ((uint64_t)by * tx + bx) * 1024;
 +                    uint32_t first = stage[by * 16 * w + bx * 16];
@@ -3770,17 +3804,17 @@ index 0000000..a631d5c
 +                }
 +            }
 +        }
-+        if (bf == 12 && is_clear) {
-+            /* M2j：AFBC clear——硬件语义是"只写 header"的 solid color
++        if ((bf == 12 || bf == 13) && is_clear) {
++            /* M2j/M2n：AFBC clear——硬件语义是"只写 header"的 solid color
 +             * 编码（pan_afbc.h headerblock union：subblock_sizes 全 0
 +             * + rgba8888@+8..11；pan_afbc.c 判据 sizes[0]&0x3f==0）。
 +             * RT base=header 区指针、stride=header 行距（mutter 实测
-+             * 1027 宽=65 superblock×16B=0x410 自洽）。 */
++             * 1027 宽=65 superblock×16B=0x410 自洽）；bf=13 tiled 寻址。 */
 +            unsigned tx = (w + 15) / 16, ty = (h + 15) / 16;
 +            for (unsigned y = 0; y < ty; y++) {
-+                hwaddr row = bp + (uint64_t)y * stride;
 +                for (unsigned x = 0; x < tx; x++) {
-+                    hwaddr hdr = row + (uint64_t)x * 16;
++                    hwaddr hdr = rk3588_afbc_hdr(bp, stride, x, y,
++                                                  bf == 13);
 +                    address_space_stq_le(&address_space_memory, hdr, 0,
 +                                         MEMTXATTRS_UNSPECIFIED, NULL);
 +                    address_space_stl_le(&address_space_memory, hdr + 8, clr,
@@ -3816,6 +3850,21 @@ index 0000000..a631d5c
 +{
 +    return base + (y >> 4) * (uint64_t)stride + (x >> 4) * 1024 +
 +           ((rk3588_tiled_bitdup[y & 15] ^ rk3588_tiled_space4[x & 15]) * 4);
++}
++
++/* M2n：AFBC superblock header 寻址。bf=13（"AFBC Tiled"，mutter 字形
++ * 图集实测——此前误标 AFRC）：header 数组本身按 u-interleave 排布
++ * （16B/头，16×16 头=4KB tile），曲线与像素 tile 同式。读写两端都是
++ * 本模型（自洽约定）；bf=12 线性。 */
++static hwaddr rk3588_afbc_hdr(hwaddr base, uint32_t stride, unsigned bx,
++                              unsigned by, bool tiled)
++{
++    if (!tiled) {
++        return base + (uint64_t)by * stride + bx * 16;
++    }
++    return base + (by >> 4) * (uint64_t)stride + (bx >> 4) * 4096 +
++           ((rk3588_tiled_bitdup[by & 15] ^ rk3588_tiled_space4[bx & 15])
++            * 16);
 +}
 +
 +/* M2i：blit src 结构匹配定位——纹理 plane 描述符（锚点反查实锤）：
@@ -4077,7 +4126,8 @@ index 0000000..a631d5c
 +        parsed = true;
 +        g->blit_src_parsed++;
 +    } else if (g->last_img_va
-+               && (g->last_img_bf == 1 || g->last_img_bf == 12)
++               && (g->last_img_bf == 1 || g->last_img_bf == 12
++                   || g->last_img_bf == 13)
 +               && g->last_img_w >= w && g->last_img_h >= h) {
 +        src_va = g->last_img_va;
 +        src_stride = g->last_img_stride;
@@ -4129,7 +4179,8 @@ index 0000000..a631d5c
 +
 +            for (unsigned by = 0; by < ty; by++) {
 +                for (unsigned bx = 0; bx < tx; bx++) {
-+                    hwaddr hdr = dp + (uint64_t)by * stride + bx * 16;
++                    hwaddr hdr = rk3588_afbc_hdr(dp, stride, bx, by,
++                                                     bf == 13);
 +                    hwaddr body = body_base
 +                        + ((uint64_t)by * tx + bx) * 1024;
 +                    uint32_t first = 0;

@@ -146,7 +146,11 @@ G.glEnableVertexAttribArray(0)
 G.glVertexAttribPointer(0, 2, 0x1406, 0, 16, None)
 G.glEnableVertexAttribArray(1)
 G.glVertexAttribPointer(1, 2, 0x1406, 0, 16, ctypes.c_void_p(8))
-# FBO 不 clear：quad 外像素必须保持未写状态（0）——子区域验收判据
+# FBO 先 clear 到洋红——quad 外像素=clear 色（未初始化内存不可作判据，
+# 曾因新鲜页面恰好为零而侥幸）
+G.glClearColor(ctypes.c_float(1.0), ctypes.c_float(0.0),
+                ctypes.c_float(1.0), ctypes.c_float(1.0))
+G.glClear(0x4000)
 G.glViewport(0, 0, 16, 16)
 G.glDrawArrays(0x0005, 0, 4)                          # TRIANGLE_STRIP
 print("glGetError after draw =", hex(G.glGetError()))
@@ -165,7 +169,7 @@ for y in range(16):
         inside_x = min(QX0, QX1) <= ndc_x <= max(QX0, QX1)
         p = bytes(buf[(y * 16 + x) * 4:(y * 16 + x) * 4 + 4])
         if not (inside_x and inside_y):
-            exp = bytes([0, 0, 0, 0])
+            exp = bytes([255, 0, 255, 255])
         else:
             u = (ndc_x - QX0) / (QX1 - QX0)
             v = (ndc_y - QY0) / (QY1 - QY0)
