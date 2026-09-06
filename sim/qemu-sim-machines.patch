@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..fde7a52
+index 0000000..4c131cf
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,4883 @@
+@@ -0,0 +1,4891 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3875,7 +3875,8 @@ index 0000000..fde7a52
 +                                           uint64_t center, unsigned w,
 +                                           unsigned h, uint64_t *base_va,
 +                                           uint32_t *stride,
-+                                           uint8_t *order)
++                                           uint8_t *order,
++                                           uint8_t *thdr)
 +{
 +    int found = 0;
 +    int64_t lo = (int64_t)(center & ~0xfffull) - 0x8000;
@@ -3945,6 +3946,9 @@ index 0000000..fde7a52
 +                                                   MEMTXATTRS_UNSPECIFIED,
 +                                                   NULL);
 +                *order = (w0 >> 8) & 0xf;
++                if (thdr) {
++                    *thdr = (w0 >> 19) & 1;
++                }
 +            }
 +        }
 +    }
@@ -3961,14 +3965,14 @@ index 0000000..fde7a52
 + *   落到这里） */
 +static uint32_t rk3588_blit_read_px(struct Rk3588LiteGpu *g, hwaddr src,
 +                                    uint32_t stride, uint8_t order,
-+                                    unsigned x, unsigned y)
++                                    uint8_t thdr, unsigned x, unsigned y)
 +{
 +    if (order == 2) {
 +        return address_space_ldl_le(&address_space_memory,
 +                                    src + (uint64_t)y * stride + x * 4,
 +                                    MEMTXATTRS_UNSPECIFIED, NULL);
 +    }
-+    hwaddr sb = src + (y >> 4) * (uint64_t)stride + (x >> 4) * 16;
++    hwaddr sb = rk3588_afbc_hdr(src, stride, x >> 4, y >> 4, thdr);
 +    uint64_t h04 = address_space_ldq_le(&address_space_memory, sb,
 +                                        MEMTXATTRS_UNSPECIFIED, NULL);
 +    uint64_t h815 = address_space_ldq_le(&address_space_memory, sb + 8,
@@ -4118,11 +4122,13 @@ index 0000000..fde7a52
 +    uint64_t src_va = 0;
 +    uint32_t src_stride = 0;
 +    uint8_t src_order = 1;    /* last_img 回退=本模型写路径（U-tiled/AFBC） */
++    uint8_t src_thdr = 0;
 +    bool parsed = false;
 +
 +    if (spd2
 +        && rk3588_lite_gpu_find_src_plane(g, spd2, w, h, &src_va,
-+                                          &src_stride, &src_order)) {
++                                          &src_stride, &src_order,
++                                          &src_thdr)) {
 +        parsed = true;
 +        g->blit_src_parsed++;
 +    } else if (g->last_img_va
@@ -4189,7 +4195,7 @@ index 0000000..fde7a52
 +                    for (unsigned yy = 0; yy < 16 && uniform; yy++) {
 +                        for (unsigned xx = 0; xx < 16; xx++) {
 +                            uint32_t px = rk3588_blit_read_px(
-+                                g, src, src_stride, src_order,
++                                g, src, src_stride, src_order, src_thdr,
 +                                bx * 16 + xx,
 +                                by * 16 + yy);
 +                            if (yy == 0 && xx == 0) {
@@ -4223,7 +4229,8 @@ index 0000000..fde7a52
 +                                    body + (yy * 16 + xx) * 4,
 +                                    rk3588_blit_read_px(
 +                                        g, src, src_stride,
-+                                        src_order, bx * 16 + xx,
++                                        src_order, src_thdr,
++                                        bx * 16 + xx,
 +                                        by * 16 + yy),
 +                                    MEMTXATTRS_UNSPECIFIED, NULL);
 +                            }
@@ -4240,7 +4247,8 @@ index 0000000..fde7a52
 +        }
 +        for (unsigned y = 0; y < h; y++) {
 +            for (unsigned x = 0; x < w; x++) {
-+                uint32_t px = rk3588_blit_read_px(g, src, src_stride, src_order, x, y);
++                uint32_t px = rk3588_blit_read_px(g, src, src_stride, src_order,
++                                       src_thdr, x, y);
 +                hwaddr o = bf == 1
 +                    ? (uintptr_t)rk3588_tiled_pixel(dp, stride, x, y) - dp
 +                    : (uint64_t)y * stride + x * 4;

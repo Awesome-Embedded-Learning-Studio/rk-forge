@@ -1,4 +1,4 @@
-# Note 102 · panthor M2n 达成（受控）：quad 采样合成执行器
+# Note 102 · panthor M2n 达成：quad 采样合成执行器 + 首个可见桌面内容
 
 日期：2026-09-06 · 战役七第二十一篇 · 上一节：note 101（采样 FS 侦察）
 
@@ -70,12 +70,28 @@ RUN_FRAGMENT:
 - 真 AFBC compressed（非未压缩编码）超出；本模型 AFBC=sim 自洽布局
 - mutter novert 类顶点解析未通（§2.3）——桌面可见尚未达成
 
-## 5. 下一步（M2n-mutter 切片）
+## 5. 后续追加（同日深夜）：bf=13 翻案 + 全矩阵 + 可见内容
 
-1. **AFRC(bf=13) 图集读写**——字形可见的唯一剩余墙（171 个已配对
-   draw 落点在此）；AFRC 是与 AFBC 不同的压缩族（Plane type=10），
-   语义待逆向（可再用渐变明文攻击）
-2. VS 语义类（TEX_FETCH+变换 pos）：要么最小 VS 解释（FAU 常量
-   仿射变换提取），要么等 AFRC 通了走 blit 旁路
-3. 主合成链验证：壁纸 bf=2 落点已备 → try_blit 线性读 → 1024×600
-   bf=12 → VOP——screendump 主色统计
+1. **bf=13 = "AFBC Tiled"（u-interleave header 数组），不是 AFRC**——
+   旧标签错误（AFRC=Plane type 10，且 sim 的 TEXTURE_FEATURES_0=0
+   → bit25=0 → mesa has_afrc=false 根本不会选 AFRC）。加
+   `rk3588_afbc_hdr()`（线性/tiled 双寻址）贯穿 raster 提交、try_blit
+   写、clear、纹理读、blit 读。
+2. **第 4 种顶点形态**：步长 32B 交错（pos@+0、uv@+16 像素坐标）=
+   mesa 上载 blit quad（TEX_FETCH）——**novert 类全解**（326 pending
+   = 326 raster，零弃权）。
+3. **clear 合并**：mesa 把 glClear 并进 draw job 的 FBD（RT bit31），
+   staging 先铺 clear word（quad 外=clear 色非残内存——受控测试曾靠
+   新鲜页面侥幸的坑）。
+4. **受控矩阵 9/9 PASS**（2..256 全屏 + 4 子区域含 0.25..0.75）+
+   gt/gc 回归绿。
+5. **GPU 仿真上第一个可见桌面内容**：screendump 640×480 出现
+   701 像素 0xaaaaaa 文字行（x∈[200,438] y∈[226,238]）——字形管线
+   全链贯通（draw→bf=13 图集→合成→VOP）。壁纸已 raster 进自身
+   3840×2160 bf=13 缓冲，但合成到 scanout 的最后一环仍黑（下轮）。
+
+## 6. 下一步（M2n-visible 收官）
+
+壁纸/主内容 → scanout 的合成链考古：主合成 draw 的 FBO（640×480/
+1024×600 bf=12）由哪条路径写（raster 消费/blit/GPUFBG），src 链
+（壁纸 bf=13 tiled 读已修）。screendump 主色统计 >1% 即里程碑。
