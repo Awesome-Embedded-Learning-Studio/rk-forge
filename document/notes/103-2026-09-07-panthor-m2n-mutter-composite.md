@@ -28,18 +28,24 @@ CPU 壁纸像素 → staging（线性）
   会给错页（M2e 同族教训，写路径禁用回退扫描）
 - consume 打印扩展 rt 的 PA/stride（取证壁纸 job：PA=0x2fe00000 st=0x7800）
 
-## 2. kernel panic 边界（开放问题）
+## 2. kernel panic 根因（已锁定，修复=下轮工程）
 
-- FSQUAD on + 无像素上限 → ~130s DABT panic（两次复现，VA=内核
-  vmalloc+像素值被当指针=结构腐蚀）
-- FSQUAD on + >1920×1080 弃权 → **稳定**（330s+ uptime 往返）
-- 撤上限（严格翻译在位）→ 仍在 **62 raster（字形阶段）** 崩——
-  大图写入非唯一根因；字形写（512² 图集，span ~1.2MB 自洽）如何
-  腐蚀内核未解。候选：①图集 bp 误译（cur_as 陈旧？）②字形 draw
-  的某个偶发 misparse 目标 ③与字形无关的并发时序（FSQUAD off 稳定
-  只证明与 raster 路径相关）
-- 下轮刀口：崩前最后 N 个 raster 的 bp/sp dump 比对 plane 声明；
-  或上限逐步放宽做二分（1920→2048→…→3840）
+**真凶 = 长 BQL 持有触发的宿主 NMI 硬锁死**：第三次复现现场拿到
+决定性证据——`Watchdog detected hard LOCKUP on cpu 4`。机制：3840×2160
+等大 draw 的光栅化 = 数千万次 address_space 访问在 **BQL 下单线程**
+跑数秒，TCG vCPU 线程全程不让出 → host PMU watchdog NMI 判死 →
+内核 panic（此前 DABT/NULL 各种形态都是它的下游）。证据链：
+
+- FSQUAD off 稳定 / 像素上限(≤1920×1080)在位稳定（2M px ≈ 1-2s
+  勉强不触发）/ 撤上限即崩（8.3M px ≈ 数秒必触发）
+- 崩溃 boot 的日志尾巴无异常写入（最后 raster=48×48 图标，bp 全部
+  合法）——不是内存腐蚀，推翻初版的 misparse 假设
+- **壁纸链完整因果**：1920×1080 下采样 draw 采样的纹理=3840×2160
+  AFBC（非 staging）→ 上载被上限拦 → 3840 纹理空 → 1920 写零 →
+  合成 blit 搬黑 → 屏黑。链路要通就必须跑 8.3M px 上载
+- **修复方向**：raster 分片异步化——RUN_FRAGMENT 只入队
+  {stage,参数}，qemu_bh 每次处理 N 行（BQL 片间让出），完成后提交。
+  fence 时序（fake-completion 先行）记录为 sim 已知偏差
 
 ## 3. 前轮遗留的修正
 
