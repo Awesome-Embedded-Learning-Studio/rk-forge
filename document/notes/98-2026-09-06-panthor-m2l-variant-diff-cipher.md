@@ -61,3 +61,41 @@ white  6910c03c_003c00c0       4891c100_00000000     (1,1,1,1)
 - /tmp/gt_{blue,green,white}_src.py 变体生成脚本（源头
   sim/glestriangle.py 单行替换）
 - 四变体指纹表（§1，防重启丢失已录入本文）
+
+
+## 5. 八变体主表（同日补：halfred/cyan/magenta/black 四变体追加）
+
+```
+variant          A 槽                  B 槽
+red(1,0,0)       6910c000_003c00c0     4891c100_000000db
+blue(0,0,1)      6910c13c_003c00c0     4891c000_000000c0
+green(0,1,0)     6891c000_000000db     4891c100_000000db
+white(1,1,1)     6910c03c_003c00c0     4891c100_00000000
+halfred(.5,0,0)  6910c000_003800c0     4891c100_000000db
+cyan(0,1,1)      6910c13c_003c00c0     4891c000_000000db
+magenta(1,0,1)   6910c000_003c00c0     4910c13c_003c00c0
+black(0,0,0)     6891c000_000000c0     4891c100_000000db
+```
+
+追加发现：
+1. **BE-half 假设成立一半**：halfred 的 A 槽 low 高半字 0x003c→0x0038
+   恰是 fp16 1.0(0x3C00)→0.5(0x3800) 的字节交换——A 槽 low bits[31:16]
+   承载一个 half 通道值，但**通道→槽位映射不固定**（编译器换分配：
+   blue 的 A 槽 half=1.0 装的是 B 通道）。
+2. **指令模板统一**：magenta 的 B 槽（4910c13c_003c00c0）与 blue 的
+   A 槽（6910c13c_003c00c0）同码仅高字节异——高字节=主操作码+目标
+   寄存器，low=源编码（half+LUT 修饰）。0x13c/0x03c/0x000 差分位与
+   ISA.xml 32 条 LUT 表（idx16=1.0、idx21=0.0、idx27=half 1.0…）
+   对上了方向但精确位段未定。
+3. B 槽 low 的 8 位（0xdb/0xc0/0x00）疑为 8 位 half 立即数表索引，
+   三态与通道组合的关系未闭合。
+4. **PAN_MESA_DEBUG=shaders 也是空**（Ubuntu mesa 连编译器 dump 都
+   裁了）——guest 侧拿汇编文本的路彻底断，精确解码只能 host 侧
+   disassembler 编译或 ISA.xml 编码考古。
+
+## 6. 下一轮弹药清单
+
+- 八变体表（§5）+ LUT 表（ISA.xml 头 32 条）= 解码约束集
+- /tmp/mesa 重克隆（note 97 §3）后看 bifrost/disassembler 的
+  decode 表（.py 生成器 gen_pack/valhall 编码常量在
+  compiler/bifrost/valhall/*.py）
