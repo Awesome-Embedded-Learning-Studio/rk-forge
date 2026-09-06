@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..b54c27d
+index 0000000..ac9a24b
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,3864 @@
+@@ -0,0 +1,3894 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3573,6 +3573,36 @@ index 0000000..b54c27d
 +                            }
 +                        }
 +                        fprintf(stderr, "\n");
++                    }
++                }
++                if ((instr >> 56) == 6 && getenv("GPUPOOL")) {
++                    /* M2l：批池整窗 dump——红/蓝双变体 diff 直取
++                     * 常量编码位（绕开反汇编）。页 VA 标头+hex。 */
++                    int64_t lo = (int64_t)(regs[20] & ~0xfffull) - 0x8000;
++                    int64_t hi = (int64_t)(regs[20] & ~0xfffull) + 0x8000;
++
++                    for (int64_t va = lo; va < hi; va += 0x1000) {
++                        hwaddr pp = rk3588_lite_gpu_va_pa_user(
++                            g, (uint64_t)va);
++                        if (pp == HWADDR_MAX) {
++                            continue;
++                        }
++                        fprintf(stderr, "POOLPAGE va=%llx\n",
++                                (unsigned long long)va);
++                        for (unsigned o = 0; o < 4096; o += 32) {
++                            fprintf(stderr, "%llx:",
++                                    (unsigned long long)pp + o);
++                            for (unsigned q = 0; q < 4; q++) {
++                                fprintf(stderr, " %016llx",
++                                        (unsigned long long)
++                                        address_space_ldq_le(
++                                            &address_space_memory,
++                                            pp + o + q * 8,
++                                            MEMTXATTRS_UNSPECIFIED,
++                                            NULL));
++                            }
++                            fprintf(stderr, "\n");
++                        }
 +                    }
 +                }
 +                if ((instr >> 56) == 6 && getenv("GPUANCH")
