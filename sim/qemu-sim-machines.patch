@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..f764f0b
+index 0000000..d3ba427
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,4282 @@
+@@ -0,0 +1,4307 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3828,38 +3828,63 @@ index 0000000..f764f0b
 +                hwaddr srt = rk3588_lite_gpu_va_pa_user(
 +                    g, regs[4] & ~0x3full);
 +                if (srt != HWADDR_MAX) {
-+                    /* Resource 16B/项：addr56@+0、Size@+8——打前 8 项，
-+                     * 首项地址再跟 32B（纹理/plane 描述符本体） */
++                    /* Resource 16B/项：addr56@+0、contains@bit56、
++                     * Size@+8（=BUFFER 数组字节数，16B/个）。表号
++                     * pan_context.h：0=UBO 1=ATTR 2=ATTR_BUF 3=SAMPLER
++                     * 4=TEXTURE 5=IMAGE 6=SSBO。每张表跟两层：BUFFER
++                     * 数组本体 + 首 BUFFER 指向的描述符 32B。 */
 +                    fprintf(stderr, "GPUFSX srt@%llx->%llx:",
 +                            (unsigned long long)regs[4],
 +                            (unsigned long long)srt);
-+                    for (unsigned i = 0; i < 8; i++) {
-+                        fprintf(stderr, " %llx/%llx",
-+                                (unsigned long long)address_space_ldq_le(
-+                                    &address_space_memory, srt + i * 16,
-+                                    MEMTXATTRS_UNSPECIFIED, NULL),
-+                                (unsigned long long)address_space_ldq_le(
-+                                    &address_space_memory, srt + i * 16 + 8,
-+                                    MEMTXATTRS_UNSPECIFIED, NULL));
-+                    }
-+                    fprintf(stderr, "\n");
-+                    uint64_t r0v = address_space_ldq_le(
-+                        &address_space_memory, srt,
-+                        MEMTXATTRS_UNSPECIFIED, NULL);
-+                    hwaddr r0p = rk3588_lite_gpu_va_pa_user(
-+                        g, r0v & ~0xfffull);
-+                    if (r0p != HWADDR_MAX) {
-+                        fprintf(stderr, "GPUFSX res0=%llx->%llx:",
-+                                (unsigned long long)r0v,
-+                                (unsigned long long)r0p);
-+                        for (unsigned i = 0; i < 4; i++) {
-+                            fprintf(stderr, " %016llx",
++                    for (unsigned i = 0; i < 7; i++) {
++                        uint64_t e0 = address_space_ldq_le(
++                            &address_space_memory, srt + i * 16,
++                            MEMTXATTRS_UNSPECIFIED, NULL);
++                        uint64_t e1 = address_space_ldq_le(
++                            &address_space_memory, srt + i * 16 + 8,
++                            MEMTXATTRS_UNSPECIFIED, NULL);
++                        fprintf(stderr, " t%u=%llx/%llx", i,
++                                (unsigned long long)e0,
++                                (unsigned long long)e1);
++                        if (!e0 || !e1 || e1 > 0x100) {
++                            continue;
++                        }
++                        hwaddr bp = rk3588_lite_gpu_va_pa_user(
++                            g, e0 & 0x00ffffffffffffffull);
++                        if (bp == HWADDR_MAX) {
++                            continue;
++                        }
++                        fprintf(stderr, " [");
++                        for (unsigned w = 0; w < e1 / 16 && w < 4; w++) {
++                            fprintf(stderr, "%llx:%llx ",
 +                                    (unsigned long long)address_space_ldq_le(
-+                                        &address_space_memory, r0p + i * 8,
++                                        &address_space_memory,
++                                        bp + w * 16,
++                                        MEMTXATTRS_UNSPECIFIED, NULL),
++                                    (unsigned long long)address_space_ldq_le(
++                                        &address_space_memory,
++                                        bp + w * 16 + 8,
 +                                        MEMTXATTRS_UNSPECIFIED, NULL));
 +                        }
-+                        fprintf(stderr, "\n");
++                        uint64_t b0 = address_space_ldq_le(
++                            &address_space_memory, bp,
++                            MEMTXATTRS_UNSPECIFIED, NULL);
++                        hwaddr dp = rk3588_lite_gpu_va_pa_user(
++                            g, b0 & 0x00ffffffffffffffull);
++                        if (dp != HWADDR_MAX) {
++                            fprintf(stderr, "|");
++                            for (unsigned w = 0; w < 4; w++) {
++                                fprintf(stderr, " %016llx",
++                                        (unsigned long long)
++                                        address_space_ldq_le(
++                                            &address_space_memory,
++                                            dp + w * 8,
++                                            MEMTXATTRS_UNSPECIFIED, NULL));
++                            }
++                        }
++                        fprintf(stderr, "]");
 +                    }
++                    fprintf(stderr, "\n");
 +                }
 +            }
 +            g->fs_color_pending =

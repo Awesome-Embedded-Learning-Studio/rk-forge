@@ -54,20 +54,56 @@ TEX_SINGLE 操作数（valhall.py 位段）：读 staging 基址=bits[45:40]
 "per-pixel shader"窄：**每像素 = 仿射 uv 插值 + 1-2 次采样 + FMA +
 blend**。
 
-## 4. M2n 实现路径（下轮工程）
+## 4. 资源链全解（受控测试 gtx + 全链 dump）
 
-RUN_IDVS 挂点（非 RUN_FRAGMENT）：SRT_0 → 顶点属性缓冲 → 4 顶点
-（pos+uv）→ 仿射映射；SRT_2 → 纹理描述符 → plane（M2i）→ texel
-读三形态（M2j）；光栅化 quad 到 FBO（nearest 采样+FMA+blend）。
-全部由 guest 描述符数据驱动，固定功能形态但真数据路径。
+受控测试 `sim/glestexture.py`（2×2 四色纹理 + NEAREST + 全屏
+TRIANGLE_STRIP quad，顶点形态与 mutter 同构 r33=4）——当前 FAIL
+全零（预期：采样未实现），其 draw 的全链 dump 补齐最后拼图：
 
-已知仪器债：GPUFSX res0 跟读误掩 `& ~0xfff`（读了页首而非
-entry 偏移 0x2e0），Resource 项应掩 `& ~0x3f`。
+```
+SRT 下标 = 表号（pan_context.h）：0=UBO 1=ATTRIBUTE 2=ATTR_BUF
+  3=SAMPLER 4=TEXTURE 5=IMAGE 6=SSBO；表项 16B {addr56|contains@56,size@+8}
+Buffer（表项指向的数组元素，32B，v10.xml）：
+  Type@w0[3:0]  Size@w1  **Address@w2（+0x10）**  Stride/Packet@w4
+gtx 实测（fragment SRT_2）：
+  t1[ATTRIBUTE]（32B ATTRIBUTE 描述符：Type=5、offset=0x400/0x410
+    ——pan 源码 1024 基实锤、Format@w0[31:10]）
+  t3[SAMPLER] 32B 描述符（NEAREST/CLAMP 默认形态）
+  t4[TEXTURE] Buffer[0]={Size=0x1688, Addr=0x7fffffeaa080}
+    ——纹理描述符在批池，待接 M2i plane 解析
+FS 受控形态（单采样最小版，9 条）：
+  LD_VAR(uv) → IADD_IMM(texdesc=SRT 基+索引) → MOV →
+  TEX_SINGLE(1128009453c02042：读基址 r19:r20、写 r0-r2) →
+  MOV → ATEST(487dbc0200ea427c) → BLEND → IADD_IMM → 尾跳(0x2f)
+```
 
-## 5. 资产与验收形态
+## 5. M2n 实现路径（下轮工程）
+
+RUN_IDVS 挂点（非 RUN_FRAGMENT）：SRT_0（r0）→ t1/t2 → 顶点属性
+Buffer → 4 顶点（pos+uv，FORMAT 按 ATTRIBUTE desc 解）；SRT_2 →
+t4 → Buffer.Addr → 纹理描述符 → plane（M2i）→ texel 读三形态
+（M2j）；光栅化 quad 到 FBO（仿射 uv + nearest 采样 + FMA×1.0 +
+BLEND）。全部由 guest 描述符数据驱动，固定功能形态但真数据路径。
+验收 = gtx 四象限色 + gt（常量色回归）+ mutter 桌面 screendump 主色。
+
+## 6. 资产与验收形态
 
 - `GPUFSX`（新）：SPD_2/SPD_0 跟指针全字 dump + IDVS SR 全景 +
-  SRT 资源表 + res0 跟读（PA+内容哈希去重）
+  SRT 七表全链跟读（表项→Buffer 数组→首描述符 32B，PA 翻译走
+  va_pa_user 非 PA 线性猜测）
 - `GPUFCS`：原 RUN_FRAGMENT 批池扫描（CS 流上有 tex 族假阳性，
   已知局限：9-bit 扫描分不清 CS 指令与 shader 指令）
+- `sim/glestexture.py`：受控采样测试（FAIL 基线已立）
 - glestriangle 同机对照：FSCOLOR 蓝 PASS 无回归（M2l 路径完好）
+
+## 7. 工作流坑（本轮新增）
+
+- **pkill/pgrep -f 自杀**：模式串出现在自己工具命令文本里 → 匹配
+  wrapper shell → exit 144 且后续命令不执行；kill 与启动必须拆成
+  两次工具调用，kill 用 `res[b]oot.py` 括号技巧 + `pkill qemu-system`
+  （comm 15 字截断），判活用 `ss -tln | grep 4446` 别用 pgrep -f
+- resboot.py 会堆积僵尸进程（各自 sleep DUR 后 p.kill）——重启前
+  清理；`open(/tmp/scmi-dbg.log,"w")` 每次启动截断日志（历史 dump
+  要及时摘走）
+- HMP qom-get 可直读 op_hist 计数（`qom-get /machine op-run-idvs`），
+  免 GPUHIST 重启——回显有终端转义污染，正则剥 `x1b[[KD]`
