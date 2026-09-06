@@ -61,4 +61,5 @@ title: 工程笔记
   <ChapterLink num="96" href="96-2026-09-06-panthor-m2k-afbc-write-and-vop-decode">RK3588：panthor M2k，AFBC 写路径 + VOP 解码——基建闭环，桌面可见判定仍归 shader</ChapterLink>
   <ChapterLink num="97" href="97-2026-09-06-panthor-m2l-constant-fs-recon">RK3588：panthor M2l 侦察，常量不在内存里（FAU 页选编码+立即数烤入），M2l=Valhall 解码</ChapterLink>
   <ChapterLink num="98" href="98-2026-09-06-panthor-m2l-variant-diff-cipher">RK3588：panthor M2l，四变体 diff 密码攻击——FS 代码定位+常量指纹+序列变化三发现</ChapterLink>
+  <ChapterLink num="99" href="99-2026-09-06-panthor-m2l-constant-fs-executed">RK3588：panthor M2l 达成——常量色 FS 执行，shader 语义像素 13/13 PASS</ChapterLink>
 </ChapterNav>

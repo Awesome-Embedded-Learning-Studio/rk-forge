@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..ac9a24b
+index 0000000..e142121
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,3894 @@
+@@ -0,0 +1,4019 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1017,6 +1017,7 @@ index 0000000..ac9a24b
 +    uint64_t last_fbd_va;                 /* M2i：clear 时的 FBD VA（锚点扫描窗） */
 +    uint64_t blit_src_parsed;             /* M2i：结构匹配定位 src 的次数 */
 +    uint64_t afbc_clear_sb;               /* M2j：AFBC solid-header clear 的 sb 数 */
++    uint32_t fs_color_pending;            /* M2l：常量色 FS 提取的 RGBA（0=无） */
 +    uint32_t mmu_rawstat, mmu_mask;       /* MMU_IRQ 组（0x2000-） */
 +    uint64_t as_transtab[8], as_memattr[8], as_transcfg[8];
 +    uint64_t reads, unknown;              /* 诊断计数（不迁移） */
@@ -2924,6 +2925,8 @@ index 0000000..ac9a24b
 + * word 逐像素铺（行距按 stride）。其余格式/AFBC 计数跳过。 */
 +static bool rk3588_lite_gpu_try_blit(struct Rk3588LiteGpu *g, hwaddr fp,
 +                                     unsigned w, unsigned h, uint64_t spd2);
++static uint32_t rk3588_lite_gpu_extract_fs_color(struct Rk3588LiteGpu *g,
++                                                 uint64_t spd2);
 +static void rk3588_lite_gpu_run_fragment(struct Rk3588LiteGpu *g,
 +                                         uint64_t *regs)
 +{
@@ -2939,10 +2942,17 @@ index 0000000..ac9a24b
 +                                       MEMTXATTRS_UNSPECIFIED, NULL);
 +    unsigned w = (w8 & 0xffff) + 1, h = (w8 >> 16) + 1;
 +
-+    /* M2h：先试 blit（src=最近 clear 的图、dst=本 FBD 的 RT）。命中则
-+     * 本 job 是搬运面——clear 铺设会让位（否则 clear word 盖掉 blit）。 */
-+    if (rk3588_lite_gpu_try_blit(g, fp, w, h, regs[20])) {
-+        return;
++    /* M2l：常量色 FS 优先——RUN_IDVS 提取的 shader 输出色（真 shader
++     * 语义，色值来自 guest 指令流）。非零=本 job 是常量色 draw，
++     * blit/clear 都让位（否则 find_src_plane 会拿 draw FBO 自身的
++     * plane 误搬运，净机二轮实锤）。 */
++    uint32_t fs_fill = g->fs_color_pending;
++    g->fs_color_pending = 0;
++    if (!fs_fill) {
++        /* M2h：再试 blit（src=最近 clear 的图、dst=本 FBD 的 RT）。 */
++        if (rk3588_lite_gpu_try_blit(g, fp, w, h, regs[20])) {
++            return;
++        }
 +    }
 +
 +    /* nrt 元数据不含空置槽（实测 RT0 空占位、真 RT 在槽 1）——扫全 8 槽，
@@ -2951,12 +2961,12 @@ index 0000000..ac9a24b
 +        hwaddr rt = fp + 0x80 + i * 0x40;
 +        uint32_t w1 = address_space_ldl_le(&address_space_memory, rt + 4,
 +                                           MEMTXATTRS_UNSPECIFIED, NULL);
-+        bool is_clear = w1 & BIT(31);
++        bool is_clear = (w1 & BIT(31)) || fs_fill;
 +
 +        if (!(w1 & 1) || ((w1 >> 3) & 0x1f) != 19) {
 +            continue;    /* 非写回/非 RGBA8 */
 +        }
-+        if (!is_clear && !getenv("GPUDBG")) {
++        if (!(w1 & BIT(31)) && !fs_fill && !getenv("GPUDBG")) {
 +            continue;    /* blit dst：GPUDBG 下也打印（形态侦察） */
 +        }
 +        unsigned bf = (w1 >> 8) & 0xf;    /* Block Format（v10.xml） */
@@ -2966,6 +2976,9 @@ index 0000000..ac9a24b
 +                                               MEMTXATTRS_UNSPECIFIED, NULL);
 +        uint32_t clr = address_space_ldl_le(&address_space_memory, rt + 0x30,
 +                                            MEMTXATTRS_UNSPECIFIED, NULL);
++        if (fs_fill) {
++            clr = fs_fill;    /* FS 输出色顶替描述符 clear word */
++        }
 +        hwaddr bp = rk3588_lite_gpu_va_pa_user(g, base);
 +
 +        if (getenv("GPUDBG")) {
@@ -3134,6 +3147,113 @@ index 0000000..ac9a24b
 +    return address_space_ldl_le(&address_space_memory,
 +                                rk3588_tiled_pixel(src, stride, x, y),
 +                                MEMTXATTRS_UNSPECIFIED, NULL);
++}
++
++/* M2l：常量色 FS 提取——十变体明文校准（note 99）：
++ * FS 代码窗内 ATEST(op=0x7d dest=r60) 后随装载指令：
++ *   IADD_IMM(0x110) imm=(q>>8)&0xffffffff → dest
++ *   MOV(0x091) src0 高 2 位=11 → LUT[src0&0x3f]（32 条 ISA.xml 表）
++ * 约定 r0=(lo=R,hi=G)、r1=(lo=B,hi=A) fp16；r1 可 copy r0（white 情形）。
++ * 命中（r0/r1 都有定义）→ fp16 转 RGBA8 打包 pending。 */
++static const uint32_t rk3588_va_lut[32] = {
++    0x00000000, 0xFFFFFFFF, 0x7FFFFFFF, 0xFAFCFDFE, 0x01000000, 0x80002000,
++    0x70605030, 0xC0B0A090, 0x03020100, 0x07060504, 0x0B0A0908, 0x0F0E0D0C,
++    0x13121110, 0x17161514, 0x1B1A1918, 0x1F1E1D1C, 0x3F800000, 0x3DCCCCCD,
++    0x3EA2F983, 0x3F317218, 0x40490FDB, 0x00000000, 0x477FFF00, 0x5C005BF8,
++    0x2E660000, 0x34000000, 0x38000000, 0x3C000000, 0x40000000, 0x44000000,
++    0x48000000, 0x42480000,
++};
++
++static unsigned rk3588_f16_to_u8(uint32_t h)
++{
++    /* fp16 → [0,255]，饱和。半精度值 = (1024+man)/1024 * 2^(exp-15)。 */
++    unsigned sign = h >> 15, exp = (h >> 10) & 0x1f, man = h & 0x3ff;
++    unsigned long long num;
++    int e;
++
++    if (sign || (!exp && !man)) {
++        return 0;    /* 负/零 → 0 */
++    }
++    if (exp == 31) {
++        return man ? 0 : 255;    /* inf/nan → 饱和（inf 白通道场景） */
++    }
++    num = (1024ULL + man) * 255;
++    e = (int)exp - 15 - 10;
++    while (e > 0) { num <<= 1; e--; }
++    while (e < 0) { num = (num + 1) >> 1; e++; }   /* 舍入（0.5→128） */
++    return num > 255 ? 255 : (unsigned)num;
++}
++
++static uint32_t rk3588_lite_gpu_extract_fs_color(struct Rk3588LiteGpu *g,
++                                                 uint64_t spd2)
++{
++    int64_t lo = (int64_t)(spd2 & ~0xfffull) - 0x8000;
++    int64_t hi = (int64_t)(spd2 & ~0xfffull) + 0x8000;
++
++    for (int64_t va = lo; va < hi; va += 0x1000) {
++        hwaddr pp = rk3588_lite_gpu_va_pa_user(g, (uint64_t)va);
++        if (pp == HWADDR_MAX) {
++            continue;
++        }
++        for (unsigned o = 0; o + 48 <= 0x1000; o += 8) {
++            /* 锚：ATEST（op=0x7d, dest=r60——十变体恒定） */
++            uint64_t a = address_space_ldq_le(&address_space_memory, pp + o,
++                                              MEMTXATTRS_UNSPECIFIED, NULL);
++            if (((a >> 48) & 0x1ff) != 0x7d
++                || ((a >> 40) & 0x3f) != 60) {
++                continue;
++            }
++            /* 后 3 条内解码 r0/r1 装载 */
++            uint32_t r0 = 0, r1 = 0;
++            bool has0 = false, has1 = false;
++            for (unsigned k = 1; k <= 3; k++) {
++                uint64_t q = address_space_ldq_le(
++                    &address_space_memory, pp + o + k * 8,
++                    MEMTXATTRS_UNSPECIFIED, NULL);
++                unsigned op = (q >> 48) & 0x1ff;
++                unsigned dreg = (q >> 40) & 0x3f;
++                uint32_t val = 0;
++                bool defined = false;
++
++                if (op == 0x110) {
++                    val = (uint32_t)(q >> 8);
++      /* src0 为 0（LUT[0]=0）时 imm 直接就是常量（IADD 0） */
++                    defined = true;
++                } else if (op == 0x091) {
++                    uint8_t src0 = q & 0xff;
++                    if ((src0 >> 6) == 3) {
++                        val = rk3588_va_lut[src0 & 0x3f];
++                        defined = true;
++                    } else if ((src0 >> 6) == 0 && src0 < 64) {
++                        /* mov 寄存器：white 情形 r1 ← r0 */
++                        if (src0 == 0 && has0) {
++                            val = r0;
++                            defined = true;
++                        }
++                    }
++                }
++                if (defined && dreg == 0 && !has0) {
++                    r0 = val;
++                    has0 = true;
++                } else if (defined && dreg == 1 && !has1) {
++                    r1 = val;
++                    has1 = true;
++                }
++            }
++            if (has0 && has1) {
++                uint32_t rgba = rk3588_f16_to_u8(r0 & 0xffff)
++                              | rk3588_f16_to_u8(r0 >> 16) << 8
++                              | rk3588_f16_to_u8(r1 & 0xffff) << 16
++                              | rk3588_f16_to_u8(r1 >> 16) << 24;
++                if (getenv("GPUDBG")) {
++                    fprintf(stderr, "GPUFS color=%08x (r0=%08x r1=%08x)\n",
++                            rgba, r0, r1);
++                }
++                return rgba;
++            }
++        }
++    }
++    return 0;
 +}
 +
 +/* M2h/M2i：blit 整图拷贝（真数据搬运）——src=结构匹配（plane 描述符）
@@ -3477,7 +3597,12 @@ index 0000000..ac9a24b
 +            }
 +            break;
 +        }
-+        case 6:    /* RUN_IDVS（M2h：SR 面侦察，v10.xml IDVS SR 枚举） */
++        case 6: {  /* RUN_IDVS——M2l：常量色 FS 提取（无条件；blit 的
++                    * 采样 FS 不匹配装载模式 → 0 = 非常量色填充） */
++            g->fs_color_pending =
++                rk3588_lite_gpu_extract_fs_color(g, regs[20]);
++        }
++        /* fallthrough */
 +        case 8: {  /* RUN_FULLSCREEN（DCD 寄存器号@[47:40]）；
 +                    * RUN_FRAGMENT 的 SR 面（FBD=regs[40]）走 case 7 */
 +            if (getenv("GPURUN")) {

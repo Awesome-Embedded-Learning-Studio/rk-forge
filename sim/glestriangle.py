@@ -62,8 +62,8 @@ void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
 """
 FS = """
 precision mediump float;
-void main() { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }
-"""
+void main() { gl_FragColor = vec4(%s); }
+""" % os.environ.get("FSCOLOR", "1.0, 0.0, 0.0, 1.0")
 
 
 def shader(kind, src):
@@ -94,6 +94,9 @@ if not ok.value:
     sys.exit(1)
 G.glUseProgram(prog)
 
+EXPECT = [int(round(float(x) * 255)) for x in
+          os.environ.get("FSCOLOR", "1.0, 0.0, 0.0, 1.0").split(",")]
+
 # 全屏三角形（一个顶点带出整屏覆盖）。GLES 无 client-side 顶点数组——
 # CPU 指针版 mesa 静默不提交（draw 无 job），必须真 VBO。
 verts = (ctypes.c_float * 6)(-1.0, -1.0, 3.0, -1.0, -1.0, 3.0)
@@ -119,9 +122,9 @@ bad = []
 for y in range(4):
     for x in range(4):
         p = list(buf[(y * 4 + x) * 4:(y * 4 + x) * 4 + 4])
-        if p != [255, 0, 0, 255]:
+        if p != EXPECT:
             bad.append((x, y, p))
 print("坏点数 =", len(bad), bad[:4])
 px = list(buf[:4])
-print("pixel(0,0) =", px, "(期望 [255, 0, 0, 255])")
+print("pixel(0,0) =", px, "(期望", EXPECT, ")")
 print("VERDICT:", "PASS" if not bad else "FAIL")
