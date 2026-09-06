@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..d3ba427
+index 0000000..7680e34
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,4307 @@
+@@ -0,0 +1,4823 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1018,6 +1018,16 @@ index 0000000..d3ba427
 +    uint64_t blit_src_parsed;             /* M2i：结构匹配定位 src 的次数 */
 +    uint64_t afbc_clear_sb;               /* M2j：AFBC solid-header clear 的 sb 数 */
 +    uint32_t fs_color_pending;            /* M2l：常量色 FS 提取的 RGBA（0=无） */
++    /* M2n：采样 FS pending（RUN_IDVS 提取、RUN_FRAGMENT 光栅化）。
++     * FSQUAD=1 门控（受控验证期默认关）。 */
++    bool fs_sample_pending;
++    uint32_t fs_quad[16];                 /* 4 顶点 × fp32(pos.xy,uv.xy) */
++    uint64_t fs_plane_va;                 /* 纹理 plane 基址（VA） */
++    uint32_t fs_plane_stride;
++    uint8_t fs_plane_type;                /* plane w0[7:4]：1=Generic 6=AFBC */
++    uint8_t fs_plane_order;               /* Generic clump ordering：1=U 2=线性 */
++    uint8_t fs_pixel_uv;                  /* TEX_FETCH(0x125)：uv=像素坐标 */
++    uint16_t fs_tex_w, fs_tex_h;
 +    uint32_t mmu_rawstat, mmu_mask;       /* MMU_IRQ 组（0x2000-） */
 +    uint64_t as_transtab[8], as_memattr[8], as_transcfg[8];
 +    uint64_t reads, unknown;              /* 诊断计数（不迁移） */
@@ -2927,6 +2937,8 @@ index 0000000..d3ba427
 +                                     unsigned w, unsigned h, uint64_t spd2);
 +static uint32_t rk3588_lite_gpu_extract_fs_color(struct Rk3588LiteGpu *g,
 +                                                 uint64_t spd2);
++static hwaddr rk3588_tiled_pixel(hwaddr base, uint32_t stride,
++                                 unsigned x, unsigned y);
 +/* M2n：采样 FS 侦察——mutter 合成全走 RUN_FRAGMENT（无 RUN_IDVS，
 + * note 100），提取器旧挂点抓不到。批池扫 varying/tex/var_tex 族
 + * opcode（ISA.xml），命中页整页 dump 全字。去重按 PA+内容哈希：
@@ -3094,6 +3106,534 @@ index 0000000..d3ba427
 +    }
 +}
 +
++/* M2n：采样 draw 提取——RUN_IDVS 时从真描述符链取齐 quad 光栅化
++ * 全部参数（FSQUAD 门控）：
++ *   纹理：SRT_2(r4) t4 → Texture 描述符（W/H@word1 min-1、
++ *   interleave@word2 bit12、Surfaces@+0x10）→ surface{plane 基址@+8、
++ *   RowStride@+16、dims@+24 高半}
++ *   顶点：SRT_0(r0) t2 → Buffer{Size@+4、Addr@+8} → 4×fp32×4
++ *   门条件：FS 代码含 TEX 族（扫 Binary 首页）+ r33==4 + 单纹理 +
++ *   顶点 pos∈[-1,1] uv∈[0,1]（错解析天然出局）
++ */
++/* M2n：quad 顶点有效性——pos∈[-1,1] 成矩形（x0≠x1、y0≠y1）、uv 有界
++ * （图集坐标可略超 [0,1]，采样端 CLAMP） */
++static bool rk3588_quad_sane(const uint32_t *q)
++{
++    float f[16];
++    memcpy(f, q, sizeof(f));
++    for (unsigned i = 0; i < 4; i++) {
++        if (!(f[i * 4] >= -1.0f && f[i * 4] <= 1.0f)
++            || !(f[i * 4 + 1] >= -1.0f && f[i * 4 + 1] <= 1.0f)
++            || !(f[i * 4 + 2] >= -8192.0f && f[i * 4 + 2] <= 8192.0f)
++            || !(f[i * 4 + 3] >= -8192.0f && f[i * 4 + 3] <= 8192.0f)) {
++            return false;
++        }
++    }
++    return f[0] != f[4] && f[1] != f[9];
++}
++
++static void rk3588_lite_gpu_extract_fs_sample(struct Rk3588LiteGpu *g,
++                                              uint64_t *regs)
++{
++    g->fs_sample_pending = false;
++    if (regs[33] != 4 || !regs[20] || !regs[4] || !regs[0]) {
++        return;
++    }
++    /* FS 代码 TEX 族门：SPD Binary 首页扫 */
++    hwaddr spd = rk3588_lite_gpu_va_pa_user(g, regs[20] & ~0x1full);
++    if (spd == HWADDR_MAX) {
++        return;
++    }
++    uint64_t bin = address_space_ldq_le(&address_space_memory, spd + 8,
++                                        MEMTXATTRS_UNSPECIFIED, NULL);
++    hwaddr bp = rk3588_lite_gpu_va_pa_user(g, bin & ~0xfull);
++    if (bp == HWADDR_MAX) {
++        return;
++    }
++    unsigned tex_ops = 0, fetch_ops = 0;
++    static const uint16_t texops[] = { 0x125, 0x128, 0x129, 0x12a, 0x12f };
++    for (unsigned o = 0; o < 128; o++) {
++        uint64_t q = address_space_ldq_le(&address_space_memory, bp + o * 8,
++                                          MEMTXATTRS_UNSPECIFIED, NULL);
++        unsigned op = (q >> 48) & 0x1ff;
++        for (unsigned k = 0; k < ARRAY_SIZE(texops); k++) {
++            tex_ops += op == texops[k];
++        }
++        fetch_ops += op == 0x125;
++    }
++    if (!tex_ops) {
++        return;
++    }
++    g->fs_pixel_uv = fetch_ops > 0;
++    if (getenv("GPUDBG")) {
++        fprintf(stderr, "GPUQUAD texgate ok (tex=%u fetch=%u)\n", tex_ops,
++                fetch_ops);
++    }
++
++    /* 纹理链：SRT_2 t4 → Texture → Surfaces → plane */
++    hwaddr srt_fs = rk3588_lite_gpu_va_pa_user(g, regs[4] & ~0x3full);
++    if (srt_fs == HWADDR_MAX) {
++        return;
++    }
++    uint64_t t4a = address_space_ldq_le(&address_space_memory, srt_fs + 64,
++                                        MEMTXATTRS_UNSPECIFIED, NULL);
++    uint64_t t4s = address_space_ldq_le(&address_space_memory, srt_fs + 72,
++                                        MEMTXATTRS_UNSPECIFIED, NULL);
++    if (!t4a || t4s != 0x20) {    /* 恰 1 张纹理 */
++        if (getenv("GPUDBG")) {
++            fprintf(stderr, "GPUQUAD t4 gate %llx/%llx\n",
++                    (unsigned long long)t4a, (unsigned long long)t4s);
++        }
++        return;
++    }
++    hwaddr tp = rk3588_lite_gpu_va_pa_user(
++        g, t4a & 0x00ffffffffffffffull);
++    if (tp == HWADDR_MAX) {
++        return;
++    }
++    uint32_t w1 = address_space_ldl_le(&address_space_memory, tp + 4,
++                                       MEMTXATTRS_UNSPECIFIED, NULL);
++    uint32_t w2 = address_space_ldl_le(&address_space_memory, tp + 8,
++                                       MEMTXATTRS_UNSPECIFIED, NULL);
++    uint16_t tw = (w1 & 0xffff) + 1, th = (w1 >> 16) + 1;
++    bool tiled = extract32(w2, 12, 1);
++    (void)tiled;    /* Texture 描述符 interleave 位——读路径按 plane 头分流 */
++    uint64_t sur = address_space_ldq_le(&address_space_memory, tp + 0x10,
++                                        MEMTXATTRS_UNSPECIFIED, NULL);
++    hwaddr sp = rk3588_lite_gpu_va_pa_user(
++        g, sur & 0x00ffffffffffffffull);
++    if (sp == HWADDR_MAX || !tw || !th || tw > 4096 || th > 4096) {
++        return;
++    }
++    uint32_t pw0 = address_space_ldl_le(&address_space_memory, sp,
++                                        MEMTXATTRS_UNSPECIFIED, NULL);
++    uint64_t plane = address_space_ldq_le(&address_space_memory, sp + 8,
++                                          MEMTXATTRS_UNSPECIFIED, NULL);
++    uint32_t pstride = address_space_ldl_le(&address_space_memory, sp + 16,
++                                            MEMTXATTRS_UNSPECIFIED, NULL);
++    uint64_t pdims = address_space_ldq_le(&address_space_memory, sp + 24,
++                                          MEMTXATTRS_UNSPECIFIED, NULL);
++    uint8_t ptype = (pw0 >> 4) & 0xf;
++    uint8_t porder = (pw0 >> 8) & 0xf;
++    /* sb 尺寸字段(bits[10:8])实测=0 但 payload/header 几何实测 32×8
++     * 条带（渐变明文 256/256）——字段语义与 genxml 枚举不符，以数据
++     * 为准不做门。 */
++    if (((pdims >> 32) & 0xffff) != tw - 1
++        || ((pdims >> 48) & 0xffff) != th - 1
++        || (ptype != 1 && ptype != 6)
++        || (ptype == 1 && porder != 1 && porder != 2)) {
++        if (getenv("GPUDBG")) {
++            fprintf(stderr,
++                    "GPUQUAD reject tex=%ux%u pw0=%x dims=%llx/%x "
++                    "ptype=%u order=%u\n",
++                    tw, th, pw0, (unsigned long long)pdims,
++                    (unsigned)(tw - 1), ptype, porder);
++        }
++        return;    /* dims 不一致 / plane 类型超出 = 弃权 */
++    }
++
++    /* 顶点链：SRT_0 t2 → Buffer 数组（每项 32B{Size@+4,Addr@+8}）。
++     * 双形态：A 交错 16B（pos.xy+uv.xy 单缓冲，gtx 形态）；B 分离
++     * 8B（buf0=pos.xy、buf1=uv.xy——mutter 壁纸实测形态）。按
++     * 有效性择优（pos 成 quad 且范围对）。 */
++    hwaddr srt_vs = rk3588_lite_gpu_va_pa_user(g, regs[0] & ~0x3full);
++    if (srt_vs == HWADDR_MAX) {
++        return;
++    }
++    uint64_t t2a = address_space_ldq_le(&address_space_memory, srt_vs + 32,
++                                        MEMTXATTRS_UNSPECIFIED, NULL);
++    if (!t2a) {
++        return;
++    }
++    hwaddr vb = rk3588_lite_gpu_va_pa_user(
++        g, t2a & 0x00ffffffffffffffull);
++    if (vb == HWADDR_MAX) {
++        return;
++    }
++    hwaddr vbuf[2] = { HWADDR_MAX, HWADDR_MAX };
++    for (unsigned b = 0; b < 2; b++) {
++        uint64_t baddr = address_space_ldq_le(&address_space_memory,
++                                              vb + b * 32 + 8,
++                                              MEMTXATTRS_UNSPECIFIED, NULL);
++        if (baddr) {
++            vbuf[b] = rk3588_lite_gpu_va_pa_user(
++                g, baddr & ~0x3full);
++        }
++    }
++    bool quad_ok = false;
++    if (vbuf[0] != HWADDR_MAX) {
++        /* A：交错 16B */
++        for (unsigned i = 0; i < 16; i++) {
++            g->fs_quad[i] = address_space_ldl_le(&address_space_memory,
++                                                 vbuf[0] + i * 4,
++                                                 MEMTXATTRS_UNSPECIFIED,
++                                                 NULL);
++        }
++        quad_ok = rk3588_quad_sane(g->fs_quad);
++    }
++    if (!quad_ok && vbuf[0] != HWADDR_MAX && vbuf[1] != HWADDR_MAX) {
++        /* B/C：分离 8B 双缓冲，两种属性序都试（mutter 实测 pos 可在
++         * buf1——属性发射顺序随 shader 变） */
++        for (unsigned swap = 0; swap < 2 && !quad_ok; swap++) {
++            uint32_t q[16];
++            for (unsigned v = 0; v < 4; v++) {
++                for (unsigned c = 0; c < 2; c++) {
++                    q[v * 4 + c] = address_space_ldl_le(
++                        &address_space_memory,
++                        vbuf[swap] + (v * 2 + c) * 4,
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                    q[v * 4 + 2 + c] = address_space_ldl_le(
++                        &address_space_memory,
++                        vbuf[1 - swap] + (v * 2 + c) * 4,
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                }
++            }
++            memcpy(g->fs_quad, q, sizeof(q));
++            quad_ok = rk3588_quad_sane(g->fs_quad);
++        }
++    }
++    if (!quad_ok) {
++        if (getenv("GPUDBG")) {
++            fprintf(stderr, "GPUQUAD novert v:");
++            for (unsigned i = 0; i < 16; i++) {
++                fprintf(stderr, " %08x", g->fs_quad[i]);
++            }
++            fprintf(stderr, "\n");
++        }
++        return;
++    }
++
++    g->fs_plane_va = plane;
++    g->fs_plane_stride = pstride;
++    g->fs_plane_type = ptype;
++    g->fs_plane_order = porder;
++    g->fs_tex_w = tw;
++    g->fs_tex_h = th;
++    g->fs_sample_pending = true;
++    if (getenv("GPUDBG")) {
++        fprintf(stderr,
++                "GPUQUAD pending tex=%ux%u plane=%llx stride=%x ptype=%u "
++                "order=%u verts=%08x %08x %08x %08x",
++                tw, th, (unsigned long long)plane, pstride, ptype, porder,
++                g->fs_quad[0], g->fs_quad[1], g->fs_quad[2],
++                g->fs_quad[3]);
++        hwaddr plp = rk3588_lite_gpu_va_pa_user(
++            g, plane & 0x00ffffffffffffffull);
++        if (plp != HWADDR_MAX) {
++            fprintf(stderr, " pa=%llx hdr:", (unsigned long long)plp);
++            for (unsigned w = 0; w < 8; w++) {
++                fprintf(stderr, " %016llx",
++                        (unsigned long long)address_space_ldq_le(
++                            &address_space_memory, plp + w * 8,
++                            MEMTXATTRS_UNSPECIFIED, NULL));
++            }
++        }
++        fprintf(stderr, "\n");
++    }
++}
++
++/* M2n：纹理 plane 像素读。Generic(order1)=U-tiled、(order2)=线性；
++ * AFBC=与 M2k 写路径对称的 sim 布局：16×16 sb，hdr=sp+(y>>4)*stride+
++ * (x>>4)*16，qword@hdr=0 → solid 色@+8；否则 body=sp+offset@+0、
++ * body 内 16×16 线性。真硬件 AFBC compressed 编码超出（诚实边界）。 */
++static uint32_t rk3588_tex_read_px(struct Rk3588LiteGpu *g, hwaddr sp,
++                                   uint8_t ptype, uint8_t porder,
++                                   uint32_t stride, unsigned x, unsigned y)
++{
++    if (ptype == 1) {
++        if (porder == 2) {
++            return address_space_ldl_le(&address_space_memory,
++                                        sp + (uint64_t)y * stride + x * 4,
++                                        MEMTXATTRS_UNSPECIFIED, NULL);
++        }
++        return address_space_ldl_le(&address_space_memory,
++                                    rk3588_tiled_pixel(sp, stride, x, y),
++                                    MEMTXATTRS_UNSPECIFIED, NULL);
++    }
++    hwaddr hdr = sp + (y >> 4) * (uint64_t)stride + (x >> 4) * 16;
++    uint64_t h04 = address_space_ldq_le(&address_space_memory, hdr,
++                                        MEMTXATTRS_UNSPECIFIED, NULL);
++    if (!h04) {
++        return (uint32_t)address_space_ldq_le(&address_space_memory,
++                                              hdr + 8,
++                                              MEMTXATTRS_UNSPECIFIED, NULL);
++    }
++    hwaddr body = sp + (uint32_t)h04;
++    return address_space_ldl_le(&address_space_memory,
++                                body + ((y & 15) * 16 + (x & 15)) * 4,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++}
++
++/* M2n：quad 采样光栅化（RUN_FRAGMENT 时执行）。轴对齐 NDC 映射：
++ * 顶点 0/1/2 给出 x/y 边界与对应 uv（TRIANGLE_STRIP 顺序），像素
++ * 中心 NDC 在 quad 外不写；NEAREST；无 blend。先渲染到线性 staging，
++ * 再按 RT bf 提交（bf=1 U-tile 逐像素 / bf=12 M2k sb 布局——
++ * mutter 合成 FBO 是 AFBC）。 */
++static bool rk3588_lite_gpu_raster_quad(struct Rk3588LiteGpu *g,
++                                        hwaddr fp, unsigned w, unsigned h)
++{
++    for (unsigned i = 0; i < 8; i++) {
++        hwaddr rt = fp + 0x80 + i * 0x40;
++        uint32_t w1 = address_space_ldl_le(&address_space_memory, rt + 4,
++                                           MEMTXATTRS_UNSPECIFIED, NULL);
++        uint8_t bf = (w1 >> 8) & 0xf;
++        if (!(w1 & 1) || ((w1 >> 3) & 0x1f) != 19
++            || (bf != 1 && bf != 2 && bf != 12)) {
++            continue;    /* 非写回/非 RGBA8/非已知 bf */
++        }
++        uint64_t base = address_space_ldq_le(&address_space_memory,
++                                             rt + 0x20,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++        uint32_t stride = address_space_ldl_le(&address_space_memory,
++                                               rt + 0x28,
++                                               MEMTXATTRS_UNSPECIFIED, NULL);
++        hwaddr bp = rk3588_lite_gpu_va_pa_user(g, base);
++        hwaddr sp = rk3588_lite_gpu_va_pa_user(g, g->fs_plane_va);
++        if (bp == HWADDR_MAX || sp == HWADDR_MAX || !stride) {
++            if (getenv("GPUDBG")) {
++                fprintf(stderr, "GPUQUAD mapfail bp=%llx sp=%llx st=%x\n",
++                        (unsigned long long)bp, (unsigned long long)sp,
++                        stride);
++            }
++            continue;
++        }
++        float x0, x1, y0, y1, u0, u1, v0, v1;
++        memcpy(&x0, &g->fs_quad[0], 4);
++        memcpy(&x1, &g->fs_quad[4], 4);
++        memcpy(&y0, &g->fs_quad[1], 4);
++        memcpy(&y1, &g->fs_quad[9], 4);
++        memcpy(&u0, &g->fs_quad[2], 4);
++        memcpy(&u1, &g->fs_quad[6], 4);
++        memcpy(&v0, &g->fs_quad[3], 4);
++        memcpy(&v1, &g->fs_quad[11], 4);
++        if (x0 == x1 || y0 == y1) {
++            if (getenv("GPUDBG")) {
++                fprintf(stderr, "GPUQUAD degenerate %f/%f %f/%f\n",
++                        x0, x1, y0, y1);
++            }
++            continue;
++        }
++        /* 线性 staging（quad 域内直接采样） */
++        uint32_t *stage = g_malloc_n(w, h * sizeof(uint32_t));
++        if (!stage) {
++            return false;
++        }
++        unsigned drawn = 0;
++        for (unsigned py = 0; py < h && py < 8192; py++) {
++            float fy = (2.0f * (py + 0.5f)) / h - 1.0f;
++            if (fy < (y0 < y1 ? y0 : y1) || fy > (y0 < y1 ? y1 : y0)) {
++                continue;
++            }
++            float tv = (fy - y0) / (y1 - y0);
++            float fv = v0 + tv * (v1 - v0);
++            long ty = g->fs_pixel_uv ? (long)fv
++                                    : (long)(fv * g->fs_tex_h);
++            ty = ty < 0 ? 0 : (ty >= g->fs_tex_h ? g->fs_tex_h - 1 : ty);
++            for (unsigned px = 0; px < w && px < 8192; px++) {
++                float fx = (2.0f * (px + 0.5f)) / w - 1.0f;
++                if (fx < (x0 < x1 ? x0 : x1)
++                    || fx > (x0 < x1 ? x1 : x0)) {
++                    continue;
++                }
++                float tu = (fx - x0) / (x1 - x0);
++                float fu = u0 + tu * (u1 - u0);
++                long tx = g->fs_pixel_uv ? (long)fu
++                                         : (long)(fu * g->fs_tex_w);
++                tx = tx < 0 ? 0
++                    : (tx >= g->fs_tex_w ? g->fs_tex_w - 1 : tx);
++                stage[py * w + px] = rk3588_tex_read_px(
++                    g, sp, g->fs_plane_type, g->fs_plane_order,
++                    g->fs_plane_stride, tx, ty);
++                drawn++;
++            }
++        }
++        if (bf == 2) {
++            for (unsigned py = 0; py < h && py < 8192; py++) {
++                for (unsigned px = 0; px < w && px < 8192; px++) {
++                    address_space_stl_le(
++                        &address_space_memory,
++                        bp + (uint64_t)py * stride + px * 4,
++                        stage[py * w + px],
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                }
++            }
++        } else if (bf == 1) {
++            for (unsigned py = 0; py < h; py++) {
++                for (unsigned px = 0; px < w; px++) {
++                    address_space_stl_le(
++                        &address_space_memory,
++                        rk3588_tiled_pixel(bp, stride, px, py),
++                        stage[py * w + px],
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                }
++            }
++        } else {
++            /* bf=12：M2k sb 布局（solid header / body+header） */
++            unsigned tx = w / 16, ty2 = h / 16;
++            hwaddr body_base = (bp + (uint64_t)ty2 * stride + 63) & ~63ull;
++            for (unsigned by = 0; by < ty2; by++) {
++                for (unsigned bx = 0; bx < tx; bx++) {
++                    hwaddr hdr = bp + (uint64_t)by * stride + bx * 16;
++                    hwaddr body = body_base
++                        + ((uint64_t)by * tx + bx) * 1024;
++                    uint32_t first = stage[by * 16 * w + bx * 16];
++                    bool uniform = true;
++                    for (unsigned yy = 0; yy < 16 && uniform; yy++) {
++                        for (unsigned xx = 0; xx < 16; xx++) {
++                            if (stage[(by * 16 + yy) * w + bx * 16 + xx]
++                                != first) {
++                                uniform = false;
++                                break;
++                            }
++                        }
++                    }
++                    if (uniform) {
++                        address_space_stq_le(&address_space_memory, hdr, 0,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++                        address_space_stl_le(&address_space_memory, hdr + 8,
++                                             first,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++                        address_space_stl_le(&address_space_memory, hdr + 12,
++                                             0, MEMTXATTRS_UNSPECIFIED,
++                                             NULL);
++                    } else {
++                        address_space_stl_le(&address_space_memory, hdr,
++                                             body - bp,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++                        address_space_stq_le(
++                            &address_space_memory, hdr + 8,
++                            0x0101010101010101ull,
++                            MEMTXATTRS_UNSPECIFIED, NULL);
++                        for (unsigned yy = 0; yy < 16; yy++) {
++                            for (unsigned xx = 0; xx < 16; xx++) {
++                                address_space_stl_le(
++                                    &address_space_memory,
++                                    body + (yy * 16 + xx) * 4,
++                                    stage[(by * 16 + yy) * w + bx * 16 + xx],
++                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                            }
++                        }
++                    }
++                }
++            }
++        }
++        g_free(stage);
++        if (getenv("GPUDBG")) {
++            fprintf(stderr, "GPUQUAD raster %ux%u -> rt%u bf=%u px=%u\n",
++                    w, h, i, bf, drawn);
++        }
++        return true;
++    }
++    return false;
++}
++
++/* M2n：RUN_IDVS 时的 draw 全景 dump——序号关联（同 seq 同 draw）：
++ * SPD 代码 + SR 全景 + 双 SRT（vs: t1 属性/t2 属性 Buffer→顶点数据；
++ * fs: t4 纹理链 Texture→Surfaces→Plane）。已知明文对照在
++ * sim/glestexture.py（2×2 四色 + 顶点 -1/0/1 浮点）。 */
++static void rk3588_lite_gpu_fsx_draw(struct Rk3588LiteGpu *g,
++                                     uint64_t *regs)
++{
++    static unsigned seq;
++
++    seq++;
++    rk3588_lite_gpu_dump_spd_fs(g, regs[20], 2);
++    rk3588_lite_gpu_dump_spd_fs(g, regs[16], 0);
++    fprintf(stderr, "GPUFSX #%u sr:", seq);
++    for (unsigned r = 0; r < 64; r++) {
++        if (regs[r]) {
++            fprintf(stderr, " r%u=%llx", r, (unsigned long long)regs[r]);
++        }
++    }
++    fprintf(stderr, "\n");
++
++    for (unsigned side = 0; side < 2; side++) {
++        uint64_t srt_va = side ? regs[4] : regs[0];
++        hwaddr srt = rk3588_lite_gpu_va_pa_user(g, srt_va & ~0x3full);
++        if (srt == HWADDR_MAX) {
++            continue;
++        }
++        for (unsigned i = 0; i < 7; i++) {
++            uint64_t e0 = address_space_ldq_le(&address_space_memory,
++                                               srt + i * 16,
++                                               MEMTXATTRS_UNSPECIFIED,
++                                               NULL);
++            uint64_t e1 = address_space_ldq_le(&address_space_memory,
++                                               srt + i * 16 + 8,
++                                               MEMTXATTRS_UNSPECIFIED,
++                                               NULL);
++            if (!e0 || !e1 || e1 > 0x100) {
++                continue;
++            }
++            hwaddr bp = rk3588_lite_gpu_va_pa_user(
++                g, e0 & 0x00ffffffffffffffull);
++            if (bp == HWADDR_MAX) {
++                continue;
++            }
++            /* 表 payload 首描述符 32B（Texture/Attribute/Sampler 本体）*/
++            uint64_t d[4];
++            for (unsigned w = 0; w < 4; w++) {
++                d[w] = address_space_ldq_le(&address_space_memory, bp + w * 8,
++                                            MEMTXATTRS_UNSPECIFIED, NULL);
++            }
++            fprintf(stderr,
++                    "GPUFSX #%u %s t%u=%llx sz=%llx d=%llx %llx %llx %llx",
++                    seq, side ? "fs" : "vs", i,
++                    (unsigned long long)e0, (unsigned long long)e1,
++                    (unsigned long long)d[0], (unsigned long long)d[1],
++                    (unsigned long long)d[2], (unsigned long long)d[3]);
++            if (side && i == 4) {
++                /* 纹理链两层：Texture.Surfaces=d[2]（@+0x10）→
++                 * surface 指针数组 → Plane（Pointer@+0x10、
++                 * RowStride@+0x20、宽高@+0x38，v10.xml Generic Plane）*/
++                hwaddr sp = rk3588_lite_gpu_va_pa_user(
++                    g, d[2] & 0x00ffffffffffffffull);
++                if (sp != HWADDR_MAX) {
++                    uint64_t surf = address_space_ldq_le(
++                        &address_space_memory, sp,
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                    hwaddr pp2 = rk3588_lite_gpu_va_pa_user(
++                        g, surf & 0x00ffffffffffffffull);
++                    fprintf(stderr,
++                            " sur=%llx->%llx pl=%llx->%llx:",
++                            (unsigned long long)d[2],
++                            (unsigned long long)sp,
++                            (unsigned long long)surf,
++                            (unsigned long long)pp2);
++                    if (pp2 != HWADDR_MAX) {
++                        for (unsigned w = 0; w < 8; w++) {
++                            fprintf(stderr, " %016llx",
++                                    (unsigned long long)
++                                    address_space_ldq_le(
++                                        &address_space_memory,
++                                        pp2 + w * 8,
++                                        MEMTXATTRS_UNSPECIFIED, NULL));
++                        }
++                    }
++                }
++            }
++            if (!side && i == 2) {
++                /* 顶点数据：t2 ATTRIBUTE_BUFFER 首 Buffer（Addr@w2
++                 * =+0x10）→ 64B 顶点浮点 */
++                hwaddr vp = rk3588_lite_gpu_va_pa_user(
++                    g, d[2] & 0x00ffffffffffffffull);
++                if (vp != HWADDR_MAX) {
++                    fprintf(stderr, " vdata=%llx->%llx:",
++                            (unsigned long long)d[2],
++                            (unsigned long long)vp);
++                    for (unsigned w = 0; w < 8; w++) {
++                        fprintf(stderr, " %08x",
++                                (unsigned)address_space_ldl_le(
++                                    &address_space_memory, vp + w * 4,
++                                    MEMTXATTRS_UNSPECIFIED, NULL));
++                    }
++                }
++            }
++            fprintf(stderr, "\n");
++        }
++    }
++}
++
 +static void rk3588_lite_gpu_run_fragment(struct Rk3588LiteGpu *g,
 +                                         uint64_t *regs)
 +{
@@ -3119,6 +3659,29 @@ index 0000000..d3ba427
 +    uint32_t fs_fill = g->fs_color_pending;
 +    g->fs_color_pending = 0;
 +    if (!fs_fill) {
++        /* M2n：采样 quad（FSQUAD 提取 pending 时）——先于 blit/clear */
++        if (g->fs_sample_pending) {
++            g->fs_sample_pending = false;
++            if (getenv("GPUDBG")) {
++                fprintf(stderr, "GPUQUAD consume fbd w=%ux%u", w, h);
++                for (unsigned r2 = 0; r2 < 3; r2++) {
++                    fprintf(stderr, " rt%u:%08x/%llx",
++                            r2,
++                            address_space_ldl_le(&address_space_memory,
++                                                 fp + 0x80 + r2 * 0x40 + 4,
++                                                 MEMTXATTRS_UNSPECIFIED,
++                                                 NULL),
++                            (unsigned long long)address_space_ldq_le(
++                                &address_space_memory,
++                                fp + 0x80 + r2 * 0x40 + 0x20,
++                                MEMTXATTRS_UNSPECIFIED, NULL));
++                }
++                fprintf(stderr, "\n");
++            }
++            if (rk3588_lite_gpu_raster_quad(g, fp, w, h)) {
++                return;
++            }
++        }
 +        /* M2h：再试 blit（src=最近 clear 的图、dst=本 FBD 的 RT）。 */
 +        if (rk3588_lite_gpu_try_blit(g, fp, w, h, regs[20])) {
 +            return;
@@ -3253,7 +3816,8 @@ index 0000000..d3ba427
 +static bool rk3588_lite_gpu_find_src_plane(struct Rk3588LiteGpu *g,
 +                                           uint64_t center, unsigned w,
 +                                           unsigned h, uint64_t *base_va,
-+                                           uint32_t *stride)
++                                           uint32_t *stride,
++                                           uint8_t *order)
 +{
 +    int found = 0;
 +    int64_t lo = (int64_t)(center & ~0xfffull) - 0x8000;
@@ -3314,20 +3878,38 @@ index 0000000..d3ba427
 +            found++;
 +            *base_va = b;
 +            *stride = (uint32_t)st;
++            /* M2n：plane 头 w0[11:8]=Clump ordering（1=U-tiled 2=线性）
++             * ——staging 缓冲是线性，被当 U-tiled 读=纹理 payload 置换
++             * （渐变明文实锤的根因）。 */
++            if (order) {
++                uint32_t w0 = address_space_ldl_le(&address_space_memory,
++                                                   pp + o,
++                                                   MEMTXATTRS_UNSPECIFIED,
++                                                   NULL);
++                *order = (w0 >> 8) & 0xf;
++            }
 +        }
 +    }
 +    return found == 1;    /* 唯一命中才可信 */
 +}
 +
-+/* M2j/M2k：blit src 像素读三形态（判别按我们自己的写路径约定）：
++/* M2j/M2k/M2n：blit src 像素读四形态（判别按我们自己的写路径约定）：
++ * ⓪order==2（plane 头 Clump ordering=Linear）→ 线性读（staging
++ *   上载缓冲；此前缺这条=纹理 payload 被置换的根因）
 + * ①hdr16 payload 全 0 → AFBC solid（色@+8，真规范）
 + * ②hdr+8==0x0101..01 且 word0=offset → AFBC body（本模型布局：body
 + *   在 base+offset，16×16 线性 RGBA）
 + * ③否则 U-tiled 像素读（bf=1 src；红 tile 的头 16B=非零像素，天然
 + *   落到这里） */
 +static uint32_t rk3588_blit_read_px(struct Rk3588LiteGpu *g, hwaddr src,
-+                                    uint32_t stride, unsigned x, unsigned y)
++                                    uint32_t stride, uint8_t order,
++                                    unsigned x, unsigned y)
 +{
++    if (order == 2) {
++        return address_space_ldl_le(&address_space_memory,
++                                    src + (uint64_t)y * stride + x * 4,
++                                    MEMTXATTRS_UNSPECIFIED, NULL);
++    }
 +    hwaddr sb = src + (y >> 4) * (uint64_t)stride + (x >> 4) * 16;
 +    uint64_t h04 = address_space_ldq_le(&address_space_memory, sb,
 +                                        MEMTXATTRS_UNSPECIFIED, NULL);
@@ -3477,11 +4059,12 @@ index 0000000..d3ba427
 +{
 +    uint64_t src_va = 0;
 +    uint32_t src_stride = 0;
++    uint8_t src_order = 1;    /* last_img 回退=本模型写路径（U-tiled/AFBC） */
 +    bool parsed = false;
 +
 +    if (spd2
 +        && rk3588_lite_gpu_find_src_plane(g, spd2, w, h, &src_va,
-+                                          &src_stride)) {
++                                          &src_stride, &src_order)) {
 +        parsed = true;
 +        g->blit_src_parsed++;
 +    } else if (g->last_img_va
@@ -3546,7 +4129,8 @@ index 0000000..d3ba427
 +                    for (unsigned yy = 0; yy < 16 && uniform; yy++) {
 +                        for (unsigned xx = 0; xx < 16; xx++) {
 +                            uint32_t px = rk3588_blit_read_px(
-+                                g, src, src_stride, bx * 16 + xx,
++                                g, src, src_stride, src_order,
++                                bx * 16 + xx,
 +                                by * 16 + yy);
 +                            if (yy == 0 && xx == 0) {
 +                                first = px;
@@ -3578,7 +4162,8 @@ index 0000000..d3ba427
 +                                    &address_space_memory,
 +                                    body + (yy * 16 + xx) * 4,
 +                                    rk3588_blit_read_px(
-+                                        g, src, src_stride, bx * 16 + xx,
++                                        g, src, src_stride,
++                                        src_order, bx * 16 + xx,
 +                                        by * 16 + yy),
 +                                    MEMTXATTRS_UNSPECIFIED, NULL);
 +                            }
@@ -3595,7 +4180,7 @@ index 0000000..d3ba427
 +        }
 +        for (unsigned y = 0; y < h; y++) {
 +            for (unsigned x = 0; x < w; x++) {
-+                uint32_t px = rk3588_blit_read_px(g, src, src_stride, x, y);
++                uint32_t px = rk3588_blit_read_px(g, src, src_stride, src_order, x, y);
 +                hwaddr o = bf == 1
 +                    ? (uintptr_t)rk3588_tiled_pixel(dp, stride, x, y) - dp
 +                    : (uint64_t)y * stride + x * 4;
@@ -3813,82 +4398,13 @@ index 0000000..d3ba427
 +        case 6: {  /* RUN_IDVS——M2l：常量色 FS 提取（无条件；blit 的
 +                    * 采样 FS 不匹配装载模式 → 0 = 非常量色填充） */
 +            if (getenv("GPUFSX")) {
-+                /* M2n：SPD_2（fragment）+ SPD_0（vertex）跟指针 dump */
-+                rk3588_lite_gpu_dump_spd_fs(g, regs[20], 2);
-+                rk3588_lite_gpu_dump_spd_fs(g, regs[16], 0);
-+                /* IDVS SR 全景 + SRT 资源表（纹理描述符基址来源） */
-+                fprintf(stderr, "GPUFSX sr:");
-+                for (unsigned r = 0; r < 64; r++) {
-+                    if (regs[r]) {
-+                        fprintf(stderr, " r%u=%llx", r,
-+                                (unsigned long long)regs[r]);
-+                    }
-+                }
-+                fprintf(stderr, "\n");
-+                hwaddr srt = rk3588_lite_gpu_va_pa_user(
-+                    g, regs[4] & ~0x3full);
-+                if (srt != HWADDR_MAX) {
-+                    /* Resource 16B/项：addr56@+0、contains@bit56、
-+                     * Size@+8（=BUFFER 数组字节数，16B/个）。表号
-+                     * pan_context.h：0=UBO 1=ATTR 2=ATTR_BUF 3=SAMPLER
-+                     * 4=TEXTURE 5=IMAGE 6=SSBO。每张表跟两层：BUFFER
-+                     * 数组本体 + 首 BUFFER 指向的描述符 32B。 */
-+                    fprintf(stderr, "GPUFSX srt@%llx->%llx:",
-+                            (unsigned long long)regs[4],
-+                            (unsigned long long)srt);
-+                    for (unsigned i = 0; i < 7; i++) {
-+                        uint64_t e0 = address_space_ldq_le(
-+                            &address_space_memory, srt + i * 16,
-+                            MEMTXATTRS_UNSPECIFIED, NULL);
-+                        uint64_t e1 = address_space_ldq_le(
-+                            &address_space_memory, srt + i * 16 + 8,
-+                            MEMTXATTRS_UNSPECIFIED, NULL);
-+                        fprintf(stderr, " t%u=%llx/%llx", i,
-+                                (unsigned long long)e0,
-+                                (unsigned long long)e1);
-+                        if (!e0 || !e1 || e1 > 0x100) {
-+                            continue;
-+                        }
-+                        hwaddr bp = rk3588_lite_gpu_va_pa_user(
-+                            g, e0 & 0x00ffffffffffffffull);
-+                        if (bp == HWADDR_MAX) {
-+                            continue;
-+                        }
-+                        fprintf(stderr, " [");
-+                        for (unsigned w = 0; w < e1 / 16 && w < 4; w++) {
-+                            fprintf(stderr, "%llx:%llx ",
-+                                    (unsigned long long)address_space_ldq_le(
-+                                        &address_space_memory,
-+                                        bp + w * 16,
-+                                        MEMTXATTRS_UNSPECIFIED, NULL),
-+                                    (unsigned long long)address_space_ldq_le(
-+                                        &address_space_memory,
-+                                        bp + w * 16 + 8,
-+                                        MEMTXATTRS_UNSPECIFIED, NULL));
-+                        }
-+                        uint64_t b0 = address_space_ldq_le(
-+                            &address_space_memory, bp,
-+                            MEMTXATTRS_UNSPECIFIED, NULL);
-+                        hwaddr dp = rk3588_lite_gpu_va_pa_user(
-+                            g, b0 & 0x00ffffffffffffffull);
-+                        if (dp != HWADDR_MAX) {
-+                            fprintf(stderr, "|");
-+                            for (unsigned w = 0; w < 4; w++) {
-+                                fprintf(stderr, " %016llx",
-+                                        (unsigned long long)
-+                                        address_space_ldq_le(
-+                                            &address_space_memory,
-+                                            dp + w * 8,
-+                                            MEMTXATTRS_UNSPECIFIED, NULL));
-+                            }
-+                        }
-+                        fprintf(stderr, "]");
-+                    }
-+                    fprintf(stderr, "\n");
-+                }
++                rk3588_lite_gpu_fsx_draw(g, regs);
 +            }
 +            g->fs_color_pending =
 +                rk3588_lite_gpu_extract_fs_color(g, regs[20]);
++            if (getenv("FSQUAD")) {
++                rk3588_lite_gpu_extract_fs_sample(g, regs);
++            }
 +        }
 +        /* fallthrough */
 +        case 8: {  /* RUN_FULLSCREEN（DCD 寄存器号@[47:40]）；
