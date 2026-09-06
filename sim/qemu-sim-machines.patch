@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..4c131cf
+index 0000000..c25d976
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,4891 @@
+@@ -0,0 +1,4973 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -812,6 +812,7 @@ index 0000000..4c131cf
 +    QemuConsole *con;             /* scanout goes here (same push model as ramfb) */
 +    DisplaySurface *surface;
 +    uint32_t last_mst, last_dsp, last_vir;
++    uint32_t last_vop_print;         /* GPUDBG: scanout 源变化打点去重 */
 +};
 +
 +/* PD_VOP = BIT(1) in pwr@0x150 (cascade table); bit set = powered down.
@@ -870,6 +871,11 @@ index 0000000..4c131cf
 +
 +    fb = rk3588_lite_vop_iova_phys(s, s->fb_mst);
 +    s->fb_phys = fb;
++    if (getenv("GPUDBG") && fb != s->last_vop_print) {
++        fprintf(stderr, "VOPSCAN mst=%x->%llx dsp=%x vir=%x\n",
++                s->fb_mst, (unsigned long long)fb, s->fb_dsp, s->fb_vir);
++        s->last_vop_print = fb;
++    }
 +    if (!s->con) {
 +        /* vop-console=off：控制台缺席（virgl 单显示设备形态，GitLab#1727），
 +         * fb_phys 照常导出给 fbdump，窗口推送全部跳过 */
@@ -1018,6 +1024,10 @@ index 0000000..4c131cf
 +    uint64_t blit_src_parsed;             /* M2i：结构匹配定位 src 的次数 */
 +    uint64_t afbc_clear_sb;               /* M2j：AFBC solid-header clear 的 sb 数 */
 +    uint32_t fs_color_pending;            /* M2l：常量色 FS 提取的 RGBA（0=无） */
++    /* M2n：raster 提交目标 LRU（合成 blit 的 src 回退——长命 plane
++     * 描述符不在批池扫描窗，靠写方登记） */
++    struct { uint64_t va; uint32_t stride, w, h; uint8_t bf; } raster_imgs[8];
++    unsigned raster_imgs_n;
 +    /* M2n：采样 FS pending（RUN_IDVS 提取、RUN_FRAGMENT 光栅化）。
 +     * FSQUAD=1 门控（受控验证期默认关）。 */
 +    bool fs_sample_pending;
@@ -2366,6 +2376,22 @@ index 0000000..4c131cf
 + * 固件语义：组换 AS 上下文执行）。多 VM 的堆区 VA 高度别名，首个成功
 + * 的全表扫可能穿错 VM（实测：glClear 在 mutter 并发下 clear 写错物理页，
 + * readback 全零）。未绑定（config 无效）才回退 MRU 扫描 + 换出影子。 */
++/* M2n：写路径专用严格翻译——只走当前 CSG 绑定 AS。lenient 版的
++ * 全 AS 回退扫描在 VA 跨 VM 别名时给出错页（M2e 同族），3840×2160
++ * 壁纸 draw 的 34MB 写进错页 = kernel DABT panic（~130s 两连复现）。 */
++static hwaddr rk3588_lite_gpu_va_pa_bound(struct Rk3588LiteGpu *g,
++                                          uint64_t va)
++{
++    hwaddr pa;
++
++    if (g->cur_as >= 1 && g->cur_as < 8 && g->as_transtab[g->cur_as]
++        && rk3588_lite_gpu_va_pa_in(g, g->as_transtab[g->cur_as], va,
++                                    &pa)) {
++        return pa;
++    }
++    return HWADDR_MAX;
++}
++
 +static hwaddr rk3588_lite_gpu_va_pa_user(struct Rk3588LiteGpu *g, uint64_t va)
 +{
 +    hwaddr pa;
@@ -3409,7 +3435,7 @@ index 0000000..4c131cf
 +        uint32_t stride = address_space_ldl_le(&address_space_memory,
 +                                               rt + 0x28,
 +                                               MEMTXATTRS_UNSPECIFIED, NULL);
-+        hwaddr bp = rk3588_lite_gpu_va_pa_user(g, base);
++        hwaddr bp = rk3588_lite_gpu_va_pa_bound(g, base);
 +        hwaddr sp = rk3588_lite_gpu_va_pa_user(g, g->fs_plane_va);
 +        if (bp == HWADDR_MAX || sp == HWADDR_MAX || !stride) {
 +            if (getenv("GPUDBG")) {
@@ -3418,6 +3444,24 @@ index 0000000..4c131cf
 +                        stride);
 +            }
 +            continue;
++        }
++        /* 写跨度安全门：mistranslate 的 base/stride 会狂写全内存
++         * （kernel DABT panic 实锤：3840×2160 壁纸 bf13 目标 37MB body
++         * 写穿相邻 BO 腐蚀内核，~130s DABT 两连复现）。RAM=2G 上界
++         * + 像素量上限（>1920×1080 弃权——壁纸的下采样 draw 仍覆盖）。 */
++        {
++            uint64_t span = (uint64_t)(h + 15) / 16 * stride + (uint64_t)w / 16 * 1024;
++            /* 像素量上限：>1920×1080 暂缓——3840×2160 上载链与 kernel
++             * panic 的因果未定（字形阶段也复现），深挖留待下轮 */
++            if (bp < 0x100000 || bp + span > 0x80000000ull
++                || (uint64_t)w * h > 1920ull * 1080) {
++                if (getenv("GPUDBG")) {
++                    fprintf(stderr, "GPUQUAD spanfail bp=%llx span=%llx\n",
++                            (unsigned long long)bp,
++                            (unsigned long long)span);
++                }
++                continue;
++            }
 +        }
 +        float x0, x1, y0, y1, u0, u1, v0, v1;
 +        memcpy(&x0, &g->fs_quad[0], 4);
@@ -3552,6 +3596,26 @@ index 0000000..4c131cf
 +            }
 +        }
 +        g_free(stage);
++        /* M2n：登记 LRU（去重）——合成 blit 的 src 回退 */
++        {
++            unsigned slot = 0;
++            while (slot < g->raster_imgs_n
++                   && g->raster_imgs[slot].va != base) {
++                slot++;
++            }
++            if (slot == g->raster_imgs_n && slot < 8) {
++                g->raster_imgs_n++;
++            }
++            if (slot < 8) {
++                if (slot) {
++                    memmove(&g->raster_imgs[1], &g->raster_imgs[0],
++                            slot * sizeof(g->raster_imgs[0]));
++                }
++                g->raster_imgs[0] = (typeof(g->raster_imgs[0])){
++                    .va = base, .stride = stride, .w = w, .h = h, .bf = bf
++                };
++            }
++        }
 +        if (getenv("GPUDBG")) {
 +            fprintf(stderr, "GPUQUAD raster %ux%u -> rt%u bf=%u px=%u\n",
 +                    w, h, i, bf, drawn);
@@ -3708,15 +3772,21 @@ index 0000000..4c131cf
 +            if (getenv("GPUDBG")) {
 +                fprintf(stderr, "GPUQUAD consume fbd w=%ux%u", w, h);
 +                for (unsigned r2 = 0; r2 < 3; r2++) {
-+                    fprintf(stderr, " rt%u:%08x/%llx",
++                    uint64_t rbase = address_space_ldq_le(
++                        &address_space_memory, fp + 0x80 + r2 * 0x40 + 0x20,
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                    fprintf(stderr, " rt%u:%08x/%llx/%llx/%x",
 +                            r2,
 +                            address_space_ldl_le(&address_space_memory,
 +                                                 fp + 0x80 + r2 * 0x40 + 4,
 +                                                 MEMTXATTRS_UNSPECIFIED,
 +                                                 NULL),
-+                            (unsigned long long)address_space_ldq_le(
++                            (unsigned long long)rbase,
++                            (unsigned long long)rk3588_lite_gpu_va_pa_user(
++                                g, rbase),
++                            address_space_ldl_le(
 +                                &address_space_memory,
-+                                fp + 0x80 + r2 * 0x40 + 0x20,
++                                fp + 0x80 + r2 * 0x40 + 0x28,
 +                                MEMTXATTRS_UNSPECIFIED, NULL));
 +                }
 +                fprintf(stderr, "\n");
@@ -4131,14 +4201,26 @@ index 0000000..4c131cf
 +                                          &src_thdr)) {
 +        parsed = true;
 +        g->blit_src_parsed++;
-+    } else if (g->last_img_va
-+               && (g->last_img_bf == 1 || g->last_img_bf == 12
-+                   || g->last_img_bf == 13)
-+               && g->last_img_w >= w && g->last_img_h >= h) {
-+        src_va = g->last_img_va;
-+        src_stride = g->last_img_stride;
 +    } else {
-+        return false;
++        /* M2n：raster LRU 回退（写方登记的最近目标；thdr 按 bf=13） */
++        bool hit = false;
++        for (unsigned s2 = 0; s2 < g->raster_imgs_n && !hit; s2++) {
++            if (g->raster_imgs[s2].w >= w && g->raster_imgs[s2].h >= h) {
++                src_va = g->raster_imgs[s2].va;
++                src_stride = g->raster_imgs[s2].stride;
++                src_thdr = g->raster_imgs[s2].bf == 13;
++                hit = true;
++            }
++        }
++        if (!hit && g->last_img_va
++            && (g->last_img_bf == 1 || g->last_img_bf == 12
++                || g->last_img_bf == 13)
++            && g->last_img_w >= w && g->last_img_h >= h) {
++            src_va = g->last_img_va;
++            src_stride = g->last_img_stride;
++        } else if (!hit) {
++            return false;
++        }
 +    }
 +    hwaddr src = rk3588_lite_gpu_va_pa_user(g, src_va);
 +    if (src == HWADDR_MAX) {
