@@ -1,0 +1,162 @@
+From 1e4a099546e00c290d2e637099c530c14d1514f1 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sat, 29 Aug 2026 10:46:06 +0800
+Subject: [PATCH] drm/rockchip: vop2: split cluster AFBC modifier lists per
+ SoC; RK3588 advertises LINEAR
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+rockchip_vop2_mod_supported() unconditionally accepts
+DRM_FORMAT_MOD_LINEAR on RK3588 ("Linear is otherwise supported
+everywhere"), but the cluster windows' format_modifiers_afbc list —
+shared between RK3568 and RK3588 — never advertises it, so the
+IN_FORMATS blob hides a capability the check function permits.
+RK3568's cluster windows are genuinely AFBC-only (their check rejects
+LINEAR); sharing one list let RK3588 silently inherit that
+restriction.  rk3576 already had its own list.
+
+Modifier capability tables are per-SoC hardware properties: split
+the shared array into format_modifiers_rk3568_afbc (unchanged,
+AFBC-only) and format_modifiers_rk3588_afbc_linear (the nine AFBC
+variants with LINEAR appended last, so hardware stacks keep their
+AFBC priority).
+
+The LINEAR entry matters for modifier-negotiating clients with a
+software renderer (llvmpipe — the only option without a Mali render
+node, e.g. QEMU sim bring-up): mutter picks the plane-advertised
+modifier set and asks GBM for buffers, cannot produce AFBC, and
+fails with EGL_BAD_ALLOC in eglCreatePlatformWindowSurface
+(reproduced minimally with a plain/linear/AFBC ctypes probe: the
+first two pass, AFBC returns 0x3003).
+---
+ drivers/gpu/drm/rockchip/rockchip_vop2_reg.c | 64 +++++++++++++++++---
+ 1 file changed, 57 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c b/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
+index 02a788a4d..2f70605bd 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
++++ b/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
+@@ -200,7 +200,10 @@ static const uint64_t format_modifiers[] = {
+ 	DRM_FORMAT_MOD_INVALID,
+ };
+ 
+-static const uint64_t format_modifiers_afbc[] = {
++/* rk3568 cluster windows are genuinely AFBC-only (mod_supported() rejects
++ * LINEAR there) — per-SoC capability list, do not share across SoCs.
++ */
++static const uint64_t format_modifiers_rk3568_afbc[] = {
+ 	DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16),
+ 
+ 	DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
+@@ -237,6 +240,53 @@ static const uint64_t format_modifiers_afbc[] = {
+ 	DRM_FORMAT_MOD_INVALID,
+ };
+ 
++/*
++ * RK3588 cluster windows: mod_supported() already accepts LINEAR on every
++ * RK3588 window ("Linear is otherwise supported everywhere"), but an AFBC-only
++ * advertisement hides that from the IN_FORMATS blob, so modifier-negotiating
++ * clients with a software renderer (llvmpipe — no Mali renderD, e.g. QEMU
++ * bring-up) cannot allocate scanout buffers and fail with EGL_BAD_ALLOC.
++ * LINEAR goes last: hardware stacks keep their AFBC priority.
++ */
++static const uint64_t format_modifiers_rk3588_afbc_linear[] = {
++	DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16),
++
++	DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
++				AFBC_FORMAT_MOD_SPARSE),
++
++	DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
++				AFBC_FORMAT_MOD_YTR),
++
++	DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
++				AFBC_FORMAT_MOD_CBR),
++
++	DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
++				AFBC_FORMAT_MOD_YTR |
++				AFBC_FORMAT_MOD_SPARSE),
++
++	DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
++				AFBC_FORMAT_MOD_CBR |
++				AFBC_FORMAT_MOD_SPARSE),
++
++	DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
++				AFBC_FORMAT_MOD_YTR |
++				AFBC_FORMAT_MOD_CBR),
++
++	DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
++				AFBC_FORMAT_MOD_YTR |
++				AFBC_FORMAT_MOD_CBR |
++				AFBC_FORMAT_MOD_SPARSE),
++
++	/* SPLIT mandates SPARSE, RGB modes mandates YTR */
++	DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
++				AFBC_FORMAT_MOD_YTR |
++				AFBC_FORMAT_MOD_SPARSE |
++				AFBC_FORMAT_MOD_SPLIT),
++
++	DRM_FORMAT_MOD_LINEAR,
++	DRM_FORMAT_MOD_INVALID,
++};
++
+ /* used from rk3576, afbc 32*8 half mode */
+ static const uint64_t format_modifiers_rk3576_afbc[] = {
+ 	DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_32x8 |
+@@ -658,7 +708,7 @@ static const struct vop2_win_data rk3568_vop_win_data[] = {
+ 		.possible_vp_mask = BIT(0) | BIT(1) | BIT(2),
+ 		.formats = formats_cluster,
+ 		.nformats = ARRAY_SIZE(formats_cluster),
+-		.format_modifiers = format_modifiers_afbc,
++		.format_modifiers = format_modifiers_rk3568_afbc,
+ 		.layer_sel_id = { 0, 0, 0, 0xf },
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+ 					DRM_MODE_REFLECT_X | DRM_MODE_REFLECT_Y,
+@@ -674,7 +724,7 @@ static const struct vop2_win_data rk3568_vop_win_data[] = {
+ 		.possible_vp_mask = BIT(0) | BIT(1) | BIT(2),
+ 		.formats = formats_cluster,
+ 		.nformats = ARRAY_SIZE(formats_cluster),
+-		.format_modifiers = format_modifiers_afbc,
++		.format_modifiers = format_modifiers_rk3568_afbc,
+ 		.layer_sel_id = { 1, 1, 1, 0xf },
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+ 					DRM_MODE_REFLECT_X | DRM_MODE_REFLECT_Y,
+@@ -1126,7 +1176,7 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.possible_vp_mask = BIT(0) | BIT(1) | BIT(2) | BIT(3),
+ 		.formats = formats_cluster,
+ 		.nformats = ARRAY_SIZE(formats_cluster),
+-		.format_modifiers = format_modifiers_afbc,
++		.format_modifiers = format_modifiers_rk3588_afbc_linear,
+ 		.layer_sel_id = { 0, 0, 0, 0 },
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+ 				       DRM_MODE_REFLECT_X | DRM_MODE_REFLECT_Y,
+@@ -1145,7 +1195,7 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.possible_vp_mask = BIT(0) | BIT(1) | BIT(2) | BIT(3),
+ 		.formats = formats_cluster,
+ 		.nformats = ARRAY_SIZE(formats_cluster),
+-		.format_modifiers = format_modifiers_afbc,
++		.format_modifiers = format_modifiers_rk3588_afbc_linear,
+ 		.layer_sel_id = { 1, 1, 1, 1 },
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+ 				       DRM_MODE_REFLECT_X | DRM_MODE_REFLECT_Y,
+@@ -1164,7 +1214,7 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.possible_vp_mask = BIT(0) | BIT(1) | BIT(2) | BIT(3),
+ 		.formats = formats_cluster,
+ 		.nformats = ARRAY_SIZE(formats_cluster),
+-		.format_modifiers = format_modifiers_afbc,
++		.format_modifiers = format_modifiers_rk3588_afbc_linear,
+ 		.layer_sel_id = { 4, 4, 4, 4 },
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+ 				       DRM_MODE_REFLECT_X | DRM_MODE_REFLECT_Y,
+@@ -1183,7 +1233,7 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.possible_vp_mask = BIT(0) | BIT(1) | BIT(2) | BIT(3),
+ 		.formats = formats_cluster,
+ 		.nformats = ARRAY_SIZE(formats_cluster),
+-		.format_modifiers = format_modifiers_afbc,
++		.format_modifiers = format_modifiers_rk3588_afbc_linear,
+ 		.layer_sel_id =  { 5, 5, 5, 5 },
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+ 				       DRM_MODE_REFLECT_X | DRM_MODE_REFLECT_Y,
+-- 
+2.43.0
+

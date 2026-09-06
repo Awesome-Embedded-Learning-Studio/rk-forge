@@ -1,0 +1,120 @@
+From af4ca6df07db73669bee88bde2a57cbac23a7ee2 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sat, 29 Aug 2026 13:18:04 +0800
+Subject: [PATCH] drm/rockchip: vop2: stop advertising AFBC-only 10bpc formats
+ on RK3588 cluster windows
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+XRGB2101010 and XBGR2101010 on RK3588 cluster windows are only legal
+with AFBC modifiers (rockchip_vop2_mod_supported() rejects their
+linear combination), but the IN_FORMATS blob is a flat
+format x modifier cross-product and cannot express that restriction.
+
+mutter (50.x) walks alphaless-10bpc formats first when choosing the
+onscreen EGL config on the primary GPU, so it latches onto
+XRGB2101010, then fails to present any frame: with a software
+renderer (llvmpipe — the only option without a Mali render node,
+e.g. QEMU bring-up) every path ends in EGL_BAD_ALLOC inside
+dri2_swap_buffers, and even with an AFBC-capable renderer the
+linear combination is rejected at AddFB2.  The desktop never
+lights.
+
+Stop advertising the two formats on RK3588 cluster windows until
+per-format modifier lists can be expressed; clients fall back to
+XRGB8888, which scans out linear fine (probe-verified: XR24/XR30
+AR24 plain/linear/plane-list gbm swapchains all pass on llvmpipe;
+the failure is the format choice, not allocation).  The unmodified
+shared formats_cluster stays for RK3568, whose cluster windows are
+overlay-only there.
+
+Sim campaign 4 (GNOME desktop in QEMU); see document/notes/74.
+---
+ drivers/gpu/drm/rockchip/rockchip_vop2_reg.c | 42 ++++++++++++++++----
+ 1 file changed, 34 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c b/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
+index 2f70605bd..3b6b26d6c 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
++++ b/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
+@@ -72,6 +72,32 @@ static const uint32_t formats_cluster[] = {
+ 	DRM_FORMAT_Y210, /* yuv422_10bit non-Linear mode only */
+ };
+ 
++/*
++ * RK3588 cluster windows: XRGB/XBGR2101010 are AFBC-only here (see
++ * rockchip_vop2_mod_supported()), but the IN_FORMATS blob is a flat
++ * format x modifier cross-product and cannot express that.  Advertising
++ * them hands linear-only renderers (llvmpipe, e.g. QEMU bring-up without
++ * a Mali render node) a format whose linear buffers the kernel rejects
++ * at AddFB2 — mutter's alphaless-10bpc-first config walk then dies in
++ * gbm allocation and the desktop never lights.  Keep the two formats
++ * unadvertised until the kernel can express per-format modifier lists;
++ * clients then fall back to XRGB8888, which scans out linear fine.
++ */
++static const uint32_t formats_cluster_rk3588[] = {
++	DRM_FORMAT_XRGB8888,
++	DRM_FORMAT_ARGB8888,
++	DRM_FORMAT_XBGR8888,
++	DRM_FORMAT_ABGR8888,
++	DRM_FORMAT_RGB888,
++	DRM_FORMAT_BGR888,
++	DRM_FORMAT_RGB565,
++	DRM_FORMAT_BGR565,
++	DRM_FORMAT_YUV420_8BIT, /* yuv420_8bit non-Linear mode only */
++	DRM_FORMAT_YUV420_10BIT, /* yuv420_10bit non-Linear mode only */
++	DRM_FORMAT_YUYV, /* yuv422_8bit non-Linear mode only*/
++	DRM_FORMAT_Y210, /* yuv422_10bit non-Linear mode only */
++};
++
+ /*
+  * The cluster windows on rk3576 support:
+  * RGB: linear mode and afbc
+@@ -1174,8 +1200,8 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.phys_id = ROCKCHIP_VOP2_CLUSTER0,
+ 		.base = 0x1000,
+ 		.possible_vp_mask = BIT(0) | BIT(1) | BIT(2) | BIT(3),
+-		.formats = formats_cluster,
+-		.nformats = ARRAY_SIZE(formats_cluster),
++		.formats = formats_cluster_rk3588,
++		.nformats = ARRAY_SIZE(formats_cluster_rk3588),
+ 		.format_modifiers = format_modifiers_rk3588_afbc_linear,
+ 		.layer_sel_id = { 0, 0, 0, 0 },
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+@@ -1193,8 +1219,8 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.phys_id = ROCKCHIP_VOP2_CLUSTER1,
+ 		.base = 0x1200,
+ 		.possible_vp_mask = BIT(0) | BIT(1) | BIT(2) | BIT(3),
+-		.formats = formats_cluster,
+-		.nformats = ARRAY_SIZE(formats_cluster),
++		.formats = formats_cluster_rk3588,
++		.nformats = ARRAY_SIZE(formats_cluster_rk3588),
+ 		.format_modifiers = format_modifiers_rk3588_afbc_linear,
+ 		.layer_sel_id = { 1, 1, 1, 1 },
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+@@ -1212,8 +1238,8 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.phys_id = ROCKCHIP_VOP2_CLUSTER2,
+ 		.base = 0x1400,
+ 		.possible_vp_mask = BIT(0) | BIT(1) | BIT(2) | BIT(3),
+-		.formats = formats_cluster,
+-		.nformats = ARRAY_SIZE(formats_cluster),
++		.formats = formats_cluster_rk3588,
++		.nformats = ARRAY_SIZE(formats_cluster_rk3588),
+ 		.format_modifiers = format_modifiers_rk3588_afbc_linear,
+ 		.layer_sel_id = { 4, 4, 4, 4 },
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+@@ -1231,8 +1257,8 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.phys_id = ROCKCHIP_VOP2_CLUSTER3,
+ 		.base = 0x1600,
+ 		.possible_vp_mask = BIT(0) | BIT(1) | BIT(2) | BIT(3),
+-		.formats = formats_cluster,
+-		.nformats = ARRAY_SIZE(formats_cluster),
++		.formats = formats_cluster_rk3588,
++		.nformats = ARRAY_SIZE(formats_cluster_rk3588),
+ 		.format_modifiers = format_modifiers_rk3588_afbc_linear,
+ 		.layer_sel_id =  { 5, 5, 5, 5 },
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+-- 
+2.43.0
+

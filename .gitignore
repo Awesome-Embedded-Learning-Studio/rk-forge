@@ -34,6 +34,11 @@ u-boot.itb
 # README for the checkout + build invocation). Same pattern as src.
 /third_party/buildroot/
 
+# qemu: pinned v11.1.0 clone carrying the rk3568-lite machine model (sim research
+# line, boards/rk3568-atk/sim/). Local plain clone for now; submodule-ize like
+# rkbin once the fork is hosted.
+/third_party/qemu/
+
 # --- reference ---
 # Active reference / extraction pool — NOT a build dependency, NOT a submodule.
 # vendor-sdk = local clone of the ATK-DLRK3506 BSP (linux 6.1.118), kept as a
