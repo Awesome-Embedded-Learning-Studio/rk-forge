@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..f80b3d1
+index 0000000..f764f0b
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,4062 @@
+@@ -0,0 +1,4282 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -2927,12 +2927,182 @@ index 0000000..f80b3d1
 +                                     unsigned w, unsigned h, uint64_t spd2);
 +static uint32_t rk3588_lite_gpu_extract_fs_color(struct Rk3588LiteGpu *g,
 +                                                 uint64_t spd2);
++/* M2n：采样 FS 侦察——mutter 合成全走 RUN_FRAGMENT（无 RUN_IDVS，
++ * note 100），提取器旧挂点抓不到。批池扫 varying/tex/var_tex 族
++ * opcode（ISA.xml），命中页整页 dump 全字。去重按 PA+内容哈希：
++ * 批池地址复用换内容时必须再 dump。 */
++static void rk3588_lite_gpu_dump_sampling_fs(struct Rk3588LiteGpu *g,
++                                             uint64_t spd2)
++{
++    static struct { hwaddr pa; uint32_t hash; } seen[64];
++    static unsigned nseen;
++    /* varying 0x40..0x6d、tex 0x125/128/129/12a/12f、var_tex 0x13x
++     * （ISA.xml message=tex/varying 全集，精确值防范围误报） */
++    static const uint16_t tex_ops[] = { 0x125, 0x128, 0x129, 0x12a, 0x12f };
++    static const uint16_t vtex_ops[] = { 0x130, 0x131, 0x132, 0x137,
++                                         0x138, 0x139, 0x13a, 0x13f };
++    static const uint16_t var_ops[] = { 0x40, 0x41, 0x54, 0x55, 0x56,
++                                        0x5c, 0x5d, 0x5f, 0x64, 0x6c, 0x6d };
++    int64_t lo = (int64_t)(spd2 & ~0xfffull) - 0x8000;
++    int64_t hi = (int64_t)(spd2 & ~0xfffull) + 0x8000;
++
++    for (int64_t va = lo; va < hi; va += 0x1000) {
++        hwaddr pp = rk3588_lite_gpu_va_pa_user(g, (uint64_t)va);
++        if (pp == HWADDR_MAX) {
++            continue;
++        }
++        uint64_t q[512];
++        uint32_t hash = 2166136261u;
++        unsigned tex = 0, vtex = 0, var = 0;
++        for (unsigned o = 0; o < 512; o++) {
++            q[o] = address_space_ldq_le(&address_space_memory, pp + o * 8,
++                                        MEMTXATTRS_UNSPECIFIED, NULL);
++            hash = (hash ^ (uint32_t)q[o]) * 16777619u;
++            hash = (hash ^ (uint32_t)(q[o] >> 32)) * 16777619u;
++            unsigned op = (q[o] >> 48) & 0x1ff;
++            for (unsigned k = 0; k < ARRAY_SIZE(tex_ops); k++) {
++                tex += op == tex_ops[k];
++            }
++            for (unsigned k = 0; k < ARRAY_SIZE(vtex_ops); k++) {
++                vtex += op == vtex_ops[k];
++            }
++            for (unsigned k = 0; k < ARRAY_SIZE(var_ops); k++) {
++                var += op == var_ops[k];
++            }
++        }
++        if (!tex && !vtex && !var) {
++            continue;
++        }
++        unsigned i;
++        for (i = 0; i < nseen; i++) {
++            if (seen[i].pa == pp && seen[i].hash == hash) {
++                break;
++            }
++        }
++        if (i < nseen || nseen >= ARRAY_SIZE(seen)) {
++            continue;
++        }
++        seen[nseen].pa = pp;
++        seen[nseen].hash = hash;
++        nseen++;
++        fprintf(stderr,
++                "GPUFSX frag spd2=%llx va=%llx pa=%llx tex=%u vtex=%u "
++                "var=%u\n",
++                (unsigned long long)spd2, (unsigned long long)va,
++                (unsigned long long)pp, tex, vtex, var);
++        unsigned zrun = 0;
++        for (unsigned o = 0; o < 512; o += 4) {
++            if (!q[o] && !q[o + 1] && !q[o + 2] && !q[o + 3]) {
++                zrun += 4;
++                continue;
++            }
++            if (zrun) {
++                fprintf(stderr, "  +%04x z%u\n", o * 8, zrun);
++                zrun = 0;
++            }
++            fprintf(stderr, "  +%04x %016llx %016llx %016llx %016llx\n",
++                    o * 8, (unsigned long long)q[o],
++                    (unsigned long long)q[o + 1],
++                    (unsigned long long)q[o + 2],
++                    (unsigned long long)q[o + 3]);
++        }
++        if (zrun) {
++            fprintf(stderr, "  +%04x z%u\n", 4096, zrun);
++        }
++    }
++}
++
++/* M2n：SPD 正路 dump。M2l 的 ATEST 锚（dest=r60）是 glestriangle 编译
++ * 巧合，mutter 千余次 RUN_IDVS 零命中——批池邻近窗口不总覆盖代码。
++ * SPD（"Shader Program" 64B，v10.xml）w2@+0x10 = Binary 64 位地址 =
++ * shader 代码 PC，直接跟指针。dump 64B SPD + 代码首页 + tex/varying
++ * 族 opcode 计数（9bit@48，ISA.xml），PA+内容哈希去重。 */
++static void rk3588_lite_gpu_dump_spd_fs(struct Rk3588LiteGpu *g,
++                                        uint64_t spd_va, unsigned tag)
++{
++    static struct { hwaddr pa; uint32_t hash; } seen[96];
++    static unsigned nseen;
++    static const uint16_t tex_ops[] = { 0x125, 0x128, 0x129, 0x12a, 0x12f };
++    static const uint16_t vtex_ops[] = { 0x130, 0x131, 0x132, 0x137,
++                                         0x138, 0x139, 0x13a, 0x13f };
++    static const uint16_t var_ops[] = { 0x40, 0x41, 0x54, 0x55, 0x56,
++                                        0x5c, 0x5d, 0x5f, 0x64, 0x6c, 0x6d };
++    hwaddr pp = rk3588_lite_gpu_va_pa_user(g, spd_va & ~0x1full);
++
++    if (pp == HWADDR_MAX) {
++        return;
++    }
++    uint64_t spd[8];
++    for (unsigned i = 0; i < 8; i++) {
++        spd[i] = address_space_ldq_le(&address_space_memory, pp + i * 8,
++                                      MEMTXATTRS_UNSPECIFIED, NULL);
++    }
++    /* genxml start="2:0" 是 32-bit 字号：Binary 在字节偏移 +8（首版误读
++     * +0x10 的 qword——"pre" 打出来的 VA 其实就是 Binary）。 */
++    uint64_t bin = spd[1];
++    hwaddr bp = rk3588_lite_gpu_va_pa_user(g, bin & ~0xfull);
++    if (bp == HWADDR_MAX) {
++        fprintf(stderr, "GPUFSX spd%u@%llx->%llx w0=%llx bin=%llx nomap\n",
++                tag, (unsigned long long)spd_va, (unsigned long long)pp,
++                (unsigned long long)spd[0], (unsigned long long)bin);
++        return;
++    }
++    uint64_t q[128];
++    uint32_t hash = 2166136261u;
++    unsigned tex = 0, vtex = 0, var = 0;
++    for (unsigned o = 0; o < 128; o++) {
++        q[o] = address_space_ldq_le(&address_space_memory, bp + o * 8,
++                                    MEMTXATTRS_UNSPECIFIED, NULL);
++        hash = (hash ^ (uint32_t)q[o]) * 16777619u;
++        hash = (hash ^ (uint32_t)(q[o] >> 32)) * 16777619u;
++        unsigned op = (q[o] >> 48) & 0x1ff;
++        for (unsigned k = 0; k < ARRAY_SIZE(tex_ops); k++) {
++            tex += op == tex_ops[k];
++        }
++        for (unsigned k = 0; k < ARRAY_SIZE(vtex_ops); k++) {
++            vtex += op == vtex_ops[k];
++        }
++        for (unsigned k = 0; k < ARRAY_SIZE(var_ops); k++) {
++            var += op == var_ops[k];
++        }
++    }
++    unsigned i;
++    for (i = 0; i < nseen; i++) {
++        if (seen[i].pa == bp && seen[i].hash == hash) {
++            break;
++        }
++    }
++    if (i < nseen || nseen >= ARRAY_SIZE(seen)) {
++        return;
++    }
++    seen[nseen].pa = bp;
++    seen[nseen].hash = hash;
++    nseen++;
++    fprintf(stderr,
++            "GPUFSX spd%u@%llx w0=%llx bin=%llx->%llx "
++            "tex=%u vtex=%u var=%u\n",
++            tag, (unsigned long long)spd_va,
++            (unsigned long long)spd[0],
++            (unsigned long long)bin, (unsigned long long)bp,
++            tex, vtex, var);
++    for (unsigned o = 0; o < 128; o += 4) {
++        fprintf(stderr, "  +%03x %016llx %016llx %016llx %016llx\n",
++                o * 8, (unsigned long long)q[o],
++                (unsigned long long)q[o + 1],
++                (unsigned long long)q[o + 2],
++                (unsigned long long)q[o + 3]);
++    }
++}
++
 +static void rk3588_lite_gpu_run_fragment(struct Rk3588LiteGpu *g,
 +                                         uint64_t *regs)
 +{
 +    hwaddr fp = rk3588_lite_gpu_va_pa_user(g, regs[0x28] & ~7ull);
 +
 +    g->rf_count++;
++    if (getenv("GPUFCS")) {
++        rk3588_lite_gpu_dump_sampling_fs(g, regs[20]);
++    }
 +    if (fp == HWADDR_MAX) {
 +        g->rf_fbd_fail++;
 +        g->rf_fbd_va = regs[0x28];
@@ -3642,6 +3812,56 @@ index 0000000..f80b3d1
 +        }
 +        case 6: {  /* RUN_IDVS——M2l：常量色 FS 提取（无条件；blit 的
 +                    * 采样 FS 不匹配装载模式 → 0 = 非常量色填充） */
++            if (getenv("GPUFSX")) {
++                /* M2n：SPD_2（fragment）+ SPD_0（vertex）跟指针 dump */
++                rk3588_lite_gpu_dump_spd_fs(g, regs[20], 2);
++                rk3588_lite_gpu_dump_spd_fs(g, regs[16], 0);
++                /* IDVS SR 全景 + SRT 资源表（纹理描述符基址来源） */
++                fprintf(stderr, "GPUFSX sr:");
++                for (unsigned r = 0; r < 64; r++) {
++                    if (regs[r]) {
++                        fprintf(stderr, " r%u=%llx", r,
++                                (unsigned long long)regs[r]);
++                    }
++                }
++                fprintf(stderr, "\n");
++                hwaddr srt = rk3588_lite_gpu_va_pa_user(
++                    g, regs[4] & ~0x3full);
++                if (srt != HWADDR_MAX) {
++                    /* Resource 16B/项：addr56@+0、Size@+8——打前 8 项，
++                     * 首项地址再跟 32B（纹理/plane 描述符本体） */
++                    fprintf(stderr, "GPUFSX srt@%llx->%llx:",
++                            (unsigned long long)regs[4],
++                            (unsigned long long)srt);
++                    for (unsigned i = 0; i < 8; i++) {
++                        fprintf(stderr, " %llx/%llx",
++                                (unsigned long long)address_space_ldq_le(
++                                    &address_space_memory, srt + i * 16,
++                                    MEMTXATTRS_UNSPECIFIED, NULL),
++                                (unsigned long long)address_space_ldq_le(
++                                    &address_space_memory, srt + i * 16 + 8,
++                                    MEMTXATTRS_UNSPECIFIED, NULL));
++                    }
++                    fprintf(stderr, "\n");
++                    uint64_t r0v = address_space_ldq_le(
++                        &address_space_memory, srt,
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                    hwaddr r0p = rk3588_lite_gpu_va_pa_user(
++                        g, r0v & ~0xfffull);
++                    if (r0p != HWADDR_MAX) {
++                        fprintf(stderr, "GPUFSX res0=%llx->%llx:",
++                                (unsigned long long)r0v,
++                                (unsigned long long)r0p);
++                        for (unsigned i = 0; i < 4; i++) {
++                            fprintf(stderr, " %016llx",
++                                    (unsigned long long)address_space_ldq_le(
++                                        &address_space_memory, r0p + i * 8,
++                                        MEMTXATTRS_UNSPECIFIED, NULL));
++                        }
++                        fprintf(stderr, "\n");
++                    }
++                }
++            }
 +            g->fs_color_pending =
 +                rk3588_lite_gpu_extract_fs_color(g, regs[20]);
 +        }
