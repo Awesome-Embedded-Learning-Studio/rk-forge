@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..ebc7f32
+index 0000000..b54c27d
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,3787 @@
+@@ -0,0 +1,3864 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3498,6 +3498,83 @@ index 0000000..ebc7f32
 +                        (unsigned long long)(instr >> 56),
 +                        (unsigned long long)g->last_img_va,
 +                        getenv("GPUANCH") != NULL);
++                if ((instr >> 56) == 6 && getenv("GPUFAU")) {
++                    /* M2l：常量锚点扫描——regs[8]/[12] 是页选复合编码非裸
++                     * 指针；直接在批池区（SPD_2 邻域）找 fp32 RGBA 常量
++                     * quad（红=3f800000,0,0,3f800000），命中处 dump 周边
++                     * 64B 反推 FAU 条目格式。 */
++                    int64_t lo = (int64_t)(regs[20] & ~0xfffull) - 0x8000;
++                    int64_t hi = (int64_t)(regs[20] & ~0xfffull) + 0x8000;
++
++                    for (int64_t va = lo; va < hi; va += 0x1000) {
++                        hwaddr pp = rk3588_lite_gpu_va_pa_user(
++                            g, (uint64_t)va);
++                        if (pp == HWADDR_MAX) {
++                            continue;
++                        }
++                        for (unsigned o = 0; o + 16 <= 0x1000; o += 4) {
++                            uint32_t w0 = address_space_ldl_le(
++                                &address_space_memory, pp + o,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++                            uint32_t w1 = address_space_ldl_le(
++                                &address_space_memory, pp + o + 4,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++                            uint32_t w2 = address_space_ldl_le(
++                                &address_space_memory, pp + o + 8,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++                            uint32_t w3 = address_space_ldl_le(
++                                &address_space_memory, pp + o + 12,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++                            if (w0 == 0x3f800000 && !w1 && !w2
++                                && w3 == 0x3f800000) {
++                                fprintf(stderr,
++                                        "GPUFAU quad@va=%llx+%x:",
++                                        (unsigned long long)va, o);
++                                for (int qd = -8; qd < 24; qd += 4) {
++                                    long so = (long)o + qd;
++                                    if (so >= 0 && so + 4 <= 0x1000) {
++                                        fprintf(stderr, " %08x",
++                                                address_space_ldl_le(
++                                                    &address_space_memory,
++                                                    pp + so,
++                                                    MEMTXATTRS_UNSPECIFIED,
++                                                    NULL));
++                                    }
++                                }
++                                fprintf(stderr, "\n");
++                            }
++                        }
++                    }
++                }
++                if ((instr >> 56) == 6 && getenv("GPUSPD")) {
++                    /* M2l：fragment shader 二进制 dump——SPD_2=regs[20]
++                     * （Shader Program Descriptor），Binary=64b 地址@+16
++                     * （v10.xml）。常量色 FS 的色值烤在指令立即数里。 */
++                    hwaddr spd = rk3588_lite_gpu_va_pa_user(g,
++                                                            regs[20] & ~0x1f);
++                    if (spd != HWADDR_MAX) {
++                        uint64_t bin = address_space_ldq_le(
++                            &address_space_memory, spd + 16,
++                            MEMTXATTRS_UNSPECIFIED, NULL);
++                        hwaddr bp = rk3588_lite_gpu_va_pa_user(
++                            g, bin & ~0x1f);
++                        fprintf(stderr, "GPUSPD spd@%llx bin=%llx:",
++                                (unsigned long long)spd,
++                                (unsigned long long)bin);
++                        if (bp != HWADDR_MAX) {
++                            for (unsigned q = 0; q < 24; q++) {
++                                fprintf(stderr, " %016llx",
++                                        (unsigned long long)
++                                        address_space_ldq_le(
++                                            &address_space_memory,
++                                            bp + q * 8,
++                                            MEMTXATTRS_UNSPECIFIED,
++                                            NULL));
++                            }
++                        }
++                        fprintf(stderr, "\n");
++                    }
++                }
 +                if ((instr >> 56) == 6 && getenv("GPUANCH")
 +                    && g->last_img_va) {
 +                    /* M2i 锚点反查：src 图像基址 VA（last_img_va）必被
