@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..7680e34
+index 0000000..a631d5c
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,4823 @@
+@@ -0,0 +1,4832 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3613,13 +3613,22 @@ index 0000000..7680e34
 +                }
 +            }
 +            if (!side && i == 2) {
-+                /* 顶点数据：t2 ATTRIBUTE_BUFFER 首 Buffer（Addr@w2
-+                 * =+0x10）→ 64B 顶点浮点 */
-+                hwaddr vp = rk3588_lite_gpu_va_pa_user(
-+                    g, d[2] & 0x00ffffffffffffffull);
-+                if (vp != HWADDR_MAX) {
-+                    fprintf(stderr, " vdata=%llx->%llx:",
-+                            (unsigned long long)d[2],
++                /* 顶点数据：t2 前 3 个 Buffer（Addr@+8）各 dump 32B
++                 * 浮点——novert 考古（pos 缓冲定位） */
++                for (unsigned b = 0; b < 3; b++) {
++                    uint64_t ba = address_space_ldq_le(
++                        &address_space_memory, bp + b * 32 + 8,
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                    if (!ba) {
++                        continue;
++                    }
++                    hwaddr vp = rk3588_lite_gpu_va_pa_user(
++                        g, ba & ~0x3full);
++                    if (vp == HWADDR_MAX) {
++                        continue;
++                    }
++                    fprintf(stderr, " vb%u=%llx->%llx:",
++                            b, (unsigned long long)ba,
 +                            (unsigned long long)vp);
 +                    for (unsigned w = 0; w < 8; w++) {
 +                        fprintf(stderr, " %08x",

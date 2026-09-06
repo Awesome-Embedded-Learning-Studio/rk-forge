@@ -41,9 +41,13 @@ RUN_FRAGMENT:
    **bf=13 AFRC 图集**（~430 draw/boot）、壁纸→1920×1080 **bf=2 线性**
    （3840×2160 纹理下采样）、主合成→1024×600 bf=12。172+1 draw 的
    RUN_IDVS→RUN_FRAGMENT 配对完美（无 pending 偷渡）。
-3. **mutter 顶点约定（未竟）**：novert 类（~570 draw）pos 不在 t2 前
-   两缓冲（dump 实测值=atlas 像素坐标/零）——疑似 gl_VertexID 生成式
-   quad 或第三缓冲/属性描述符正式解析。这是 M2n-mutter 切片的下一刀。
+3. **mutter 顶点约定（已考古）**：novert 类（~570 draw）的 t2 只有
+   **一个 32B Buffer=8 浮点 pos-only**（值在变换空间、含 NaN），uv
+   由 VS 从 FAU 常量计算——TEX_FETCH 主合成类=**VS 语义 draw**，
+   超出固定功能 quad 采样器的类（诚实边界）。mutter 种群三分类：
+   ①TEX_SINGLE+NDC 交错顶点（171 draw，本采样器覆盖，但落点是
+   AFRC 图集）②TEX_FETCH+变换 pos-only（VS 语义，~570）③纯 blit
+   （RUN_FRAGMENT，M2h/i 路径覆盖）。
 
 ## 3. 验收矩阵
 
@@ -68,8 +72,10 @@ RUN_FRAGMENT:
 
 ## 5. 下一步（M2n-mutter 切片）
 
-1. novert 类顶点来源考古：DCD 属性描述符正式解析（t1 ATTRIBUTE：
-   Format/buffer_index/offset）vs gl_VertexID 假设检验
-2. AFRC 图集读写（字形可见的前提；512² bf=13 的 encode/decode 语义）
-3. 主合成链验证：壁纸（bf=2 线性落点已备）→ try_blit 线性读 →
-   1024×600 bf=12 → VOP——screendump 主色统计
+1. **AFRC(bf=13) 图集读写**——字形可见的唯一剩余墙（171 个已配对
+   draw 落点在此）；AFRC 是与 AFBC 不同的压缩族（Plane type=10），
+   语义待逆向（可再用渐变明文攻击）
+2. VS 语义类（TEX_FETCH+变换 pos）：要么最小 VS 解释（FAU 常量
+   仿射变换提取），要么等 AFRC 通了走 blit 旁路
+3. 主合成链验证：壁纸 bf=2 落点已备 → try_blit 线性读 → 1024×600
+   bf=12 → VOP——screendump 主色统计
