@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..c25d976
+index 0000000..39eee5e
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,4973 @@
+@@ -0,0 +1,5089 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1028,6 +1028,27 @@ index 0000000..c25d976
 +     * 描述符不在批池扫描窗，靠写方登记） */
 +    struct { uint64_t va; uint32_t stride, w, h; uint8_t bf; } raster_imgs[8];
 +    unsigned raster_imgs_n;
++    /* M2n：分片异步 raster（大 draw 在 BQL 下连跑数秒会触发 host NMI
++     * 硬锁死 → guest panic，note 103 §2）。单槽：忙时新 draw 弃权。 */
++    struct {
++        bool active;
++        uint32_t *stage;
++        unsigned w, h;
++        uint8_t bf;
++        uint64_t base_va;
++        hwaddr bp;
++        uint32_t stride;
++        bool has_clear;
++        uint32_t clr;
++        uint32_t quad[16];
++        hwaddr sp;
++        uint8_t ptype, porder, pixel_uv, thdr;
++        uint32_t sstride;
++        uint16_t tw, th;
++        unsigned row, sbrow;
++        int phase;
++    } rjob;
++    QEMUBH *raster_bh;
 +    /* M2n：采样 FS pending（RUN_IDVS 提取、RUN_FRAGMENT 光栅化）。
 +     * FSQUAD=1 门控（受控验证期默认关）。 */
 +    bool fs_sample_pending;
@@ -2968,6 +2989,8 @@ index 0000000..c25d976
 +                                 unsigned x, unsigned y);
 +static hwaddr rk3588_afbc_hdr(hwaddr base, uint32_t stride, unsigned bx,
 +                              unsigned by, bool tiled);
++static hwaddr rk3588_afbc_body_base(hwaddr bp, uint32_t stride,
++                                    unsigned tx, unsigned ty, bool tiled);
 +/* M2n：采样 FS 侦察——mutter 合成全走 RUN_FRAGMENT（无 RUN_IDVS，
 + * note 100），提取器旧挂点抓不到。批池扫 varying/tex/var_tex 族
 + * opcode（ISA.xml），命中页整页 dump 全字。去重按 PA+内容哈希：
@@ -3479,32 +3502,84 @@ index 0000000..c25d976
 +            }
 +            continue;
 +        }
-+        /* 线性 staging（quad 域内直接采样）。RT 带 clear 位（bit31，
-+         * mesa 把 glClear 合并进 draw job 的 FBD）时 quad 外=clear 色
-+         * ——否则 readback 拿到残内存。 */
-+        uint32_t *stage = g_malloc_n(w, h * sizeof(uint32_t));
-+        if (!stage) {
++        /* M2n：入队异步分片（BH 片间让出 BQL——同步连跑数秒会触发
++         * host NMI 硬锁死，note 103 §2）。单槽：忙时弃权本 draw。 */
++        if (g->rjob.active) {
++            if (getenv("GPUDBG")) {
++                fprintf(stderr, "GPUQUAD busy-drop %ux%u\n", w, h);
++            }
 +            return false;
 +        }
-+        if (w1 & BIT(31)) {
-+            uint32_t clr = address_space_ldl_le(&address_space_memory,
-+                                                rt + 0x30,
-+                                                MEMTXATTRS_UNSPECIFIED, NULL);
-+            for (unsigned ci = 0; ci < (uint64_t)w * h; ci++) {
-+                stage[ci] = clr;
++        g->rjob.stage = g_malloc_n(w, h * sizeof(uint32_t));
++        if (!g->rjob.stage) {
++            return false;
++        }
++        g->rjob.active = true;
++        g->rjob.w = w;
++        g->rjob.h = h;
++        g->rjob.bf = bf;
++        g->rjob.base_va = base;
++        g->rjob.bp = bp;
++        g->rjob.stride = stride;
++        g->rjob.has_clear = w1 & BIT(31);
++        g->rjob.clr = address_space_ldl_le(&address_space_memory,
++                                           rt + 0x30,
++                                           MEMTXATTRS_UNSPECIFIED, NULL);
++        memcpy(g->rjob.quad, g->fs_quad, sizeof(g->fs_quad));
++        g->rjob.sp = sp;
++        g->rjob.ptype = g->fs_plane_type;
++        g->rjob.porder = g->fs_plane_order;
++        g->rjob.pixel_uv = g->fs_pixel_uv;
++        g->rjob.thdr = g->fs_plane_thdr;
++        g->rjob.sstride = g->fs_plane_stride;
++        g->rjob.tw = g->fs_tex_w;
++        g->rjob.th = g->fs_tex_h;
++        g->rjob.row = 0;
++        g->rjob.sbrow = 0;
++        g->rjob.phase = 0;
++        qemu_bh_schedule(g->raster_bh);
++        return true;
++    }
++    return false;
++}
++
++/* M2n：分片 raster 的 BH——每片 128 采样行 / 16 sb 行，片间让出。 */
++static void rk3588_lite_gpu_raster_bh(void *opaque)
++{
++    struct Rk3588LiteGpu *g = opaque;
++    uint32_t *stage = g->rjob.stage;
++    unsigned w = g->rjob.w, h = g->rjob.h;
++
++    if (!g->rjob.active) {
++        return;
++    }
++    if (g->rjob.phase == 0) {
++        /* 采样（含 clear 预填） */
++        if (g->rjob.has_clear && g->rjob.row == 0) {
++            for (unsigned i = 0; i < (uint64_t)w * h; i++) {
++                stage[i] = g->rjob.clr;
 +            }
 +        }
-+        unsigned drawn = 0;
-+        for (unsigned py = 0; py < h && py < 8192; py++) {
++        float x0, x1, y0, y1, u0, u1, v0, v1;
++        memcpy(&x0, &g->rjob.quad[0], 4);
++        memcpy(&x1, &g->rjob.quad[4], 4);
++        memcpy(&y0, &g->rjob.quad[1], 4);
++        memcpy(&y1, &g->rjob.quad[9], 4);
++        memcpy(&u0, &g->rjob.quad[2], 4);
++        memcpy(&u1, &g->rjob.quad[6], 4);
++        memcpy(&v0, &g->rjob.quad[3], 4);
++        memcpy(&v1, &g->rjob.quad[11], 4);
++        unsigned end = MIN(h, g->rjob.row + 128);
++        for (unsigned py = g->rjob.row; py < end; py++) {
 +            float fy = (2.0f * (py + 0.5f)) / h - 1.0f;
 +            if (fy < (y0 < y1 ? y0 : y1) || fy > (y0 < y1 ? y1 : y0)) {
 +                continue;
 +            }
 +            float tv = (fy - y0) / (y1 - y0);
 +            float fv = v0 + tv * (v1 - v0);
-+            long ty = g->fs_pixel_uv ? (long)fv
-+                                    : (long)(fv * g->fs_tex_h);
-+            ty = ty < 0 ? 0 : (ty >= g->fs_tex_h ? g->fs_tex_h - 1 : ty);
++            long ty = g->rjob.pixel_uv ? (long)fv
++                                       : (long)(fv * g->rjob.th);
++            ty = ty < 0 ? 0 : (ty >= g->rjob.th ? g->rjob.th - 1 : ty);
 +            for (unsigned px = 0; px < w && px < 8192; px++) {
 +                float fx = (2.0f * (px + 0.5f)) / w - 1.0f;
 +                if (fx < (x0 < x1 ? x0 : x1)
@@ -3513,45 +3588,62 @@ index 0000000..c25d976
 +                }
 +                float tu = (fx - x0) / (x1 - x0);
 +                float fu = u0 + tu * (u1 - u0);
-+                long tx = g->fs_pixel_uv ? (long)fu
-+                                         : (long)(fu * g->fs_tex_w);
++                long tx = g->rjob.pixel_uv ? (long)fu
++                                           : (long)(fu * g->rjob.tw);
 +                tx = tx < 0 ? 0
-+                    : (tx >= g->fs_tex_w ? g->fs_tex_w - 1 : tx);
++                    : (tx >= g->rjob.tw ? g->rjob.tw - 1 : tx);
 +                stage[py * w + px] = rk3588_tex_read_px(
-+                    g, sp, g->fs_plane_type, g->fs_plane_order,
-+                    g->fs_plane_stride, tx, ty);
-+                drawn++;
++                    g, g->rjob.sp, g->rjob.ptype, g->rjob.porder,
++                    g->rjob.sstride, tx, ty);
 +            }
 +        }
-+        if (bf == 2) {
-+            for (unsigned py = 0; py < h && py < 8192; py++) {
-+                for (unsigned px = 0; px < w && px < 8192; px++) {
-+                    address_space_stl_le(
-+                        &address_space_memory,
-+                        bp + (uint64_t)py * stride + px * 4,
-+                        stage[py * w + px],
-+                        MEMTXATTRS_UNSPECIFIED, NULL);
-+                }
-+            }
-+        } else if (bf == 1) {
-+            for (unsigned py = 0; py < h; py++) {
++        g->rjob.row = end;
++        if (end >= h) {
++            g->rjob.phase = 1;
++            g->rjob.row = 0;
++        }
++    } else if (g->rjob.phase == 1) {
++        if (g->rjob.bf == 2) {
++            unsigned end = MIN(h, g->rjob.row + 128);
++            for (unsigned py = g->rjob.row; py < end; py++) {
 +                for (unsigned px = 0; px < w; px++) {
 +                    address_space_stl_le(
 +                        &address_space_memory,
-+                        rk3588_tiled_pixel(bp, stride, px, py),
++                        g->rjob.bp + (uint64_t)py * g->rjob.stride + px * 4,
 +                        stage[py * w + px],
 +                        MEMTXATTRS_UNSPECIFIED, NULL);
 +                }
 +            }
++            g->rjob.row = end;
++            if (end >= h) {
++                g->rjob.phase = 2;
++            }
++        } else if (g->rjob.bf == 1) {
++            unsigned end = MIN(h, g->rjob.row + 128);
++            for (unsigned py = g->rjob.row; py < end; py++) {
++                for (unsigned px = 0; px < w; px++) {
++                    address_space_stl_le(
++                        &address_space_memory,
++                        rk3588_tiled_pixel(g->rjob.bp, g->rjob.stride,
++                                           px, py),
++                        stage[py * w + px],
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                }
++            }
++            g->rjob.row = end;
++            if (end >= h) {
++                g->rjob.phase = 2;
++            }
 +        } else {
-+            /* bf=12/13：M2k sb 布局（solid header / body+header）；
-+             * 13=AFBC Tiled（header u-interleave，mutter 字形图集） */
++            /* bf=12/13 sb 提交，每片 16 sb 行 */
 +            unsigned tx = w / 16, ty2 = h / 16;
-+            hwaddr body_base = (bp + (uint64_t)ty2 * stride + 63) & ~63ull;
-+            for (unsigned by = 0; by < ty2; by++) {
++            hwaddr body_base = rk3588_afbc_body_base(
++                g->rjob.bp, g->rjob.stride, tx, ty2, g->rjob.bf == 13);
++            unsigned end = MIN(ty2, g->rjob.sbrow + 16);
++            for (unsigned by = g->rjob.sbrow; by < end; by++) {
 +                for (unsigned bx = 0; bx < tx; bx++) {
-+                    hwaddr hdr = rk3588_afbc_hdr(bp, stride, bx, by,
-+                                                 bf == 13);
++                    hwaddr hdr = rk3588_afbc_hdr(g->rjob.bp, g->rjob.stride,
++                                                 bx, by, g->rjob.bf == 13);
 +                    hwaddr body = body_base
 +                        + ((uint64_t)by * tx + bx) * 1024;
 +                    uint32_t first = stage[by * 16 * w + bx * 16];
@@ -3576,7 +3668,7 @@ index 0000000..c25d976
 +                                             NULL);
 +                    } else {
 +                        address_space_stl_le(&address_space_memory, hdr,
-+                                             body - bp,
++                                             body - g->rjob.bp,
 +                                             MEMTXATTRS_UNSPECIFIED, NULL);
 +                        address_space_stq_le(
 +                            &address_space_memory, hdr + 8,
@@ -3594,35 +3686,43 @@ index 0000000..c25d976
 +                    }
 +                }
 +            }
-+        }
-+        g_free(stage);
-+        /* M2n：登记 LRU（去重）——合成 blit 的 src 回退 */
-+        {
-+            unsigned slot = 0;
-+            while (slot < g->raster_imgs_n
-+                   && g->raster_imgs[slot].va != base) {
-+                slot++;
-+            }
-+            if (slot == g->raster_imgs_n && slot < 8) {
-+                g->raster_imgs_n++;
-+            }
-+            if (slot < 8) {
-+                if (slot) {
-+                    memmove(&g->raster_imgs[1], &g->raster_imgs[0],
-+                            slot * sizeof(g->raster_imgs[0]));
-+                }
-+                g->raster_imgs[0] = (typeof(g->raster_imgs[0])){
-+                    .va = base, .stride = stride, .w = w, .h = h, .bf = bf
-+                };
++            g->rjob.sbrow = end;
++            if (end >= ty2) {
++                g->rjob.phase = 2;
 +            }
 +        }
-+        if (getenv("GPUDBG")) {
-+            fprintf(stderr, "GPUQUAD raster %ux%u -> rt%u bf=%u px=%u\n",
-+                    w, h, i, bf, drawn);
-+        }
-+        return true;
 +    }
-+    return false;
++    if (g->rjob.phase < 2) {
++        qemu_bh_schedule(g->raster_bh);
++        return;
++    }
++    /* 完成：LRU 登记 + 收尾 */
++    {
++        unsigned slot = 0;
++        while (slot < g->raster_imgs_n
++               && g->raster_imgs[slot].va != g->rjob.base_va) {
++            slot++;
++        }
++        if (slot == g->raster_imgs_n && slot < 8) {
++            g->raster_imgs_n++;
++        }
++        if (slot < 8) {
++            if (slot) {
++                memmove(&g->raster_imgs[1], &g->raster_imgs[0],
++                        slot * sizeof(g->raster_imgs[0]));
++            }
++            g->raster_imgs[0] = (typeof(g->raster_imgs[0])){
++                .va = g->rjob.base_va, .stride = g->rjob.stride,
++                .w = w, .h = h, .bf = g->rjob.bf
++            };
++        }
++    }
++    g_free(stage);
++    g->rjob.active = false;
++    if (getenv("GPUDBG")) {
++        fprintf(stderr, "GPUQUAD raster-done %ux%u bf=%u bp=%llx\n",
++                w, h, g->rjob.bf, (unsigned long long)g->rjob.bp);
++    }
 +}
 +
 +/* M2n：RUN_IDVS 时的 draw 全景 dump——序号关联（同 seq 同 draw）：
@@ -3935,6 +4035,20 @@ index 0000000..c25d976
 +    return base + (by >> 4) * (uint64_t)stride + (bx >> 4) * 4096 +
 +           ((rk3588_tiled_bitdup[by & 15] ^ rk3588_tiled_space4[bx & 15])
 +            * 16);
++}
++
++/* M2n：AFBC body 区基址。线性 header（bf=12）= 头行数×stride；
++ * tiled（bf=13）= 头 16×16-tile 网格（ceil 取整）——线性算法在
++ * 3840×2160 上多算 4MB 头区 → body 越界 ~4MB 写穿相邻 BO =
++ * kernel panic 根因（sync/async 都崩、cap 在=稳的二分实锤）。 */
++static hwaddr rk3588_afbc_body_base(hwaddr bp, uint32_t stride,
++                                    unsigned tx, unsigned ty, bool tiled)
++{
++    /* 线性式为实测稳定形（cap+此式两轮稳定）；tiled 头区收紧式
++     * （htx*hty*4K）反而一轮崩溃——真实 body 落点待硬证据，先回线
++     * 性并保留签名（note 104 素材）。 */
++    (void)tiled;
++    return (bp + (uint64_t)ty * stride + 63) & ~63ull;
 +}
 +
 +/* M2i：blit src 结构匹配定位——纹理 plane 描述符（锚点反查实锤）：
@@ -4263,7 +4377,8 @@ index 0000000..c25d976
 +             * sizes 全 1（真规范的"未压缩子块"编码），body=16×16 线性
 +             * RGBA。只写完整 sb（w/h 边缘半块跳过——诚实边界）。 */
 +            unsigned tx = w / 16, ty = h / 16;
-+            hwaddr body_base = (dp + (uint64_t)ty * stride + 63) & ~63ull;
++            hwaddr body_base = rk3588_afbc_body_base(dp, stride, tx, ty,
++                                                     bf == 13);
 +
 +            for (unsigned by = 0; by < ty; by++) {
 +                for (unsigned bx = 0; bx < tx; bx++) {
@@ -5579,6 +5694,7 @@ index 0000000..c25d976
 +    memory_region_init_io(&s->gpu.mmio, OBJECT(machine), &rk3588_lite_gpu_ops,
 +                          &s->gpu, "rk3588-lite.gpu", 0x200000);
 +    memory_region_add_subregion(sysmem, 0xfb000000, &s->gpu.mmio);
++    s->gpu.raster_bh = qemu_bh_new(rk3588_lite_gpu_raster_bh, &s->gpu);
 +    s->gpu.job_irq = qdev_get_gpio_in(gicdev, 92);
 +    s->gpu.mmu_irq = qdev_get_gpio_in(gicdev, 93);
 +    s->gpu.gpu_irq = qdev_get_gpio_in(gicdev, 94);
