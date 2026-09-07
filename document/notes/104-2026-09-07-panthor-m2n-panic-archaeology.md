@@ -89,17 +89,20 @@ GDM 机 FSQUAD 全开的 kernel panic 做了 7 轮启动矩阵：**5/7 崩溃，
   10 轮 6 崩 4 活，纯概率；不再声称任何"稳定配置=写安全"
 - **壁纸 3840×2160 上载 raster 完成**（win=377ms，bp=2ea00000）——
   上载链通了
-- **文字行复现**（701px 0xaaaaaa @640×480，坐标同 note 102）：本轮
-  只有 325 图集 job+1 壁纸 job（mutter 未发 1920 下采样/合成 draw，
-  boot 间会话状态漂移）——文字=图集内容被 scanout 直接显示的强证
-  （无其他写屏路径存在）。机制仍待 VOPSCAN↔图集基址对账
+- **文字行复现但随后定谳为 simpledrm 启动控制台**：701px @640×480
+  （坐标同 note 102）重现，但本轮 **VOPSCAN 零输出=我的 VOP scanout
+  从未运行**，console surface 的内容是内核 simpledrm 早期启动控制台
+  的残留（rockchipdrm 未接管显示）——**非 GPU 输出**。note 102 的
+  "来源未验证"就此定谳（两轮同坐标=同一解释）。GPU 侧链路（图集
+  raster✓壁纸上载✓）在显示管线未接管的 boot 里到不了屏。
 - 取证装备新增：LOGLEVEL 环境变量（resboot）、GPUWRITELOG、
   win=ms/SLOW-WINDOW、pmemsave 全转储+日志环搜索（2GB 可行；
   monitor 需  清行+引号路径——HMP echo 污染坑）
 
 ## 8. 下一步
 
-1. VOPSCAN 的 fb PA 与图集/壁纸基址对账（文字行机制定谳）
+1. **显示管线接管率**：VOP mode-set（VOPSCAN>0）只在部分 boot 发生
+   ——多 boot 采样统计接管条件；无接管=GPU 渲染再好也上不了屏
 2. mutter 会话状态漂移：多 boot 采样 1920 下采样/合成 draw 出现
    条件（或主动触发桌面活动：打开应用/窗口）
 3. 崩溃概率分布再采样（现 6/10；区分 boot 期 vs 会话期）
