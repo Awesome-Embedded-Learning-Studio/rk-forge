@@ -125,3 +125,21 @@ GDM 机 FSQUAD 全开的 kernel panic 做了 7 轮启动矩阵：**5/7 崩溃，
   `echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern` + gdm 环境
   ulimit 放开 → 抓 gnome-shell core → native 崩溃 PC/heap 定位
   腐蚀源（比 kernel 侧取证便宜一个数量级——用户态 core 可 gdb）
+
+
+## 10. 收官布防（同日五段）
+
+- core 陷阱已武装进 rootfs（**注意：在镜像里不在 git**）：
+  `/etc/sysctl.d/99-core-dump.conf`（core_pattern=/tmp/core.%p）
+  + `/etc/security/limits.d/99-core.conf`（core unlimited）
+- 武装后 fresh boot：shell 又崩（count=1）但 **core 未落**——
+  core_pattern 生效（读回验证）但 mutter 的 SIGSEGV 处理器链路
+  没走到 do_coredump，或 gdm 会话 RLIMIT 传播未达
+- 下轮补完：gdm 环境强制 ulimit（systemd unit Environment= 或
+  gnome-session 包装脚本 echo ulimit）、或改用
+  core_pattern=|管道 到自制抓取器；拿到 core 后 gdb 解
+  background.js:488 的 native 现场
+- 本日总账：note 101→104 五段、13 commit、10+ 启动矩阵、四论
+  证伪 + NOWRITE 判别 + 用户态镜像（background.js SEGV）+ 壁纸
+  上载链通 + 全套取证装备（LOGLEVEL/GPUWRITELOG/SLOW-WINDOW/
+  pmemsave 转储/serx/sendfile 落库）
