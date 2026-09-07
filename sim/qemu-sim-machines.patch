@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..39eee5e
+index 0000000..c5cc42f
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5089 @@
+@@ -0,0 +1,5158 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1049,6 +1049,15 @@ index 0000000..39eee5e
 +        int phase;
 +    } rjob;
 +    QEMUBH *raster_bh;
++    /* M2n：completion 保序挂起——异步 raster 期间收到的 job 完成先
++     * 入队，raster-done 后按序放行（fence 语义对齐，堵 UAF：BO 释放
++     * 复用后迟到 BH 写穿=kernel panic 主嫌，note 104）。 */
++    struct {
++        unsigned csg, cs;
++        hwaddr out_ptr_pa, cs_in, cs_out, csg_in, csg_out;
++        uint32_t insert;
++    } completion_q[4];
++    unsigned completion_q_n;
 +    /* M2n：采样 FS pending（RUN_IDVS 提取、RUN_FRAGMENT 光栅化）。
 +     * FSQUAD=1 门控（受控验证期默认关）。 */
 +    bool fs_sample_pending;
@@ -2397,20 +2406,35 @@ index 0000000..39eee5e
 + * 固件语义：组换 AS 上下文执行）。多 VM 的堆区 VA 高度别名，首个成功
 + * 的全表扫可能穿错 VM（实测：glClear 在 mutter 并发下 clear 写错物理页，
 + * readback 全零）。未绑定（config 无效）才回退 MRU 扫描 + 换出影子。 */
-+/* M2n：写路径专用严格翻译——只走当前 CSG 绑定 AS。lenient 版的
-+ * 全 AS 回退扫描在 VA 跨 VM 别名时给出错页（M2e 同族），3840×2160
-+ * 壁纸 draw 的 34MB 写进错页 = kernel DABT panic（~130s 两连复现）。 */
-+static hwaddr rk3588_lite_gpu_va_pa_bound(struct Rk3588LiteGpu *g,
++/* M2n：写翻译终极版——遍历全部活跃 AS，要求一致命中。CSG 重配置
++ * 窗口里新旧 AS 同时映射同一 VA 到不同 PA（NOWRITE 判别实验实锤写
++ * 有罪后的锁定嫌疑）；歧义即弃权。 */
++static hwaddr rk3588_lite_gpu_va_pa_write(struct Rk3588LiteGpu *g,
 +                                          uint64_t va)
 +{
-+    hwaddr pa;
++    hwaddr pa = HWADDR_MAX;
++    unsigned hits = 0;
 +
-+    if (g->cur_as >= 1 && g->cur_as < 8 && g->as_transtab[g->cur_as]
-+        && rk3588_lite_gpu_va_pa_in(g, g->as_transtab[g->cur_as], va,
-+                                    &pa)) {
-+        return pa;
++    for (unsigned as = 1; as < 8; as++) {
++        hwaddr p;
++
++        if (!g->as_transtab[as]) {
++            continue;
++        }
++        if (rk3588_lite_gpu_va_pa_in(g, g->as_transtab[as], va, &p)) {
++            if (hits && p != pa) {
++                if (getenv("GPUDBG")) {
++                    fprintf(stderr, "GPUQUAD as-ambig va=%llx %llx/%llx\n",
++                            (unsigned long long)va, (unsigned long long)pa,
++                            (unsigned long long)p);
++                }
++                return HWADDR_MAX;
++            }
++            pa = p;
++            hits++;
++        }
 +    }
-+    return HWADDR_MAX;
++    return pa;
 +}
 +
 +static hwaddr rk3588_lite_gpu_va_pa_user(struct Rk3588LiteGpu *g, uint64_t va)
@@ -2991,6 +3015,11 @@ index 0000000..39eee5e
 +                              unsigned by, bool tiled);
 +static hwaddr rk3588_afbc_body_base(hwaddr bp, uint32_t stride,
 +                                    unsigned tx, unsigned ty, bool tiled);
++static void rk3588_lite_gpu_complete_job(struct Rk3588LiteGpu *g,
++                                         unsigned csg, unsigned cs,
++                                         hwaddr out_ptr_pa, uint32_t insert,
++                                         hwaddr cs_in, hwaddr cs_out,
++                                         hwaddr csg_in, hwaddr csg_out);
 +/* M2n：采样 FS 侦察——mutter 合成全走 RUN_FRAGMENT（无 RUN_IDVS，
 + * note 100），提取器旧挂点抓不到。批池扫 varying/tex/var_tex 族
 + * opcode（ISA.xml），命中页整页 dump 全字。去重按 PA+内容哈希：
@@ -3458,7 +3487,7 @@ index 0000000..39eee5e
 +        uint32_t stride = address_space_ldl_le(&address_space_memory,
 +                                               rt + 0x28,
 +                                               MEMTXATTRS_UNSPECIFIED, NULL);
-+        hwaddr bp = rk3588_lite_gpu_va_pa_bound(g, base);
++        hwaddr bp = rk3588_lite_gpu_va_pa_write(g, base);
 +        hwaddr sp = rk3588_lite_gpu_va_pa_user(g, g->fs_plane_va);
 +        if (bp == HWADDR_MAX || sp == HWADDR_MAX || !stride) {
 +            if (getenv("GPUDBG")) {
@@ -3552,6 +3581,10 @@ index 0000000..39eee5e
 +
 +    if (!g->rjob.active) {
 +        return;
++    }
++    if (getenv("FSQUAD_NOWRITE")) {
++        /* 判别实验：采样照跑、提交全跳——崩=写无罪（完成面时序嫌疑）*/
++        g->rjob.phase = 2;
 +    }
 +    if (g->rjob.phase == 0) {
 +        /* 采样（含 clear 预填） */
@@ -3719,6 +3752,15 @@ index 0000000..39eee5e
 +    }
 +    g_free(stage);
 +    g->rjob.active = false;
++    /* M2n：放行挂起的 completion（保序） */
++    for (unsigned qi = 0; qi < g->completion_q_n; qi++) {
++        rk3588_lite_gpu_complete_job(
++            g, g->completion_q[qi].csg, g->completion_q[qi].cs,
++            g->completion_q[qi].out_ptr_pa, g->completion_q[qi].insert,
++            g->completion_q[qi].cs_in, g->completion_q[qi].cs_out,
++            g->completion_q[qi].csg_in, g->completion_q[qi].csg_out);
++    }
++    g->completion_q_n = 0;
 +    if (getenv("GPUDBG")) {
 +        fprintf(stderr, "GPUQUAD raster-done %ux%u bf=%u bp=%llx\n",
 +                w, h, g->rjob.bf, (unsigned long long)g->rjob.bp);
@@ -4964,6 +5006,32 @@ index 0000000..39eee5e
 +    return 0;
 +}
 +
++/* M2n：job 完成面（原 cs_consume 尾段提取）。 */
++static void rk3588_lite_gpu_complete_job(struct Rk3588LiteGpu *g,
++                                          unsigned csg, unsigned cs,
++                                          hwaddr out_ptr_pa, uint32_t insert,
++                                          hwaddr cs_in, hwaddr cs_out,
++                                          hwaddr csg_in, hwaddr csg_out)
++{
++    address_space_stl_le(&address_space_memory, out_ptr_pa, insert,
++                         MEMTXATTRS_UNSPECIFIED, NULL);
++    uint32_t cs_req = address_space_ldl_le(&address_space_memory, cs_in,
++                                           MEMTXATTRS_UNSPECIFIED, NULL);
++    address_space_stl_le(&address_space_memory, cs_out, cs_req,
++                         MEMTXATTRS_UNSPECIFIED, NULL);
++    uint32_t csg_req = address_space_ldl_le(&address_space_memory, csg_in,
++                                            MEMTXATTRS_UNSPECIFIED, NULL);
++    address_space_stl_le(&address_space_memory, csg_in,
++                         csg_req ^ BIT(28), MEMTXATTRS_UNSPECIFIED, NULL);
++    uint32_t cs_irq = address_space_ldl_le(&address_space_memory, csg_out + 0xc,
++                                           MEMTXATTRS_UNSPECIFIED, NULL);
++    address_space_stl_le(&address_space_memory, csg_out + 0xc,
++                         cs_irq ^ BIT(cs), MEMTXATTRS_UNSPECIFIED, NULL);
++    /* M2f 根修：bit 索引必须用 slot 序号（详见调用侧历史注释）。 */
++    g->job_rawstat |= 1u << csg;
++    rk3588_lite_gpu_update_irq(g);
++}
++
 +/* M2b wrapper-CS 解释器（note 76 §3.5 的 noop 量具形态）：消费 ring 的
 + * wrapper 段——寄存器文件 192×u64，识别 MOVE48/32、SYNC_ADD32/64（真实
 + * 执行：写 sync 内存）、CALL（跳过用户段）、FLUSH/WAIT/ERROR_BARRIER
@@ -5087,21 +5155,22 @@ index 0000000..39eee5e
 +    /* 消费循环主体见 cs_step */
 +
 +    /* 完成面：extract 追 insert；CS ack 追平；CSG 发 SYNC_UPDATE 事件
-+     * （req bit28，fw 侧置位、内核清）+ cs_irq toggle；JOB_IRQ 拉高。 */
-+    address_space_stl_le(&address_space_memory, out_ptr_pa, insert,
-+                         MEMTXATTRS_UNSPECIFIED, NULL);
-+    uint32_t cs_req = address_space_ldl_le(&address_space_memory, cs_in,
-+                                           MEMTXATTRS_UNSPECIFIED, NULL);
-+    address_space_stl_le(&address_space_memory, cs_out, cs_req,
-+                         MEMTXATTRS_UNSPECIFIED, NULL);
-+    uint32_t csg_req = address_space_ldl_le(&address_space_memory, csg_in,
-+                                            MEMTXATTRS_UNSPECIFIED, NULL);
-+    address_space_stl_le(&address_space_memory, csg_in,
-+                         csg_req ^ BIT(28), MEMTXATTRS_UNSPECIFIED, NULL);
-+    uint32_t cs_irq = address_space_ldl_le(&address_space_memory, csg_out + 0xc,
-+                                           MEMTXATTRS_UNSPECIFIED, NULL);
-+    address_space_stl_le(&address_space_memory, csg_out + 0xc,
-+                         cs_irq ^ BIT(cs), MEMTXATTRS_UNSPECIFIED, NULL);
++     * （req bit28，fw 侧置位、内核清）+ cs_irq toggle；JOB_IRQ 拉高。
++     * M2n：异步 raster 进行中则挂起入队（保序），raster-done 放行。 */
++    if (g->rjob.active && g->completion_q_n < 4) {
++        g->completion_q[g->completion_q_n++] = (typeof(g->completion_q[0])){
++            .csg = csg, .cs = cs, .out_ptr_pa = out_ptr_pa,
++            .cs_in = cs_in, .cs_out = cs_out, .csg_in = csg_in,
++            .csg_out = csg_out, .insert = insert
++        };
++        if (getenv("GPUDBG")) {
++            fprintf(stderr, "GPUQUAD hold-completion n=%u\n",
++                    g->completion_q_n);
++        }
++        return;
++    }
++    rk3588_lite_gpu_complete_job(g, csg, cs, out_ptr_pa, insert, cs_in,
++                                 cs_out, csg_in, csg_out);
 +    /* M2f 根修：bit 索引必须用 slot 序号。M2a 版本拿 csg_ctl（物理地址）
 +     * 减 VA 基址再移位，0x622d000 算出 0x37553，AArch64 LSL 按 mod 32
 +     * 折叠 → 每次消费稳定置 bit19 → 内核 csg_id=19 ≥ slot_count →

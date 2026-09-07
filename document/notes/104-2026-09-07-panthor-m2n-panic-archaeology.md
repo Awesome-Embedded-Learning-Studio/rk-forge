@@ -52,3 +52,28 @@ GDM 机 FSQUAD 全开的 kernel panic 做了 7 轮启动矩阵：**5/7 崩溃，
 1. 写前双翻译交叉验证（小时级，先堵嫌疑 1）
 2. completion 挂起对齐 fence（天级，堵嫌疑 2）
 3. 512² 图集 body 落点变体实验（受控、可判别嫌疑 3）
+
+
+## 5. 追加轮次（同日三轮）：嫌疑收窄到 raster 提交写
+
+- **NOWRITE 判别**（FSQUAD_NOWRITE=1：采样/配对/hold 全跑、提交跳
+  过）：**稳定过会话启动段**（827 job）——写有罪定谳
+- **completion 挂起**（保序队列，fence 对齐 raster-done）：机制全跑
+  通（325 hold）但崩溃依旧——UAF-completion 论证伪
+- **全 AS 一致性写翻译** `va_pa_write()`（歧义即弃权）：2 稳 1 崩
+  （as-ambig 从未触发）——AS 歧义论证伪；稳定性为运气波动
+- Round-3 现场：无 3840 写（spanfail 拒+try_blit 零命中）、431 个
+  atlas/图标 raster 后 NULL deref+lockup——**try_blit 合成写亦无罪
+  （NOWRITE 轮它照跑）**，嫌疑唯一收敛到 rjob 提交路径
+- 逻辑排除后 rjob 写的疑点：bf=13 tiled header 曲线（atlas 实际写
+  聚集在 [0,0x2400]+少量 body，量级极小）与 bf=12 图标写（与
+  try_blit 同式）——数学上均看不出越界，需要**写日志+金丝雀**级的
+  取证（每笔 (bp,span) 记录 + 崩后邻域比对）才能定谳
+
+## 6. 工作形态定稿（本 note 时点）
+
+- 受控（净机）：FSQUAD=1 全绿（11/11）
+- GDM 研究：**FSQUAD_NOWRITE=1**（全链路跑、零写风险）或 FSQUAD=0
+- 下轮第一刀：rjob 提交写日志 + 金丝雀页扫描；第二刀：512² 图集
+  BO 真实大小硬测量（mesa 克隆已失，note 97 §3 重克隆+pan_image
+  尺寸链）
