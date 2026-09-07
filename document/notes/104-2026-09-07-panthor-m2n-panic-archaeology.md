@@ -106,3 +106,22 @@ GDM 机 FSQUAD 全开的 kernel panic 做了 7 轮启动矩阵：**5/7 崩溃，
 2. mutter 会话状态漂移：多 boot 采样 1920 下采样/合成 draw 出现
    条件（或主动触发桌面活动：打开应用/窗口）
 3. 崩溃概率分布再采样（现 6/10；区分 boot 期 vs 会话期）
+
+
+## 9. 追加（同日四段）：用户态镜像现形——gnome-shell 壁纸路径 SEGV
+
+- **gnome-shell 在会话启动段（~146s）signal 11 崩溃于
+  background.js:488（壁纸模块）**，JS 栈仅 2 帧=崩在 native 深处
+  （Cogl→mesa→我的模型），会话随后解体（dbus 断、服务死）
+- DSI-1 connected+有 1024×600 模式但 enabled=disabled——shell 在
+  点灯前已死；"显示接管率"实为"shell 存活率"
+- 时间线互锁：M2m 时代（无 FSQUAD）shell 存活（nautilus/gjs 活）；
+  FSQUAD 写开后 shell 崩+kernel panic 同段——**同一腐蚀的两个
+  受害者**（用户态 SEGV + 内核 NULL/lockup）
+- 取证边界：ulimit -c=0 无 core、串口 oops 中途丢字（pmemsave 2GB
+  转储可行但 oops ring 也只到 "Mem abort info:"）；gem_names 因
+  shell 死后 BO 释放而空
+- **下轮首刀（重新排序）**：装 systemd-coredump 或
+  `echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern` + gdm 环境
+  ulimit 放开 → 抓 gnome-shell core → native 崩溃 PC/heap 定位
+  腐蚀源（比 kernel 侧取证便宜一个数量级——用户态 core 可 gdb）
