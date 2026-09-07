@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..c5cc42f
+index 0000000..750676e
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5158 @@
+@@ -0,0 +1,5171 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1046,6 +1046,7 @@ index 0000000..c5cc42f
 +        uint32_t sstride;
 +        uint16_t tw, th;
 +        unsigned row, sbrow;
++        int64_t enq_ns;         /* 窗宽取证：enqueue→done */
 +        int phase;
 +    } rjob;
 +    QEMUBH *raster_bh;
@@ -3503,10 +3504,7 @@ index 0000000..c5cc42f
 +         * + 像素量上限（>1920×1080 弃权——壁纸的下采样 draw 仍覆盖）。 */
 +        {
 +            uint64_t span = (uint64_t)(h + 15) / 16 * stride + (uint64_t)w / 16 * 1024;
-+            /* 像素量上限：>1920×1080 暂缓——3840×2160 上载链与 kernel
-+             * panic 的因果未定（字形阶段也复现），深挖留待下轮 */
-+            if (bp < 0x100000 || bp + span > 0x80000000ull
-+                || (uint64_t)w * h > 1920ull * 1080) {
++            if (bp < 0x100000 || bp + span > 0x80000000ull) {
 +                if (getenv("GPUDBG")) {
 +                    fprintf(stderr, "GPUQUAD spanfail bp=%llx span=%llx\n",
 +                            (unsigned long long)bp,
@@ -3566,6 +3564,7 @@ index 0000000..c5cc42f
 +        g->rjob.row = 0;
 +        g->rjob.sbrow = 0;
 +        g->rjob.phase = 0;
++        g->rjob.enq_ns = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
 +        qemu_bh_schedule(g->raster_bh);
 +        return true;
 +    }
@@ -3673,6 +3672,13 @@ index 0000000..c5cc42f
 +            hwaddr body_base = rk3588_afbc_body_base(
 +                g->rjob.bp, g->rjob.stride, tx, ty2, g->rjob.bf == 13);
 +            unsigned end = MIN(ty2, g->rjob.sbrow + 16);
++            if (getenv("GPUWRITELOG")) {
++                fprintf(stderr,
++                        "GPUW sbrow %u..%u of %u bp=%llx span<=%llx\n",
++                        g->rjob.sbrow, end, ty2, (unsigned long long)g->rjob.bp,
++                        (unsigned long long)(body_base - g->rjob.bp
++                                             + (uint64_t)tx * ty2 * 1024));
++            }
 +            for (unsigned by = g->rjob.sbrow; by < end; by++) {
 +                for (unsigned bx = 0; bx < tx; bx++) {
 +                    hwaddr hdr = rk3588_afbc_hdr(g->rjob.bp, g->rjob.stride,
@@ -3762,8 +3768,15 @@ index 0000000..c5cc42f
 +    }
 +    g->completion_q_n = 0;
 +    if (getenv("GPUDBG")) {
-+        fprintf(stderr, "GPUQUAD raster-done %ux%u bf=%u bp=%llx\n",
-+                w, h, g->rjob.bf, (unsigned long long)g->rjob.bp);
++        int64_t win = qemu_clock_get_ns(QEMU_CLOCK_REALTIME)
++                    - g->rjob.enq_ns;
++        fprintf(stderr, "GPUQUAD raster-done %ux%u bf=%u bp=%llx win=%lldms\n",
++                w, h, g->rjob.bf, (unsigned long long)g->rjob.bp,
++                (long long)(win / 1000000));
++        if (win > 100000000ll) {
++            fprintf(stderr, "GPUQUAD SLOW-WINDOW %lldms\n",
++                    (long long)(win / 1000000));
++        }
 +    }
 +}
 +
