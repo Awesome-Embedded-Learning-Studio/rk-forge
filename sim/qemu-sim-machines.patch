@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..750676e
+index 0000000..8470bc8
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5171 @@
+@@ -0,0 +1,5196 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3581,6 +3581,27 @@ index 0000000..750676e
 +    if (!g->rjob.active) {
 +        return;
 +    }
++    /* M2n：写前映射重验——VM 销毁会 unmap 全程（PTE 清零，panthor_
++     * vm_destroy→unmap_range 实锤）。enqueue 时解析的 bp 若在异步
++     * 执行期间失映射/漂移=BO 已释放重用，写=腐蚀无辜内存。每片重翻
++     * base_va，不一致即弃（判别+防护一体）。 */
++    if (rk3588_lite_gpu_va_pa_write(g, g->rjob.base_va) != g->rjob.bp) {
++        if (getenv("GPUDBG")) {
++            fprintf(stderr, "GPUQUAD map-changed abort %ux%u bp=%llx\n",
++                    g->rjob.w, g->rjob.h, (unsigned long long)g->rjob.bp);
++        }
++        g_free(g->rjob.stage);
++        g->rjob.active = false;
++        for (unsigned qi = 0; qi < g->completion_q_n; qi++) {
++            rk3588_lite_gpu_complete_job(
++                g, g->completion_q[qi].csg, g->completion_q[qi].cs,
++                g->completion_q[qi].out_ptr_pa, g->completion_q[qi].insert,
++                g->completion_q[qi].cs_in, g->completion_q[qi].cs_out,
++                g->completion_q[qi].csg_in, g->completion_q[qi].csg_out);
++        }
++        g->completion_q_n = 0;
++        return;
++    }
 +    if (getenv("FSQUAD_NOWRITE")) {
 +        /* 判别实验：采样照跑、提交全跳——崩=写无罪（完成面时序嫌疑）*/
 +        g->rjob.phase = 2;
@@ -4099,11 +4120,15 @@ index 0000000..750676e
 +static hwaddr rk3588_afbc_body_base(hwaddr bp, uint32_t stride,
 +                                    unsigned tx, unsigned ty, bool tiled)
 +{
-+    /* 线性式为实测稳定形（cap+此式两轮稳定）；tiled 头区收紧式
-+     * （htx*hty*4K）反而一轮崩溃——真实 body 落点待硬证据，先回线
-+     * 性并保留签名（note 104 素材）。 */
-+    (void)tiled;
-+    return (bp + (uint64_t)ty * stride + 63) & ~63ull;
++    /* 硬证据定谳（note 105）：512² 图集 BO=1073152B（panthor gems
++     * debugfs），线性式 body_base=+0x20000+1MB=越界 106KB=腐蚀根源。
++     * 紧式：body 紧跟 4K 对齐的头区——图集 0x4000+0x100000 ⊂ BO ✓，
++     * 3840×2160 同理可证在界内。 */
++    if (!tiled) {
++        return (bp + (uint64_t)ty * stride + 63) & ~63ull;
++    }
++    return (bp + (((uint64_t)tx * ty * 16 + 4095) & ~4095ull) + 63)
++           & ~63ull;
 +}
 +
 +/* M2i：blit src 结构匹配定位——纹理 plane 描述符（锚点反查实锤）：

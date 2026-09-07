@@ -58,3 +58,29 @@ Call trace: do_exit ← do_group_exit ← get_signal ← arch_do_signal_or_resta
 受控 11/11 → 异步化 → 10+ boot 矩阵四论证伪 → NOWRITE 写有罪 →
 用户态镜像 → 壁纸上载链通 → 三受害者统一。剩余：AS 代际取证
 （小时级）→ 根修（清 stale AS）→ 桌面可见冲刺。
+
+
+## 5. 追加定谳（同日终段）：病分两种 + 图集越界实锤
+
+- **病一号（功能性）已治**：NOWRITE 轮 shell 死于 **SIGABRT——
+  Gjs function.cpp:1014 assertion (1==2)**（ubuntu-dock 扩展的
+  gjs/GI 兼容破绽，与 GPU 模型无关）。`ubuntu-dock@ubuntu.com`
+  已在镜像内改名禁用（**改的是 rootfs 不在 git**）——禁用后
+  NOWRITE 轮 **gnome-shell 全程存活** ✓
+- **病二号（腐蚀）图集分量实锤**：panthor debugfs **gems** 表
+  （/sys/kernel/debug/dri/1/gems，per-BO 真值！）给出 512² 图集
+  Render target BO=**1,073,152B**；旧线性 body_base 写
+  [0x20000,0x120200) **越界 106KB**=腐蚀根源（此前 WnR=1 内核写
+  伪指针 0x00492768_00492790=两像素拼装，受害者为内核 slab/共享页
+  随机）。紧式 body_base（4K 对齐头区）已上——图集写界内可证
+- **崩溃未止**（紧式后 326 raster 仍崩）→ 下一个越界者：**壁纸
+  3840×2160 BO**（AFBC 压缩率 modifier 分配，真实大小 < 裸 33MB，
+  我的未压缩 body 写溢出）。同一 gems 方法可测——需要一轮活到
+  壁纸加载后的 boot（NOWRITE+无 dock 可活）
+- **方法论闭环**：gems 真值 → body 钳制 → 逐 BO 消灭；gpuvas 表
+  （VA↔BO 映射）也已就位可做 VA 侧对账
+
+## 6. 战役状态
+
+受控 11/11；shell 存活问题已治（dock）；腐蚀=逐 BO 越界（图集
+已钳，壁纸待测）；core 陷阱+双病分流+gems 方法=下轮弹药全齐。
