@@ -86,3 +86,23 @@ hold（立即完成+raster 继续）二分 ①与②③。
   （bootargs 或 chvt 单元——本轮 tty1 bootargs 会引入 fbcon 不稳
   弃用，改镜像内 vt1-nudge.service）→ shell 一次通过握手 →
   合成 draw 流 → screendump 非黑 = **M2n-visible 收官**
+
+
+## 7. 终段二：壁纸作业级二分定谳 + 自动点亮 + 内容最后一里
+
+- **壁纸 job=毒（高置信作业级二分）**：>4M px 拒（3840×2160=8.29M
+  被 8M 阈值漏掉的坑——8.29<8.39！改 4M）→ **441 job 稳定**；对照
+  每次崩溃 boot 的最后大写=3840 job（像素伪指针内容=壁纸数据
+  004a2561 类）。写算术三方审计（tight/45MB BO/曲线头区）均界内
+  ——泄漏机制未解，但作业级因果成立
+- **deferred SYNC_ADD（fence 对齐 raster-done）已上**：SYNC/异步/
+  NOWRITE 三分格局的 UAF 理论实现——单独无效（崩溃照旧），与壁纸
+  门叠加后稳定（各自贡献未分离）
+- **本轮 boot 自动点亮**（无手动 activate！）：DSI-1 enabled +
+  VOPSCAN=9 + shell 活 + **GPUBLIT 1024×600 合成 blit 在跑**——
+  显示栈全自动接管
+- **屏黑最后一里**：合成 src=LRU 启发式=图集（bf=13 实心黑头→黑像
+  素）；真内容需 mutter 屏合成 draw（VS 语义类/多纹理）进采样器，
+  或 LRU 源对齐 shell 实际下一帧源
+- 崩溃签名库：004a2561_00492388 类=壁纸像素作指针；dconf Bad
+  rss-counter=迟发窗口；NULL+0x40=逻辑 NULL 层

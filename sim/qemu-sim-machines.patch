@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..485bcad
+index 0000000..03ff67a
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5222 @@
+@@ -0,0 +1,5270 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1028,6 +1028,13 @@ index 0000000..485bcad
 +     * 描述符不在批池扫描窗，靠写方登记） */
 +    struct { uint64_t va; uint32_t stride, w, h; uint8_t bf; } raster_imgs[8];
 +    unsigned raster_imgs_n;
++    /* M2n 终根修：延迟 SYNC_ADD（fence 信号）。fence=SYNC_ADD 在 CS
++     * 解释期就写（早于异步 raster 完成）→ mutter 见 fence 释放重用
++     * 缓冲 → 迟到 BH 写击中重用页=像素伪指针腐蚀（SYNC 快窗稳/
++     * 异步宽窗崩/NOWRITE 无写全稳的三分格局全吻合）。rjob 进行中
++     * 收到的 SYNC_ADD 排队，raster-done 后放行。 */
++    struct { hwaddr pa; uint32_t val; bool wide; } deferred_sync[8];
++    unsigned deferred_sync_n;
 +    /* M2n：分片异步 raster（大 draw 在 BQL 下连跑数秒会触发 host NMI
 +     * 硬锁死 → guest panic，note 103 §2）。单槽：忙时新 draw 弃权。 */
 +    struct {
@@ -3522,7 +3529,10 @@ index 0000000..485bcad
 +         * + 像素量上限（>1920×1080 弃权——壁纸的下采样 draw 仍覆盖）。 */
 +        {
 +            uint64_t span = (uint64_t)(h + 15) / 16 * stride + (uint64_t)w / 16 * 1024;
-+            if (bp < 0x100000 || bp + span > 0x80000000ull) {
++            /* 壁纸二分：>8M px 的 job 暂缓（崩溃恒随 3840×2160
++             * job；拒后跌 try_blit/clear 路径） */
++            if (bp < 0x100000 || bp + span > 0x80000000ull
++                || (uint64_t)w * h > 4ull * 1024 * 1024) {
 +                if (getenv("GPUDBG")) {
 +                    fprintf(stderr, "GPUQUAD spanfail bp=%llx span=%llx\n",
 +                            (unsigned long long)bp,
@@ -3618,6 +3628,7 @@ index 0000000..485bcad
 +        }
 +        g_free(g->rjob.stage);
 +        g->rjob.active = false;
++        g->deferred_sync_n = 0;    /* 弃权路径：job 未写，fence 照旧 */
 +        for (unsigned qi = 0; qi < g->completion_q_n; qi++) {
 +            rk3588_lite_gpu_complete_job(
 +                g, g->completion_q[qi].csg, g->completion_q[qi].cs,
@@ -3805,6 +3816,27 @@ index 0000000..485bcad
 +    }
 +    g_free(stage);
 +    g->rjob.active = false;
++    /* M2n：放行延迟的 SYNC_ADD（fence 对齐真完成） */
++    for (unsigned si = 0; si < g->deferred_sync_n; si++) {
++        if (g->deferred_sync[si].wide) {
++            uint64_t v = address_space_ldq_le(
++                &address_space_memory, g->deferred_sync[si].pa,
++                MEMTXATTRS_UNSPECIFIED, NULL);
++            address_space_stq_le(
++                &address_space_memory, g->deferred_sync[si].pa,
++                v + g->deferred_sync[si].val,
++                MEMTXATTRS_UNSPECIFIED, NULL);
++        } else {
++            uint32_t v = address_space_ldl_le(
++                &address_space_memory, g->deferred_sync[si].pa,
++                MEMTXATTRS_UNSPECIFIED, NULL);
++            address_space_stl_le(
++                &address_space_memory, g->deferred_sync[si].pa,
++                v + g->deferred_sync[si].val,
++                MEMTXATTRS_UNSPECIFIED, NULL);
++        }
++    }
++    g->deferred_sync_n = 0;
 +    /* M2n：放行挂起的 completion（保序） */
 +    for (unsigned qi = 0; qi < g->completion_q_n; qi++) {
 +        rk3588_lite_gpu_complete_job(
@@ -4674,29 +4706,45 @@ index 0000000..485bcad
 +            }
 +            break;
 +        }
-+        case 37: { /* SYNC_ADD32 */
++        case 37: { /* SYNC_ADD32（M2n：rjob 进行中延迟到 raster-done） */
 +            uint64_t addr = regs[(instr >> 40) & 0xff];
 +            uint32_t val = regs[(instr >> 32) & 0xff];
 +
 +            p = rk3588_lite_gpu_va_pa_user(g, addr);
 +            if (p != HWADDR_MAX) {
-+                uint32_t v = address_space_ldl_le(&address_space_memory, p,
-+                                                  MEMTXATTRS_UNSPECIFIED, NULL);
-+                address_space_stl_le(&address_space_memory, p, v + val,
-+                                     MEMTXATTRS_UNSPECIFIED, NULL);
++                if (g->rjob.active && g->deferred_sync_n < 8) {
++                    g->deferred_sync[g->deferred_sync_n++] =
++                        (typeof(g->deferred_sync[0])){
++                        .pa = p, .val = val, .wide = false
++                    };
++                } else {
++                    uint32_t v = address_space_ldl_le(
++                        &address_space_memory, p,
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                    address_space_stl_le(&address_space_memory, p, v + val,
++                                         MEMTXATTRS_UNSPECIFIED, NULL);
++                }
 +            }
 +            break;
 +        }
-+        case 51: { /* SYNC_ADD64 */
++        case 51: { /* SYNC_ADD64（M2n：同 32 位延迟策略） */
 +            uint64_t addr = regs[(instr >> 40) & 0xff];
 +            uint64_t val = regs[(instr >> 32) & 0xff];
 +
 +            p = rk3588_lite_gpu_va_pa_user(g, addr);
 +            if (p != HWADDR_MAX) {
-+                uint64_t v = address_space_ldq_le(&address_space_memory, p,
-+                                                  MEMTXATTRS_UNSPECIFIED, NULL);
-+                address_space_stq_le(&address_space_memory, p, v + val,
-+                                     MEMTXATTRS_UNSPECIFIED, NULL);
++                if (g->rjob.active && g->deferred_sync_n < 8) {
++                    g->deferred_sync[g->deferred_sync_n++] =
++                        (typeof(g->deferred_sync[0])){
++                        .pa = p, .val = (uint32_t)val, .wide = true
++                    };
++                } else {
++                    uint64_t v = address_space_ldq_le(
++                        &address_space_memory, p,
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                    address_space_stq_le(&address_space_memory, p, v + val,
++                                         MEMTXATTRS_UNSPECIFIED, NULL);
++                }
 +            }
 +            break;
 +        }
