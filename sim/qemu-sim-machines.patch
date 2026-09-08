@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..8470bc8
+index 0000000..e17e3b8
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5196 @@
+@@ -0,0 +1,5205 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3470,6 +3470,7 @@ index 0000000..8470bc8
 + * 中心 NDC 在 quad 外不写；NEAREST；无 blend。先渲染到线性 staging，
 + * 再按 RT bf 提交（bf=1 U-tile 逐像素 / bf=12 M2k sb 布局——
 + * mutter 合成 FBO 是 AFBC）。 */
++static void rk3588_lite_gpu_raster_bh(void *opaque);
 +static bool rk3588_lite_gpu_raster_quad(struct Rk3588LiteGpu *g,
 +                                        hwaddr fp, unsigned w, unsigned h)
 +{
@@ -3565,6 +3566,14 @@ index 0000000..8470bc8
 +        g->rjob.sbrow = 0;
 +        g->rjob.phase = 0;
 +        g->rjob.enq_ns = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
++        if (getenv("FSQUAD_SYNC")) {
++            /* 判别实验：同步内联跑完（零延迟混淆）——post-紧式修复
++             * 的崩溃样本全是异步轮，延迟 vs 内容从未分离。 */
++            while (g->rjob.active) {
++                rk3588_lite_gpu_raster_bh(g);
++            }
++            return true;
++        }
 +        qemu_bh_schedule(g->raster_bh);
 +        return true;
 +    }
