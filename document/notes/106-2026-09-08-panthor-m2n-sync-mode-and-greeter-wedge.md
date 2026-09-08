@@ -49,3 +49,19 @@ hold（立即完成+raster 继续）二分 ①与②③。
 - **受控**：净机 FSQUAD=1（11/11）
 - **GDM 稳定写**：`FSQUAD=1 FSQUAD_SYNC=1 GDM=1`（本轮验证）
 - 崩溃研究：默认（异步）；NOWRITE=零写对照
+
+
+## 5. 追加：greeter 僵局第一层剥开（活机 strace/loginctl）
+
+- **KMS 线程**：ppoll(eventfd + /dev/dri/card0)——等 DRM 事件 ✓ 正常
+- **主线程**：6s 零系统调用=卡死在 futex（JS/GLib 层）
+- **logind 会话态（僵局第一层）**：`c1 gdm-greeter seat0 tty1
+  Active=NO`——会话从未激活！`loginctl activate c1` 成功置
+  Active=yes，但老 shell 已错过初始化窗口不回头；pkill 踢壳未生效
+  （进程 1036 存活）。会话激活缺位的最可能机制：console=hvc0 下
+  VT1 从未成为前台（logind 的 VT 激活路径）——**GDM 机 bootargs
+  常规化（去 console=hvc0 或加 VT 自动切换）是下轮一刀**
+- 修正认知：DBus 全超时=shell 主循环卡死的下游；主循环卡死的
+  触发层（等 session-active？）与激活实验兼容但不充分——需要
+  bootargs 修正后 fresh 轮验证（若 shell 从头就 Active 则初始化
+  一次通过）
