@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..e17e3b8
+index 0000000..485bcad
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5205 @@
+@@ -0,0 +1,5222 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3482,6 +3482,23 @@ index 0000000..e17e3b8
 +        if (!(w1 & 1) || ((w1 >> 3) & 0x1f) != 19
 +            || (bf != 1 && bf != 2 && bf != 12 && bf != 13)) {
 +            continue;    /* 非写回/非 RGBA8/非已知 bf */
++        }
++        /* M2n anti-misparse 门：RT base 必须在 GPU VA 域（0x7fff_*，
++         * 实测所有真 FBO 均此域；M2e 时代的垃圾 FBD 0xFFFB6D83 类
++         * 穿不过）；尺寸限真实显示范围（含 3840 壁纸）。 */
++        {
++            uint64_t rb = address_space_ldq_le(&address_space_memory,
++                                               rt + 0x20,
++                                               MEMTXATTRS_UNSPECIFIED,
++                                               NULL);
++            if (rb < 0x7fff00000000ull || rb >= 0x800000000000ull
++                || w > 4096 || h > 4096) {
++                if (getenv("GPUDBG")) {
++                    fprintf(stderr, "GPUQUAD vagate rt%u base=%llx %ux%u\n",
++                            i, (unsigned long long)rb, w, h);
++                }
++                continue;
++            }
 +        }
 +        uint64_t base = address_space_ldq_le(&address_space_memory,
 +                                             rt + 0x20,

@@ -65,3 +65,24 @@ hold（立即完成+raster 继续）二分 ①与②③。
   触发层（等 session-active？）与激活实验兼容但不充分——需要
   bootargs 修正后 fresh 轮验证（若 shell 从头就 Active 则初始化
   一次通过）
+
+
+## 6. 终段冲刺：显示点亮 + VA 门 + 14 分钟稳定
+
+- **anti-misparse VA 门**（RT base∈0x7fff* 域 + 尺寸≤4096）上后：
+  异步写 **14 分钟稳定**（651→1042 job，全程零 panic；历史最佳；
+  vagate=0=门本身没拒任何东西——稳定性或为运气或为组合效应，
+  单 boot 统计不可下结论，SYNC 稳定样本同样被后续崩反例削弱）
+- **显示管线点亮**（本日 M2n 最深突破）：c1 activate + 踢僵壳 →
+  新 greeter 走到 **"Registering display with GDM"** → **DSI-1
+  enabled=enabled、VOPSCAN=12、1024×600 模式**——rockchipdrm→VOP
+  全链接管，scm 界面 14 分钟活
+- 屏仍黑=合成内容未达（shell 停在 GDM 握手；GDM 干净重启时被
+  854s 的迟发腐蚀打断——dconf worker "Bad rss-counter" BUG +
+  NULL@0x50——腐蚀残余仍在，迟发窗口）
+- **VOP 模型的 FS_FIELD 帧中断机制本就完备**（战役五遗产）——
+  pageflip 事件路径非阻塞点
+- **下轮收官序列**（全部就绪）：VA 门开 + GDM 机 → c1 自动激活
+  （bootargs 或 chvt 单元——本轮 tty1 bootargs 会引入 fbcon 不稳
+  弃用，改镜像内 vt1-nudge.service）→ shell 一次通过握手 →
+  合成 draw 流 → screendump 非黑 = **M2n-visible 收官**
