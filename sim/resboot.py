@@ -18,7 +18,7 @@ ARGV = [
     "-display", "none", "-no-reboot",
     "-serial", "null",
     "-chardev", "socket,id=ser0,host=127.0.0.1,port=4446,server=on,"
-                "wait=off,logfile=/tmp/scmi-serial.log",
+                "wait=off,logfile=/home/charliechen/rk-forge/sim/logs/scmi-serial.log",
     "-device", "virtio-serial-device",
     "-device", "virtconsole,chardev=ser0",
     "-monitor", "tcp:127.0.0.1:4449,server,nowait",
@@ -39,7 +39,10 @@ ARGV = [
 ]
 
 DUR = float(sys.argv[1]) if len(sys.argv) > 1 else 600
-LOG = open("/tmp/scmi-dbg.log", "w")
+import pathlib
+LOGDIR = pathlib.Path("/home/charliechen/rk-forge/sim/logs")
+LOGDIR.mkdir(exist_ok=True)
+LOG = open(LOGDIR / "scmi-dbg.log", "w")
 env = dict(os.environ, SCMIDBG="1")
 p = subprocess.Popen(ARGV, stdout=subprocess.DEVNULL, stderr=LOG, env=env)
 time.sleep(DUR)

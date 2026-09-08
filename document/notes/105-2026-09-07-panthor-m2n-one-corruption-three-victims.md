@@ -84,3 +84,24 @@ Call trace: do_exit ← do_group_exit ← get_signal ← arch_do_signal_or_resta
 
 受控 11/11；shell 存活问题已治（dock）；腐蚀=逐 BO 越界（图集
 已钳，壁纸待测）；core 陷阱+双病分流+gems 方法=下轮弹药全齐。
+
+
+## 7. 追加（次日续）：界内全证 + NULL 重开
+
+- **壁纸 BO 真值**：47,149,056B（45MB，**mip_count=11** 全 mip 链；
+  L0 裸 33MB）——我的紧式 L0 写 33.7MB 界内 ✓
+- **2GB 崩溃转储对账**（sim/logs 持久化后首轮）：壁纸写界后页全零
+  ✓ 无溢出；图集界后 [0x104000,0x106000)=真布局自身数据（真实
+  body 起点=0x6000 非我的 0x4000——内容偏 0x2000=图像瑕疵，
+  非系统腐蚀）
+- **崩溃 boot 全写手审计**：GPUFBG=0、GPUBLIT=0——唯一写手=rjob
+  提交（326 图集+1 壁纸+图标），全部界内
+- **PID1 死因重开**：本轮签名=**NULL+0x40 解引用**（逻辑 NULL，
+  非毒页投毒形态）——systemd 某调用链拿到 NULL 即用。与早轮
+  "内核 WnR=1 写像素伪指针"（真腐蚀形态）并存=**多机制或两病**。
+  候选：GPU 模型异常状态→uevent/error 路径→systemd 设备管理
+  NULL 解引用
+- **resboot 日志已迁 sim/logs/**（仓库内，/tmp 清洗免疫）
+- 下轮：journalctl 里 systemd 死前最后动作 + NULL 的提供者
+  （udev/panthor uevent？）；受控复现 FSQUAD 轮只跑 10s 短窗
+  （129s 前）逐步放钱
