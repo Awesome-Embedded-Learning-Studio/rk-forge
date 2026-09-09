@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..0a67a4f
+index 0000000..a161c03
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5327 @@
+@@ -0,0 +1,5331 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3627,9 +3627,13 @@ index 0000000..0a67a4f
 +                    n++;
 +                }
 +            }
-+            g->rjob.solid_clr = ((ar / n) & 0xff)
-+                              | (((ag / n) & 0xff) << 8)
-+                              | (((ab / n) & 0xff) << 16) | 0xff000000u;
++            if (getenv("FSQUAD_SOLIDBLUE")) {
++                g->rjob.solid_clr = 0xffffa000u;  /* A/B: 固定蓝 */
++            } else {
++                g->rjob.solid_clr = ((ar / n) & 0xff)
++                                  | (((ag / n) & 0xff) << 8)
++                                  | (((ab / n) & 0xff) << 16) | 0xff000000u;
++            }
 +        }
 +        g->rjob.phase = 0;
 +        g->rjob.enq_ns = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
