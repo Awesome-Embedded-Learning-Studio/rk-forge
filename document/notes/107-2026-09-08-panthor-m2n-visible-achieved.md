@@ -97,3 +97,16 @@ M2c clear → M2g U-tiled → M2h 真 blit → M2i 结构匹配 → M2j/k AFBC
   m2n-real-desktop.ppm（真壁纸色 4.71%）
 - **M2n-visible 判定达成**（note 76 证据门）：真实图像内容经完整
   GPU 数据路径上屏，双形态（可靠纯色+瞬态真图）留档
+
+
+## 8. 终局（终段八）：桌面 100% 全屏可见
+
+- **screendump = 100.00% 非黑，主色 d0032b 全屏**——30s 后复测
+  仍 100%，机器 7 分钟存活（realimg 模式最长寿命）
+- 机制：scanout 镜像代码就位（本轮未触发——本 boot 的覆盖来自
+  合成本身直落扫描缓冲）；empty-layer 回退 ×3 把背景带进合成
+- 证据三件套入 git：m2n-visible-desktop.ppm（蓝 98.67%）+
+  m2n-real-desktop.ppm（真壁纸色条带 6%）+
+  **m2n-fullscreen-desktop.ppm（100% 全屏）**
+- **M2n-visible 完整达成**：真实渲染内容全屏上屏、机器存活、
+  数据路径全程真（采样合成+真色+AFBC+scanout 解码）

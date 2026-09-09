@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..c4ed0e1
+index 0000000..9865c3b
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5413 @@
+@@ -0,0 +1,5497 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -813,6 +813,7 @@ index 0000000..c4ed0e1
 +    DisplaySurface *surface;
 +    uint32_t last_mst, last_dsp, last_vir;
 +    uint32_t last_vop_print;         /* GPUDBG: scanout 源变化打点去重 */
++    uint32_t scan_w, scan_h;         /* M2n：当前扫描几何（scanout 镜像用） */
 +};
 +
 +/* PD_VOP = BIT(1) in pwr@0x150 (cascade table); bit set = powered down.
@@ -890,6 +891,8 @@ index 0000000..c4ed0e1
 +        || fb < 0x100000) {
 +        return;
 +    }
++    s->scan_w = width;
++    s->scan_h = height;
 +    if (s->fb_mst == s->last_mst && s->fb_dsp == s->last_dsp
 +        && s->fb_vir == s->last_vir && s->last_mst) {
 +        qemu_console_update_full(s->con);    /* geometry unchanged: refresh */
@@ -1029,6 +1032,10 @@ index 0000000..c4ed0e1
 +    uint64_t blit_src_parsed;             /* M2i：结构匹配定位 src 的次数 */
 +    uint64_t afbc_clear_sb;               /* M2j：AFBC solid-header clear 的 sb 数 */
 +    uint32_t fs_color_pending;            /* M2l：常量色 FS 提取的 RGBA（0=无） */
++    /* M2n：scanout 镜像——屏级合成同步写 VOP 正在扫描的缓冲
++     * （mutter damage 条带只写变化区，闲置时全屏 composite
++     * 落在离屏层；镜像保证真图上屏。诚实边界：模型级辅助） */
++    uint32_t *vop_fb_phys, *vop_scan_w, *vop_scan_h;
 +    /* M2n：raster 提交目标 LRU（合成 blit 的 src 回退——长命 plane
 +     * 描述符不在批池扫描窗，靠写方登记） */
 +    struct { uint64_t va; uint32_t stride, w, h;
@@ -3953,6 +3960,80 @@ index 0000000..c4ed0e1
 +            };
 +        }
 +    }
++    /* M2n：scanout 镜像——目标几何=当前扫描几何时，把同一 staging
++     * 再提交到 VOP 正在扫描的缓冲（PA）。绕过 damage 条带/离屏层
++     * 的覆盖缺口；stride 沿用本 FBO 的（同模式缓冲一致）。 */
++    if (g->vop_fb_phys && *g->vop_fb_phys >= 0x100000
++        && *g->vop_scan_w == w && *g->vop_scan_h == h
++        && (hwaddr)*g->vop_fb_phys != g->rjob.bp) {
++        hwaddr mirror = (hwaddr)*g->vop_fb_phys;
++        if (g->rjob.bf == 2) {
++            for (unsigned py = 0; py < h; py++) {
++                for (unsigned px = 0; px < w; px++) {
++                    address_space_stl_le(
++                        &address_space_memory,
++                        mirror + (uint64_t)py * g->rjob.stride + px * 4,
++                        stage[py * w + px],
++                        MEMTXATTRS_UNSPECIFIED, NULL);
++                }
++            }
++        } else {
++            unsigned tx4 = w / 16, ty4 = h / 16;
++            hwaddr bb4 = rk3588_afbc_body_base(mirror, g->rjob.stride,
++                                               tx4, ty4,
++                                               g->rjob.bf == 13);
++            for (unsigned by = 0; by < ty4; by++) {
++                for (unsigned bx = 0; bx < tx4; bx++) {
++                    hwaddr hdr = rk3588_afbc_hdr(mirror, g->rjob.stride,
++                                                 bx, by, g->rjob.bf == 13);
++                    hwaddr body = bb4 + ((uint64_t)by * tx4 + bx) * 1024;
++                    uint32_t first = stage[by * 16 * w + bx * 16];
++                    bool uniform = true;
++                    for (unsigned yy = 0; yy < 16 && uniform; yy++) {
++                        for (unsigned xx = 0; xx < 16; xx++) {
++                            if (stage[(by * 16 + yy) * w + bx * 16 + xx]
++                                != first) {
++                                uniform = false;
++                                break;
++                            }
++                        }
++                    }
++                    if (uniform) {
++                        address_space_stq_le(&address_space_memory, hdr, 0,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++                        address_space_stl_le(&address_space_memory, hdr + 8,
++                                             first,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++                        address_space_stl_le(&address_space_memory, hdr + 12,
++                                             0, MEMTXATTRS_UNSPECIFIED,
++                                             NULL);
++                    } else {
++                        address_space_stl_le(&address_space_memory, hdr,
++                                             body - mirror,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++                        address_space_stq_le(
++                            &address_space_memory, hdr + 8,
++                            0x0101010101010101ull,
++                            MEMTXATTRS_UNSPECIFIED, NULL);
++                        for (unsigned yy = 0; yy < 16; yy++) {
++                            for (unsigned xx = 0; xx < 16; xx++) {
++                                address_space_stl_le(
++                                    &address_space_memory,
++                                    body + (yy * 16 + xx) * 4,
++                                    stage[(by * 16 + yy) * w
++                          + bx * 16 + xx],
++                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                            }
++                        }
++                    }
++                }
++            }
++        }
++        if (getenv("GPUDBG")) {
++            fprintf(stderr, "GPUQUAD scanout-mirror %ux%u -> %llx\n",
++                    w, h, (unsigned long long)mirror);
++        }
++    }
 +    g_free(stage);
 +    g->rjob.active = false;
 +    /* M2n：放行延迟的 SYNC_ADD（fence 对齐真完成） */
@@ -6018,6 +6099,9 @@ index 0000000..c4ed0e1
 +    memory_region_init_io(&s->gpu.mmio, OBJECT(machine), &rk3588_lite_gpu_ops,
 +                          &s->gpu, "rk3588-lite.gpu", 0x200000);
 +    memory_region_add_subregion(sysmem, 0xfb000000, &s->gpu.mmio);
++    s->gpu.vop_fb_phys = &s->vop.fb_phys;
++    s->gpu.vop_scan_w = &s->vop.scan_w;
++    s->gpu.vop_scan_h = &s->vop.scan_h;
 +    s->gpu.raster_bh = qemu_bh_new(rk3588_lite_gpu_raster_bh, &s->gpu);
 +    s->gpu.job_irq = qdev_get_gpio_in(gicdev, 92);
 +    s->gpu.mmu_irq = qdev_get_gpio_in(gicdev, 93);
