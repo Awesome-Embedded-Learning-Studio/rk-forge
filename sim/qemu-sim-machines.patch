@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..c80f826
+index 0000000..c4ed0e1
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5409 @@
+@@ -0,0 +1,5413 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -4254,6 +4254,10 @@ index 0000000..c80f826
 +             * RT base=header 区指针、stride=header 行距（mutter 实测
 +             * 1027 宽=65 superblock×16B=0x410 自洽）；bf=13 tiled 寻址。 */
 +            unsigned tx = (w + 15) / 16, ty = (h + 15) / 16;
++            if (getenv("GPUDBG") && w >= 1024) {
++                fprintf(stderr, "GPUCLEAR-SCREEN %ux%u bf=%u bp=%llx clr=%x\n",
++                        w, h, bf, (unsigned long long)bp, clr);
++            }
 +            for (unsigned y = 0; y < ty; y++) {
 +                for (unsigned x = 0; x < tx; x++) {
 +                    hwaddr hdr = rk3588_afbc_hdr(bp, stride, x, y,
