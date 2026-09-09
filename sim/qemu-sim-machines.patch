@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..9865c3b
+index 0000000..45a8daa
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5497 @@
+@@ -0,0 +1,5510 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3442,6 +3442,19 @@ index 0000000..9865c3b
 +            fprintf(stderr, "GPUQUAD novert v:");
 +            for (unsigned i = 0; i < 16; i++) {
 +                fprintf(stderr, " %08x", g->fs_quad[i]);
++            }
++            /* M2n 字形位姿：顶点 FAU_0=regs[8] —— VS 仿射常量取证 */
++            if (regs[8]) {
++                hwaddr fp = rk3588_lite_gpu_va_pa_user(g, regs[8] & ~0x3full);
++                if (fp != HWADDR_MAX) {
++                    fprintf(stderr, " fau:");
++                    for (unsigned k = 0; k < 16; k++) {
++                        fprintf(stderr, " %08x",
++                                (unsigned)address_space_ldl_le(
++                                    &address_space_memory, fp + k * 4,
++                                    MEMTXATTRS_UNSPECIFIED, NULL));
++                    }
++                }
 +            }
 +            fprintf(stderr, "\n");
 +        }

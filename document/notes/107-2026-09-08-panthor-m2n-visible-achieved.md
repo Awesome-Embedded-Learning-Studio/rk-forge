@@ -110,3 +110,14 @@ M2c clear → M2g U-tiled → M2h 真 blit → M2i 结构匹配 → M2j/k AFBC
   **m2n-fullscreen-desktop.ppm（100% 全屏）**
 - **M2n-visible 完整达成**：真实渲染内容全屏上屏、机器存活、
   数据路径全程真（采样合成+真色+AFBC+scanout 解码）
+
+
+## 9. 追加（终段九）：回归全绿 + FAU 位姿之门
+
+- **受控回归 7/7 PASS**（2..256 全屏+子区域+常量色）——真图/
+  回退/镜像/solid/bf2 直写全部新代码不破受控面
+- **字形位姿=FAU 之门**：novert dump 已加顶点 FAU（regs[8]）
+  取证，但 r8=0xfffd4240 是**页选复合编码非裸指针**（M2l note 97
+  旧坑），需要 FAU RAM 模型（panthor fau 区）才能解——独立一役
+- novert 顶点数据形态存疑（ff131313=像素字节混入）——t2 32B
+  buffer 对此类 draw 未必是顶点缓冲
