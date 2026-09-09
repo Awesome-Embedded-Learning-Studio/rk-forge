@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..a161c03
+index 0000000..539b6a6
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5331 @@
+@@ -0,0 +1,5361 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -841,7 +841,9 @@ index 0000000..a161c03
 +    /* rockchip IOMMU **v2** 页表（compatible rk3568/3588-iommu → iommu_data_ops_v2，
 +     * 见 rockchip-iommu.c of_match）：DTE 索引 = iova>>22（4MB 段），表项编码
 +     * bit0=valid、11:8=地址 bit35:32、7:4=bit39:36——RAM<4GB 时掩 0xfffff000 即可；
-+     * DTE_ADDR 寄存器值同编码（读回 0x5c2a001 实证带 valid 位）。 */
++     * DTE_ADDR 寄存器值同编码（读回 0x5c2a001 实证带 valid 位）。
++     * M2n：walk 失败的 identity 回退在翻页窗会给出 IOVA=PA 的毒值（26f000
++     * →26f000 实测）——失败时返回 HWADDR_MAX，由调用方保持上一好帧。 */
 +    uint32_t dte, pte;
 +
 +    if (!s->mmu_status || !(*s->mmu_status & BIT(0))) {
@@ -851,13 +853,13 @@ index 0000000..a161c03
 +                           (*s->mmu_dte & 0xfffff000) + 4 * (iova >> 22),
 +                           MEMTXATTRS_UNSPECIFIED, &dte, 4) != MEMTX_OK
 +        || !(dte & 1)) {
-+        return iova;
++        return HWADDR_MAX;
 +    }
 +    if (address_space_read(&address_space_memory, (dte & 0xfffff000)
 +                               + 4 * ((iova >> 12) & 0x3ff),
 +                           MEMTXATTRS_UNSPECIFIED, &pte, 4) != MEMTX_OK
 +        || !(pte & 1)) {
-+        return iova;
++        return HWADDR_MAX;
 +    }
 +    return (pte & 0xfffff000) | (iova & 0xfff);
 +}
@@ -870,6 +872,9 @@ index 0000000..a161c03
 +    void *data;
 +
 +    fb = rk3588_lite_vop_iova_phys(s, s->fb_mst);
++    if (fb == HWADDR_MAX) {
++        fb = s->fb_phys;    /* M2n：翻页翻译退化窗——保持上一好帧 */
++    }
 +    s->fb_phys = fb;
 +    if (getenv("GPUDBG") && fb != s->last_vop_print) {
 +        fprintf(stderr, "VOPSCAN mst=%x->%llx dsp=%x vir=%x\n",
@@ -1055,6 +1060,7 @@ index 0000000..a161c03
 +        unsigned row, sbrow;
 +        int64_t enq_ns;         /* 窗宽取证：enqueue→done */
 +        bool solid;             /* >4M px 大图：主色 solid-header 提交 */
++        bool realimg;            /* solid 升级：逐 sb 采样色=块状真图 */
 +        uint32_t solid_clr;
 +        int phase;
 +    } rjob;
@@ -3610,6 +3616,7 @@ index 0000000..a161c03
 +        g->rjob.row = 0;
 +        g->rjob.sbrow = 0;
 +        g->rjob.solid = (uint64_t)w * h > 4ull * 1024 * 1024;
++        g->rjob.realimg = g->rjob.solid && getenv("FSQUAD_REALIMG");
 +        if (g->rjob.solid) {
 +            /* 大图 solid 模式：稀疏采样 8×8 取均值——桌面=壁纸主色
 +             * （诚实边界：纯色近似；真 body 大扫写=腐蚀嫌疑区） */
@@ -3687,13 +3694,36 @@ index 0000000..a161c03
 +        unsigned tx = w / 16, ty2 = h / 16;
 +        for (unsigned by = 0; by < ty2; by++) {
 +            for (unsigned bx = 0; bx < tx; bx++) {
++                uint32_t clr = g->rjob.solid_clr;
++                if (g->rjob.realimg) {
++                    /* 逐 sb 中心采样=块状真图（纯头写，无 body 扫写） */
++                    clr = rk3588_tex_read_px(
++                        g, g->rjob.sp, g->rjob.ptype, g->rjob.porder,
++                        g->rjob.sstride,
++                        MIN(g->rjob.tw - 1, bx * 16 + 8),
++                        MIN(g->rjob.th - 1, by * 16 + 8)) | 0xff000000u;
++                }
++                if (g->rjob.bf == 2) {
++                    /* 线性目标：块色直写像素（头格式只对 AFBC 有意义） */
++                    for (unsigned yy = 0; yy < 16; yy++) {
++                        hwaddr row = g->rjob.bp
++                            + (uint64_t)(by * 16 + yy) * g->rjob.stride
++                            + (uint64_t)bx * 16 * 4;
++                        for (unsigned xx = 0; xx < 16; xx++) {
++                            address_space_stl_le(&address_space_memory,
++                                                 row + xx * 4, clr,
++                                                 MEMTXATTRS_UNSPECIFIED,
++                                                 NULL);
++                        }
++                    }
++                    continue;
++                }
 +                hwaddr hdr = rk3588_afbc_hdr(g->rjob.bp, g->rjob.stride,
 +                                             bx, by, g->rjob.bf == 13);
 +                address_space_stq_le(&address_space_memory, hdr, 0,
 +                                     MEMTXATTRS_UNSPECIFIED, NULL);
 +                address_space_stl_le(&address_space_memory, hdr + 8,
-+                                     g->rjob.solid_clr,
-+                                     MEMTXATTRS_UNSPECIFIED, NULL);
++                                     clr, MEMTXATTRS_UNSPECIFIED, NULL);
 +                address_space_stl_le(&address_space_memory, hdr + 12, 0,
 +                                     MEMTXATTRS_UNSPECIFIED, NULL);
 +            }
