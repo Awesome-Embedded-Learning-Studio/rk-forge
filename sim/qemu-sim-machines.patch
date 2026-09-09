@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..539b6a6
+index 0000000..c80f826
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5361 @@
+@@ -0,0 +1,5409 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1031,7 +1031,8 @@ index 0000000..539b6a6
 +    uint32_t fs_color_pending;            /* M2l：常量色 FS 提取的 RGBA（0=无） */
 +    /* M2n：raster 提交目标 LRU（合成 blit 的 src 回退——长命 plane
 +     * 描述符不在批池扫描窗，靠写方登记） */
-+    struct { uint64_t va; uint32_t stride, w, h; uint8_t bf; } raster_imgs[8];
++    struct { uint64_t va; uint32_t stride, w, h;
++             uint8_t bf, ptype, porder, thdr; } raster_imgs[8];
 +    unsigned raster_imgs_n;
 +    /* M2n 终根修：延迟 SYNC_ADD（fence 信号）。fence=SYNC_ADD 在 CS
 +     * 解释期就写（早于异步 raster 完成）→ mutter 见 fence 释放重用
@@ -3031,6 +3032,9 @@ index 0000000..539b6a6
 +                              unsigned by, bool tiled);
 +static hwaddr rk3588_afbc_body_base(hwaddr bp, uint32_t stride,
 +                                    unsigned tx, unsigned ty, bool tiled);
++static uint32_t rk3588_tex_read_px(struct Rk3588LiteGpu *g, hwaddr sp,
++                                   uint8_t ptype, uint8_t porder,
++                                   uint32_t stride, unsigned x, unsigned y);
 +static void rk3588_lite_gpu_complete_job(struct Rk3588LiteGpu *g,
 +                                         unsigned csg, unsigned cs,
 +                                         hwaddr out_ptr_pa, uint32_t insert,
@@ -3437,6 +3441,47 @@ index 0000000..539b6a6
 +        return;
 +    }
 +
++    /* M2n 空 layer 回退：shell 自绘 layer 的生产 draw 不被执行器
++     * 覆盖（VS 语义类）→ 层常空。探针 8 点全黑且 LRU 有 ≥1024px
++     * 图像时改采之（桌面背景活在 1920/3840 缓冲里）——诚实边界：
++     * 空层用背景替代，几何仍近似。 */
++    {
++        hwaddr pp2 = rk3588_lite_gpu_va_pa_user(g, plane & ~0x3full);
++        bool all_black = pp2 != HWADDR_MAX;
++        if (all_black) {
++            for (unsigned k = 0; k < 8 && all_black; k++) {
++                unsigned px2 = (k & 3) * tw / 4, py2 = (k >> 2) * th / 4;
++                if (rk3588_tex_read_px(g, pp2, ptype, porder, pstride,
++                                       MIN(tw - 1, px2),
++                                       MIN(th - 1, py2)) & 0xffffffu) {
++                    all_black = false;
++                }
++            }
++        }
++        if (all_black) {
++            for (unsigned li = 0; li < g->raster_imgs_n; li++) {
++                if (g->raster_imgs[li].w >= 1024
++                    || g->raster_imgs[li].h >= 1024) {
++                    hwaddr lp = rk3588_lite_gpu_va_pa_user(
++                        g, g->raster_imgs[li].va & ~0x3full);
++                    if (lp == HWADDR_MAX) {
++                        continue;
++                    }
++                    plane = g->raster_imgs[li].va;
++                    pstride = g->raster_imgs[li].stride;
++                    ptype = g->raster_imgs[li].ptype;
++                    porder = g->raster_imgs[li].porder;
++                    tw = g->raster_imgs[li].w;
++                    th = g->raster_imgs[li].h;
++                    if (getenv("GPUDBG")) {
++                        fprintf(stderr,
++                                "GPUQUAD empty-layer→LRU %ux%u\n", tw, th);
++                    }
++                    break;
++                }
++            }
++        }
++    }
 +    g->fs_plane_va = plane;
 +    g->fs_plane_stride = pstride;
 +    g->fs_plane_type = ptype;
@@ -3901,7 +3946,10 @@ index 0000000..539b6a6
 +            }
 +            g->raster_imgs[0] = (typeof(g->raster_imgs[0])){
 +                .va = g->rjob.base_va, .stride = g->rjob.stride,
-+                .w = w, .h = h, .bf = g->rjob.bf
++                .w = w, .h = h, .bf = g->rjob.bf,
++                .ptype = (g->rjob.bf == 12 || g->rjob.bf == 13) ? 6 : 1,
++                .porder = 1,
++                .thdr = g->rjob.bf == 13
 +            };
 +        }
 +    }
