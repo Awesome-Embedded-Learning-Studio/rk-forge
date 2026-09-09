@@ -106,3 +106,22 @@ hold（立即完成+raster 继续）二分 ①与②③。
   或 LRU 源对齐 shell 实际下一帧源
 - 崩溃签名库：004a2561_00492388 类=壁纸像素作指针；dconf Bad
   rss-counter=迟发窗口；NULL+0x40=逻辑 NULL 层
+
+
+## 8. 终段三：bg-fallback + solid 壁纸模式（内容工程就位）
+
+- **bg-fallback 上线**：novert 且 t4 纹理 ≥1024px 的 draw=背景
+  actor→合成全屏 quad（identity uv）。首轮触发 10 次（tex=1024×600
+  ×2、3840×2160×2、1027×35×18）+9 次 1024×600 屏合成 raster——
+  首次有屏尺寸采样合成进 FBO
+- **solid 壁纸模式上线**（>4M px 大图）：稀疏 8×8 采样取真彩主色
+  → 只写 solid header（~85 头=几 KB，win=2ms vs 377ms）——躲开
+  大扫写嫌疑区且给真色内容。壁纸 3840 raster win=2ms 实证生效
+- **屏仍黑的最后断点**：本轮 session shell 在 "Registering session
+  with GDM" 后 24s SEGV（signal 11=background.js 腐蚀类残余——
+  solid 模式下依旧）→ 无后续屏合成 draw。显示 enabled+VOPSCAN=14
+  常驻。**断点=shell 存活**（腐蚀的 background.js 分量未除）
+- 崩溃考古横跨 30+ boot 的总结论：kernel 侧已稳（壁纸门+solid+
+  deferred sync 组合）；用户态 shell 的 SEGV 分量独立残留
+- 下轮：①shell SEGV 根因（solid 内容是否触发 mesa 解析路径 bug
+  —— A/B：solid_clr=固定蓝 vs 采样色）②shell 活→屏合成→桌面

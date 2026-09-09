@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..03ff67a
+index 0000000..0a67a4f
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5270 @@
+@@ -0,0 +1,5327 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1054,6 +1054,8 @@ index 0000000..03ff67a
 +        uint16_t tw, th;
 +        unsigned row, sbrow;
 +        int64_t enq_ns;         /* 窗宽取证：enqueue→done */
++        bool solid;             /* >4M px 大图：主色 solid-header 提交 */
++        uint32_t solid_clr;
 +        int phase;
 +    } rjob;
 +    QEMUBH *raster_bh;
@@ -3400,6 +3402,25 @@ index 0000000..03ff67a
 +        }
 +    }
 +    if (!quad_ok) {
++        /* M2n 屏合成兜底：VS 语义类（uv 由 VS 算，顶点=变换空间）无法
++         * 固定功能解析；纹理 ≥1024px 的 draw 视为背景 actor——合成
++         * 全屏 quad（identity uv）上屏。内容=真纹理真采样，几何近似
++         * （诚实边界）。字形/小纹理类照旧弃权。 */
++        if (tw >= 1024 || th >= 1024) {
++            static const uint32_t fsquad[16] = {
++                0xbf800000, 0xbf800000, 0x00000000, 0x00000000,
++                0x3f800000, 0xbf800000, 0x3f800000, 0x00000000,
++                0xbf800000, 0x3f800000, 0x00000000, 0x3f800000,
++                0x3f800000, 0x3f800000, 0x3f800000, 0x3f800000
++            };
++            memcpy(g->fs_quad, fsquad, sizeof(fsquad));
++            quad_ok = true;
++            if (getenv("GPUDBG")) {
++                fprintf(stderr, "GPUQUAD bg-fallback tex=%ux%u\n", tw, th);
++            }
++        }
++    }
++    if (!quad_ok) {
 +        if (getenv("GPUDBG")) {
 +            fprintf(stderr, "GPUQUAD novert v:");
 +            for (unsigned i = 0; i < 16; i++) {
@@ -3529,10 +3550,7 @@ index 0000000..03ff67a
 +         * + 像素量上限（>1920×1080 弃权——壁纸的下采样 draw 仍覆盖）。 */
 +        {
 +            uint64_t span = (uint64_t)(h + 15) / 16 * stride + (uint64_t)w / 16 * 1024;
-+            /* 壁纸二分：>8M px 的 job 暂缓（崩溃恒随 3840×2160
-+             * job；拒后跌 try_blit/clear 路径） */
-+            if (bp < 0x100000 || bp + span > 0x80000000ull
-+                || (uint64_t)w * h > 4ull * 1024 * 1024) {
++            if (bp < 0x100000 || bp + span > 0x80000000ull) {
 +                if (getenv("GPUDBG")) {
 +                    fprintf(stderr, "GPUQUAD spanfail bp=%llx span=%llx\n",
 +                            (unsigned long long)bp,
@@ -3591,6 +3609,28 @@ index 0000000..03ff67a
 +        g->rjob.th = g->fs_tex_h;
 +        g->rjob.row = 0;
 +        g->rjob.sbrow = 0;
++        g->rjob.solid = (uint64_t)w * h > 4ull * 1024 * 1024;
++        if (g->rjob.solid) {
++            /* 大图 solid 模式：稀疏采样 8×8 取均值——桌面=壁纸主色
++             * （诚实边界：纯色近似；真 body 大扫写=腐蚀嫌疑区） */
++            uint32_t ar = 0, ag = 0, ab = 0, n = 0;
++            for (unsigned sy = 0; sy < 8; sy++) {
++                for (unsigned sx = 0; sx < 8; sx++) {
++                    unsigned tx2 = (sx * g->fs_tex_w) / 8;
++                    unsigned ty2 = (sy * g->fs_tex_h) / 8;
++                    uint32_t c = rk3588_tex_read_px(
++                        g, sp, g->fs_plane_type, g->fs_plane_order,
++                        g->fs_plane_stride, tx2, ty2);
++                    ar += (c >> 0) & 0xff;
++                    ag += (c >> 8) & 0xff;
++                    ab += (c >> 16) & 0xff;
++                    n++;
++                }
++            }
++            g->rjob.solid_clr = ((ar / n) & 0xff)
++                              | (((ag / n) & 0xff) << 8)
++                              | (((ab / n) & 0xff) << 16) | 0xff000000u;
++        }
 +        g->rjob.phase = 0;
 +        g->rjob.enq_ns = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
 +        if (getenv("FSQUAD_SYNC")) {
@@ -3638,6 +3678,23 @@ index 0000000..03ff67a
 +        }
 +        g->completion_q_n = 0;
 +        return;
++    }
++    if (g->rjob.solid) {
++        unsigned tx = w / 16, ty2 = h / 16;
++        for (unsigned by = 0; by < ty2; by++) {
++            for (unsigned bx = 0; bx < tx; bx++) {
++                hwaddr hdr = rk3588_afbc_hdr(g->rjob.bp, g->rjob.stride,
++                                             bx, by, g->rjob.bf == 13);
++                address_space_stq_le(&address_space_memory, hdr, 0,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++                address_space_stl_le(&address_space_memory, hdr + 8,
++                                     g->rjob.solid_clr,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++                address_space_stl_le(&address_space_memory, hdr + 12, 0,
++                                     MEMTXATTRS_UNSPECIFIED, NULL);
++            }
++        }
++        g->rjob.phase = 2;
 +    }
 +    if (getenv("FSQUAD_NOWRITE")) {
 +        /* 判别实验：采样照跑、提交全跳——崩=写无罪（完成面时序嫌疑）*/
