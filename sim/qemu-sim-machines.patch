@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..943f0dc
+index 0000000..628c9b8
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5691 @@
+@@ -0,0 +1,5723 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1116,6 +1116,10 @@ index 0000000..943f0dc
 +    uint8_t fs_pixel_uv;                  /* TEX_FETCH(0x125)：uv=像素坐标 */
 +    bool fs_fallback_used;                /* M2n：本 draw 走了空 layer→BG 回退 */
 +    uint8_t fs_plane_thdr;                /* AFBC plane w0 bit19：tiled hdr */
++    /* M2n：逐页缝合写缓存（当前页 VA→PA；0/ok=false 失效） */
++    uint64_t stitch_vpg;
++    hwaddr stitch_ppg;
++    bool stitch_ok;
 +    uint16_t fs_tex_w, fs_tex_h;
 +    uint32_t mmu_rawstat, mmu_mask;       /* MMU_IRQ 组（0x2000-） */
 +    uint64_t as_transtab[8], as_memattr[8], as_transcfg[8];
@@ -3669,6 +3673,47 @@ index 0000000..943f0dc
 + * 再按 RT bf 提交（bf=1 U-tile 逐像素 / bf=12 M2k sb 布局——
 + * mutter 合成 FBO 是 AFBC）。 */
 +static void rk3588_lite_gpu_raster_bh(void *opaque);
++
++/* M2n 根修：逐页缝合写。bo 的 VA 映射不保证物理连续（战役五 VOP
++ * 实测 4MB DTE 边界拓扑变）——光栅化按 bp+线性偏移写，跨断裂页后
++ * 落到无关内存（页表/slab）=迟发毒真身（概率性=分配拓扑；壁纸
++ * span 最大最易断；界内审计只查算术没查连续性全过）。所有 raster
++ * 存储改走本封装：按页独立翻译+页缓存，断页跳写。 */
++static hwaddr rk3588_lite_stitch_pa(struct Rk3588LiteGpu *g, uint64_t va)
++{
++    uint64_t pg = va & ~0xfffull;
++
++    if (pg != g->stitch_vpg || !g->stitch_ok) {
++        g->stitch_ppg = rk3588_lite_gpu_va_pa_user(g, pg);
++        g->stitch_vpg = pg;
++        g->stitch_ok = (g->stitch_ppg != HWADDR_MAX);
++    }
++    return g->stitch_ok ? (g->stitch_ppg | (va & 0xfffull)) : HWADDR_MAX;
++}
++
++static inline void rk3588_gstl(struct Rk3588LiteGpu *g, uint64_t va,
++                              uint32_t v)
++{
++    hwaddr pa = rk3588_lite_stitch_pa(g, va);
++
++    if (pa != HWADDR_MAX) {
++        address_space_stl_le(&address_space_memory, pa, v,
++                             MEMTXATTRS_UNSPECIFIED, NULL);
++    }
++}
++
++static inline void rk3588_gstq(struct Rk3588LiteGpu *g, uint64_t va,
++                              uint64_t v)
++{
++    hwaddr pa = rk3588_lite_stitch_pa(g, va);
++
++    if (pa != HWADDR_MAX) {
++        address_space_stq_le(&address_space_memory, pa, v,
++                             MEMTXATTRS_UNSPECIFIED, NULL);
++    }
++}
++
++
 +static bool rk3588_lite_gpu_raster_quad(struct Rk3588LiteGpu *g,
 +                                        hwaddr fp, unsigned w, unsigned h)
 +{
@@ -4514,10 +4559,9 @@ index 0000000..943f0dc
 +        } else if (bf == 2 && is_clear) {
 +            /* Linear：行距=字段裸字节（v10.xml 无修饰）。 */
 +            for (unsigned y = 0; y < h && y < 8192; y++) {
-+                hwaddr row = bp + (uint64_t)y * stride;
 +                for (unsigned x = 0; x < w && x < 8192; x++) {
-+                    address_space_stl_le(&address_space_memory, row + x * 4,
-+                                         clr, MEMTXATTRS_UNSPECIFIED, NULL);
++                    rk3588_gstl(g, base + (uint64_t)y * stride + x * 4,
++                                clr);
 +                }
 +            }
 +        }
@@ -4536,12 +4580,9 @@ index 0000000..943f0dc
 +                for (unsigned x = 0; x < tx; x++) {
 +                    hwaddr hdr = rk3588_afbc_hdr(bp, stride, x, y,
 +                                                  bf == 13);
-+                    address_space_stq_le(&address_space_memory, hdr, 0,
-+                                         MEMTXATTRS_UNSPECIFIED, NULL);
-+                    address_space_stl_le(&address_space_memory, hdr + 8, clr,
-+                                         MEMTXATTRS_UNSPECIFIED, NULL);
-+                    address_space_stl_le(&address_space_memory, hdr + 12, 0,
-+                                         MEMTXATTRS_UNSPECIFIED, NULL);
++                    rk3588_gstq(g, base + (hdr - bp), 0);
++                    rk3588_gstl(g, base + (hdr - bp) + 8, clr);
++                    rk3588_gstl(g, base + (hdr - bp) + 12, 0);
 +                }
 +            }
 +            g->afbc_clear_sb += (uint64_t)tx * ty;
@@ -4959,32 +5000,24 @@ index 0000000..943f0dc
 +                        }
 +                    }
 +                    if (uniform) {
-+                        address_space_stq_le(&address_space_memory, hdr, 0,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
-+                        address_space_stl_le(&address_space_memory, hdr + 8,
-+                                             first,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
-+                        address_space_stl_le(&address_space_memory, hdr + 12,
-+                                             0, MEMTXATTRS_UNSPECIFIED,
-+                                             NULL);
++                        rk3588_gstq(g, base + (hdr - dp), 0);
++                        rk3588_gstl(g, base + (hdr - dp) + 8, first);
++                        rk3588_gstl(g, base + (hdr - dp) + 12, 0);
 +                    } else {
-+                        address_space_stl_le(&address_space_memory, hdr,
-+                                             body - dp,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
-+                        address_space_stq_le(&address_space_memory, hdr + 8,
-+                                             0x0101010101010101ull,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
++                        rk3588_gstl(g, base + (hdr - dp), body - dp);
++                        rk3588_gstq(g, base + (hdr - dp) + 8,
++                                    0x0101010101010101ull);
 +                        for (unsigned yy = 0; yy < 16; yy++) {
 +                            for (unsigned xx = 0; xx < 16; xx++) {
-+                                address_space_stl_le(
-+                                    &address_space_memory,
-+                                    body + (yy * 16 + xx) * 4,
++                                rk3588_gstl(
++                                    g,
++                                    base + (body - dp)
++                                        + (yy * 16 + xx) * 4,
 +                                    rk3588_blit_read_px(
 +                                        g, src, src_stride,
 +                                        src_order, src_thdr,
 +                                        bx * 16 + xx,
-+                                        by * 16 + yy),
-+                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                                        by * 16 + yy));
 +                            }
 +                        }
 +                    }
@@ -5004,8 +5037,7 @@ index 0000000..943f0dc
 +                hwaddr o = bf == 1
 +                    ? (uintptr_t)rk3588_tiled_pixel(dp, stride, x, y) - dp
 +                    : (uint64_t)y * stride + x * 4;
-+                address_space_stl_le(&address_space_memory, dp + o, px,
-+                                     MEMTXATTRS_UNSPECIFIED, NULL);
++                rk3588_gstl(g, base + o, px);
 +            }
 +        }
 +        /* M2k：blit 结果即最新图（readback 应读 dst 而非 src） */
