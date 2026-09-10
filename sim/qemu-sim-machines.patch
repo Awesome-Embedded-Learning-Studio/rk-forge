@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..8dcfffa
+index 0000000..d6232eb
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5569 @@
+@@ -0,0 +1,5644 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -814,6 +814,8 @@ index 0000000..8dcfffa
 +    uint32_t last_mst, last_dsp, last_vir;
 +    uint32_t last_vop_print;         /* GPUDBG: scanout 源变化打点去重 */
 +    uint32_t scan_w, scan_h;         /* M2n：当前扫描几何（scanout 镜像用） */
++    uint32_t scan_pbs[4];            /* M2n：近期扫描缓冲 PA（翻页双缓冲） */
++    unsigned scan_pbs_n;
 +};
 +
 +/* PD_VOP = BIT(1) in pwr@0x150 (cascade table); bit set = powered down.
@@ -893,6 +895,18 @@ index 0000000..8dcfffa
 +    }
 +    s->scan_w = width;
 +    s->scan_h = height;
++    {
++        unsigned k;
++        for (k = 0; k < s->scan_pbs_n; k++) {
++            if (s->scan_pbs[k] == (uint32_t)fb) {
++                break;
++            }
++        }
++        if (k == s->scan_pbs_n && k < 4) {
++            s->scan_pbs[k] = (uint32_t)fb;
++            s->scan_pbs_n++;
++        }
++    }
 +    if (s->fb_mst == s->last_mst && s->fb_dsp == s->last_dsp
 +        && s->fb_vir == s->last_vir && s->last_mst) {
 +        qemu_console_update_full(s->con);    /* geometry unchanged: refresh */
@@ -1036,6 +1050,8 @@ index 0000000..8dcfffa
 +     * （mutter damage 条带只写变化区，闲置时全屏 composite
 +     * 落在离屏层；镜像保证真图上屏。诚实边界：模型级辅助） */
 +    uint32_t *vop_fb_phys, *vop_scan_w, *vop_scan_h;
++    uint32_t *vop_scan_pbs;         /* M2n：近期扫描缓冲数组（4 项） */
++    unsigned *vop_scan_pbs_n;
 +    /* M2n：raster 提交目标 LRU（合成 blit 的 src 回退——长命 plane
 +     * 描述符不在批池扫描窗，靠写方登记） */
 +    struct { uint64_t va; uint32_t stride, w, h;
@@ -3998,7 +4014,16 @@ index 0000000..8dcfffa
 +        && (g->rjob.fallback
 +            || (*g->vop_scan_w == w && *g->vop_scan_h == h))
 +        && (hwaddr)*g->vop_fb_phys != g->rjob.bp) {
-+        hwaddr mirror = (hwaddr)*g->vop_fb_phys;
++     /* M2n：遍历近期扫描缓冲全写（翻页双缓冲轮换空页实测） */
++     for (unsigned mpi = 0;
++          mpi < (g->vop_scan_pbs_n ? *g->vop_scan_pbs_n : 1);
++          mpi++) {
++        hwaddr mirror = g->vop_scan_pbs
++            ? (hwaddr)g->vop_scan_pbs[mpi]
++            : (hwaddr)*g->vop_fb_phys;
++        if (mirror < 0x100000 || mirror == g->rjob.bp) {
++            continue;
++        }
 +        if (g->rjob.fallback && g->bg_va
 +            && *g->vop_scan_w >= 16 && *g->vop_scan_h >= 16) {
 +            /* 回退 job 镜像=BG 缩放采样铺满扫描区（条带 staging 位置
@@ -4007,35 +4032,82 @@ index 0000000..8dcfffa
 +            hwaddr bsp = rk3588_lite_gpu_va_pa_user(
 +                g, g->bg_va & ~0x3full);
 +            if (bsp != HWADDR_MAX) {
-+                unsigned tx5 = sw / 16, ty5 = sh / 16;
-+                for (unsigned by = 0; by < ty5; by++) {
-+                    for (unsigned bx = 0; bx < tx5; bx++) {
-+                        uint32_t clr = rk3588_tex_read_px(
-+                            g, bsp, g->bg_ptype, g->bg_porder,
-+                            g->bg_stride,
-+                            MIN(g->bg_w - 1,
-+                                (bx * 16 + 8) * g->bg_w / sw),
-+                            MIN(g->bg_h - 1,
-+                                (by * 16 + 8) * g->bg_h / sh))
-+                                      | 0xff000000u;
-+                        hwaddr hdr = rk3588_afbc_hdr(
-+                            mirror, 0x400, bx, by, false);
-+                        address_space_stq_le(&address_space_memory, hdr, 0,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
-+                        address_space_stl_le(&address_space_memory,
-+                                             hdr + 8, clr,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
-+                        address_space_stl_le(&address_space_memory,
-+                                             hdr + 12, 0,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
++                /* 逐像素采样 BG → staging → 全 body 提交：真分辨率
++                 * 图像（16×16 块视图不够认出画面内容）。2.4MB 写=
++                 * 1920 下采样同级（稳定 boot 已跑过该轮廓）。 */
++                uint32_t *st2 = g_malloc_n(sw, sh * sizeof(uint32_t));
++                if (st2) {
++                    for (unsigned py = 0; py < sh; py++) {
++                        unsigned sy = (uint64_t)py * g->bg_h / sh;
++                        for (unsigned px = 0; px < sw; px++) {
++                            unsigned sx = (uint64_t)px * g->bg_w / sw;
++                            st2[py * sw + px] = rk3588_tex_read_px(
++                                g, bsp, g->bg_ptype, g->bg_porder,
++                                g->bg_stride, MIN(g->bg_w - 1, sx),
++                                MIN(g->bg_h - 1, sy)) | 0xff000000u;
++                        }
 +                    }
++                    unsigned tx5 = sw / 16, ty5 = sh / 16;
++                    hwaddr bb5 = rk3588_afbc_body_base(
++                        mirror, 0x400, tx5, ty5, false);
++                    for (unsigned by = 0; by < ty5; by++) {
++                        for (unsigned bx = 0; bx < tx5; bx++) {
++                            hwaddr hdr = rk3588_afbc_hdr(
++                                mirror, 0x400, bx, by, false);
++                            hwaddr body = bb5
++                                + ((uint64_t)by * tx5 + bx) * 1024;
++                            uint32_t first = st2[by * 16 * sw + bx * 16];
++                            bool uni = true;
++                            for (unsigned yy = 0; yy < 16 && uni; yy++) {
++                                for (unsigned xx = 0; xx < 16; xx++) {
++                                    if (st2[(by * 16 + yy) * sw
++                                            + bx * 16 + xx] != first) {
++                                        uni = false;
++                                        break;
++                                    }
++                                }
++                            }
++                            if (uni) {
++                                address_space_stq_le(&address_space_memory,
++                                                     hdr, 0,
++                                                     MEMTXATTRS_UNSPECIFIED,
++                                                     NULL);
++                                address_space_stl_le(
++                                    &address_space_memory, hdr + 8, first,
++                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                                address_space_stl_le(
++                                    &address_space_memory, hdr + 12, 0,
++                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                            } else {
++                                address_space_stl_le(
++                                    &address_space_memory, hdr,
++                                    body - mirror,
++                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                                address_space_stq_le(
++                                    &address_space_memory, hdr + 8,
++                                    0x0101010101010101ull,
++                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                                for (unsigned yy = 0; yy < 16; yy++) {
++                                    for (unsigned xx = 0; xx < 16; xx++) {
++                                        address_space_stl_le(
++                                            &address_space_memory,
++                                            body + (yy * 16 + xx) * 4,
++                                            st2[(by * 16 + yy) * sw
++                        + bx * 16 + xx],
++                                            MEMTXATTRS_UNSPECIFIED, NULL);
++                                    }
++                                }
++                            }
++                        }
++                    }
++                    g_free(st2);
++                    if (getenv("GPUDBG")) {
++                        fprintf(stderr,
++                                "GPUQUAD bg-fullres %ux%u -> %llx\n",
++                                sw, sh, (unsigned long long)mirror);
++                    }
++                    goto mirror_done;
 +                }
-+                if (getenv("GPUDBG")) {
-+                    fprintf(stderr,
-+                            "GPUQUAD bg-fullview %ux%u -> %llx\n",
-+                            sw, sh, (unsigned long long)mirror);
-+                }
-+                goto mirror_done;
 +            }
 +        }
 +        if (g->rjob.bf == 2) {
@@ -4105,6 +4177,7 @@ index 0000000..8dcfffa
 +                    w, h, (unsigned long long)mirror);
 +        }
 +    }
++     }
 +mirror_done:
 +    g_free(stage);
 +    g->rjob.active = false;
@@ -6174,6 +6247,8 @@ index 0000000..8dcfffa
 +    s->gpu.vop_fb_phys = &s->vop.fb_phys;
 +    s->gpu.vop_scan_w = &s->vop.scan_w;
 +    s->gpu.vop_scan_h = &s->vop.scan_h;
++    s->gpu.vop_scan_pbs = s->vop.scan_pbs;
++    s->gpu.vop_scan_pbs_n = &s->vop.scan_pbs_n;
 +    s->gpu.raster_bh = qemu_bh_new(rk3588_lite_gpu_raster_bh, &s->gpu);
 +    s->gpu.job_irq = qdev_get_gpio_in(gicdev, 92);
 +    s->gpu.mmu_irq = qdev_get_gpio_in(gicdev, 93);
