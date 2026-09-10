@@ -1,73 +1,56 @@
-# rk-forge 交接提示词（新会话用）
+# rk-forge 交接提示词（交给任何 AI/新会话用）
 
-把下面整段作为新对话的开场 prompt 交给 Claude 即可。（此文件在仓库
-sim/handoff-prompt.md；/tmp 的副本可能被清洗，以仓库版为准。）
+把下面整段作为新对话的开场 prompt 交给接手者即可。仓库内此文件为权威版。
 
 ---
 
-我在 `~/rk-forge` 继续 RK3588 QEMU 仿真研究线（战役七 panthor）的工作。开始前先读记忆（MEMORY.md 索引已有全部状态）和 `document/notes/101-105`，这里只给当前落点：
+我在 `~/rk-forge` 继续 RK3588 QEMU 仿真研究线（战役七 panthor）的工作。开始前先读记忆（`~/.claude/projects/-home-charliechen-rk-forge/memory/` 下 MEMORY.md 及各条目）和 `document/notes/101-107`，这里只给当前落点：
 
-## 已完成（M2n 全线，均未 push，分支 feat/sim_rk3568）
+## 总成果（M2n 全线，分支 feat/sim_rk3568，绝不 push）
 
-- **受控矩阵 11/11 PASS**（note 102/104）：采样 draw 真执行
-  - bf=13="AFBC Tiled"（非 AFRC，旧标签翻案；sim TEXTURE_FEATURES_0=0→mesa 根本不选 AFRC）
-  - `rk3588_afbc_hdr()` 线性/tiled 双寻址贯穿 raster/blit 写/clear/纹理读/blit 读；**紧式 body_base**（4K 对齐头区）
-  - 4 种顶点形态解析（16B 交错/8B 分离×2/32B 步长=pos@0+uv@16 像素坐标）→ mutter draw 全配对零弃权
-  - clear 合并（mesa 把 glClear 并进 draw job FBD，RT bit31）→staging 预铺 clear word
-  - TEX_FETCH(0x125) 像素 uv 模式；纹理读四形态（U-tiled/线性/AFBC solid/body）
-- **异步分片 raster**（BH 128 行/片）+ completion 保序挂起（fence 对齐）+ `va_pa_write()` 全 AS 一致性写翻译 + BH 每片 base_va 映射重验
-- **合成链结构打通**：raster-LRU（8 槽）blit 回退、壁纸链全程测绘到 VOP
-- **双病分流**（note 105）：病一号=ubuntu-dock gjs 断言 SIGABRT（已在镜像禁用→NOWRITE 轮 shell 全活）；病二号=崩溃考古（四论证伪：NMI/body 越界/UAF/AS 歧义）
-- **界内全证**（note 105 §7）：gems 真值（图集 BO=1,073,152B、壁纸 BO=45MB 含 11 级 mip）+ 2GB 转储对账=全部写界内、崩溃轮唯一写手 rjob 全审计界内——**越界论证伪**；PID1 死因重开（NULL+0x40 逻辑解引用 vs 早轮像素伪指针=多机制并存）
+**GPU 仿真桌面已可见**：screendump 1024×600 最高 100% 非黑；真壁纸色全屏视图 98.7%/42 种真实色（Ubuntu 壁纸图案的块状采样）。证据 PPM 在 `sim/logs/`（m2n-visible-desktop=纯色蓝 98.67% / m2n-real-desktop=真色条带 6% / m2n-fullscreen-desktop=100% 全屏 / m2n-realimage-fullview=42 色真图）。
 
-## 现行操作形态（已验证可用）
+里程碑链（notes 101-107，七天）：采样 FS 侦察 → 受控矩阵 11/11 → 异步分片 → 双病分流 → 界内全证 → 壁纸作业门 → 显示点亮 → bg-fallback/solid/realimg/背景槽/scanout 镜像/全分辨率 fullres。
+
+## 三层残局（按因果序，当前全部 open）
+
+1. **迟发毒（最高优先）**：每 GDM+写 boot ~130-155s kernel panic/shell SEGV；伪指针内容=真壁纸色（像素数据落进内核指针域）。写算术已三方证界内（gems debugfs 真值 + 2GB pmemsave 对账）。已证伪：NMI 硬锁死/body 越界/UAF-completion/AS 歧义/job 超时。NOWRITE 判别=写有罪。刀口：写日志（每笔 (bp,span) 落盘）+金丝雀页崩后比对；或 gnome-shell core（陷阱已装进 rootfs 但 mutter 信号处理器吃掉了 core dump）
+2. **显示接管确定性**：rockchipdrm→VOP 接管 boot 间掷骰子（好轮 VOPSCAN=9-14+内容可见，差轮=4+全黑）；c1 会话激活（console=hvc0 下 VT1 不前台）→vt1-nudge.service 设计好但装机屡被死机打断。刀口：boot 极早期（<60s）串口注入服务，或改 bootargs
+3. **字形位姿**：VS 语义 draw 的 actor 屏幕位置需要 FAU 仿射——r8=0xfffd4240 是页选复合编码（M2l 旧坑），需要 FAU RAM 模型（panthor fau 区）
+
+## 核心机制地图（全在 hw/arm/rk3588-lite.c，经 qemu patch 落库）
+
+- **CS 解释器**：wrapper+用户段、192 寄存器文件、RUN_IDVS/FRAGMENT、BRANCH/JUMP/CALL、deferred SYNC_ADD（fence 对齐 raster-done）
+- **采样执行器**（FSQUAD=1 门控）：RUN_IDVS 提取（SPD→Binary→TEX 族扫描；SRT t4→Texture→Surfaces→Plane；t2 顶点四形态解析）→BH 异步分片光栅化（128 行/片）→按 RT bf 提交（1=U-tile/2=线性/12=AFBC 头/13=AFBC Tiled 头，`rk3588_afbc_hdr()`）
+- **大图策略**：>4M px 或 REALIMG≥256² = solid/realimg 模式（逐 sb 头写零 body）；背景槽（≥1024×768 常驻）；空 layer 回退（8 点探针全黑→改采背景）；scanout 镜像（fallback job 把 BG 缩放全分辨率写进全部近期扫描缓冲 scan_pbs[4]）
+- **安全门**：VA 域（0x7fff*）+尺寸≤4096+span 界内+全 AS 一致性写翻译+BH 每片映射重验
+
+## 现行操作形态
 
 | 用途 | 命令 |
 |---|---|
-| 研究机冷启 | `GPUDBG=1 setsid nohup python3 sim/resboot.py 7200 > sim/logs/resboot.out 2>&1 &`（串口 4446/监视 4449；**日志在 sim/logs/ 免 /tmp 清洗**） |
-| 采样验收（净机） | 加 `FSQUAD=1`；GDM 加 `GDM=1`；安全研究=GDM+`FSQUAD_NOWRITE=1` |
-| 采样矩阵 | `sim/sendfile.py sim/glestexture.py /tmp/gtx.py` 后 `python3 /tmp/gtx.py`（TEXSIZE/QUAD/TEXGRAD 参数化） |
-| 串口会话 | `CMD_TIMEOUT=60 python3 sim/serx.py 4446 "命令"`（rk-forge 自动登录，已落库） |
-| 文件进 guest | `CMD_TIMEOUT=90 python3 sim/sendfile.py <本地> <远端>`（分块 base64+md5，已落库） |
-| BO 真值测量 | guest：`sudo mount -t debugfs none /sys/kernel/debug; sudo cat /sys/kernel/debug/dri/1/gems`（per-BO 大小+modifier）；gpuvas 表=VA↔BO 映射 |
-| 崩溃转储 | monitor（4449）：`\x03` 清行后 `pmemsave 0 0x80000000 "<路径>"`（~4 分钟）；离线搜内核日志环 |
-| QEMU 重编 | `ninja -C third_party/qemu/build qemu-system-aarch64`（重启机器才生效） |
-| QEMU 改动落库 | qemu 树 `git diff > sim/qemu-sim-machines.patch` → 主仓 commit |
-| **重启机器** | kill 与启动**拆两次工具调用**（pkill -f 自杀坑）；判活 `ss -tln \| grep 4446` |
-| WSL 重启恢复 | /tmp 全丢（会大清洗）；mesa 重克隆见 note 97 §3 + sparse-checkout add gallium 驱动 |
+| 稳定桌面演示 | `GPUDBG=1 FSQUAD=1 FSQUAD_SOLIDBLUE=1 GDM=1 setsid nohup python3 sim/resboot.py 7200 > sim/logs/resboot.out 2>&1 &`（~5min 后 monitor screendump → 98.67% 壁纸蓝） |
+| 真图冲刺 | 同上把 SOLIDBLUE 换 `FSQUAD_REALIMG=1`（boot 间方差；好轮=42 色真图） |
+| 受控回归（净机） | `FSQUAD=1` 无 GDM；`sim/sendfile.py sim/glestexture.py /tmp/gtx.py` 后 `python3 /tmp/gtx.py`（11/11 基线） |
+| 串口会话 | `CMD_TIMEOUT=60 python3 sim/serx.py 4446 "命令"`（rk-forge/rk-forge 自动登录） |
+| 文件进 guest | `CMD_TIMEOUT=90 python3 sim/sendfile.py <本地> <远端>` |
+| BO 真值 | guest: `sudo mount -t debugfs none /sys/kernel/debug; sudo cat /sys/kernel/debug/dri/1/gems`（per-BO 大小+modifier）；gpuvas=VA↔BO 映射 |
+| 崩溃取证 | `grep -B2 -A6 'Unable to handle' sim/logs/scmi-serial.log`；monitor 4449 `\x03` 清行后 `pmemsave 0 0x80000000 "<路径>"`（~4min）→离线搜内核日志环（`MESSAGE=` 正则可读 journald 明文，需镜像内 journald Compress=no 已设） |
+| QEMU 重编/落库 | `ninja -C third_party/qemu/build qemu-system-aarch64`；qemu 树 `git diff > sim/qemu-sim-machines.patch` →主仓 commit |
+| 重启机器 | kill 与启动**拆两次工具调用**（pkill -f 模式串会匹配自己 wrapper=exit 144 自杀）；判活 `ss -tln | grep 4446` |
 
-## M2n-VISIBLE 已达成（note 107，commit 含证据 ppm）
+## 关键坑（血泪速查）
 
-- **达成形态**：`GPUDBG=1 FSQUAD=1 FSQUAD_SOLIDBLUE=1 GDM=1 setsid nohup python3 sim/resboot.py 7200 > sim/logs/resboot.out 2>&1 &`，~5 分钟后 monitor screendump → **1024×600 非黑 98.67% 主色 00a0ff**（壁纸蓝）
-- 全链：mutter 采样 draw→执行器（bg-fallback≥1024px 纹理全屏合成 + 真光栅下采样 77ms）→AFBC solid 头→合成 blit→VOP scanout 解码→屏；逐跳内存实证
-- A/B：**固定蓝 solid=shell 活零崩→可见**；采样色=24s SEGV（单样本）——mesa 解析路径嫌疑待复查
-- 诚实边界：壁纸=solid 纯色近似（真图像大扫写=腐蚀嫌疑区未解）；下采样/屏合成=真纹理真采样；glyph 图集照常
+- pkill/pgrep -f 自杀；/tmp 大清洗（杀 qemu+删文件——工具/日志/提示词只用 sim/ 落库版）；resboot 僵尸堆积
+- 串口短行蒸发（ZZB/ZZE 标记夹取）；monitor 需 \x03 清行+引号路径；两串口任务互踩
+- bf=13="AFBC Tiled" 非 AFRC（历史误标已翻案）；mutter r57/58 是编码值非指针
+- 扫描窗口算术机器算（十六进制位数坑 ×2）；guest /tmp 重启即清
+- 环境开关族：GPUDBG（主）/FSQUAD/FSQUAD_NOWRITE/FSQUAD_SYNC/FSQUAD_SOLIDBLUE/FSQUAD_REALIMG/GPUFSX/GPUWRITELOG/LOGLEVEL
 
-## M2n-visible 完整达成（note 107 §8）
+## 其余欠账
 
-- **桌面 100.00% 全屏可见**（d0032b 全屏，30s 持稳，机器 7min 存活=realimg 最长）——empty-layer 回退+合成直落扫描缓冲
-- 证据三件套入 git：m2n-visible-desktop.ppm（蓝）/ m2n-real-desktop.ppm（真色条带）/ **m2n-fullscreen-desktop.ppm（100%）**
-- scanout 镜像机制已落位（屏级合成重提交到 VOP 扫描缓冲）
-- 复现：`GPUDBG=1 FSQUAD=1 FSQUAD_REALIMG=1 GDM=1`（真图）或 `FSQUAD_SOLIDBLUE=1`（可靠蓝）+ resboot → ~5min 后 screendump
-
-## 下一步（余欠）
-
-1. 迟发毒根因（4-7min 窗口，真图模式 shell/kernel 终命中；伪指针=壁纸色→写泄漏与内容相关）
-2. 字形/图标上屏（真 actor 位置——VS 语义 FAU 仿射）
-3. LINEAR 采样/blend/旋转（受控边界外）
-
-## 关键坑（速查）
-
-- **pkill/pgrep -f 自杀**：kill/启动拆两次、`res[b]oot.py` 括号技巧、ss 判活
-- **/tmp 大清洗**（会杀 qemu 进程+删文件）：工具/日志/提示词只用 sim/ 落库版
-- resboot.py 僵尸堆积；串口短行蒸发（用 ZZB/ZZE 标记夹取）；monitor 需 \x03 清行
-- mutter draw 的 r57/58（DCD）是编码值非指针；扫描窗口算术机器算
-- 崩溃现场取证：`grep -B2 -A6 'Unable to handle' sim/logs/scmi-serial.log` + `tail sim/logs/scmi-dbg.log`
-
-## 其余欠账（别忘）
-
-真机 fixture 补采（CS features 占位 0x000708bf）、PANTHORIOCTL 打点待撤（journal 里还在刷）、restore 多核 loadvm（note 85）、真机 BT/audio/RTC/NPU/VPU 板验、LINEAR 采样/blend/旋转（受控边界外）
+真机 fixture 补采（CS features 占位 0x000708bf）、PANTHORIOCTL 打点待撤、restore 多核 loadvm（note 85）、真机 BT/audio/RTC/NPU/VPU 板验、LINEAR 采样/blend/旋转（受控边界外）、ubuntu-dock 已在镜像禁用+core 陷阱+journald 持久化（均在 rootfs 非 git）。
 
 ## 纪律
 
-**绝不 push**；commit 禁 Co-Authored-By；一课题一编号笔记（下一号 106）；诚实边界（note 76 证据门——未验证的"可见"不宣称）。
+**绝不 push**；commit 禁 Co-Authored-By；一课题一编号笔记（下一号 108）；诚实边界（note 76 证据门——未验证的"可见"不宣称）；/tmp 只放可丢的临时物。
