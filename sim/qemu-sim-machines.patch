@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..45a8daa
+index 0000000..8dcfffa
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5510 @@
+@@ -0,0 +1,5569 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1041,6 +1041,11 @@ index 0000000..45a8daa
 +    struct { uint64_t va; uint32_t stride, w, h;
 +             uint8_t bf, ptype, porder, thdr; } raster_imgs[8];
 +    unsigned raster_imgs_n;
++    /* M2n：背景槽——≥1024×768 的大图 raster 专用（LRU 会被图集的
++     * 数百小 job 冲刷；壁纸/下采样必须常驻供空 layer 回退）。 */
++    uint64_t bg_va;
++    uint32_t bg_stride, bg_w, bg_h;
++    uint8_t bg_ptype, bg_porder, bg_thdr;
 +    /* M2n 终根修：延迟 SYNC_ADD（fence 信号）。fence=SYNC_ADD 在 CS
 +     * 解释期就写（早于异步 raster 完成）→ mutter 见 fence 释放重用
 +     * 缓冲 → 迟到 BH 写击中重用页=像素伪指针腐蚀（SYNC 快窗稳/
@@ -1069,6 +1074,7 @@ index 0000000..45a8daa
 +        int64_t enq_ns;         /* 窗宽取证：enqueue→done */
 +        bool solid;             /* >4M px 大图：主色 solid-header 提交 */
 +        bool realimg;            /* solid 升级：逐 sb 采样色=块状真图 */
++        bool fallback;           /* 空 layer→BG 回退的 job（镜像必发） */
 +        uint32_t solid_clr;
 +        int phase;
 +    } rjob;
@@ -1091,6 +1097,7 @@ index 0000000..45a8daa
 +    uint8_t fs_plane_type;                /* plane w0[7:4]：1=Generic 6=AFBC */
 +    uint8_t fs_plane_order;               /* Generic clump ordering：1=U 2=线性 */
 +    uint8_t fs_pixel_uv;                  /* TEX_FETCH(0x125)：uv=像素坐标 */
++    bool fs_fallback_used;                /* M2n：本 draw 走了空 layer→BG 回退 */
 +    uint8_t fs_plane_thdr;                /* AFBC plane w0 bit19：tiled hdr */
 +    uint16_t fs_tex_w, fs_tex_h;
 +    uint32_t mmu_rawstat, mmu_mask;       /* MMU_IRQ 组（0x2000-） */
@@ -3478,26 +3485,24 @@ index 0000000..45a8daa
 +                }
 +            }
 +        }
-+        if (all_black) {
-+            for (unsigned li = 0; li < g->raster_imgs_n; li++) {
-+                if (g->raster_imgs[li].w >= 1024
-+                    || g->raster_imgs[li].h >= 1024) {
-+                    hwaddr lp = rk3588_lite_gpu_va_pa_user(
-+                        g, g->raster_imgs[li].va & ~0x3full);
-+                    if (lp == HWADDR_MAX) {
-+                        continue;
-+                    }
-+                    plane = g->raster_imgs[li].va;
-+                    pstride = g->raster_imgs[li].stride;
-+                    ptype = g->raster_imgs[li].ptype;
-+                    porder = g->raster_imgs[li].porder;
-+                    tw = g->raster_imgs[li].w;
-+                    th = g->raster_imgs[li].h;
-+                    if (getenv("GPUDBG")) {
-+                        fprintf(stderr,
-+                                "GPUQUAD empty-layer→LRU %ux%u\n", tw, th);
-+                    }
-+                    break;
++        if (all_black && g->bg_va) {
++            /* M2n：背景槽优先——大图 raster（≥1024×768）专用常驻
++             * 槽；LRU 8 槽被图集数百 job 冲刷不可靠（实测 15 次全
++             * 挑到 512×512 图集） */
++            hwaddr lp = rk3588_lite_gpu_va_pa_user(
++                g, g->bg_va & ~0x3full);
++            if (lp != HWADDR_MAX) {
++                plane = g->bg_va;
++                pstride = g->bg_stride;
++                ptype = g->bg_ptype;
++                porder = g->bg_porder;
++                g->fs_plane_thdr = g->bg_thdr;
++                tw = g->bg_w;
++                th = g->bg_h;
++                g->fs_fallback_used = true;
++                if (getenv("GPUDBG")) {
++                    fprintf(stderr,
++                            "GPUQUAD empty-layer→BG %ux%u\n", tw, th);
 +                }
 +            }
 +        }
@@ -3680,7 +3685,10 @@ index 0000000..45a8daa
 +        g->rjob.th = g->fs_tex_h;
 +        g->rjob.row = 0;
 +        g->rjob.sbrow = 0;
-+        g->rjob.solid = (uint64_t)w * h > 4ull * 1024 * 1024;
++        g->rjob.solid = (uint64_t)w * h > 4ull * 1024 * 1024
++                        || (getenv("FSQUAD_REALIMG")
++                            && (uint64_t)w * h >= 256ull * 256);
++        g->rjob.fallback = g->fs_fallback_used;
 +        g->rjob.realimg = g->rjob.solid && getenv("FSQUAD_REALIMG");
 +        if (g->rjob.solid) {
 +            /* 大图 solid 模式：稀疏采样 8×8 取均值——桌面=壁纸主色
@@ -3971,15 +3979,65 @@ index 0000000..45a8daa
 +                .porder = 1,
 +                .thdr = g->rjob.bf == 13
 +            };
++            if (w >= 1024 && h >= 768) {
++                g->bg_va = g->rjob.base_va;
++                g->bg_stride = g->rjob.stride;
++                g->bg_w = w;
++                g->bg_h = h;
++                g->bg_ptype = (g->rjob.bf == 12 || g->rjob.bf == 13)
++                            ? 6 : 1;
++                g->bg_porder = 1;
++                g->bg_thdr = g->rjob.bf == 13;
++            }
 +        }
 +    }
 +    /* M2n：scanout 镜像——目标几何=当前扫描几何时，把同一 staging
 +     * 再提交到 VOP 正在扫描的缓冲（PA）。绕过 damage 条带/离屏层
 +     * 的覆盖缺口；stride 沿用本 FBO 的（同模式缓冲一致）。 */
 +    if (g->vop_fb_phys && *g->vop_fb_phys >= 0x100000
-+        && *g->vop_scan_w == w && *g->vop_scan_h == h
++        && (g->rjob.fallback
++            || (*g->vop_scan_w == w && *g->vop_scan_h == h))
 +        && (hwaddr)*g->vop_fb_phys != g->rjob.bp) {
 +        hwaddr mirror = (hwaddr)*g->vop_fb_phys;
++        if (g->rjob.fallback && g->bg_va
++            && *g->vop_scan_w >= 16 && *g->vop_scan_h >= 16) {
++            /* 回退 job 镜像=BG 缩放采样铺满扫描区（条带 staging 位置
++             * 无变换不可用；此路径确定性给真图全屏视图） */
++            unsigned sw = *g->vop_scan_w, sh = *g->vop_scan_h;
++            hwaddr bsp = rk3588_lite_gpu_va_pa_user(
++                g, g->bg_va & ~0x3full);
++            if (bsp != HWADDR_MAX) {
++                unsigned tx5 = sw / 16, ty5 = sh / 16;
++                for (unsigned by = 0; by < ty5; by++) {
++                    for (unsigned bx = 0; bx < tx5; bx++) {
++                        uint32_t clr = rk3588_tex_read_px(
++                            g, bsp, g->bg_ptype, g->bg_porder,
++                            g->bg_stride,
++                            MIN(g->bg_w - 1,
++                                (bx * 16 + 8) * g->bg_w / sw),
++                            MIN(g->bg_h - 1,
++                                (by * 16 + 8) * g->bg_h / sh))
++                                      | 0xff000000u;
++                        hwaddr hdr = rk3588_afbc_hdr(
++                            mirror, 0x400, bx, by, false);
++                        address_space_stq_le(&address_space_memory, hdr, 0,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++                        address_space_stl_le(&address_space_memory,
++                                             hdr + 8, clr,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++                        address_space_stl_le(&address_space_memory,
++                                             hdr + 12, 0,
++                                             MEMTXATTRS_UNSPECIFIED, NULL);
++                    }
++                }
++                if (getenv("GPUDBG")) {
++                    fprintf(stderr,
++                            "GPUQUAD bg-fullview %ux%u -> %llx\n",
++                            sw, sh, (unsigned long long)mirror);
++                }
++                goto mirror_done;
++            }
++        }
 +        if (g->rjob.bf == 2) {
 +            for (unsigned py = 0; py < h; py++) {
 +                for (unsigned px = 0; px < w; px++) {
@@ -4047,6 +4105,7 @@ index 0000000..45a8daa
 +                    w, h, (unsigned long long)mirror);
 +        }
 +    }
++mirror_done:
 +    g_free(stage);
 +    g->rjob.active = false;
 +    /* M2n：放行延迟的 SYNC_ADD（fence 对齐真完成） */
