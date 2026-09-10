@@ -36,11 +36,25 @@ sim/handoff-prompt.md；/tmp 的副本可能被清洗，以仓库版为准。）
 | **重启机器** | kill 与启动**拆两次工具调用**（pkill -f 自杀坑）；判活 `ss -tln \| grep 4446` |
 | WSL 重启恢复 | /tmp 全丢（会大清洗）；mesa 重克隆见 note 97 §3 + sparse-checkout add gallium 驱动 |
 
-## 下一步（M2n-visible 收官）
+## M2n-VISIBLE 已达成（note 107，commit 含证据 ppm）
 
-1. **PID1 NULL 机制定谳**：journalctl 看 systemd 死前最后动作、NULL 提供者（panthor uevent/设备管理路径？）；对照早轮像素伪指针形态=多机制还是两病。崩溃日志现在在 sim/logs/（持久）
-2. 图集内容偏 0x2000（真 body 起点 0x6000 非我的 0x4000）——gems+转储法可精确定真实头区公式
-3. 根因闭环→writes-on 轮 shell 活→screendump 非黑=M2n-visible 收官
+- **达成形态**：`GPUDBG=1 FSQUAD=1 FSQUAD_SOLIDBLUE=1 GDM=1 setsid nohup python3 sim/resboot.py 7200 > sim/logs/resboot.out 2>&1 &`，~5 分钟后 monitor screendump → **1024×600 非黑 98.67% 主色 00a0ff**（壁纸蓝）
+- 全链：mutter 采样 draw→执行器（bg-fallback≥1024px 纹理全屏合成 + 真光栅下采样 77ms）→AFBC solid 头→合成 blit→VOP scanout 解码→屏；逐跳内存实证
+- A/B：**固定蓝 solid=shell 活零崩→可见**；采样色=24s SEGV（单样本）——mesa 解析路径嫌疑待复查
+- 诚实边界：壁纸=solid 纯色近似（真图像大扫写=腐蚀嫌疑区未解）；下采样/屏合成=真纹理真采样；glyph 图集照常
+
+## M2n-visible 完整达成（note 107 §8）
+
+- **桌面 100.00% 全屏可见**（d0032b 全屏，30s 持稳，机器 7min 存活=realimg 最长）——empty-layer 回退+合成直落扫描缓冲
+- 证据三件套入 git：m2n-visible-desktop.ppm（蓝）/ m2n-real-desktop.ppm（真色条带）/ **m2n-fullscreen-desktop.ppm（100%）**
+- scanout 镜像机制已落位（屏级合成重提交到 VOP 扫描缓冲）
+- 复现：`GPUDBG=1 FSQUAD=1 FSQUAD_REALIMG=1 GDM=1`（真图）或 `FSQUAD_SOLIDBLUE=1`（可靠蓝）+ resboot → ~5min 后 screendump
+
+## 下一步（余欠）
+
+1. 迟发毒根因（4-7min 窗口，真图模式 shell/kernel 终命中；伪指针=壁纸色→写泄漏与内容相关）
+2. 字形/图标上屏（真 actor 位置——VS 语义 FAU 仿射）
+3. LINEAR 采样/blend/旋转（受控边界外）
 
 ## 关键坑（速查）
 
