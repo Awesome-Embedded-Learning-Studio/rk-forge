@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..d6232eb
+index 0000000..943f0dc
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5644 @@
+@@ -0,0 +1,5691 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1049,9 +1049,8 @@ index 0000000..d6232eb
 +    /* M2n：scanout 镜像——屏级合成同步写 VOP 正在扫描的缓冲
 +     * （mutter damage 条带只写变化区，闲置时全屏 composite
 +     * 落在离屏层；镜像保证真图上屏。诚实边界：模型级辅助） */
++    struct Rk3588LiteVop *vop;
 +    uint32_t *vop_fb_phys, *vop_scan_w, *vop_scan_h;
-+    uint32_t *vop_scan_pbs;         /* M2n：近期扫描缓冲数组（4 项） */
-+    unsigned *vop_scan_pbs_n;
 +    /* M2n：raster 提交目标 LRU（合成 blit 的 src 回退——长命 plane
 +     * 描述符不在批池扫描窗，靠写方登记） */
 +    struct { uint64_t va; uint32_t stride, w, h;
@@ -1092,6 +1091,8 @@ index 0000000..d6232eb
 +        bool realimg;            /* solid 升级：逐 sb 采样色=块状真图 */
 +        bool fallback;           /* 空 layer→BG 回退的 job（镜像必发） */
 +        uint32_t solid_clr;
++        uint64_t write_page_va;
++        hwaddr write_page_pa;
 +        int phase;
 +    } rjob;
 +    QEMUBH *raster_bh;
@@ -2484,6 +2485,83 @@ index 0000000..d6232eb
 +    return pa;
 +}
 +
++static hwaddr rk3588_lite_gpu_rjob_pa(struct Rk3588LiteGpu *g, uint64_t off)
++{
++    uint64_t va = g->rjob.base_va + off;
++    uint64_t page = va & ~0xfffull;
++
++    if (g->rjob.write_page_va != page) {
++        hwaddr pa = rk3588_lite_gpu_va_pa_write(g, page);
++
++        g->rjob.write_page_va = page;
++        g->rjob.write_page_pa = pa;
++        if (getenv("GPUWRITELOG") && pa != HWADDR_MAX) {
++            hwaddr linear = (g->rjob.bp & ~0xfffull)
++                          + (page - (g->rjob.base_va & ~0xfffull));
++            if (pa != linear) {
++                fprintf(stderr,
++                        "GPUW scatter va=%llx pa=%llx linear=%llx\n",
++                        (unsigned long long)page, (unsigned long long)pa,
++                        (unsigned long long)linear);
++            }
++        }
++    }
++    if (g->rjob.write_page_pa == HWADDR_MAX) {
++        return HWADDR_MAX;
++    }
++    return g->rjob.write_page_pa + (va & 0xfff);
++}
++
++static void rk3588_lite_gpu_rjob_stl(struct Rk3588LiteGpu *g, uint64_t off,
++                                     uint32_t val)
++{
++    hwaddr pa = rk3588_lite_gpu_rjob_pa(g, off);
++
++    if (pa != HWADDR_MAX) {
++        address_space_stl_le(&address_space_memory, pa, val,
++                             MEMTXATTRS_UNSPECIFIED, NULL);
++    }
++}
++
++static void rk3588_lite_gpu_rjob_stq(struct Rk3588LiteGpu *g, uint64_t off,
++                                     uint64_t val)
++{
++    hwaddr pa = rk3588_lite_gpu_rjob_pa(g, off);
++
++    if (pa != HWADDR_MAX) {
++        address_space_stq_le(&address_space_memory, pa, val,
++                             MEMTXATTRS_UNSPECIFIED, NULL);
++    }
++}
++
++static hwaddr rk3588_lite_vop_write_pa(struct Rk3588LiteVop *vop,
++                                       uint64_t base, uint64_t off)
++{
++    return rk3588_lite_vop_iova_phys(vop, base + off);
++}
++
++static void rk3588_lite_vop_stl(struct Rk3588LiteVop *vop, uint64_t base,
++                                uint64_t off, uint32_t val)
++{
++    hwaddr pa = rk3588_lite_vop_write_pa(vop, base, off);
++
++    if (pa != HWADDR_MAX) {
++        address_space_stl_le(&address_space_memory, pa, val,
++                             MEMTXATTRS_UNSPECIFIED, NULL);
++    }
++}
++
++static void rk3588_lite_vop_stq(struct Rk3588LiteVop *vop, uint64_t base,
++                                uint64_t off, uint64_t val)
++{
++    hwaddr pa = rk3588_lite_vop_write_pa(vop, base, off);
++
++    if (pa != HWADDR_MAX) {
++        address_space_stq_le(&address_space_memory, pa, val,
++                             MEMTXATTRS_UNSPECIFIED, NULL);
++    }
++}
++
 +static hwaddr rk3588_lite_gpu_va_pa_user(struct Rk3588LiteGpu *g, uint64_t va)
 +{
 +    hwaddr pa;
@@ -3706,6 +3784,8 @@ index 0000000..d6232eb
 +                            && (uint64_t)w * h >= 256ull * 256);
 +        g->rjob.fallback = g->fs_fallback_used;
 +        g->rjob.realimg = g->rjob.solid && getenv("FSQUAD_REALIMG");
++        g->rjob.write_page_va = UINT64_MAX;
++        g->rjob.write_page_pa = HWADDR_MAX;
 +        if (g->rjob.solid) {
 +            /* 大图 solid 模式：稀疏采样 8×8 取均值——桌面=壁纸主色
 +             * （诚实边界：纯色近似；真 body 大扫写=腐蚀嫌疑区） */
@@ -3779,7 +3859,7 @@ index 0000000..d6232eb
 +        g->completion_q_n = 0;
 +        return;
 +    }
-+    if (g->rjob.solid) {
++    if (g->rjob.solid && !getenv("FSQUAD_NOWRITE")) {
 +        unsigned tx = w / 16, ty2 = h / 16;
 +        for (unsigned by = 0; by < ty2; by++) {
 +            for (unsigned bx = 0; bx < tx; bx++) {
@@ -3799,22 +3879,17 @@ index 0000000..d6232eb
 +                            + (uint64_t)(by * 16 + yy) * g->rjob.stride
 +                            + (uint64_t)bx * 16 * 4;
 +                        for (unsigned xx = 0; xx < 16; xx++) {
-+                            address_space_stl_le(&address_space_memory,
-+                                                 row + xx * 4, clr,
-+                                                 MEMTXATTRS_UNSPECIFIED,
-+                                                 NULL);
++                            rk3588_lite_gpu_rjob_stl(
++                                g, row - g->rjob.bp + xx * 4, clr);
 +                        }
 +                    }
 +                    continue;
 +                }
 +                hwaddr hdr = rk3588_afbc_hdr(g->rjob.bp, g->rjob.stride,
 +                                             bx, by, g->rjob.bf == 13);
-+                address_space_stq_le(&address_space_memory, hdr, 0,
-+                                     MEMTXATTRS_UNSPECIFIED, NULL);
-+                address_space_stl_le(&address_space_memory, hdr + 8,
-+                                     clr, MEMTXATTRS_UNSPECIFIED, NULL);
-+                address_space_stl_le(&address_space_memory, hdr + 12, 0,
-+                                     MEMTXATTRS_UNSPECIFIED, NULL);
++                rk3588_lite_gpu_rjob_stq(g, hdr - g->rjob.bp, 0);
++                rk3588_lite_gpu_rjob_stl(g, hdr - g->rjob.bp + 8, clr);
++                rk3588_lite_gpu_rjob_stl(g, hdr - g->rjob.bp + 12, 0);
 +            }
 +        }
 +        g->rjob.phase = 2;
@@ -3877,11 +3952,9 @@ index 0000000..d6232eb
 +            unsigned end = MIN(h, g->rjob.row + 128);
 +            for (unsigned py = g->rjob.row; py < end; py++) {
 +                for (unsigned px = 0; px < w; px++) {
-+                    address_space_stl_le(
-+                        &address_space_memory,
-+                        g->rjob.bp + (uint64_t)py * g->rjob.stride + px * 4,
-+                        stage[py * w + px],
-+                        MEMTXATTRS_UNSPECIFIED, NULL);
++                    rk3588_lite_gpu_rjob_stl(
++                        g, (uint64_t)py * g->rjob.stride + px * 4,
++                        stage[py * w + px]);
 +                }
 +            }
 +            g->rjob.row = end;
@@ -3892,12 +3965,9 @@ index 0000000..d6232eb
 +            unsigned end = MIN(h, g->rjob.row + 128);
 +            for (unsigned py = g->rjob.row; py < end; py++) {
 +                for (unsigned px = 0; px < w; px++) {
-+                    address_space_stl_le(
-+                        &address_space_memory,
-+                        rk3588_tiled_pixel(g->rjob.bp, g->rjob.stride,
-+                                           px, py),
-+                        stage[py * w + px],
-+                        MEMTXATTRS_UNSPECIFIED, NULL);
++                    rk3588_lite_gpu_rjob_stl(
++                        g, rk3588_tiled_pixel(0, g->rjob.stride, px, py),
++                        stage[py * w + px]);
 +                }
 +            }
 +            g->rjob.row = end;
@@ -3935,29 +4005,23 @@ index 0000000..d6232eb
 +                        }
 +                    }
 +                    if (uniform) {
-+                        address_space_stq_le(&address_space_memory, hdr, 0,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
-+                        address_space_stl_le(&address_space_memory, hdr + 8,
-+                                             first,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
-+                        address_space_stl_le(&address_space_memory, hdr + 12,
-+                                             0, MEMTXATTRS_UNSPECIFIED,
-+                                             NULL);
++                        rk3588_lite_gpu_rjob_stq(g, hdr - g->rjob.bp, 0);
++                        rk3588_lite_gpu_rjob_stl(
++                            g, hdr - g->rjob.bp + 8, first);
++                        rk3588_lite_gpu_rjob_stl(
++                            g, hdr - g->rjob.bp + 12, 0);
 +                    } else {
-+                        address_space_stl_le(&address_space_memory, hdr,
-+                                             body - g->rjob.bp,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
-+                        address_space_stq_le(
-+                            &address_space_memory, hdr + 8,
-+                            0x0101010101010101ull,
-+                            MEMTXATTRS_UNSPECIFIED, NULL);
++                        rk3588_lite_gpu_rjob_stl(
++                            g, hdr - g->rjob.bp, body - g->rjob.bp);
++                        rk3588_lite_gpu_rjob_stq(
++                            g, hdr - g->rjob.bp + 8,
++                            0x0101010101010101ull);
 +                        for (unsigned yy = 0; yy < 16; yy++) {
 +                            for (unsigned xx = 0; xx < 16; xx++) {
-+                                address_space_stl_le(
-+                                    &address_space_memory,
-+                                    body + (yy * 16 + xx) * 4,
-+                                    stage[(by * 16 + yy) * w + bx * 16 + xx],
-+                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                                rk3588_lite_gpu_rjob_stl(
++                                    g, body - g->rjob.bp
++                                       + (yy * 16 + xx) * 4,
++                                    stage[(by * 16 + yy) * w + bx * 16 + xx]);
 +                            }
 +                        }
 +                    }
@@ -4007,22 +4071,25 @@ index 0000000..d6232eb
 +            }
 +        }
 +    }
-+    /* M2n：scanout 镜像——目标几何=当前扫描几何时，把同一 staging
-+     * 再提交到 VOP 正在扫描的缓冲（PA）。绕过 damage 条带/离屏层
-+     * 的覆盖缺口；stride 沿用本 FBO 的（同模式缓冲一致）。 */
-+    if (g->vop_fb_phys && *g->vop_fb_phys >= 0x100000
++    /* VOP BO 的 IOMMU 页不保证物理连续，镜像写必须按 IOVA 逐页翻译。 */
++    if (!getenv("FSQUAD_NOWRITE") && !getenv("FSQUAD_NOFULLRES")
++        && g->vop
++        && g->vop_fb_phys && *g->vop_fb_phys >= 0x100000
 +        && (g->rjob.fallback
 +            || (*g->vop_scan_w == w && *g->vop_scan_h == h))
 +        && (hwaddr)*g->vop_fb_phys != g->rjob.bp) {
-+     /* M2n：遍历近期扫描缓冲全写（翻页双缓冲轮换空页实测） */
-+     for (unsigned mpi = 0;
-+          mpi < (g->vop_scan_pbs_n ? *g->vop_scan_pbs_n : 1);
-+          mpi++) {
-+        hwaddr mirror = g->vop_scan_pbs
-+            ? (hwaddr)g->vop_scan_pbs[mpi]
-+            : (hwaddr)*g->vop_fb_phys;
-+        if (mirror < 0x100000 || mirror == g->rjob.bp) {
-+            continue;
++        uint64_t mirror = g->vop->fb_mst;
++        hwaddr mirror_bp = rk3588_lite_vop_iova_phys(g->vop, mirror);
++
++        if (mirror_bp == HWADDR_MAX || mirror_bp != *g->vop_fb_phys) {
++            goto mirror_done;
++        }
++        if (getenv("GPUWRITELOG")) {
++            fprintf(stderr,
++                    "GPUW mirror iova=%llx pa0=%llx %ux%u fallback=%u\n",
++                    (unsigned long long)mirror,
++                    (unsigned long long)mirror_bp, *g->vop_scan_w,
++                    *g->vop_scan_h, g->rjob.fallback);
 +        }
 +        if (g->rjob.fallback && g->bg_va
 +            && *g->vop_scan_w >= 16 && *g->vop_scan_h >= 16) {
@@ -4049,11 +4116,11 @@ index 0000000..d6232eb
 +                    }
 +                    unsigned tx5 = sw / 16, ty5 = sh / 16;
 +                    hwaddr bb5 = rk3588_afbc_body_base(
-+                        mirror, 0x400, tx5, ty5, false);
++                        0, 0x400, tx5, ty5, false);
 +                    for (unsigned by = 0; by < ty5; by++) {
 +                        for (unsigned bx = 0; bx < tx5; bx++) {
 +                            hwaddr hdr = rk3588_afbc_hdr(
-+                                mirror, 0x400, bx, by, false);
++                                0, 0x400, bx, by, false);
 +                            hwaddr body = bb5
 +                                + ((uint64_t)by * tx5 + bx) * 1024;
 +                            uint32_t first = st2[by * 16 * sw + bx * 16];
@@ -4068,33 +4135,24 @@ index 0000000..d6232eb
 +                                }
 +                            }
 +                            if (uni) {
-+                                address_space_stq_le(&address_space_memory,
-+                                                     hdr, 0,
-+                                                     MEMTXATTRS_UNSPECIFIED,
-+                                                     NULL);
-+                                address_space_stl_le(
-+                                    &address_space_memory, hdr + 8, first,
-+                                    MEMTXATTRS_UNSPECIFIED, NULL);
-+                                address_space_stl_le(
-+                                    &address_space_memory, hdr + 12, 0,
-+                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                                rk3588_lite_vop_stq(g->vop, mirror, hdr, 0);
++                                rk3588_lite_vop_stl(
++                                    g->vop, mirror, hdr + 8, first);
++                                rk3588_lite_vop_stl(
++                                    g->vop, mirror, hdr + 12, 0);
 +                            } else {
-+                                address_space_stl_le(
-+                                    &address_space_memory, hdr,
-+                                    body - mirror,
-+                                    MEMTXATTRS_UNSPECIFIED, NULL);
-+                                address_space_stq_le(
-+                                    &address_space_memory, hdr + 8,
-+                                    0x0101010101010101ull,
-+                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                                rk3588_lite_vop_stl(
++                                    g->vop, mirror, hdr, body);
++                                rk3588_lite_vop_stq(
++                                    g->vop, mirror, hdr + 8,
++                                    0x0101010101010101ull);
 +                                for (unsigned yy = 0; yy < 16; yy++) {
 +                                    for (unsigned xx = 0; xx < 16; xx++) {
-+                                        address_space_stl_le(
-+                                            &address_space_memory,
++                                        rk3588_lite_vop_stl(
++                                            g->vop, mirror,
 +                                            body + (yy * 16 + xx) * 4,
 +                                            st2[(by * 16 + yy) * sw
-+                        + bx * 16 + xx],
-+                                            MEMTXATTRS_UNSPECIFIED, NULL);
++                                                + bx * 16 + xx]);
 +                                    }
 +                                }
 +                            }
@@ -4104,7 +4162,7 @@ index 0000000..d6232eb
 +                    if (getenv("GPUDBG")) {
 +                        fprintf(stderr,
 +                                "GPUQUAD bg-fullres %ux%u -> %llx\n",
-+                                sw, sh, (unsigned long long)mirror);
++                                sw, sh, (unsigned long long)mirror_bp);
 +                    }
 +                    goto mirror_done;
 +                }
@@ -4113,21 +4171,20 @@ index 0000000..d6232eb
 +        if (g->rjob.bf == 2) {
 +            for (unsigned py = 0; py < h; py++) {
 +                for (unsigned px = 0; px < w; px++) {
-+                    address_space_stl_le(
-+                        &address_space_memory,
-+                        mirror + (uint64_t)py * g->rjob.stride + px * 4,
-+                        stage[py * w + px],
-+                        MEMTXATTRS_UNSPECIFIED, NULL);
++                    rk3588_lite_vop_stl(
++                        g->vop, mirror,
++                        (uint64_t)py * g->rjob.stride + px * 4,
++                        stage[py * w + px]);
 +                }
 +            }
 +        } else {
 +            unsigned tx4 = w / 16, ty4 = h / 16;
-+            hwaddr bb4 = rk3588_afbc_body_base(mirror, g->rjob.stride,
++            hwaddr bb4 = rk3588_afbc_body_base(0, g->rjob.stride,
 +                                               tx4, ty4,
 +                                               g->rjob.bf == 13);
 +            for (unsigned by = 0; by < ty4; by++) {
 +                for (unsigned bx = 0; bx < tx4; bx++) {
-+                    hwaddr hdr = rk3588_afbc_hdr(mirror, g->rjob.stride,
++                    hwaddr hdr = rk3588_afbc_hdr(0, g->rjob.stride,
 +                                                 bx, by, g->rjob.bf == 13);
 +                    hwaddr body = bb4 + ((uint64_t)by * tx4 + bx) * 1024;
 +                    uint32_t first = stage[by * 16 * w + bx * 16];
@@ -4142,30 +4199,22 @@ index 0000000..d6232eb
 +                        }
 +                    }
 +                    if (uniform) {
-+                        address_space_stq_le(&address_space_memory, hdr, 0,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
-+                        address_space_stl_le(&address_space_memory, hdr + 8,
-+                                             first,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
-+                        address_space_stl_le(&address_space_memory, hdr + 12,
-+                                             0, MEMTXATTRS_UNSPECIFIED,
-+                                             NULL);
++                        rk3588_lite_vop_stq(g->vop, mirror, hdr, 0);
++                        rk3588_lite_vop_stl(
++                            g->vop, mirror, hdr + 8, first);
++                        rk3588_lite_vop_stl(g->vop, mirror, hdr + 12, 0);
 +                    } else {
-+                        address_space_stl_le(&address_space_memory, hdr,
-+                                             body - mirror,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
-+                        address_space_stq_le(
-+                            &address_space_memory, hdr + 8,
-+                            0x0101010101010101ull,
-+                            MEMTXATTRS_UNSPECIFIED, NULL);
++                        rk3588_lite_vop_stl(g->vop, mirror, hdr, body);
++                        rk3588_lite_vop_stq(
++                            g->vop, mirror, hdr + 8,
++                            0x0101010101010101ull);
 +                        for (unsigned yy = 0; yy < 16; yy++) {
 +                            for (unsigned xx = 0; xx < 16; xx++) {
-+                                address_space_stl_le(
-+                                    &address_space_memory,
++                                rk3588_lite_vop_stl(
++                                    g->vop, mirror,
 +                                    body + (yy * 16 + xx) * 4,
 +                                    stage[(by * 16 + yy) * w
-+                          + bx * 16 + xx],
-+                                    MEMTXATTRS_UNSPECIFIED, NULL);
++                                          + bx * 16 + xx]);
 +                            }
 +                        }
 +                    }
@@ -4174,10 +4223,9 @@ index 0000000..d6232eb
 +        }
 +        if (getenv("GPUDBG")) {
 +            fprintf(stderr, "GPUQUAD scanout-mirror %ux%u -> %llx\n",
-+                    w, h, (unsigned long long)mirror);
++                    w, h, (unsigned long long)mirror_bp);
 +        }
 +    }
-+     }
 +mirror_done:
 +    g_free(stage);
 +    g->rjob.active = false;
@@ -6244,11 +6292,10 @@ index 0000000..d6232eb
 +    memory_region_init_io(&s->gpu.mmio, OBJECT(machine), &rk3588_lite_gpu_ops,
 +                          &s->gpu, "rk3588-lite.gpu", 0x200000);
 +    memory_region_add_subregion(sysmem, 0xfb000000, &s->gpu.mmio);
++    s->gpu.vop = &s->vop;
 +    s->gpu.vop_fb_phys = &s->vop.fb_phys;
 +    s->gpu.vop_scan_w = &s->vop.scan_w;
 +    s->gpu.vop_scan_h = &s->vop.scan_h;
-+    s->gpu.vop_scan_pbs = s->vop.scan_pbs;
-+    s->gpu.vop_scan_pbs_n = &s->vop.scan_pbs_n;
 +    s->gpu.raster_bh = qemu_bh_new(rk3588_lite_gpu_raster_bh, &s->gpu);
 +    s->gpu.job_irq = qdev_get_gpio_in(gicdev, 92);
 +    s->gpu.mmu_irq = qdev_get_gpio_in(gicdev, 93);
