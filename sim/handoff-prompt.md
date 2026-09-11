@@ -8,18 +8,18 @@
 
 ## 总成果（M2n 全线，分支 feat/sim_rk3568，绝不 push）
 
-**GPU 仿真桌面已可见**：screendump 1024×600 最高 100% 非黑；真壁纸色全屏视图 98.7%/42 种真实色（Ubuntu 壁纸图案的块状采样）。证据 PPM 在 `sim/logs/`（m2n-visible-desktop=纯色蓝 98.67% / m2n-real-desktop=真色条带 6% / m2n-fullscreen-desktop=100% 全屏 / m2n-realimage-fullview=42 色真图）。
+**GPU 仿真桌面=真壁纸全屏可复现**：99.99% 非黑/930 独立色/0 黑行，MCP 读图清晰辨认"白色熊猫（圆眼三角鼻）+放射光效+平滑紫渐变、无伪影"（=Ubuntu 壁纸主体）。达成形态：`GPUDBG=1 FSQUAD=1 FSQUAD_REALIMG=1 FSQUAD_BGFULLRES=1 GDM=1 setsid nohup python3 sim/resboot.py 7200 > sim/logs/resboot.out 2>&1 &`，~5min 后 monitor 4449 `screendump sim/logs/x.ppm`。证据：sim/logs/m2n-true-wallpaper.ppm（git）+ Windows 桌面 gpu-true-wallpaper.png。
 
-里程碑链（notes 101-107，七天）：采样 FS 侦察 → 受控矩阵 11/11 → 异步分片 → 双病分流 → 界内全证 → 壁纸作业门 → 显示点亮 → bg-fallback/solid/realimg/背景槽/scanout 镜像/全分辨率 fullres。
+里程碑链（notes 101-110）：采样 FS 侦察 → 受控矩阵 11/11 → 异步分片 → 双病分流 → 界内全证 → 壁纸作业门 → 显示点亮 → 内容工程 → 毒根修（缝合写）→ 屏幕垃圾根修（条带门+页表自画像门）→ **真壁纸全屏（VOP 判定门/BG porder/BG 命中择优/staging 直采/读侧缝合五连修）**。
 
-## 三层残局（毒已根修，note 108；屏幕垃圾已根修，note 109）
+## 三层残局（毒/屏幕垃圾/真壁纸全屏均已根修，notes 108-110）
 
-1. ~~迟发毒~~ **已根修**：VA 映射散射+线性写=毒（全部写路径已逐页缝合）；shell 全会话存活、340s+ 稳
-2. ~~屏幕竖条纹垃圾~~ **已根修（note 109）**：bg-fallback 双维门（≥1024×256）杀条带误全屏 + tex_read_px 垃圾头门（64 对齐/<64MB）杀页表自画像。现状：**253 独立色真壁纸结构化上屏**（65%/55% 翻页波动）。残余：sb 级周期空洞、覆盖率翻页波动
-3. **显示接管确定性**：好轮 VOPSCAN=9-14+内容可见，差轮=4+全黑；c1 会话激活（console=hvc0 下 VT1 不前台）→vt1-nudge.service 设计好但装机屡被死机打断。刀口：boot 极早期（<60s）串口注入服务，或改 bootargs
-4. **字形位姿**：VS 语义 draw 的 actor 屏幕位置需要 FAU 仿射——r8=0xfffd4240 是页选复合编码（M2l 旧坑），需要 FAU RAM 模型（panthor fau 区）
+1. ~~迟发毒~~ **已根修**：VA 映射散射+线性写=毒（写路径已逐页缝合，note 108）；**读侧缝合 note 110 补齐**
+2. ~~屏幕竖条纹垃圾~~ **已根修（note 109）**：bg-fallback 双维门（≥1024×256）+ tex_read_px 垃圾头门（64 对齐/<64MB）
+3. ~~真壁纸细节~~ **已达成（note 110）**：staging 直采（CPU 上载的线性大纹理=真像素本尊）+ VOP 判定门 + BG 命中择优 + 读侧缝合。**当前 open**：UI 层合成（greeter 面板/文字与壁纸层叠——壁纸层真、上层 UI 缺）、字形位姿（FAU RAM 模型，r8=0xfffd4240 页选复合编码）、vt1-nudge 自动化（c1 激活确定性）、LINEAR 采样/blend/旋转
+4. **显示接管确定性**：好轮 VOPSCAN=9-14+内容可见，差轮=4+全黑；vt1-nudge.service 设计好但装机屡被打断
 
-**内容验收仪器（note 109）**：MCP 读图（zai analyze_image，本地路径直传）= 标准——像素直方图只证颜色不证布局（本轮翻案教训）；run-length+周期检测区分图像 vs 元数据（同低字节变高字节 run=指针）。
+**内容验收仪器（note 109/110）**：MCP 读图（zai analyze_image，**本地路径直传**，URL 会 400）= 标准——像素直方图只证颜色不证布局；run-length+周期检测区分图像 vs 元数据（同低字节变高字节 run=指针）。
 
 ## 核心机制地图（全在 hw/arm/rk3588-lite.c，经 qemu patch 落库）
 
