@@ -12,14 +12,15 @@
 
 里程碑链（notes 101-111）：采样 FS 侦察 → 受控矩阵 → 异步分片 → 双病分流 → 界内全证 → 壁纸作业门 → 显示点亮 → 内容工程 → 毒根修（缝合写）→ 屏幕垃圾根修 → 细节五连修 → **显示接管基建+坐标定谳** → 余=staging 完整性悬案。
 
-## 三层残局（毒/屏幕垃圾/真壁纸全屏均已根修，notes 108-110）
+## 三层残局（notes 108-112）
 
-1. ~~迟发毒~~ **已根修**：VA 映射散射+线性写=毒（写路径已逐页缝合，note 108）；**读侧缝合 note 110 补齐**
-2. ~~屏幕竖条纹垃圾~~ **已根修（note 109）**：bg-fallback 双维门（≥1024×256）+ tex_read_px 垃圾头门（64 对齐/<64MB）
-3. ~~真壁纸细节~~ **已达成（note 110）**：staging 直采（CPU 上载的线性大纹理=真像素本尊）+ VOP 判定门 + BG 命中择优 + 读侧缝合。**当前 open**：UI 层合成（greeter 面板/文字与壁纸层叠——壁纸层真、上层 UI 缺）、字形位姿（FAU RAM 模型，r8=0xfffd4240 页选复合编码）、vt1-nudge 自动化（c1 激活确定性）、LINEAR 采样/blend/旋转
-4. **显示接管确定性**：好轮 VOPSCAN=9-14+内容可见，差轮=4+全黑；vt1-nudge.service 设计好但装机屡被打断
+1. ~~迟发毒~~ **已根修**（note 108 缝合写；note 110 读侧缝合补齐）
+2. ~~屏幕竖条纹垃圾~~ **已根修**（note 109 条带门+页表自画像门）
+3. ~~坐标错位~~ **已定谳零误差**（note 111 五点标记精确落位）
+4. **浣熊脸区（open）**：背景与参照**像素级吻合（差 5-9=greeter 调光恒偏）**、光芒连贯、脸局部成形（圆眼+三角鼻）；脸区 54-66 悬案=staging 脸区 texel 的确切映射（两种"正确"读法不一致）。刀口：dump 全 AS 脸区页翻译比对/gems-gpuvas 对账/va_pa_in 2MB 块分支嫌疑（note 112 §4）
+5. **UI 层合成/字形位姿（FAU）/vt1-nudge**：照旧 open
 
-**内容验收仪器（note 109/110）**：MCP 读图（zai analyze_image，**本地路径直传**，URL 会 400）= 标准——像素直方图只证颜色不证布局；run-length+周期检测区分图像 vs 元数据（同低字节变高字节 run=指针）。
+**现行最优形态**：`FSQUAD_REPAINT=1 GPUDBG=1 FSQUAD=1 FSQUAD_REALIMG=1 FSQUAD_BGFULLRES=1 GDM=1 + resboot`。取证仪器：STGCROP/STGCROPS/STGDUMPLIN/STGDUMPTILED（全分辨率！稀疏 dump 会制造碎片伪影——note 112 教训）、FSQUAD_MARK 标记注入、区域差值法（参照盒式降采样为期望图）。
 
 ## 核心机制地图（全在 hw/arm/rk3588-lite.c，经 qemu patch 落库）
 
