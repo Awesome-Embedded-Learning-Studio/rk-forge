@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..811c415
+index 0000000..2d021e5
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,6095 @@
+@@ -0,0 +1,6434 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1096,11 +1096,17 @@ index 0000000..811c415
 +    uint32_t bg_stride, bg_w, bg_h;
 +    uint8_t bg_ptype, bg_porder, bg_thdr;
 +    hwaddr bg_pa;    /* BG 注册时缓存的物理地址（tick 期 AS 任意，走查必败） */
++    QEMUTimer *stg_timer;  /* staging 完成观察定时器（500ms×10） */
++    unsigned stg_rounds;  /* 剩余观察轮数 */
++    uint32_t bg_sblocks;  /* 当前快照的结构块数（择优度量） */
 +    uint32_t *bg_screen;   /* 屏级快照（rjob 期采样成功后缓存——
 +                            * staging BO 会被 mutter 释放，tick 期直读=黑屏；
 +                            * 脱离 guest BO 生命周期） */
 +    unsigned bg_screen_w, bg_screen_h;
 +    int bg_as;       /* BG 所属 AS 号（staging 注册时捕获，tick 期强制用） */
++    bool fs_staging_draw;   /* 本 job 源=staging（draw 时刻 staging 必完整） */
++    hwaddr fs_staging_pa;   /* 本 job extract 时刻的 staging PA（bg_pa
++                             * 会被后续注册覆盖=读到回收内存） */
 +    int stitch_as;   /* stitch 走查 AS 覆盖（-1=当前 AS；tick 期=bg_as） */
 +    bool bg_full;    /* BG 槽被全分辨率 raster 占据（solid 只填空槽） */
 +    uint8_t bg_hits; /* BG 注册时的 8 点探针命中数（后来者须更高才占槽） */
@@ -1126,6 +1132,10 @@ index 0000000..811c415
 +        uint32_t quad[16];
 +        hwaddr sp;
 +        uint64_t sva;    /* 源 plane VA（读侧逐页缝合用） */
++        bool stg_src;    /* 源=staging（完成时降采样进屏快照） */
++        int src_as;      /* 源 AS（采样锁定——扫 AS 取首命中会跨 VM
++                          * 别名翻错页=细节碎裂真身） */
++        hwaddr src_pa0;  /* 源基址 PA（BH 期自证 src_as 用） */
 +        uint8_t ptype, porder, pixel_uv, thdr;
 +        uint32_t sstride;
 +        uint16_t tw, th;
@@ -3410,6 +3420,7 @@ index 0000000..811c415
 +     * 实测）。每 job 提取入口重置。 */
 +    g->stitch_vpg = UINT64_MAX;
 +    g->stitch_ok = false;
++    g->fs_staging_draw = false;
 +    if (regs[33] != 4 || !regs[20] || !regs[4] || !regs[0]) {
 +        return;
 +    }
@@ -3673,7 +3684,8 @@ index 0000000..811c415
 +     * 且 ≥1024×768 = CPU 上载的壁纸 staging 本尊（真像素全分辨率）——
 +     * 绕过全部有损中间链（mosaic/full AFBC 转写），直接注册为 BG 槽。
 +     * 8 点命中数择优，防半上载残图占槽。 */
-+    if (ptype == 1 && porder == 2 && tw >= 1024 && th >= 768 && pstride) {
++    if (!g->fs_fallback_used
++        && ptype == 1 && porder == 2 && tw >= 1024 && th >= 768 && pstride) {
 +        hwaddr spp = rk3588_lite_gpu_va_pa_user(g, plane & ~0x3full);
 +        unsigned hits = 0;
 +
@@ -3692,6 +3704,53 @@ index 0000000..811c415
 +            g->bg_pa = spp;
 +            g_free(g->bg_screen);    /* 新 staging=重采样新快照 */
 +            g->bg_screen = NULL;
++            g->fs_staging_draw = true;
++            g->fs_staging_pa = spp;
++            /* 缓冲只在连续前缀内物理连续（浣熊区 5.9-8.2MB 实证），
++             * 其后散页=必须缝合；缝合选 AS 用多点探针（页0 单点会
++             * 命中别名 VM）：全跨度 {0,8,16,24,32}MB 都翻得到的
++             * 才是 owner。 */
++            {
++                unsigned best_hits = 0;
++                for (unsigned asx = 1; asx < 8; asx++) {
++                    if (!g->as_transtab[asx]) {
++                        continue;
++                    }
++                    unsigned hh = 0;
++                    for (unsigned o = 0; o < 5; o++) {
++                        hwaddr p4;
++                        if (rk3588_lite_gpu_va_pa_in(
++                                g, g->as_transtab[asx],
++                                (plane & ~0xfffull) + (uint64_t)o
++                                    * 8ull * 1024 * 1024,
++                                &p4)) {
++                            hh++;
++                        }
++                    }
++                    if (hh == 5) {
++                        g->bg_as = asx;
++                        best_hits = 5;
++                        break;
++                    }
++                    if (hh > best_hits) {
++                        best_hits = hh;
++                        g->bg_as = asx;
++                    }
++                }
++                if (getenv("GPUDBG")) {
++                    fprintf(stderr, "GPUQUAD stg-as=%u hits=%u\n",
++                            g->bg_as, best_hits);
++                }
++            }
++            /* 乱序上传观察：500ms ×10 轮，结构块最少且 64/64 的
++             * 采样=完整态。 */
++            if (g->stg_timer) {
++                g->stg_rounds = 10;
++                g->bg_sblocks = UINT32_MAX;
++                timer_mod(g->stg_timer,
++                          qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL)
++                          + 500 * 1000 * 1000ull);
++            }
 +            /* A/B：staging 疑为 U-tiled（线性读=浣熊碎片化分解）。
 +             * FSQUAD_STGTILED=1 → 按 u-interleave 采样注册。 */
 +            if (getenv("FSQUAD_STGTILED")) {
@@ -3737,8 +3796,95 @@ index 0000000..811c415
 +            g->bg_full = true;
 +            g->bg_hits = 8;
 +            if (getenv("GPUDBG")) {
-+                fprintf(stderr, "GPUQUAD staging-BG %ux%u stride=%x\n",
-+                        tw, th, pstride);
++                fprintf(stderr,
++                        "GPUQUAD staging-BG %ux%u stride=%x va=%llx "
++                        "pa=%llx as=%u\n",
++                        tw, th, pstride, (unsigned long long)plane,
++                        (unsigned long long)spp, g->bg_as);
++            }
++            if (getenv("STGDUMPTILED")) {
++                /* U-tiled 解读直测：平滑背景在任何乱序下不显形，
++                 * 高对比浣熊区才是 tiling 的显影剂。 */
++                FILE *sf = fopen(getenv("STGDUMPTILED"), "wb");
++                if (sf) {
++                    fprintf(sf, "P6\n256 144\n255\n");
++                    for (unsigned dy = 0; dy < 144; dy++) {
++                        for (unsigned dx = 0; dx < 256; dx++) {
++                            uint32_t c = rk3588_tex_read_px(
++                                g, plane, 1, 1, pstride,
++                                MIN(tw - 1, dx * tw / 256),
++                                MIN(th - 1, dy * th / 144), false);
++                            uint8_t px3[3] = { c & 0xff, (c >> 8) & 0xff,
++                                               (c >> 16) & 0xff };
++                            fwrite(px3, 1, 3, sf);
++                        }
++                    }
++                    fclose(sf);
++                }
++            }
++            if (getenv("STGCROPS")) {
++                /* 缝合读全分辨率裁剪（与 STGCROP 纯线性 PA 对照）：
++                 * 若此图碎而线性图完好=缝合读是凶手。 */
++                FILE *sf = fopen(getenv("STGCROPS"), "wb");
++                if (sf) {
++                    fprintf(sf, "P6\n480 440\n255\n");
++                    for (unsigned dy = 0; dy < 440; dy++) {
++                        for (unsigned dx = 0; dx < 480; dx++) {
++                            uint32_t c = rk3588_tex_read_px(
++                                g, plane, 1, 2, pstride,
++                                MIN(tw - 1, 1680 + dx),
++                                MIN(th - 1, 770 + dy), false);
++                            uint8_t px3[3] = { c & 0xff, (c >> 8) & 0xff,
++                                               (c >> 16) & 0xff };
++                            fwrite(px3, 1, 3, sf);
++                        }
++                    }
++                    fclose(sf);
++                }
++            }
++            if (getenv("STGCROP")) {
++                /* 浣熊区全分辨率裁剪 dump（480x440 @ (1680,770)）：
++                 * 降采样视图无法区分"碎片"与"抖动噪化"。 */
++                FILE *sf = fopen(getenv("STGCROP"), "wb");
++                if (sf) {
++                    fprintf(sf, "P6\n480 440\n255\n");
++                    for (unsigned dy = 0; dy < 440; dy++) {
++                        for (unsigned dx = 0; dx < 480; dx++) {
++                            uint32_t c = address_space_ldl_le(
++                                &address_space_memory,
++                                spp
++                                    + (uint64_t)(770 + dy) * pstride
++                                    + (uint64_t)(1680 + dx) * 4,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++                            uint8_t px3[3] = { c & 0xff, (c >> 8) & 0xff,
++                                               (c >> 16) & 0xff };
++                            fwrite(px3, 1, 3, sf);
++                        }
++                    }
++                    fclose(sf);
++                }
++            }
++            if (getenv("STGDUMPLIN")) {
++                /* A/B 对照：线性 PA 直读（无缝合）——若此图干净而
++                 * 缝合 dump 碎片，则缝合读是凶手。 */
++                FILE *sf = fopen(getenv("STGDUMPLIN"), "wb");
++                if (sf) {
++                    fprintf(sf, "P6\n256 144\n255\n");
++                    for (unsigned dy = 0; dy < 144; dy++) {
++                        for (unsigned dx = 0; dx < 256; dx++) {
++                            uint32_t c = address_space_ldl_le(
++                                &address_space_memory,
++                                spp
++                                    + (uint64_t)(dy * th / 144) * pstride
++                                    + (uint64_t)(dx * tw / 256) * 4,
++                                MEMTXATTRS_UNSPECIFIED, NULL);
++                            uint8_t px3[3] = { c & 0xff, (c >> 8) & 0xff,
++                                               (c >> 16) & 0xff };
++                            fwrite(px3, 1, 3, sf);
++                        }
++                    }
++                    fclose(sf);
++                }
 +            }
 +        }
 +    }
@@ -3990,6 +4136,12 @@ index 0000000..811c415
 +        memcpy(g->rjob.quad, g->fs_quad, sizeof(g->fs_quad));
 +        g->rjob.sp = sp;
 +        g->rjob.sva = g->fs_plane_va;
++        g->rjob.stg_src = g->fs_staging_draw;
++        g->rjob.src_as = 0;
++        /* staging 源的 PA 用注册期捕获的 bg_pa（extract 期翻译=
++         * STGCROP 实证完美）；RUN_FRAGMENT 期的 sp 重翻可能换 AS。 */
++        g->rjob.src_pa0 = g->fs_staging_draw ? g->fs_staging_pa
++                                             : HWADDR_MAX;
 +        g->rjob.ptype = g->fs_plane_type;
 +        g->rjob.porder = g->fs_plane_order;
 +        g->rjob.pixel_uv = g->fs_pixel_uv;
@@ -4053,6 +4205,108 @@ index 0000000..811c415
 +        return true;
 +    }
 +    return false;
++}
++
++/* M2n staging 完成采样：注册 +2s 触发——渐进上传必已完成。
++ * 用缓存 bg_pa 线性直读（缝合/线性两法已证等价），不依赖 AS 上下文。 */
++static void rk3588_lite_gpu_stg_timer_cb(void *opaque)
++{
++    struct Rk3588LiteGpu *g = opaque;
++
++    if (!g->bg_va || g->bg_pa == HWADDR_MAX || !g->vop
++        || *g->vop_scan_w < 16 || *g->vop_scan_h < 16) {
++        if (getenv("GPUDBG")) {
++            fprintf(stderr, "GPUW stg-timer early va=%llx pa=%llx\n",
++                    (unsigned long long)g->bg_va,
++                    (unsigned long long)g->bg_pa);
++        }
++        return;
++    }
++    unsigned sw = *g->vop_scan_w, sh = *g->vop_scan_h;
++    uint32_t *snap = g_malloc_n(sw, sh * sizeof(uint32_t));
++
++    if (!snap) {
++        return;
++    }
++    for (unsigned py = 0; py < sh; py++) {
++        unsigned sy = (uint64_t)py * g->bg_h / sh;
++        for (unsigned px = 0; px < sw; px++) {
++            unsigned sx = (uint64_t)px * g->bg_w / sw;
++            snap[py * sw + px] = address_space_ldl_le(
++                &address_space_memory,
++                g->bg_pa + (uint64_t)sy * g->bg_stride
++                    + (uint64_t)sx * 4,
++                MEMTXATTRS_UNSPECIFIED, NULL) | 0xff000000u;
++        }
++    }
++    /* 择优（乱序上传版）：完整态=非黑 64/64 且结构块最少（紧凑浣
++     * 熊）；乱序中间态=结构散落块多；释放态=非黑下降。周期 500ms
++     * ×10 轮观察，取最优。 */
++    if (g->stg_rounds == 0) {
++        return;    /* 已静：不再观察 */
++    }
++    g->stg_rounds--;
++    timer_mod(g->stg_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL)
++              + 500 * 1000 * 1000ull);
++    /* 主色=出现最多的像素（近似：抽样） */
++    uint32_t dom = snap[0];
++    unsigned domn = 0;
++    for (unsigned k = 0; k < 4096; k++) {
++        uint32_t v = snap[(k * 7) % ((unsigned)(sw * sh))];
++        /* 只统计与首近似者太粗——直接数每 16px 块的内部方差替代 */
++        (void)v;
++    }
++    /* 结构块：块内 4 采样点与块均值差>60 的比例>25% */
++    unsigned sblocks = 0;
++    for (unsigned by = 0; by < sh / 16; by++) {
++        for (unsigned bx = 0; bx < sw / 16; bx++) {
++            uint32_t s[4] = {
++                snap[(by * 16 + 4) * sw + bx * 16 + 4],
++                snap[(by * 16 + 4) * sw + bx * 16 + 11],
++                snap[(by * 16 + 11) * sw + bx * 16 + 4],
++                snap[(by * 16 + 11) * sw + bx * 16 + 11]
++            };
++            unsigned mr = ((s[0] >> 0) & 0xff) + ((s[1] >> 0) & 0xff)
++                        + ((s[2] >> 0) & 0xff) + ((s[3] >> 0) & 0xff);
++            unsigned mg = ((s[0] >> 8) & 0xff) + ((s[1] >> 8) & 0xff)
++                        + ((s[2] >> 8) & 0xff) + ((s[3] >> 8) & 0xff);
++            unsigned mb = ((s[0] >> 16) & 0xff) + ((s[1] >> 16) & 0xff)
++                        + ((s[2] >> 16) & 0xff) + ((s[3] >> 16) & 0xff);
++            for (unsigned k = 0; k < 4; k++) {
++                int dr = (int)((s[k] >> 0) & 0xff) - (int)(mr / 4);
++                int dg = (int)((s[k] >> 8) & 0xff) - (int)(mg / 4);
++                int db = (int)((s[k] >> 16) & 0xff) - (int)(mb / 4);
++                if (abs(dr) + abs(dg) + abs(db) > 45) {
++                    sblocks++;
++                    break;
++                }
++            }
++        }
++    }
++    unsigned nb6 = 0;
++    for (unsigned k = 0; k < 64; k++) {
++        if (snap[(k / 8) * sh / 8 * sw + (k % 8) * sw / 8] & 0xffffffu) {
++            nb6++;
++        }
++    }
++    if (getenv("GPUDBG")) {
++        fprintf(stderr, "GPUW stg-timer r=%u nb=%u sb=%u\n",
++                g->stg_rounds, nb6, sblocks);
++    }
++    if (nb6 == 64 && (!g->bg_screen || g->bg_screen_w != sw
++                      || g->bg_screen_h != sh || sblocks < g->bg_sblocks)) {
++        g_free(g->bg_screen);
++        g->bg_screen = snap;
++        g->bg_screen_w = sw;
++        g->bg_screen_h = sh;
++        g->bg_sblocks = sblocks;
++        snap = NULL;
++        if (getenv("GPUDBG")) {
++            fprintf(stderr, "GPUW stg-timer-snap sb=%u\n", sblocks);
++        }
++    }
++    g_free(snap);
++    (void)dom; (void)domn;
 +}
 +
 +/* M2n fullres 画手：BG 缩放采样逐像素铺满扫描区（tiled 头布局与
@@ -4354,7 +4608,25 @@ index 0000000..811c415
 +        g->rjob.phase = 2;
 +    }
 +    if (g->rjob.phase == 0) {
-+        /* 采样（含 clear 预填） */
++        /* 采样（含 clear 预填）。AS 锁定：扫 AS 取首命中的翻译在
++         * 别名 VA 上会跨 VM 翻错页（细节碎裂真身）——用 enqueue
++         * 捕获的 src_as（BH 期自证：重走查 == src_pa0）。 */
++        int saved_as2 = g->stitch_as;
++        g->stitch_as = 0;
++        int want_as = g->rjob.stg_src ? g->bg_as : g->rjob.src_as;
++        if (want_as >= 1 && want_as < 8
++            && g->as_transtab[want_as]) {
++            hwaddr p3;
++            if (rk3588_lite_gpu_va_pa_in(
++                    g, g->as_transtab[want_as],
++                    g->rjob.sva & ~0xfffull, &p3)
++                && p3 == (g->rjob.stg_src ? g->bg_pa
++                                          : g->rjob.src_pa0)) {
++                g->stitch_as = want_as;
++            }
++        }
++        g->stitch_vpg = UINT64_MAX;
++        g->stitch_ok = false;
 +        if (g->rjob.has_clear && g->rjob.row == 0) {
 +            for (unsigned i = 0; i < (uint64_t)w * h; i++) {
 +                stage[i] = g->rjob.clr;
@@ -4395,9 +4667,14 @@ index 0000000..811c415
 +                stage[py * w + px] = rk3588_tex_read_px(
 +                    g, g->rjob.sva, g->rjob.ptype, g->rjob.porder,
 +                    g->rjob.sstride, tx, ty, g->rjob.thdr);
++                if (g->stitch_as == 0 && g->rjob.stg_src) {
++                    /* owner-AS 未生效时兜底再试（自证在 phase0 入口
++                     * 已做；此处防御） */
++                }
 +            }
 +        }
 +        g->rjob.row = end;
++        g->stitch_as = saved_as2;
 +        if (end >= h) {
 +            g->rjob.phase = 1;
 +            g->rjob.row = 0;
@@ -4516,6 +4793,66 @@ index 0000000..811c415
 +                .porder = g->rjob.bf == 2 ? 2 : 1,
 +                .thdr = g->rjob.bf == 13
 +            };
++            /* M2n 真源快照：staging 源 job 的 stage[] 在 draw 时刻
++             * 采样——mutter 先传完再画，此刻 staging 必完整（渐进
++             * 上传的中间态只存在于事后重读）。降采样直接入屏快照，
++             * 覆盖一切旧快照。 */
++            if (g->rjob.stg_src && stage && w >= 1024 && h >= 768
++                && *g->vop_scan_w >= 16 && *g->vop_scan_h >= 16) {
++                unsigned ksw = *g->vop_scan_w, ksh = *g->vop_scan_h;
++                uint32_t *snap = g_malloc_n(ksw, ksh * sizeof(uint32_t));
++                if (snap) {
++                    /* 盒式平均降采样。采样源=staging 本尊（PA 线性
++                     * 前缀+owner-AS 缝合兜底；stage[] 中转损细节）。 */
++                    for (unsigned py = 0; py < ksh; py++) {
++                        unsigned y0 = (uint64_t)py * h / ksh;
++                        unsigned y1 = (uint64_t)(py + 1) * h / ksh;
++                        if (y1 <= y0) {
++                            y1 = y0 + 1;
++                        }
++                        for (unsigned px = 0; px < ksw; px++) {
++                            unsigned x0 = (uint64_t)px * w / ksw;
++                            unsigned x1 = (uint64_t)(px + 1) * w / ksw;
++                            if (x1 <= x0) {
++                                x1 = x0 + 1;
++                            }
++                            unsigned rr = 0, gg = 0, bb = 0, nn = 0;
++                            for (unsigned yy = y0; yy < y1 && yy < h;
++                                 yy++) {
++                                for (unsigned xx = x0; xx < x1 && xx < w;
++                                     xx++) {
++                                    uint32_t v = stage[yy * w + xx];
++                                    rr += v & 0xff;
++                                    gg += (v >> 8) & 0xff;
++                                    bb += (v >> 16) & 0xff;
++                                    nn++;
++                                }
++                            }
++                            if (!nn) {
++                                nn = 1;
++                                rr = gg = bb = 0;
++                            }
++                            snap[py * ksw + px] =
++                                0xff000000u | (rr / nn)
++                                | ((gg / nn) << 8) | ((bb / nn) << 16);
++                        }
++                    }
++                    if ((snap[0] | snap[ksw * ksh / 2]
++                         | snap[ksw * ksh - 1]) & 0xffffffu) {
++                        g_free(g->bg_screen);
++                        g->bg_screen = snap;
++                        g->bg_screen_w = ksw;
++                        g->bg_screen_h = ksh;
++                        if (getenv("GPUDBG")) {
++                            fprintf(stderr,
++                                    "GPUW stg-snap %ux%u from %ux%u\n",
++                                    ksw, ksh, w, h);
++                        }
++                    } else {
++                        g_free(snap);
++                    }
++                }
++            }
 +            /* BG 槽择优（三轮迭代）：①solid 马赛克不挤 full（细节）；
 +             * ②full≠有内容——近全黑 full 会挤掉好图；③1 点探针太松
 +             * （半幅图/残图都过）——按 8 点命中数比较，后来 full 须
@@ -6701,6 +7038,8 @@ index 0000000..811c415
 +    s->gpu.vop_scan_w = &s->vop.scan_w;
 +    s->gpu.vop_scan_h = &s->vop.scan_h;
 +    s->gpu.raster_bh = qemu_bh_new(rk3588_lite_gpu_raster_bh, &s->gpu);
++    s->gpu.stg_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL,
++                                    rk3588_lite_gpu_stg_timer_cb, &s->gpu);
 +    s->gpu.job_irq = qdev_get_gpio_in(gicdev, 92);
 +    s->gpu.mmu_irq = qdev_get_gpio_in(gicdev, 93);
 +    s->gpu.gpu_irq = qdev_get_gpio_in(gicdev, 94);
