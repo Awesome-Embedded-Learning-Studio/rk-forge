@@ -12,11 +12,14 @@
 
 里程碑链（notes 101-107，七天）：采样 FS 侦察 → 受控矩阵 11/11 → 异步分片 → 双病分流 → 界内全证 → 壁纸作业门 → 显示点亮 → bg-fallback/solid/realimg/背景槽/scanout 镜像/全分辨率 fullres。
 
-## 三层残局（按因果序，当前全部 open）
+## 三层残局（毒已根修，note 108；屏幕垃圾已根修，note 109）
 
-1. **迟发毒（最高优先）**：每 GDM+写 boot ~130-155s kernel panic/shell SEGV；伪指针内容=真壁纸色（像素数据落进内核指针域）。写算术已三方证界内（gems debugfs 真值 + 2GB pmemsave 对账）。已证伪：NMI 硬锁死/body 越界/UAF-completion/AS 歧义/job 超时。NOWRITE 判别=写有罪。刀口：写日志（每笔 (bp,span) 落盘）+金丝雀页崩后比对；或 gnome-shell core（陷阱已装进 rootfs 但 mutter 信号处理器吃掉了 core dump）
-2. **显示接管确定性**：rockchipdrm→VOP 接管 boot 间掷骰子（好轮 VOPSCAN=9-14+内容可见，差轮=4+全黑）；c1 会话激活（console=hvc0 下 VT1 不前台）→vt1-nudge.service 设计好但装机屡被死机打断。刀口：boot 极早期（<60s）串口注入服务，或改 bootargs
-3. **字形位姿**：VS 语义 draw 的 actor 屏幕位置需要 FAU 仿射——r8=0xfffd4240 是页选复合编码（M2l 旧坑），需要 FAU RAM 模型（panthor fau 区）
+1. ~~迟发毒~~ **已根修**：VA 映射散射+线性写=毒（全部写路径已逐页缝合）；shell 全会话存活、340s+ 稳
+2. ~~屏幕竖条纹垃圾~~ **已根修（note 109）**：bg-fallback 双维门（≥1024×256）杀条带误全屏 + tex_read_px 垃圾头门（64 对齐/<64MB）杀页表自画像。现状：**253 独立色真壁纸结构化上屏**（65%/55% 翻页波动）。残余：sb 级周期空洞、覆盖率翻页波动
+3. **显示接管确定性**：好轮 VOPSCAN=9-14+内容可见，差轮=4+全黑；c1 会话激活（console=hvc0 下 VT1 不前台）→vt1-nudge.service 设计好但装机屡被死机打断。刀口：boot 极早期（<60s）串口注入服务，或改 bootargs
+4. **字形位姿**：VS 语义 draw 的 actor 屏幕位置需要 FAU 仿射——r8=0xfffd4240 是页选复合编码（M2l 旧坑），需要 FAU RAM 模型（panthor fau 区）
+
+**内容验收仪器（note 109）**：MCP 读图（zai analyze_image，本地路径直传）= 标准——像素直方图只证颜色不证布局（本轮翻案教训）；run-length+周期检测区分图像 vs 元数据（同低字节变高字节 run=指针）。
 
 ## 核心机制地图（全在 hw/arm/rk3588-lite.c，经 qemu patch 落库）
 
