@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..0a581c0
+index 0000000..49ba1c5
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5733 @@
+@@ -0,0 +1,5861 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -939,16 +939,34 @@ index 0000000..0a581c0
 +        }
 +    }
 +
-+    /* M2k：AFBC scanout 解码——fb 首 16B 是 solid/header 形态时按
-+     * superblock 解（solid→填色、body→线性读，与 GPU 写路径对称）；
-+     * 误判无害（全黑线性帧与 AFBC 全黑 solid 等价）。 */
++    /* M2k：AFBC scanout 解码。判定门扫首行前 4 个 sb 头：全部满足
++     * "64 对齐且 <64MB 的 body 偏移（0=solid）"才按 AFBC 解——旧门
++     * 只看首 sb 的 !h04，首 sb 非 uniform（body 指针）时整个缓冲被
++     * 当线性显示=AFBC 结构字节上屏（横线伪影，BGFULLRES 轮实测）。
++     * 线性像素数据（RGBA 字节流）几乎不可能连续 4 头全过门。 */
 +    {
-+        uint64_t h04 = address_space_ldq_le(&address_space_memory, fb,
-+                                            MEMTXATTRS_UNSPECIFIED, NULL);
-+        uint64_t h815 = address_space_ldq_le(&address_space_memory, fb + 8,
-+                                             MEMTXATTRS_UNSPECIFIED, NULL);
++        uint64_t h04 = 0, h815 = 0;
++        bool afbc = true;
 +
-+        if (!h04 && (uint32_t)h815) {
++        for (unsigned k = 0; k < 4 && afbc; k++) {
++            hwaddr hp = rk3588_lite_vop_iova_phys(
++                s, s->fb_mst + k * 16);
++            uint64_t w0 = address_space_ldq_le(
++                &address_space_memory, hp,
++                MEMTXATTRS_UNSPECIFIED, NULL);
++
++            if ((w0 & 63) || w0 >= 0x4000000ull) {
++                afbc = false;
++            }
++            if (!k) {
++                h04 = w0;
++                h815 = address_space_ldq_le(
++                    &address_space_memory, hp + 8,
++                    MEMTXATTRS_UNSPECIFIED, NULL);
++            }
++        }
++
++        if (afbc && (!h04 || (uint32_t)h815)) {
 +            unsigned tx = (width + 15) / 16, ty = (height + 15) / 16;
 +            uint8_t *raw = data;
 +
@@ -1061,6 +1079,8 @@ index 0000000..0a581c0
 +    uint64_t bg_va;
 +    uint32_t bg_stride, bg_w, bg_h;
 +    uint8_t bg_ptype, bg_porder, bg_thdr;
++    bool bg_full;    /* BG 槽被全分辨率 raster 占据（solid 只填空槽） */
++    uint8_t bg_hits; /* BG 注册时的 8 点探针命中数（后来者须更高才占槽） */
 +    /* M2n 终根修：延迟 SYNC_ADD（fence 信号）。fence=SYNC_ADD 在 CS
 +     * 解释期就写（早于异步 raster 完成）→ mutter 见 fence 释放重用
 +     * 缓冲 → 迟到 BH 写击中重用页=像素伪指针腐蚀（SYNC 快窗稳/
@@ -1082,6 +1102,7 @@ index 0000000..0a581c0
 +        uint32_t clr;
 +        uint32_t quad[16];
 +        hwaddr sp;
++        uint64_t sva;    /* 源 plane VA（读侧逐页缝合用） */
 +        uint8_t ptype, porder, pixel_uv, thdr;
 +        uint32_t sstride;
 +        uint16_t tw, th;
@@ -3144,9 +3165,10 @@ index 0000000..0a581c0
 +                              unsigned by, bool tiled);
 +static hwaddr rk3588_afbc_body_base(hwaddr bp, uint32_t stride,
 +                                    unsigned tx, unsigned ty, bool tiled);
-+static uint32_t rk3588_tex_read_px(struct Rk3588LiteGpu *g, hwaddr sp,
-+                                   uint8_t ptype, uint8_t porder,
-+                                   uint32_t stride, unsigned x, unsigned y);
++static uint32_t rk3588_tex_read_px(struct Rk3588LiteGpu *g,
++                                   uint64_t sva, uint8_t ptype,
++                                   uint8_t porder, uint32_t stride,
++                                   unsigned x, unsigned y, bool tiled);
 +static void rk3588_lite_gpu_complete_job(struct Rk3588LiteGpu *g,
 +                                         unsigned csg, unsigned cs,
 +                                         hwaddr out_ptr_pa, uint32_t insert,
@@ -3349,6 +3371,11 @@ index 0000000..0a581c0
 +                                              uint64_t *regs)
 +{
 +    g->fs_sample_pending = false;
++    /* 读侧缝合页缓存跨 job 失效：新 job 可能来自不同 VM/AS（新测试
++     * 进程常态），陈旧页翻译=读错页（M2e 同族，8×8 受控偶发 FAIL
++     * 实测）。每 job 提取入口重置。 */
++    g->stitch_vpg = UINT64_MAX;
++    g->stitch_ok = false;
 +    if (regs[33] != 4 || !regs[20] || !regs[4] || !regs[0]) {
 +        return;
 +    }
@@ -3578,9 +3605,10 @@ index 0000000..0a581c0
 +        if (all_black) {
 +            for (unsigned k = 0; k < 8 && all_black; k++) {
 +                unsigned px2 = (k & 3) * tw / 4, py2 = (k >> 2) * th / 4;
-+                if (rk3588_tex_read_px(g, pp2, ptype, porder, pstride,
++                if (rk3588_tex_read_px(g, plane, ptype, porder, pstride,
 +                                       MIN(tw - 1, px2),
-+                                       MIN(th - 1, py2)) & 0xffffffu) {
++                                       MIN(th - 1, py2),
++                                       g->fs_plane_thdr) & 0xffffffu) {
 +                    all_black = false;
 +                }
 +            }
@@ -3604,6 +3632,41 @@ index 0000000..0a581c0
 +                    fprintf(stderr,
 +                            "GPUQUAD empty-layer→BG %ux%u\n", tw, th);
 +                }
++            }
++        }
++    }
++    /* M2n staging 直采：大 draw 的源 plane 若是线性（ptype=1/porder=2）
++     * 且 ≥1024×768 = CPU 上载的壁纸 staging 本尊（真像素全分辨率）——
++     * 绕过全部有损中间链（mosaic/full AFBC 转写），直接注册为 BG 槽。
++     * 8 点命中数择优，防半上载残图占槽。 */
++    if (ptype == 1 && porder == 2 && tw >= 1024 && th >= 768 && pstride) {
++        hwaddr spp = rk3588_lite_gpu_va_pa_user(g, plane & ~0x3full);
++        unsigned hits = 0;
++
++        if (spp != HWADDR_MAX) {
++            for (unsigned k = 0; k < 8; k++) {
++                unsigned sx4 = (k & 3) * tw / 4 + tw / 8;
++                unsigned sy4 = (k >> 2) * th / 4 + th / 8;
++                if (rk3588_tex_read_px(g, plane, 1, 2, pstride,
++                                       MIN(tw - 1, sx4), MIN(th - 1, sy4),
++                                       false) & 0xffffffu) {
++                    hits++;
++                }
++            }
++        }
++        if (spp != HWADDR_MAX && hits == 8) {
++            g->bg_va = plane;
++            g->bg_stride = pstride;
++            g->bg_w = tw;
++            g->bg_h = th;
++            g->bg_ptype = 1;
++            g->bg_porder = 2;
++            g->bg_thdr = false;
++            g->bg_full = true;
++            g->bg_hits = 8;
++            if (getenv("GPUDBG")) {
++                fprintf(stderr, "GPUQUAD staging-BG %ux%u stride=%x\n",
++                        tw, th, pstride);
 +            }
 +        }
 +    }
@@ -3640,27 +3703,45 @@ index 0000000..0a581c0
 + * AFBC=与 M2k 写路径对称的 sim 布局：16×16 sb，hdr=sp+(y>>4)*stride+
 + * (x>>4)*16，qword@hdr=0 → solid 色@+8；否则 body=sp+offset@+0、
 + * body 内 16×16 线性。真硬件 AFBC compressed 编码超出（诚实边界）。 */
-+static uint32_t rk3588_tex_read_px(struct Rk3588LiteGpu *g, hwaddr sp,
-+                                   uint8_t ptype, uint8_t porder,
-+                                   uint32_t stride, unsigned x, unsigned y)
++static hwaddr rk3588_lite_stitch_pa(struct Rk3588LiteGpu *g, uint64_t va);
++static uint32_t rk3588_tex_read_px(struct Rk3588LiteGpu *g,
++                                   uint64_t sva, uint8_t ptype,
++                                   uint8_t porder, uint32_t stride,
++                                   unsigned x, unsigned y, bool tiled)
 +{
++    /* M2n 读侧缝合：GPU VA 映射物理散射（note 108 毒的同款前提），
++     * 线性 PA+偏移跨断页读到无关物理页（大 staging 实测：连续前缀
++     * 有内容、断页后全零=屏上"上半图下半黑"）。所有读走 VA 逐页
++     * 缝合（页缓存 stitch_vpg 顺序访问零开销）。 */
++    uint64_t off;
++    hwaddr pa;
++
 +    if (ptype == 1) {
 +        if (porder == 2) {
-+            return address_space_ldl_le(&address_space_memory,
-+                                        sp + (uint64_t)y * stride + x * 4,
-+                                        MEMTXATTRS_UNSPECIFIED, NULL);
++            off = (uint64_t)y * stride + x * 4;
++        } else {
++            off = rk3588_tiled_pixel(0, stride, x, y);
 +        }
-+        return address_space_ldl_le(&address_space_memory,
-+                                    rk3588_tiled_pixel(sp, stride, x, y),
++        pa = rk3588_lite_stitch_pa(g, sva + off);
++        if (pa == HWADDR_MAX) {
++            return 0;
++        }
++        return address_space_ldl_le(&address_space_memory, pa,
 +                                    MEMTXATTRS_UNSPECIFIED, NULL);
 +    }
-+    hwaddr hdr = rk3588_afbc_hdr(sp, stride, x >> 4, y >> 4,
-+                                g->fs_plane_thdr);
-+    uint64_t h04 = address_space_ldq_le(&address_space_memory, hdr,
++    off = rk3588_afbc_hdr(0, stride, x >> 4, y >> 4, tiled);
++    pa = rk3588_lite_stitch_pa(g, sva + off);
++    if (pa == HWADDR_MAX) {
++        return 0;
++    }
++    uint64_t h04 = address_space_ldq_le(&address_space_memory, pa,
 +                                        MEMTXATTRS_UNSPECIFIED, NULL);
 +    if (!h04) {
-+        return (uint32_t)address_space_ldq_le(&address_space_memory,
-+                                              hdr + 8,
++        hwaddr pc = rk3588_lite_stitch_pa(g, sva + off + 8);
++        if (pc == HWADDR_MAX) {
++            return 0;
++        }
++        return (uint32_t)address_space_ldq_le(&address_space_memory, pc,
 +                                              MEMTXATTRS_UNSPECIFIED, NULL);
 +    }
 +    /* M2n 错源防伪：mutter 自管缓冲的头区可能是残留垃圾（实测 GPU
@@ -3671,9 +3752,12 @@ index 0000000..0a581c0
 +    if ((h04 & 63) || h04 >= 0x4000000ull) {
 +        return 0;
 +    }
-+    hwaddr body = sp + (uint32_t)h04;
-+    return address_space_ldl_le(&address_space_memory,
-+                                body + ((y & 15) * 16 + (x & 15)) * 4,
++    pa = rk3588_lite_stitch_pa(
++        g, sva + (uint32_t)h04 + ((y & 15) * 16 + (x & 15)) * 4);
++    if (pa == HWADDR_MAX) {
++        return 0;
++    }
++    return address_space_ldl_le(&address_space_memory, pa,
 +                                MEMTXATTRS_UNSPECIFIED, NULL);
 +}
 +
@@ -3825,6 +3909,7 @@ index 0000000..0a581c0
 +                                           MEMTXATTRS_UNSPECIFIED, NULL);
 +        memcpy(g->rjob.quad, g->fs_quad, sizeof(g->fs_quad));
 +        g->rjob.sp = sp;
++        g->rjob.sva = g->fs_plane_va;
 +        g->rjob.ptype = g->fs_plane_type;
 +        g->rjob.porder = g->fs_plane_order;
 +        g->rjob.pixel_uv = g->fs_pixel_uv;
@@ -3834,9 +3919,16 @@ index 0000000..0a581c0
 +        g->rjob.th = g->fs_tex_h;
 +        g->rjob.row = 0;
 +        g->rjob.sbrow = 0;
-+        g->rjob.solid = (uint64_t)w * h > 4ull * 1024 * 1024
-+                        || (getenv("FSQUAD_REALIMG")
-+                            && (uint64_t)w * h >= 256ull * 256);
++        g->rjob.solid = ((uint64_t)w * h > 4ull * 1024 * 1024
++                         || (getenv("FSQUAD_REALIMG")
++                             && (uint64_t)w * h >= 256ull * 256))
++                        /* M2n 全分辨率回归：solid/realimg 是毒时代的
++                         * 带宽妥协——缝合写根修后（note 108），BG 类
++                         * job（≥1024×768）可走完整 phase0 采样+phase1
++                         * body 写，fullres 镜像逐像素采真 body=全分辨率
++                         * 壁纸（sb 马赛克看不出画面内容）。 */
++                        && !(getenv("FSQUAD_BGFULLRES")
++                             && (uint64_t)w * h <= 9ull * 1024 * 1024);
 +        g->rjob.fallback = g->fs_fallback_used;
 +        g->rjob.realimg = g->rjob.solid && getenv("FSQUAD_REALIMG");
 +        g->rjob.write_page_va = UINT64_MAX;
@@ -3850,8 +3942,9 @@ index 0000000..0a581c0
 +                    unsigned tx2 = (sx * g->fs_tex_w) / 8;
 +                    unsigned ty2 = (sy * g->fs_tex_h) / 8;
 +                    uint32_t c = rk3588_tex_read_px(
-+                        g, sp, g->fs_plane_type, g->fs_plane_order,
-+                        g->fs_plane_stride, tx2, ty2);
++                        g, g->fs_plane_va, g->fs_plane_type,
++                        g->fs_plane_order, g->fs_plane_stride, tx2, ty2,
++                        g->fs_plane_thdr);
 +                    ar += (c >> 0) & 0xff;
 +                    ag += (c >> 8) & 0xff;
 +                    ab += (c >> 16) & 0xff;
@@ -3922,10 +4015,11 @@ index 0000000..0a581c0
 +                if (g->rjob.realimg) {
 +                    /* 逐 sb 中心采样=块状真图（纯头写，无 body 扫写） */
 +                    clr = rk3588_tex_read_px(
-+                        g, g->rjob.sp, g->rjob.ptype, g->rjob.porder,
++                        g, g->rjob.sva, g->rjob.ptype, g->rjob.porder,
 +                        g->rjob.sstride,
 +                        MIN(g->rjob.tw - 1, bx * 16 + 8),
-+                        MIN(g->rjob.th - 1, by * 16 + 8)) | 0xff000000u;
++                        MIN(g->rjob.th - 1, by * 16 + 8),
++                        g->rjob.thdr) | 0xff000000u;
 +                }
 +                if (g->rjob.bf == 2) {
 +                    /* 线性目标：块色直写像素（头格式只对 AFBC 有意义） */
@@ -3993,8 +4087,8 @@ index 0000000..0a581c0
 +                tx = tx < 0 ? 0
 +                    : (tx >= g->rjob.tw ? g->rjob.tw - 1 : tx);
 +                stage[py * w + px] = rk3588_tex_read_px(
-+                    g, g->rjob.sp, g->rjob.ptype, g->rjob.porder,
-+                    g->rjob.sstride, tx, ty);
++                    g, g->rjob.sva, g->rjob.ptype, g->rjob.porder,
++                    g->rjob.sstride, tx, ty, g->rjob.thdr);
 +            }
 +        }
 +        g->rjob.row = end;
@@ -4111,18 +4205,51 @@ index 0000000..0a581c0
 +                .va = g->rjob.base_va, .stride = g->rjob.stride,
 +                .w = w, .h = h, .bf = g->rjob.bf,
 +                .ptype = (g->rjob.bf == 12 || g->rjob.bf == 13) ? 6 : 1,
-+                .porder = 1,
++                /* bf=2=线性（porder 2）；硬编码 1 会把线性 BG 当
++                 * U-tile 读=横线伪影（BGFULLRES 轮实测）。 */
++                .porder = g->rjob.bf == 2 ? 2 : 1,
 +                .thdr = g->rjob.bf == 13
 +            };
-+            if (w >= 1024 && h >= 768) {
++            /* BG 槽择优（三轮迭代）：①solid 马赛克不挤 full（细节）；
++             * ②full≠有内容——近全黑 full 会挤掉好图；③1 点探针太松
++             * （半幅图/残图都过）——按 8 点命中数比较，后来 full 须
++             * 命中更多才占槽。 */
++            if (w >= 1024 && h >= 768
++                && (!g->bg_va || !g->bg_full || !g->rjob.solid)) {
++                unsigned hits = 0;
++                hwaddr pp3 = rk3588_lite_gpu_va_pa_user(
++                    g, g->rjob.base_va & ~0x3full);
++
++                if (pp3 != HWADDR_MAX) {
++                    for (unsigned k = 0; k < 8; k++) {
++                        unsigned sx3 = (k & 3) * w / 4 + w / 8;
++                        unsigned sy3 = (k >> 2) * h / 4 + h / 8;
++                        if (rk3588_tex_read_px(
++                                g, g->rjob.base_va,
++                                g->rjob.bf == 12 || g->rjob.bf == 13
++                                    ? 6 : 1,
++                                g->rjob.bf == 2 ? 2 : 1,
++                                g->rjob.stride,
++                                MIN(w - 1, sx3), MIN(h - 1, sy3),
++                                g->rjob.bf == 13) & 0xffffffu) {
++                            hits++;
++                        }
++                    }
++                }
++                if ((g->rjob.solid && !g->bg_va)
++                    || (!g->rjob.solid
++                        && (!g->bg_full || hits > g->bg_hits))) {
 +                g->bg_va = g->rjob.base_va;
 +                g->bg_stride = g->rjob.stride;
 +                g->bg_w = w;
 +                g->bg_h = h;
 +                g->bg_ptype = (g->rjob.bf == 12 || g->rjob.bf == 13)
 +                            ? 6 : 1;
-+                g->bg_porder = 1;
++                g->bg_porder = g->rjob.bf == 2 ? 2 : 1;
 +                g->bg_thdr = g->rjob.bf == 13;
++                g->bg_full = !g->rjob.solid;
++                g->bg_hits = hits;
++                }
 +            }
 +        }
 +    }
@@ -4164,9 +4291,10 @@ index 0000000..0a581c0
 +                        for (unsigned px = 0; px < sw; px++) {
 +                            unsigned sx = (uint64_t)px * g->bg_w / sw;
 +                            st2[py * sw + px] = rk3588_tex_read_px(
-+                                g, bsp, g->bg_ptype, g->bg_porder,
++                                g, g->bg_va, g->bg_ptype, g->bg_porder,
 +                                g->bg_stride, MIN(g->bg_w - 1, sx),
-+                                MIN(g->bg_h - 1, sy)) | 0xff000000u;
++                                MIN(g->bg_h - 1, sy),
++                                g->bg_thdr) | 0xff000000u;
 +                        }
 +                    }
 +                    unsigned tx5 = sw / 16, ty5 = sh / 16;
