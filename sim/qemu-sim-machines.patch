@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..628c9b8
+index 0000000..0a581c0
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5723 @@
+@@ -0,0 +1,5733 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -3525,10 +3525,12 @@ index 0000000..628c9b8
 +    }
 +    if (!quad_ok) {
 +        /* M2n 屏合成兜底：VS 语义类（uv 由 VS 算，顶点=变换空间）无法
-+         * 固定功能解析；纹理 ≥1024px 的 draw 视为背景 actor——合成
-+         * 全屏 quad（identity uv）上屏。内容=真纹理真采样，几何近似
-+         * （诚实边界）。字形/小纹理类照旧弃权。 */
-+        if (tw >= 1024 || th >= 1024) {
++         * 固定功能解析；双维大纹理（≥1024×256）的 draw 视为背景
++         * actor——合成全屏 quad（identity uv）上屏。内容=真纹理真
++         * 采样，几何近似（诚实边界）。字形/小纹理类照旧弃权。
++         * 单维门（tw≥1024）会把 1027×35 damage 条带拉伸满屏=屏上
++         * 页表自画像伪影（th 也必须大——实测条带 th≤100）。 */
++        if (tw >= 1024 && th >= 256) {
 +            static const uint32_t fsquad[16] = {
 +                0xbf800000, 0xbf800000, 0x00000000, 0x00000000,
 +                0x3f800000, 0xbf800000, 0x3f800000, 0x00000000,
@@ -3660,6 +3662,14 @@ index 0000000..628c9b8
 +        return (uint32_t)address_space_ldq_le(&address_space_memory,
 +                                              hdr + 8,
 +                                              MEMTXATTRS_UNSPECIFIED, NULL);
++    }
++    /* M2n 错源防伪：mutter 自管缓冲的头区可能是残留垃圾（实测 GPU
++     * 页表页——PTE 属性字如 0x443 截 32 位后=小偏移，body=sp+小偏移
++     * 把头区自身当像素读=屏上"页表自画像"竖条纹）。自家写入的 body
++     * 偏移恒 64 对齐且 <64MB（壁纸 body 33MB 为最大真值）；垃圾头
++     * 视为空（返回 0），不读不显示。 */
++    if ((h04 & 63) || h04 >= 0x4000000ull) {
++        return 0;
 +    }
 +    hwaddr body = sp + (uint32_t)h04;
 +    return address_space_ldl_le(&address_space_memory,
