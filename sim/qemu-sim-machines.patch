@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..49ba1c5
+index 0000000..811c415
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,5861 @@
+@@ -0,0 +1,6095 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -800,10 +800,16 @@ index 0000000..49ba1c5
 +    RK3588_SCMI_NRST_DOM   = 64,          /* 覆到 SCMI_SRST_H_TRNG_NS=48 */
 +};
 +
++static const uint8_t rk3588_tiled_bitdup[16];
++static const uint8_t rk3588_tiled_space4[16];
++
++struct Rk3588LiteGpu;
++
 +struct Rk3588LiteVop {
 +    MemoryRegion mmio;
 +    qemu_irq irq;
 +    QEMUTimer *frame_timer;
++    struct Rk3588LiteGpu *gpu;   /* M2n：帧节拍 fullres 重绘钩子用 */
 +    uint32_t *pd_pwr;             /* -> PMU pwr@0x150 word: PD_VOP lives here */
 +    uint32_t regs[0x4000 / 4];    /* window blocks live at 0x1000+ */
 +    uint32_t fb_mst, fb_dsp, fb_vir;
@@ -815,6 +821,7 @@ index 0000000..49ba1c5
 +    uint32_t last_vop_print;         /* GPUDBG: scanout 源变化打点去重 */
 +    uint32_t scan_w, scan_h;         /* M2n：当前扫描几何（scanout 镜像用） */
 +    uint32_t scan_pbs[4];            /* M2n：近期扫描缓冲 PA（翻页双缓冲） */
++    uint32_t scan_msts[4];           /* 对应 IOVA（fullres 镜像写全缓冲用） */
 +    unsigned scan_pbs_n;
 +};
 +
@@ -867,6 +874,9 @@ index 0000000..49ba1c5
 +    return (pte & 0xfffff000) | (iova & 0xfff);
 +}
 +
++static void rk3588_lite_gpu_fullres_paint(struct Rk3588LiteGpu *g,
++                                         uint64_t mirror0);
++
 +static void rk3588_lite_vop_scanout(struct Rk3588LiteVop *s)
 +{
 +    uint32_t width = (s->fb_dsp & 0x1FFF) + 1;      /* DSP_INFO: hact-1 */
@@ -904,6 +914,7 @@ index 0000000..49ba1c5
 +        }
 +        if (k == s->scan_pbs_n && k < 4) {
 +            s->scan_pbs[k] = (uint32_t)fb;
++            s->scan_msts[k] = s->fb_mst;
 +            s->scan_pbs_n++;
 +        }
 +    }
@@ -972,9 +983,14 @@ index 0000000..49ba1c5
 +
 +            for (unsigned by = 0; by < ty; by++) {
 +                for (unsigned bx = 0; bx < tx; bx++) {
-+                    /* 每页头一次读回（header 可能在别的物理页） */
++                    /* 每页头一次读回（header 可能在别的物理页）。
++                     * bf=13=Tiled 头布局（u-interleave 头网格）——与
++                     * GPU 写路径同公式；旧线性读=读错头=内容错位。 */
 +                    uint64_t iova = s->fb_mst
-+                        + ((uint64_t)by * tx + bx) * 16;
++                        + (uint64_t)(by >> 4) * 0x400
++                        + (bx >> 4) * 4096
++                        + ((rk3588_tiled_bitdup[by & 15]
++                            ^ rk3588_tiled_space4[bx & 15]) * 16);
 +                    hwaddr hp = rk3588_lite_vop_iova_phys(s, iova);
 +                    uint64_t w0 = address_space_ldq_le(
 +                        &address_space_memory, hp,
@@ -1079,6 +1095,13 @@ index 0000000..49ba1c5
 +    uint64_t bg_va;
 +    uint32_t bg_stride, bg_w, bg_h;
 +    uint8_t bg_ptype, bg_porder, bg_thdr;
++    hwaddr bg_pa;    /* BG 注册时缓存的物理地址（tick 期 AS 任意，走查必败） */
++    uint32_t *bg_screen;   /* 屏级快照（rjob 期采样成功后缓存——
++                            * staging BO 会被 mutter 释放，tick 期直读=黑屏；
++                            * 脱离 guest BO 生命周期） */
++    unsigned bg_screen_w, bg_screen_h;
++    int bg_as;       /* BG 所属 AS 号（staging 注册时捕获，tick 期强制用） */
++    int stitch_as;   /* stitch 走查 AS 覆盖（-1=当前 AS；tick 期=bg_as） */
 +    bool bg_full;    /* BG 槽被全分辨率 raster 占据（solid 只填空槽） */
 +    uint8_t bg_hits; /* BG 注册时的 8 点探针命中数（后来者须更高才占槽） */
 +    /* M2n 终根修：延迟 SYNC_ADD（fence 信号）。fence=SYNC_ADD 在 CS
@@ -1603,6 +1626,17 @@ index 0000000..49ba1c5
 +            }
 +        }
 +        rk3588_lite_vop_scanout(s);
++        /* M2n 确定性显示接管：REPAINT=1 时每帧用 staging-BG 重铺
++         * 当前扫描缓冲（tiled 布局）——其他写者（mutter 合成/初始化）
++         * 的任何写入下一帧即被覆盖，显示稳定归 GPU 模型所有。 */
++        if (s->gpu && getenv("FSQUAD_REPAINT") && s->gpu->bg_va
++            && s->scan_w >= 16 && s->scan_h >= 16
++            && rk3588_lite_vop_iova_phys(s, s->fb_mst) != HWADDR_MAX) {
++            rk3588_lite_gpu_fullres_paint(s->gpu, s->fb_mst);
++            /* console 面板只在几何变化时重新 decode 入台——重铺后
++             * 必须失效缓存，下一帧才会把新缓冲内容读上来。 */
++            s->last_mst = 0;
++        }
 +    }
 +    rk3588_lite_vop_update(s);
 +    timer_mod(s->frame_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL)
@@ -3655,12 +3689,50 @@ index 0000000..49ba1c5
 +            }
 +        }
 +        if (spp != HWADDR_MAX && hits == 8) {
++            g->bg_pa = spp;
++            g_free(g->bg_screen);    /* 新 staging=重采样新快照 */
++            g->bg_screen = NULL;
++            /* A/B：staging 疑为 U-tiled（线性读=浣熊碎片化分解）。
++             * FSQUAD_STGTILED=1 → 按 u-interleave 采样注册。 */
++            if (getenv("FSQUAD_STGTILED")) {
++                porder = 1;
++            }
++            for (unsigned asx = 1; asx < 8; asx++) {
++                hwaddr p2;
++                if (g->as_transtab[asx]
++                    && rk3588_lite_gpu_va_pa_in(
++                        g, g->as_transtab[asx], plane & ~0x3full, &p2)
++                    && p2 == spp) {
++                    g->bg_as = asx;
++                    break;
++                }
++            }
++            /* 取证：按采样器视角 dump staging（256x144 下采样），
++             * 与原始壁纸对照=分层定位（staging 解读 vs 下游写） */
++            if (getenv("STGDUMP")) {
++                FILE *sf = fopen(getenv("STGDUMP"), "wb");
++                if (sf) {
++                    fprintf(sf, "P6\n256 144\n255\n");
++                    for (unsigned dy = 0; dy < 144; dy++) {
++                        for (unsigned dx = 0; dx < 256; dx++) {
++                            uint32_t c = rk3588_tex_read_px(
++                                g, plane, 1, 2, pstride,
++                                MIN(tw - 1, dx * tw / 256),
++                                MIN(th - 1, dy * th / 144), false);
++                            uint8_t px3[3] = { c & 0xff, (c >> 8) & 0xff,
++                                               (c >> 16) & 0xff };
++                            fwrite(px3, 1, 3, sf);
++                        }
++                    }
++                    fclose(sf);
++                }
++            }
 +            g->bg_va = plane;
 +            g->bg_stride = pstride;
 +            g->bg_w = tw;
 +            g->bg_h = th;
 +            g->bg_ptype = 1;
-+            g->bg_porder = 2;
++            g->bg_porder = porder;
 +            g->bg_thdr = false;
 +            g->bg_full = true;
 +            g->bg_hits = 8;
@@ -3778,9 +3850,17 @@ index 0000000..49ba1c5
 +    uint64_t pg = va & ~0xfffull;
 +
 +    if (pg != g->stitch_vpg || !g->stitch_ok) {
-+        g->stitch_ppg = rk3588_lite_gpu_va_pa_user(g, pg);
++        if (g->stitch_as >= 1 && g->stitch_as < 8
++            && g->as_transtab[g->stitch_as]) {
++            hwaddr p;
++            g->stitch_ok = rk3588_lite_gpu_va_pa_in(
++                g, g->as_transtab[g->stitch_as], pg, &p);
++            g->stitch_ppg = p;
++        } else {
++            g->stitch_ppg = rk3588_lite_gpu_va_pa_user(g, pg);
++            g->stitch_ok = (g->stitch_ppg != HWADDR_MAX);
++        }
 +        g->stitch_vpg = pg;
-+        g->stitch_ok = (g->stitch_ppg != HWADDR_MAX);
 +    }
 +    return g->stitch_ok ? (g->stitch_ppg | (va & 0xfffull)) : HWADDR_MAX;
 +}
@@ -3973,6 +4053,232 @@ index 0000000..49ba1c5
 +        return true;
 +    }
 +    return false;
++}
++
++/* M2n fullres 画手：BG 缩放采样逐像素铺满扫描区（tiled 头布局与
++ * rjob 提交/纹理读一致）。rjob 完成路径与 VOP 帧节拍（REPAINT=1
++ * 时每帧重铺=确定性显示接管，其他写者下一帧被覆盖）共用。 */
++static void rk3588_lite_gpu_fullres_paint(struct Rk3588LiteGpu *g,
++                                          uint64_t mirror0)
++{
++    unsigned sw = *g->vop_scan_w, sh = *g->vop_scan_h;
++    /* 帧 tick 期 AS 上下文任意——用注册时缓存的 PA（extract 期
++     * AS 有效）。BO 释放后 PA 陈旧=只影响画面内容（读），无腐蚀。 */
++    hwaddr bsp = g->bg_pa;
++    int saved_as = g->stitch_as;
++
++    if (bsp == HWADDR_MAX) {
++        bsp = rk3588_lite_gpu_va_pa_write(g, g->bg_va & ~0x3full);
++    }
++    /* AS 覆盖必须自证：用 bg_as 走查 bg_va 基址 == 注册时的 bg_pa
++     * 才启用（捕获错 AS 会把好端端的 rjob 路径采样也带黑）。 */
++    g->stitch_as = 0;
++    if (g->bg_as >= 1 && g->bg_as < 8 && g->as_transtab[g->bg_as]) {
++        hwaddr p3;
++        if (rk3588_lite_gpu_va_pa_in(
++                g, g->as_transtab[g->bg_as], g->bg_va & ~0x3full, &p3)
++            && p3 == (g->bg_pa & ~0xfffull)) {
++            g->stitch_as = g->bg_as;
++        }
++    }
++    g->stitch_vpg = UINT64_MAX;
++    g->stitch_ok = false;
++
++    if (getenv("GPUDBG") && (bsp == HWADDR_MAX || sw < 16 || sh < 16)) {
++        fprintf(stderr, "GPUW paint-skip bsp=%llx sw=%u sh=%u\n",
++                (unsigned long long)bsp, sw, sh);
++    }
++    if (bsp == HWADDR_MAX || sw < 16 || sh < 16) {
++        g->stitch_as = saved_as;
++        return;
++    }
++    if (g->bg_va) {
++    {
++                /* 逐像素采样 BG → staging → 全 body 提交：真分辨率
++                 * 图像（16×16 块视图不够认出画面内容）。2.4MB 写=
++                 * 1920 下采样同级（稳定 boot 已跑过该轮廓）。 */
++                bool have_snap = g->bg_screen
++                                && g->bg_screen_w == sw
++                                && g->bg_screen_h == sh;
++                uint32_t *st2 = g_malloc_n(sw, sh * sizeof(uint32_t));
++                if (st2) {
++                    if (have_snap && getenv("FSQUAD_RESNAP") == NULL) {
++                        memcpy(st2, g->bg_screen,
++                               (size_t)sw * sh * sizeof(uint32_t));
++                    } else {
++                        for (unsigned py = 0; py < sh; py++) {
++                            unsigned sy = (uint64_t)py * g->bg_h / sh;
++                            for (unsigned px = 0; px < sw; px++) {
++                                unsigned sx = (uint64_t)px * g->bg_w / sw;
++                                st2[py * sw + px] = rk3588_tex_read_px(
++                                    g, g->bg_va, g->bg_ptype, g->bg_porder,
++                                    g->bg_stride, MIN(g->bg_w - 1, sx),
++                                    MIN(g->bg_h - 1, sy),
++                                    g->bg_thdr) | 0xff000000u;
++                            }
++                        }
++                        /* 快照成功（首像素非零=staging 尚活着）→缓存，
++                         * 之后 tick 全走缓存（BO 释放免疫）。 */
++                        if (getenv("GPUDBG")) {
++                            fprintf(stderr,
++                                    "GPUW snap-decide c=%08x m=%08x\n",
++                                    st2[0], st2[sw * sh / 2]);
++                        }
++                        /* 快照择优：staging 渐进上传会变好、BO 释放会
++                         * 变黑——64 点非黑计数，只接受更好的采样。 */
++                        unsigned nb6 = 0;
++                        for (unsigned k = 0; k < 64; k++) {
++                            if (st2[(k / 8) * sh / 8 * sw
++                                   + (k % 8) * sw / 8] & 0xffffffu) {
++                                nb6++;
++                            }
++                        }
++                        unsigned old6 = 0;
++                        if (g->bg_screen && g->bg_screen_w == sw
++                            && g->bg_screen_h == sh) {
++                            for (unsigned k = 0; k < 64; k++) {
++                                if (g->bg_screen[(k / 8) * sh / 8 * sw
++                                                 + (k % 8) * sw / 8]
++                                    & 0xffffffu) {
++                                    old6++;
++                                }
++                            }
++                        }
++                        if (nb6 > old6) {
++                            g_free(g->bg_screen);
++                            g->bg_screen = g_memdup(st2,
++                                (size_t)sw * sh * sizeof(uint32_t));
++                            g->bg_screen_w = sw;
++                            g->bg_screen_h = sh;
++                            if (getenv("GPUDBG")) {
++                                fprintf(stderr, "GPUW snap-saved %u/64\n",
++                                        nb6);
++                            }
++                        }
++                    }
++                    if (getenv("FSQUAD_MARK")) {
++                        /* 错位取证：5 点纯色标记（壁纸没有的饱和色），
++                         * 屏上找落点=直接读出 写入→显示 的坐标映射 */
++                        static const struct { unsigned x, y, c; } mk[] = {
++                            { 8, 8, 0xff0000u }, { 512, 300, 0x00ff00u },
++                            { 1015, 591, 0x0000ffu }, { 8, 591, 0xffff00u },
++                            { 1015, 8, 0x00ffffu }
++                        };
++                        for (unsigned m = 0; m < 5; m++) {
++                            st2[mk[m].y * sw + mk[m].x] = mk[m].c | 0xff000000u;
++                        }
++                    }
++                    if (getenv("STGDUMP")) {
++                        FILE *sf = fopen("/tmp/fullres-dump.ppm", "wb");
++                        if (sf) {
++                            fprintf(sf, "P6\n%u %u\n255\n", sw, sh);
++                            for (unsigned dy = 0; dy < sh; dy += 4) {
++                                for (unsigned dx = 0; dx < sw; dx += 4) {
++                                    uint32_t c5 = st2[dy * sw + dx];
++                                    uint8_t p5[3] = { c5 & 0xff,
++                                                      (c5 >> 8) & 0xff,
++                                                      (c5 >> 16) & 0xff };
++                                    fwrite(p5, 1, 3, sf);
++                                }
++                            }
++                            fclose(sf);
++                        }
++                        fprintf(stderr,
++                                "GPUQUAD fullres-dump bg=%llx %ux%u\n",
++                                (unsigned long long)g->bg_va, g->bg_w,
++                                g->bg_h);
++                    }
++                    unsigned tx5 = sw / 16, ty5 = sh / 16;
++                    /* 扫描输出缓冲=bf=13（AFBC Tiled 头）——头与 body
++                     * 都必须走 tiled 公式（与 rjob 提交/纹理读一致；
++                     * 旧线性写=头落在无人读的位置=内容错位真身）。 */
++                    hwaddr bb5 = rk3588_afbc_body_base(
++                        0, 0x400, tx5, ty5, true);
++                    /* M2n 全缓冲镜像：VOP 在 2-3 个扫描缓冲间翻页，
++                     * 只写当前 fb_mst 会让翻到"mutter 自身合成"缓冲
++                     * 的帧显示错位内容（656cb000 从未被 fullres 画过
++                     * 实锤）。遍历全部近期扫描缓冲逐一铺真壁纸。 */
++                    unsigned nmir = 1;
++                    uint64_t mirs[5];
++                    mirs[0] = mirror0;
++                    for (unsigned k = 0; k < g->vop->scan_pbs_n
++                         && nmir < 5; k++) {
++                        uint64_t m2 = g->vop->scan_msts[k];
++                        bool dup = false;
++                        for (unsigned j = 0; j < nmir; j++) {
++                            dup = dup || mirs[j] == m2;
++                        }
++                        if (!dup
++                            && rk3588_lite_vop_iova_phys(g->vop, m2)
++                                   == g->vop->scan_pbs[k]) {
++                            mirs[nmir++] = m2;
++                        }
++                    }
++                    for (unsigned mi = 0; mi < nmir; mi++) {
++#define mirror mirs[mi]
++                    for (unsigned by = 0; by < ty5; by++) {
++                        for (unsigned bx = 0; bx < tx5; bx++) {
++                            hwaddr hdr = rk3588_afbc_hdr(
++                                0, 0x400, bx, by, true);
++                            hwaddr body = bb5
++                                + ((uint64_t)by * tx5 + bx) * 1024;
++                            uint32_t first = st2[by * 16 * sw + bx * 16];
++                            bool uni = true;
++                            for (unsigned yy = 0; yy < 16 && uni; yy++) {
++                                for (unsigned xx = 0; xx < 16; xx++) {
++                                    if (st2[(by * 16 + yy) * sw
++                                            + bx * 16 + xx] != first) {
++                                        uni = false;
++                                        break;
++                                    }
++                                }
++                            }
++                            if (uni) {
++                                rk3588_lite_vop_stq(g->vop, mirror, hdr, 0);
++                                rk3588_lite_vop_stl(
++                                    g->vop, mirror, hdr + 8, first);
++                                rk3588_lite_vop_stl(
++                                    g->vop, mirror, hdr + 12, 0);
++                            } else {
++                                rk3588_lite_vop_stl(
++                                    g->vop, mirror, hdr, body);
++                                rk3588_lite_vop_stq(
++                                    g->vop, mirror, hdr + 8,
++                                    0x0101010101010101ull);
++                                for (unsigned yy = 0; yy < 16; yy++) {
++                                    for (unsigned xx = 0; xx < 16; xx++) {
++                                        rk3588_lite_vop_stl(
++                                            g->vop, mirror,
++                                            body + (yy * 16 + xx) * 4,
++                                            st2[(by * 16 + yy) * sw
++                                                + bx * 16 + xx]);
++                                    }
++                                }
++                            }
++                        }
++                    }
++                    }
++#undef mirror
++                    if (getenv("GPUDBG")) {
++                        fprintf(stderr,
++                                "GPUW fullres-write n=%u tgt0=%llx "
++                                "bb5=%llx m0=%08x m1=%08x\n",
++                                nmir, (unsigned long long)mirs[0],
++                                (unsigned long long)bb5, st2[8 * sw + 8],
++                                st2[300 * sw + 512]);
++                    }
++                    g_free(st2);
++                    if (getenv("GPUDBG")) {
++                        fprintf(stderr,
++                                "GPUQUAD bg-fullres %ux%u -> %llx\n",
++                                sw, sh, (unsigned long long)mirror0);
++                    }
++                    g->stitch_as = saved_as;
++                    return;
++                }
++            }
++        }
++    g->stitch_as = saved_as;
 +}
 +
 +/* M2n：分片 raster 的 BH——每片 128 采样行 / 16 sb 行，片间让出。 */
@@ -4275,81 +4581,8 @@ index 0000000..49ba1c5
 +        }
 +        if (g->rjob.fallback && g->bg_va
 +            && *g->vop_scan_w >= 16 && *g->vop_scan_h >= 16) {
-+            /* 回退 job 镜像=BG 缩放采样铺满扫描区（条带 staging 位置
-+             * 无变换不可用；此路径确定性给真图全屏视图） */
-+            unsigned sw = *g->vop_scan_w, sh = *g->vop_scan_h;
-+            hwaddr bsp = rk3588_lite_gpu_va_pa_user(
-+                g, g->bg_va & ~0x3full);
-+            if (bsp != HWADDR_MAX) {
-+                /* 逐像素采样 BG → staging → 全 body 提交：真分辨率
-+                 * 图像（16×16 块视图不够认出画面内容）。2.4MB 写=
-+                 * 1920 下采样同级（稳定 boot 已跑过该轮廓）。 */
-+                uint32_t *st2 = g_malloc_n(sw, sh * sizeof(uint32_t));
-+                if (st2) {
-+                    for (unsigned py = 0; py < sh; py++) {
-+                        unsigned sy = (uint64_t)py * g->bg_h / sh;
-+                        for (unsigned px = 0; px < sw; px++) {
-+                            unsigned sx = (uint64_t)px * g->bg_w / sw;
-+                            st2[py * sw + px] = rk3588_tex_read_px(
-+                                g, g->bg_va, g->bg_ptype, g->bg_porder,
-+                                g->bg_stride, MIN(g->bg_w - 1, sx),
-+                                MIN(g->bg_h - 1, sy),
-+                                g->bg_thdr) | 0xff000000u;
-+                        }
-+                    }
-+                    unsigned tx5 = sw / 16, ty5 = sh / 16;
-+                    hwaddr bb5 = rk3588_afbc_body_base(
-+                        0, 0x400, tx5, ty5, false);
-+                    for (unsigned by = 0; by < ty5; by++) {
-+                        for (unsigned bx = 0; bx < tx5; bx++) {
-+                            hwaddr hdr = rk3588_afbc_hdr(
-+                                0, 0x400, bx, by, false);
-+                            hwaddr body = bb5
-+                                + ((uint64_t)by * tx5 + bx) * 1024;
-+                            uint32_t first = st2[by * 16 * sw + bx * 16];
-+                            bool uni = true;
-+                            for (unsigned yy = 0; yy < 16 && uni; yy++) {
-+                                for (unsigned xx = 0; xx < 16; xx++) {
-+                                    if (st2[(by * 16 + yy) * sw
-+                                            + bx * 16 + xx] != first) {
-+                                        uni = false;
-+                                        break;
-+                                    }
-+                                }
-+                            }
-+                            if (uni) {
-+                                rk3588_lite_vop_stq(g->vop, mirror, hdr, 0);
-+                                rk3588_lite_vop_stl(
-+                                    g->vop, mirror, hdr + 8, first);
-+                                rk3588_lite_vop_stl(
-+                                    g->vop, mirror, hdr + 12, 0);
-+                            } else {
-+                                rk3588_lite_vop_stl(
-+                                    g->vop, mirror, hdr, body);
-+                                rk3588_lite_vop_stq(
-+                                    g->vop, mirror, hdr + 8,
-+                                    0x0101010101010101ull);
-+                                for (unsigned yy = 0; yy < 16; yy++) {
-+                                    for (unsigned xx = 0; xx < 16; xx++) {
-+                                        rk3588_lite_vop_stl(
-+                                            g->vop, mirror,
-+                                            body + (yy * 16 + xx) * 4,
-+                                            st2[(by * 16 + yy) * sw
-+                                                + bx * 16 + xx]);
-+                                    }
-+                                }
-+                            }
-+                        }
-+                    }
-+                    g_free(st2);
-+                    if (getenv("GPUDBG")) {
-+                        fprintf(stderr,
-+                                "GPUQUAD bg-fullres %ux%u -> %llx\n",
-+                                sw, sh, (unsigned long long)mirror_bp);
-+                    }
-+                    goto mirror_done;
-+                }
-+            }
++            rk3588_lite_gpu_fullres_paint(g, mirror);
++            goto mirror_done;
 +        }
 +        if (g->rjob.bf == 2) {
 +            for (unsigned py = 0; py < h; py++) {
@@ -6400,6 +6633,7 @@ index 0000000..49ba1c5
 +                                 qemu_create_placeholder_surface(640, 480,
 +                                     "VOP idle - waiting for scanout"));
 +    }
++    s->vop.gpu = &s->gpu;   /* M2n：帧节拍 fullres 重绘钩子 */
 +    s->vop.frame_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL,
 +                                      rk3588_lite_vop_frame_tick, &s->vop);
 +    timer_mod(s->vop.frame_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL)
