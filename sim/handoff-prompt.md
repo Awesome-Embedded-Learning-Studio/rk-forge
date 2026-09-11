@@ -8,9 +8,9 @@
 
 ## 总成果（M2n 全线，分支 feat/sim_rk3568，绝不 push）
 
-**GPU 仿真桌面=真壁纸全屏可复现**：99.99% 非黑/930 独立色/0 黑行，MCP 读图清晰辨认"白色熊猫（圆眼三角鼻）+放射光效+平滑紫渐变、无伪影"（=Ubuntu 壁纸主体）。达成形态：`GPUDBG=1 FSQUAD=1 FSQUAD_REALIMG=1 FSQUAD_BGFULLRES=1 GDM=1 setsid nohup python3 sim/resboot.py 7200 > sim/logs/resboot.out 2>&1 &`，~5min 后 monitor 4449 `screendump sim/logs/x.ppm`。证据：sim/logs/m2n-true-wallpaper.ppm（git）+ Windows 桌面 gpu-true-wallpaper.png。
+**显示接管基建落成**（notes 109-111）：帧节拍重绘+屏级快照+AS 捕获自证门+五点标记取证（坐标链路零误差定谳）。现行形态 `FSQUAD_REPAINT=1 GPUDBG=1 FSQUAD=1 FSQUAD_REALIMG=1 FSQUAD_BGFULLRES=1 GDM=1 + resboot` = 稳定 100% 非黑/714 色/0 黑行。**当前悬案**：屏上壁纸内容碎片化（浣熊分解）——staging 缓冲渐进状态（GNOME 渐进上传假说），note 111 §4 三刀口。证据：m2n-repaint-fragmented.ppm（git）。
 
-里程碑链（notes 101-110）：采样 FS 侦察 → 受控矩阵 11/11 → 异步分片 → 双病分流 → 界内全证 → 壁纸作业门 → 显示点亮 → 内容工程 → 毒根修（缝合写）→ 屏幕垃圾根修（条带门+页表自画像门）→ **真壁纸全屏（VOP 判定门/BG porder/BG 命中择优/staging 直采/读侧缝合五连修）**。
+里程碑链（notes 101-111）：采样 FS 侦察 → 受控矩阵 → 异步分片 → 双病分流 → 界内全证 → 壁纸作业门 → 显示点亮 → 内容工程 → 毒根修（缝合写）→ 屏幕垃圾根修 → 细节五连修 → **显示接管基建+坐标定谳** → 余=staging 完整性悬案。
 
 ## 三层残局（毒/屏幕垃圾/真壁纸全屏均已根修，notes 108-110）
 
