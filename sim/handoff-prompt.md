@@ -4,31 +4,34 @@
 
 ---
 
-我在 `~/rk-forge` 继续 RK3588 QEMU 仿真研究线（战役七 panthor）的工作。开始前先读记忆（`~/.claude/projects/-home-charliechen-rk-forge/memory/` 下 MEMORY.md 及各条目）和 `document/notes/101-113`，这里只给当前落点：
+我在 `~/rk-forge` 继续 RK3588 QEMU 仿真研究线（战役七 panthor）的工作。开始前先读记忆（`~/.claude/projects/-home-charliechen-rk-forge/memory/` 下 MEMORY.md 及各条目）和 `document/notes/101-114`，这里只给当前落点：
 
 ## 总成果（M2n 全线，分支 feat/sim_rk3568，绝不 push）
 
 **显示接管基建落成**（notes 109-111）：帧节拍重绘（VOP 60fps 重铺+console 缓存失效）+屏级快照+AS 捕获自证门+五点标记取证（坐标链路零误差定谳）。现行形态 `FSQUAD_REPAINT=1 GPUDBG=1 FSQUAD=1 FSQUAD_REALIMG=1 FSQUAD_BGFULLRES=1 GDM=1 + resboot`。
 
-**屏幕内容现状（note 112-113 诚实定量，verify_screen.py 判决）**：壁纸背景色系+低频光芒在，浣熊未成形——final3（线性快照时代）bg_p90=22.4/st_p50=62（FAIL）；til2（tiled 快照）bg_p90=92 更糟。此前"背景像素级吻合/脸局部成形"宣称=角落采样幸存者偏差+MCP 幻觉，均已翻案。**staging 脸区（偏移 12-18MB）悬案**：与任何壁纸变体、任何读法（线性/tiled/位移±24）都不匹配——内容本质未知。
+**参照图已定谳（note 114 破案）**：greeter 实际显示 `warty-final-ubuntu.png`（3840×2160），**不是** cnusr25——此前一切以 cnusr25 为判据的"接近/不匹配/调光 -10"结论全部作废。判据命令：`python3 sim/verify_screen.py 屏.ppm --ref out/rk3588-topeet/ubuntu-rootfs.work/usr/share/backgrounds/warty-final-ubuntu.png`。
 
-里程碑链（notes 101-113）：采样 FS 侦察 → 受控矩阵 → 异步分片 → 双病分流 → 界内全证 → 壁纸作业门 → 显示点亮 → 内容工程 → 毒根修（缝合写）→ 屏幕垃圾根修 → 细节五连修 → 显示接管基建+坐标定谳 → staging 读路径实验 → **校验武器化（verify_screen.py）** → 余=脸区悬案。
+**屏幕内容现状（note 114，正确参照判决）**：offset=[0,0,0]（调光论翻案），**结构域 st_p50=25.2 首次过线（≤40）**；bg_p90=33.7 未过（≤20）——顶带存在 ~240×240px 图像块 2D 置换（块内 mad 0.5-2.9 完好），底 2/3 近乎完美（行带 1.6-1.9）。快照链已修两处：三门投票（nb6 严格更优才换，reg2 垃圾不再顶掉 reg1）+ extract-snap/stg-timer 改 owner-AS 逐页缝合（原 PA 线性在 2MB 段界后拼错页）。
 
-## 三层残局（notes 108-113）
+里程碑链（notes 101-114）：采样 FS 侦察 → 受控矩阵 → 异步分片 → 双病分流 → 界内全证 → 壁纸作业门 → 显示点亮 → 内容工程 → 毒根修（缝合写）→ 屏幕垃圾根修 → 细节五连修 → 显示接管基建+坐标定谳 → staging 读路径实验 → 校验武器化 → **参照错案破案+快照三门投票** → 余=y 置换来源。
+
+## 三层残局（notes 108-114）
 
 1. ~~迟发毒~~ **已根修**（note 108 缝合写；note 110 读侧缝合补齐）
 2. ~~屏幕竖条纹垃圾~~ **已根修**（note 109 条带门+页表自画像门）
 3. ~~坐标错位~~ **已定谳零误差**（note 111 五点标记精确落位）
-4. **浣熊脸区（open，最高优先）**：staging 脸区 6MB 内容本质未知（全变体/全读法不匹配）。**刀口（note 112 §6）**：QEMU 里加 STGDUMPFACE 把脸区原始字节 dump 出来 → `verify_screen.py --classify` 分类（image/pagetable/text/mixed？）→ 按分类结果定读法；辅以 STGSTRIPS 1:1 条带（已埋点，上轮 boot 被杀未取到）+ gems-gpuvas 对账
-5. **UI 层合成/字形位姿（FAU）/vt1-nudge**：照旧 open
+4. ~~浣熊脸区悬案~~ **主体破案（note 114）**：=参照图错误。staging 内容 vs warty 原位字节精确（span dump mad=0.00）
+5. **y 置换来源（open，最高优先）**：staging 内存里图像整行完好、x 对齐、y 错位（+15ms→5s 恒定=终态非竞速）。两假设：**(a) 我们自己的 rjob 逐页写**——3840×2160 线性 rt（VA 7ffff7c00000）的 VA→PA 若 2MB 段散布（136 行/段），写出的即 y 段位置换，页回收进下一代 staging 表现为"行完好但错位"；(b) mutter 双阶段上传中间 job 语义错。**刀口**：GPUWRITELOG scatter 审计 + 置换边界与 2MB 段界（136 行）对齐检验 + 三个 3840 FBD 的 rt PA 与 staging PA 包含关系表（boot5 实测 reg2 rt0=0x59e00000 落在 reg1 staging [0x58400000,+30MB) 内！）
+6. **UI 层合成/字形位姿（FAU）/vt1-nudge**：照旧 open
 
-**内容验收仪器（note 113，权威）**：`sim/verify_screen.py` 确定性数值判决——
-- 全屏对照：`python3 sim/verify_screen.py 屏.ppm --ref out/rk3588-topeet/ubuntu-rootfs.work/usr/share/backgrounds/cnusr25-Simple_Raccoon_Dark.png` → 背景域 p90≤20 且结构域 p50≤40=PASS（自动估 greeter 调光恒偏 ~[-11,-9,-10]）
+**内容验收仪器（note 113-114，权威）**：`sim/verify_screen.py` 确定性数值判决——
+- 全屏对照：`python3 sim/verify_screen.py 屏.ppm --ref out/rk3588-topeet/ubuntu-rootfs.work/usr/share/backgrounds/warty-final-ubuntu.png` → 背景域 p90≤20 且结构域 p50≤40=PASS（调光恒偏已证伪，offset 应≈0）
 - 1:1 条带：`--strips --strip-rows 100,500,990,1500,2000`（STGSTRIPS dump 后逐行定谳；16px 位移注入已验证判别力）
 - 原始页分类：`--classify`（熵/零/排版字符/LPAE 指针特征→image/pagetable/text/mixed）
 - **MCP 读图永不作判据**（两次把差 94 读成"完美浣熊"）——只可作 diff-heat.ppm 的旁白；人眼复核也只看热图
 - **验收协议（用户令，note 113 后生效）**：数值 PASS ≠ 达成——每轮改动用 verify_screen.py 判决；只有当判决 PASS 后，**必须邀请用户现场把关**（拷 PNG 到 Windows 桌面+用户亲眼看屏/图确认）才可宣称"可见/达成"。note 76 证据门的两段式：机器判据→人眼终审
-- QEMU 取证 dump 必须全分辨率（稀疏降采样会制造碎片伪影）；extract 快照寻址开关：默认线性（量化较优），FSQUAD_STGTILED=1 切瓦片
+- QEMU 取证 dump 必须全分辨率（稀疏降采样会制造碎片伪影）；取证利器：`STGDUMPSPAN=<前缀>`（每次 staging 注册 dump spp 起 34MB+逐 MB 翻译 delta）、`STGTIMERDUMP=<前缀>`（timer 每拍序号化）；离线分析 `sim/span_probe.py`（行识别）/`sim/block_probe.py`（2D 块置换表）/`sim/face_probe.py`（指纹搜索）
 
 ## 核心机制地图（全在 hw/arm/rk3588-lite.c，经 qemu patch 落库）
 
@@ -65,4 +68,4 @@
 
 ## 纪律
 
-**绝不 push**；commit 禁 Co-Authored-By；一课题一编号笔记（下一号 114）；诚实边界（note 76 证据门——未验证的"可见"不宣称）；/tmp 只放可丢的临时物。
+**绝不 push**；commit 禁 Co-Authored-By；一课题一编号笔记（下一号 115）；诚实边界（note 76 证据门——未验证的"可见"不宣称）；/tmp 只放可丢的临时物。

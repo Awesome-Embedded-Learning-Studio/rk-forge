@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..61f13fe
+index 0000000..d871948
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,6582 @@
+@@ -0,0 +1,6705 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1098,7 +1098,12 @@ index 0000000..61f13fe
 +    hwaddr bg_pa;    /* BG 注册时缓存的物理地址（tick 期 AS 任意，走查必败） */
 +    QEMUTimer *stg_timer;  /* staging 完成观察定时器（500ms×10） */
 +    unsigned stg_rounds;  /* 剩余观察轮数 */
++    unsigned stg_early_ms;  /* 前沿测量的下一拍延迟（15→500 指数） */
 +    uint32_t bg_sblocks;  /* 当前快照的结构块数（择优度量） */
++    unsigned bg_nb6;      /* 当前快照的 64 点非黑数（择优度量；note 114
++                           * 快照三门统一：候选须严格更优才换，防垃圾
++                           * 再注册把好快照顶掉——实测 reg2 垃圾 15ms
++                           * 后顶掉 reg1 的 bit-exact warty 快照） */
 +    uint32_t *bg_screen;   /* 屏级快照（rjob 期采样成功后缓存——
 +                            * staging BO 会被 mutter 释放，tick 期直读=黑屏；
 +                            * 脱离 guest BO 生命周期） */
@@ -3702,8 +3707,9 @@ index 0000000..61f13fe
 +        }
 +        if (spp != HWADDR_MAX && hits == 8) {
 +            g->bg_pa = spp;
-+            g_free(g->bg_screen);    /* 新 staging=重采样新快照 */
-+            g->bg_screen = NULL;
++            /* bg_screen 不在此清空（note 114）：新注册的快照在下方
++             * extract-snap 里投票，输了保留旧快照——实测后续注册多
++             * 为回收残页/foreign 垃圾，清空=last-wins 必被顶掉。 */
 +            g->fs_staging_draw = true;
 +            g->fs_staging_pa = spp;
 +            /* 缓冲只在连续前缀内物理连续（浣熊区 5.9-8.2MB 实证），
@@ -3747,9 +3753,14 @@ index 0000000..61f13fe
 +            if (g->stg_timer) {
 +                g->stg_rounds = 10;
 +                g->bg_sblocks = UINT32_MAX;
++                /* note 114 上传前沿测量：首拍提前到 15ms，指数退避
++                 * 到 500ms——CPU mmap 上传 vs job 执行的竞速直接
++                 * 可见（extract 时刻 staging=部分上传+陈旧页实锤，
++                 * 完整窗口在 extract 后某刻，需定时描出）。 */
++                g->stg_early_ms = 15;
 +                timer_mod(g->stg_timer,
 +                          qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL)
-+                          + 500 * 1000 * 1000ull);
++                          + 15 * 1000 * 1000ull);
 +            }
 +            /* A/B：staging 疑为 U-tiled（线性读=浣熊碎片化分解）。
 +             * FSQUAD_STGTILED=1 → 按 u-interleave 采样注册。 */
@@ -3824,7 +3835,10 @@ index 0000000..61f13fe
 +            }
 +            /* M2n 权威快照：脸区数据在 extract 后 500ms 内被改写
 +             * （+500ms 定时器采样实测脸区 84 vs extract 时刻 STGCROP
-+             * 完美）——唯一窗口=此刻。同步 PA 线性+盒滤直读。 */
++             * 完美）——唯一窗口=此刻。note 114 根修：逐页走 owner-AS
++             * 页表翻译（stitch），不再 PA 线性——staging 的 VA→PA 映
++             * 射在 drm_mm 页序可乱（实测逐段 bit-exact 但整段错位=
++             * 线性读把乱序页当连续内容；好坏全凭分配运气）。 */
 +            {
 +                unsigned ksw = 1024, ksh = 600;
 +                if (g->vop && *g->vop_scan_w >= 16
@@ -3832,6 +3846,22 @@ index 0000000..61f13fe
 +                    ksw = *g->vop_scan_w;
 +                    ksh = *g->vop_scan_h;
 +                }
++                /* stitch 走 bg_as（注册期多点探针的 owner），自证
++                 * 基址翻译==bg_pa 才启用，同 painter 的防线。 */
++                int saved_as = g->stitch_as;
++                g->stitch_as = 0;
++                if (g->bg_as >= 1 && g->bg_as < 8
++                    && g->as_transtab[g->bg_as]) {
++                    hwaddr p3;
++                    if (rk3588_lite_gpu_va_pa_in(
++                            g, g->as_transtab[g->bg_as],
++                            plane & ~0xfffull, &p3)
++                        && p3 == (spp & ~0xfffull)) {
++                        g->stitch_as = g->bg_as;
++                    }
++                }
++                g->stitch_vpg = UINT64_MAX;
++                g->stitch_ok = false;
 +                uint32_t *snap = g_malloc_n(ksw, ksh * sizeof(uint32_t));
 +                if (snap) {
 +                    for (unsigned py = 0; py < ksh; py++) {
@@ -3847,19 +3877,9 @@ index 0000000..61f13fe
 +                            unsigned rr = 0, gg = 0, bb = 0, nn = 0;
 +                            for (unsigned yy = y0; yy < y1; yy += 3) {
 +                                for (unsigned xx = x0; xx < x1; xx += 3) {
-+                                    /* 寻址 A/B（verify_screen.py 量化：
-+                                     * 线性 bg_p90=22 < tiled 92——默认
-+                                     * 线性，FSQUAD_STGTILED=1 切瓦片）*/
-+                                    uint32_t v = address_space_ldl_le(
-+                                        &address_space_memory,
-+                                        spp
-+                                            + (getenv("FSQUAD_STGTILED")
-+                                                   ? rk3588_tiled_pixel(
-+                                                       0, pstride, xx, yy)
-+                                                   : ((uint64_t)yy
-+                                                          * pstride
-+                                                      + (uint64_t)xx * 4)),
-+                                        MEMTXATTRS_UNSPECIFIED, NULL);
++                                    uint32_t v = rk3588_tex_read_px(
++                                        g, plane, 1, 2, pstride,
++                                        xx, yy, false);
 +                                    rr += v & 0xff;
 +                                    gg += (v >> 8) & 0xff;
 +                                    bb += (v >> 16) & 0xff;
@@ -3874,16 +3894,46 @@ index 0000000..61f13fe
 +                                | ((gg / nn) << 8) | ((bb / nn) << 16);
 +                        }
 +                    }
++                    g->stitch_as = saved_as;
++                    g->stitch_vpg = UINT64_MAX;
++                    g->stitch_ok = false;
 +                    if ((snap[0] | snap[ksw * ksh / 2]
 +                         | snap[ksw * ksh - 1]) & 0xffffffu) {
-+                        g_free(g->bg_screen);
-+                        g->bg_screen = snap;
-+                        g->bg_screen_w = ksw;
-+                        g->bg_screen_h = ksh;
-+                        if (getenv("GPUDBG")) {
-+                            fprintf(stderr,
-+                                    "GPUW stg-extract-snap %ux%u\n",
-+                                    ksw, ksh);
++                        /* 择优投票（note 114）：64 点非黑严格更优才换——
++                         * 后续注册的 BO 多为回收残页（实测 span1 全
++                         * foreign），last-wins 会用垃圾顶掉 bit-exact
++                         * 好快照。首个样本须非黑过半。 */
++                        unsigned nb6 = 0;
++                        for (unsigned k = 0; k < 64; k++) {
++                            if (snap[(k / 8) * ksh / 8 * ksw
++                                     + (k % 8) * ksw / 8] & 0xffffffu) {
++                                nb6++;
++                            }
++                        }
++                        bool better = !g->bg_screen
++                            || (g->bg_screen_w == ksw
++                                && g->bg_screen_h == ksh
++                                && nb6 > g->bg_nb6);
++                        if (better && (g->bg_screen || nb6 >= 48)) {
++                            g_free(g->bg_screen);
++                            g->bg_screen = snap;
++                            g->bg_screen_w = ksw;
++                            g->bg_screen_h = ksh;
++                            g->bg_nb6 = nb6;
++                            if (getenv("GPUDBG")) {
++                                fprintf(stderr,
++                                        "GPUW stg-extract-snap %ux%u "
++                                        "nb6=%u\n",
++                                        ksw, ksh, nb6);
++                            }
++                        } else {
++                            g_free(snap);
++                            if (getenv("GPUDBG")) {
++                                fprintf(stderr,
++                                        "GPUW stg-extract-snap-rej "
++                                        "nb6=%u (keep %u)\n",
++                                        nb6, g->bg_nb6);
++                            }
 +                        }
 +                    } else {
 +                        g_free(snap);
@@ -3966,6 +4016,51 @@ index 0000000..61f13fe
 +                    }
 +                    fclose(sf);
 +                }
++            }
++            if (getenv("STGDUMPSPAN")) {
++                /* 分块上传取证（note 114）：mutter 的线性 staging 是
++                 * ~12MB 分块 BO（gems 实证无 33MB 线性 BO；face 区
++                 * AS 翻译=+2MB 越界 foreign）。每次注册把 spp 起
++                 * 34MB 整段 PA 线性 dump（序号防覆盖）+ 0-34MB 每
++                 * 1MB 翻译 delta（-1=无映射）——块边界/块内容/
++                 * foreign 区一次全拍，离线行识别定每块携带的图像行。*/
++                static unsigned span_seq;
++                char nm[512];
++                snprintf(nm, sizeof(nm), "%s.%u", getenv("STGDUMPSPAN"),
++                         span_seq);
++                FILE *sf = fopen(nm, "wb");
++                if (sf) {
++                    uint8_t pg[4096];
++                    for (uint64_t o = 0; o < (34ull << 20); o += 4096) {
++                        address_space_read(&address_space_memory, spp + o,
++                                           MEMTXATTRS_UNSPECIFIED,
++                                           pg, 4096);
++                        fwrite(pg, 1, 4096, sf);
++                    }
++                    fclose(sf);
++                    fprintf(stderr, "GPUQ span-dump seq=%u %s spp=%llx\n",
++                            span_seq, nm, (unsigned long long)spp);
++                }
++                fprintf(stderr, "GPUQ span-xlate seq=%u", span_seq);
++                for (unsigned asx = 1; asx < 8; asx++) {
++                    if (!g->as_transtab[asx]) {
++                        continue;
++                    }
++                    fprintf(stderr, " as%u:", asx);
++                    for (unsigned o = 0; o <= 34; o++) {
++                        hwaddr p4 = HWADDR_MAX;
++                        rk3588_lite_gpu_va_pa_in(
++                            g, g->as_transtab[asx],
++                            (plane & ~0xfffull) + ((uint64_t)o << 20),
++                            &p4);
++                        fprintf(stderr, "%s%lld", o ? "," : "",
++                                p4 == HWADDR_MAX
++                                    ? -1ll
++                                    : (long long)(p4 - spp));
++                    }
++                }
++                fprintf(stderr, "\n");
++                span_seq++;
 +            }
 +            if (getenv("STGDUMPLIN")) {
 +                /* A/B 对照：线性 PA 直读（无缝合）——若此图干净而
@@ -4326,9 +4421,24 @@ index 0000000..61f13fe
 +        return;
 +    }
 +    unsigned sw = *g->vop_scan_w, sh = *g->vop_scan_h;
++    /* note 114：改走 owner-AS 逐页翻译（bg_pa 线性=页序乱时拼出错
++     * 位内容，与 extract-snap 同根）；painter 的自证防线同款。 */
++    int saved_as = g->stitch_as;
++    g->stitch_as = 0;
++    if (g->bg_as >= 1 && g->bg_as < 8 && g->as_transtab[g->bg_as]) {
++        hwaddr p3;
++        if (rk3588_lite_gpu_va_pa_in(
++                g, g->as_transtab[g->bg_as], g->bg_va & ~0x3full, &p3)
++            && p3 == (g->bg_pa & ~0xfffull)) {
++            g->stitch_as = g->bg_as;
++        }
++    }
++    g->stitch_vpg = UINT64_MAX;
++    g->stitch_ok = false;
 +    uint32_t *snap = g_malloc_n(sw, sh * sizeof(uint32_t));
 +
 +    if (!snap) {
++        g->stitch_as = saved_as;
 +        return;
 +    }
 +    for (unsigned py = 0; py < sh; py++) {
@@ -4338,26 +4448,18 @@ index 0000000..61f13fe
 +            /* 2x2 盒式：nearest 抽稀细线（低多边形浣熊环饰） */
 +            unsigned xs = MIN(g->bg_w - 1, sx + 1);
 +            unsigned ys = MIN(g->bg_h - 1, sy + 1);
-+            uint32_t v0 = address_space_ldl_le(
-+                &address_space_memory,
-+                g->bg_pa + (uint64_t)sy * g->bg_stride
-+                    + (uint64_t)sx * 4,
-+                MEMTXATTRS_UNSPECIFIED, NULL);
-+            uint32_t v1 = address_space_ldl_le(
-+                &address_space_memory,
-+                g->bg_pa + (uint64_t)sy * g->bg_stride
-+                    + (uint64_t)xs * 4,
-+                MEMTXATTRS_UNSPECIFIED, NULL);
-+            uint32_t v2 = address_space_ldl_le(
-+                &address_space_memory,
-+                g->bg_pa + (uint64_t)ys * g->bg_stride
-+                    + (uint64_t)sx * 4,
-+                MEMTXATTRS_UNSPECIFIED, NULL);
-+            uint32_t v3 = address_space_ldl_le(
-+                &address_space_memory,
-+                g->bg_pa + (uint64_t)ys * g->bg_stride
-+                    + (uint64_t)xs * 4,
-+                MEMTXATTRS_UNSPECIFIED, NULL);
++            uint32_t v0 = rk3588_tex_read_px(
++                g, g->bg_va, g->bg_ptype, g->bg_porder, g->bg_stride,
++                sx, sy, g->bg_thdr);
++            uint32_t v1 = rk3588_tex_read_px(
++                g, g->bg_va, g->bg_ptype, g->bg_porder, g->bg_stride,
++                xs, sy, g->bg_thdr);
++            uint32_t v2 = rk3588_tex_read_px(
++                g, g->bg_va, g->bg_ptype, g->bg_porder, g->bg_stride,
++                sx, ys, g->bg_thdr);
++            uint32_t v3 = rk3588_tex_read_px(
++                g, g->bg_va, g->bg_ptype, g->bg_porder, g->bg_stride,
++                xs, ys, g->bg_thdr);
 +            snap[py * sw + px] =
 +                0xff000000u
 +                | ((((v0 & 0xff) + (v1 & 0xff) + (v2 & 0xff)
@@ -4369,6 +4471,9 @@ index 0000000..61f13fe
 +                    + ((v3 >> 16) & 0xff)) / 4) << 16);
 +        }
 +    }
++    g->stitch_as = saved_as;
++    g->stitch_vpg = UINT64_MAX;
++    g->stitch_ok = false;
 +    /* 择优（乱序上传版）：完整态=非黑 64/64 且结构块最少（紧凑浣
 +     * 熊）；乱序中间态=结构散落块多；释放态=非黑下降。周期 500ms
 +     * ×10 轮观察，取最优。 */
@@ -4376,8 +4481,13 @@ index 0000000..61f13fe
 +        return;    /* 已静：不再观察 */
 +    }
 +    g->stg_rounds--;
++    /* 前沿测量节拍：15/30/60/120/240 后转 500ms 固定 */
++    unsigned delay = g->stg_early_ms ? g->stg_early_ms : 500;
++    if (g->stg_early_ms) {
++        g->stg_early_ms = g->stg_early_ms >= 240 ? 0 : g->stg_early_ms * 2;
++    }
 +    timer_mod(g->stg_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL)
-+              + 500 * 1000 * 1000ull);
++              + (uint64_t)delay * 1000 * 1000ull);
 +    /* 主色=出现最多的像素（近似：抽样） */
 +    uint32_t dom = snap[0];
 +    unsigned domn = 0;
@@ -4420,7 +4530,11 @@ index 0000000..61f13fe
 +        }
 +    }
 +    if (getenv("STGTIMERDUMP")) {
-+        FILE *sf = fopen(getenv("STGTIMERDUMP"), "wb");
++        char nm[512];
++        static unsigned tdmp_seq;
++        snprintf(nm, sizeof(nm), "%s.%03d", getenv("STGTIMERDUMP"),
++                 tdmp_seq++);
++        FILE *sf = fopen(nm, "wb");
 +        if (sf) {
 +            fprintf(sf, "P6\n%u %u\n255\n", sw, sh);
 +            for (unsigned dy = 0; dy < sh; dy++) {
@@ -4439,17 +4553,25 @@ index 0000000..61f13fe
 +                g->stg_rounds, nb6, sblocks);
 +    }
 +    /* +500ms 样本=上传完成后的稳定态——只要非黑占多数就权威采用
-+     * （旧 ==64 门被"非黑噪声凑数"的旧样本反超挡死，实测 56/64）。 */
-+    if (nb6 >= 48) {
++     * （旧 ==64 门被"非黑噪声凑数"的旧样本反超挡死，实测 56/64）。
++     * note 114 修正：BO 释放后此期样本=回收残页，须严格更优才换
++     * （与 extract-snap/painter 三门一致），否则顶掉好快照。 */
++    bool tbetter = nb6 >= 48
++        && (!g->bg_screen
++            || (g->bg_screen_w == sw && g->bg_screen_h == sh
++                && nb6 > g->bg_nb6));
++    if (tbetter) {
 +        g->stg_rounds = 0;    /* 拿到权威样本，停止观察 */
 +        g_free(g->bg_screen);
 +        g->bg_screen = snap;
 +        g->bg_screen_w = sw;
 +        g->bg_screen_h = sh;
 +        g->bg_sblocks = sblocks;
++        g->bg_nb6 = nb6;
 +        snap = NULL;
 +        if (getenv("GPUDBG")) {
-+            fprintf(stderr, "GPUW stg-timer-snap sb=%u\n", sblocks);
++            fprintf(stderr, "GPUW stg-timer-snap sb=%u nb6=%u\n",
++                    sblocks, nb6);
 +        }
 +    }
 +    g_free(snap);
@@ -4551,6 +4673,7 @@ index 0000000..61f13fe
 +                                (size_t)sw * sh * sizeof(uint32_t));
 +                            g->bg_screen_w = sw;
 +                            g->bg_screen_h = sh;
++                            g->bg_nb6 = nb6;
 +                            if (getenv("GPUDBG")) {
 +                                fprintf(stderr, "GPUW snap-saved %u/64\n",
 +                                        nb6);
