@@ -22,7 +22,7 @@
 2. ~~屏幕竖条纹垃圾~~ **已根修**（note 109 条带门+页表自画像门）
 3. ~~坐标错位~~ **已定谳零误差**（note 111 五点标记精确落位）
 4. ~~浣熊脸区悬案~~ **主体破案（note 114）**：=参照图错误。staging 内容 vs warty 原位字节精确（span dump mad=0.00）
-5. **整图平移来源（open，最高优先，note 114 §5 续段）**：staging 置换已定谳=**纯平移 (+272 行,+256 列)=+0x3FC400 字节**（全部结构行 dx=-256 恒定、a=0.99 无缩放；span 行 0-272=warty 原位 mad=0.00=CPU 上传本体、273-546=精确灰度带、546+=平移副本）。stage[]-snap A/B 证明平移副本与我们的采样同源（st 55.8 vs 25.2）→**收敛假设=壁纸 job 的 quad verts 只解出 min 角**（log verts=bf800000 bf800000 00000000 00000000，两个 -1.0 两个 0）→rjob 把 draw 画到平移子矩形→页回收带进下一代 staging。**刀口**：t2 顶点四形态对壁纸 job 重新取证（dump 顶点缓冲原文）+光栅 NDC→RT 映射审计；修好后 FSQUAD_STAGESNAP=1 转正
+5. **整图平移来源（open，最高优先，note 114 §5 续段）**：staging 置换已定谳=**纯平移 (+272 行,+256 列)=+0x3FC400 字节**（全部结构行 dx=-256 恒定、a=0.99 无缩放；span 行 0-272=warty 原位 mad=0.00=CPU 上传本体、273-546=精确灰度带、546+=平移副本）。stage[]-snap A/B 证明平移副本与我们的采样同源（st 55.8 vs 25.2）→verts 论已证伪（打印四字=bg-fallback 满屏 quad 的顶点 0，fallback 本身无平移来源）。**GPUWRITELOG 实锤：写侧物理交叠**——reg2 rt0=AFBC PA 0x58e00000 落在 reg1 staging 区间内、rjob 写 135 sbrow/33.7MB、reg2 staging(0x59200000) 也在写入区间、全 boot 69,767 次 scatter 偏离。mutter BO 世代链（staging₁ 释放→页回收成 job₂ 的 rt 与 staging₂）与我们 rjob 写区间物理交叠。**刀口：job₂ rt0 VA(7ffff9400000) 的 va_pa_write 翻译 vs 当刻 guest gpuvas 真值逐页对账**——错=写翻译根修（CSG 重配置窗口别名，M2e 老嫌疑），对=页复用自然形态、快照链按"只信 CPU 上传窗"重构
 6. **UI 层合成/字形位姿（FAU）/vt1-nudge**：照旧 open
 
 **内容验收仪器（note 113-114，权威）**：`sim/verify_screen.py` 确定性数值判决——

@@ -81,6 +81,26 @@ staging 内存侧同构（行 50 原位精确、行 300 foreign、行 700+ 行�
 重新取证（dump 顶点缓冲原文）+ 光栅 NDC→RT 映射审计；修好 verts 后
 stage-snap 转正（现 env 门控默认关）。
 
+**再续段（GPUWRITELOG 轮，同日）——verts 论证伪，写侧交叠实锤**：
+
+- verts 打印的四字=bg-fallback 全屏 quad 的**顶点 0**（(-1,-1,uv 0,0)，
+  fallback 常量表首四字）——不是解析残骸；fallback 本身满幅 identity，
+  光栅无平移来源。verts 假设作废。
+- **写侧实锤**：reg2 的 FBD rt0=AFBC **PA 0x58e00000 = reg1 staging
+  （0x57800000）+22MB——落在 reg1 区间内**；我们的 rjob 对它写了 135
+  sbrow（2160/16）、span 33.7MB；而 **reg2 的 staging（0x59200000）也在
+  这个写入区间里**。全 boot **69,767 次 scatter 偏离**（写翻译≠线性）。
+- 模型：mutter 的 BO 世代链（staging₁ 释放→页回收成 job₂ 的 rt 与
+  staging₂）与我们 rjob 的写区间在物理页上**交叠**——"稳定不匹配内
+  容"里掺杂了我们自己在写的 AFBC sim 布局载荷（被当线性 RGBA 读）。
+  交叠本身若是 mutter 真实语义（页复用）则无害；**若是我们 va_pa_write
+  翻译错页（CSG 重配置窗口别名，M2e 老嫌疑）= 我们在腐蚀 mutter 的
+  staging₂**。
+- **下一号首刀（更新）**：job₂ rt0 VA（7ffff9400000）的 va_pa_write
+  翻译 vs 当刻 guest gpuvas 真值逐页对账；错→写翻译根修（腐蚀链根
+  除），对→staging 内容混合=mutter 页复用的自然形态，快照链需按
+  "只信 CPU 上传窗"重构。
+
 辅助事实：greeter 合成会直接采样 AFBC 纹理（ptype=6 plane 出现在
 pending 列表，头格式完好=我们写的）——线性→AFBC→采样回环自洽。
 
