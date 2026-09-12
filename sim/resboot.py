@@ -15,7 +15,7 @@ import engine  # noqa: E402
 
 ARGV = [
     engine.find_qemu(), "-M", "rk3588-lite", "-smp", "8", "-m", "2G",
-    "-display", "none", "-no-reboot",
+    "-display", os.environ.get("DISPLAYMODE", "none"), "-no-reboot",
     "-serial", "null",
     "-chardev", "socket,id=ser0,host=127.0.0.1,port=4446,server=on,"
                 "wait=off,logfile=/home/charliechen/rk-forge/sim/logs/scmi-serial.log",
@@ -27,6 +27,10 @@ ARGV = [
     "-drive", f"if=none,id=hd,file={engine.ROOT}/out/rk3588-topeet/rootfs.ext4,"
               "format=raw",
     "-device", "virtio-blk-device,drive=hd",
+    # 输入三件套（note 78）：tablet 绝对坐标 GNOME 直接吃；内核
+    # CONFIG_VIRTIO_INPUT=y，mmio 槽位 6 个已含（bootargs range(6)）
+    "-device", "virtio-tablet-device",
+    "-device", "virtio-keyboard-device",
     "-dtb", str(engine.ROOT / "third_party/src/rk3588-topeet/linux/"
                 "arch/arm64/boot/dts/rockchip/rk3588-topeet.dtb"),
     "-append",
