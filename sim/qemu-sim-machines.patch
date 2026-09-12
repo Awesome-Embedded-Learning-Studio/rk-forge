@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..4e9f8b7
+index 0000000..97a1480
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,6902 @@
+@@ -0,0 +1,6931 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -984,13 +984,12 @@ index 0000000..4e9f8b7
 +            for (unsigned by = 0; by < ty; by++) {
 +                for (unsigned bx = 0; bx < tx; bx++) {
 +                    /* 每页头一次读回（header 可能在别的物理页）。
-+                     * bf=13=Tiled 头布局（u-interleave 头网格）——与
-+                     * GPU 写路径同公式；旧线性读=读错头=内容错位。 */
++                     * note 115：扫描输出真实格式=bf=12 线性头（rjob
++                     * 复合 job 实测）——hdr=by·stride+bx·16；1024 宽
++                     * 时 stride=64×16=0x400 与旧 tiled 值巧合同数。
++                     * 旧 tiled 读=与 mutter 复合写者布局互斥=践踏。 */
 +                    uint64_t iova = s->fb_mst
-+                        + (uint64_t)(by >> 4) * 0x400
-+                        + (bx >> 4) * 4096
-+                        + ((rk3588_tiled_bitdup[by & 15]
-+                            ^ rk3588_tiled_space4[bx & 15]) * 16);
++                        + (uint64_t)by * 0x400 + bx * 16;
 +                    hwaddr hp = rk3588_lite_vop_iova_phys(s, iova);
 +                    uint64_t w0 = address_space_ldq_le(
 +                        &address_space_memory, hp,
@@ -3894,7 +3893,10 @@ index 0000000..4e9f8b7
 +            /* 缓冲只在连续前缀内物理连续（浣熊区 5.9-8.2MB 实证），
 +             * 其后散页=必须缝合；缝合选 AS 用多点探针（页0 单点会
 +             * 命中别名 VM）：全跨度 {0,8,16,24,32}MB 都翻得到的
-+             * 才是 owner。 */
++             * 才是 owner。note 115 补强：**单射性**——正确映射=全
++             * 部 VA 页→互异 PA；别名 VM 会重复（用户实测 staging
++             * 水平卷绕+屏中右上重复=别名实锤）。1MB 粒度 33 点查
++             * 重。 */
 +            {
 +                unsigned best_hits = 0;
 +                for (unsigned asx = 1; asx < 8; asx++) {
@@ -3902,19 +3904,30 @@ index 0000000..4e9f8b7
 +                        continue;
 +                    }
 +                    unsigned hh = 0;
-+                    for (unsigned o = 0; o < 5; o++) {
-+                        hwaddr p4;
++                    hwaddr seen[33];
++                    bool injective = true;
++                    for (unsigned o = 0; o < 33; o++) {
++                        hwaddr p4 = HWADDR_MAX;
 +                        if (rk3588_lite_gpu_va_pa_in(
 +                                g, g->as_transtab[asx],
-+                                (plane & ~0xfffull) + (uint64_t)o
-+                                    * 8ull * 1024 * 1024,
++                                (plane & ~0xfffull)
++                                    + (uint64_t)o * 1024 * 1024,
 +                                &p4)) {
 +                            hh++;
++                            for (unsigned q2 = 0; q2 < o; q2++) {
++                                if (seen[q2] == p4) {
++                                    injective = false;
++                                    break;
++                                }
++                            }
++                            seen[o] = p4;
++                        } else {
++                            seen[o] = HWADDR_MAX;
 +                        }
 +                    }
-+                    if (hh == 5) {
++                    if (hh == 33 && injective) {
 +                        g->bg_as = asx;
-+                        best_hits = 5;
++                        best_hits = 33;
 +                        break;
 +                    }
 +                    if (hh > best_hits) {
@@ -3923,7 +3936,7 @@ index 0000000..4e9f8b7
 +                    }
 +                }
 +                if (getenv("GPUDBG")) {
-+                    fprintf(stderr, "GPUQUAD stg-as=%u hits=%u\n",
++                    fprintf(stderr, "GPUQUAD stg-as=%u hits=%u(33)\n",
 +                            g->bg_as, best_hits);
 +                }
 +            }
@@ -4280,6 +4293,15 @@ index 0000000..4e9f8b7
 +                tw, th, (unsigned long long)plane, pstride, ptype, porder,
 +                g->fs_quad[0], g->fs_quad[1], g->fs_quad[2],
 +                g->fs_quad[3]);
++        /* note 115：plane 描述符 64B 全文——首像素偏移字段（staging
++         * 水平卷绕=PA 线性内容滚动的头号嫌疑）在未解析区。 */
++        fprintf(stderr, " desc@%llx:", (unsigned long long)sp);
++        for (unsigned k2 = 0; k2 < 8; k2++) {
++            fprintf(stderr, " %016llx",
++                    (unsigned long long)address_space_ldq_le(
++                        &address_space_memory, sp + k2 * 8,
++                        MEMTXATTRS_UNSPECIFIED, NULL));
++        }
 +        hwaddr plp = rk3588_lite_gpu_va_pa_user(
 +            g, plane & 0x00ffffffffffffffull);
 +        if (plp != HWADDR_MAX) {
@@ -4896,12 +4918,15 @@ index 0000000..4e9f8b7
 +                                (unsigned long long)g->bg_va, g->bg_w,
 +                                g->bg_h);
 +                    }
-+                    unsigned tx5 = sw / 16, ty5 = sh / 16;
-+                    /* 扫描输出缓冲=bf=13（AFBC Tiled 头）——头与 body
-+                     * 都必须走 tiled 公式（与 rjob 提交/纹理读一致；
-+                     * 旧线性写=头落在无人读的位置=内容错位真身）。 */
++                    unsigned tx5 = sw / 16, ty5 = (sh + 15) / 16;
++                    /* note 115 定谳：扫描输出的真实格式=bf=12（线性
++                     * 头）——rjob 复合 job 实测 bf=12 线性写。旧 tiled
++                     * 写+VOP tiled 读虽自洽，但 mutter 复合的线性 body
++                     * （bp+ty·stride 起）整片覆写我们的 tiled body 区
++                     * （错位 0x800）=屏顶带复合践踏真身。改线性=两写
++                     * 者同布局，逐 tile 相干。 */
 +                    hwaddr bb5 = rk3588_afbc_body_base(
-+                        0, 0x400, tx5, ty5, true);
++                        0, 0x400, tx5, ty5, false);
 +                    /* M2n 全缓冲镜像：VOP 在 2-3 个扫描缓冲间翻页，
 +                     * 只写当前 fb_mst 会让翻到"mutter 自身合成"缓冲
 +                     * 的帧显示错位内容（656cb000 从未被 fullres 画过
@@ -4927,15 +4952,18 @@ index 0000000..4e9f8b7
 +                    for (unsigned by = 0; by < ty5; by++) {
 +                        for (unsigned bx = 0; bx < tx5; bx++) {
 +                            hwaddr hdr = rk3588_afbc_hdr(
-+                                0, 0x400, bx, by, true);
++                                0, 0x400, bx, by, false);
 +                            hwaddr body = bb5
 +                                + ((uint64_t)by * tx5 + bx) * 1024;
-+                            uint32_t first = st2[by * 16 * sw + bx * 16];
++                            /* 半尾 tile（600/16=37.5）：行界内取色，
++                             * 界外用行 0 兜底（VOP 显示侧自带行钳制） */
++                            uint32_t first = st2[MIN(sh - 1, by * 16) * sw
++                                                 + bx * 16];
 +                            bool uni = true;
 +                            for (unsigned yy = 0; yy < 16 && uni; yy++) {
 +                                for (unsigned xx = 0; xx < 16; xx++) {
-+                                    if (st2[(by * 16 + yy) * sw
-+                                            + bx * 16 + xx] != first) {
++                                    unsigned sy = MIN(sh - 1, by * 16 + yy);
++                                    if (st2[sy * sw + bx * 16 + xx] != first) {
 +                                        uni = false;
 +                                        break;
 +                                    }
@@ -4955,11 +4983,12 @@ index 0000000..4e9f8b7
 +                                    0x0101010101010101ull);
 +                                for (unsigned yy = 0; yy < 16; yy++) {
 +                                    for (unsigned xx = 0; xx < 16; xx++) {
++                                        unsigned sy = MIN(sh - 1,
++                                                          by * 16 + yy);
 +                                        rk3588_lite_vop_stl(
 +                                            g->vop, mirror,
 +                                            body + (yy * 16 + xx) * 4,
-+                                            st2[(by * 16 + yy) * sw
-+                                                + bx * 16 + xx]);
++                                            st2[sy * sw + bx * 16 + xx]);
 +                                    }
 +                                }
 +                            }

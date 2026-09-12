@@ -4,7 +4,7 @@
 
 ---
 
-我在 `~/rk-forge` 继续 RK3588 QEMU 仿真研究线（战役七 panthor）的工作。开始前先读记忆（`~/.claude/projects/-home-charliechen-rk-forge/memory/` 下 MEMORY.md 及各条目）和 `document/notes/101-115`，这里只给当前落点：
+我在 `~/rk-forge` 继续 RK3588 QEMU 仿真研究线（战役七 panthor）的工作。开始前先读记忆（`~/.claude/projects/-home-charliechen-rk-forge/memory/` 下 MEMORY.md 及各条目）和 `document/notes/101-116`，这里只给当前落点：
 
 ## 总成果（M2n 全线，分支 feat/sim_rk3568，绝不 push）
 
@@ -12,7 +12,7 @@
 
 **参照图已定谳（note 114 破案）**：greeter 实际显示 `warty-final-ubuntu.png`（3840×2160），**不是** cnusr25——此前一切以 cnusr25 为判据的"接近/不匹配/调光 -10"结论全部作废。判据命令：`python3 sim/verify_screen.py 屏.ppm --ref out/rk3588-topeet/ubuntu-rootfs.work/usr/share/backgrounds/warty-final-ubuntu.png`。
 
-**屏幕内容现状（note 114，正确参照判决）**：offset=[0,0,0]（调光论翻案），**结构域 st_p50=25.2 首次过线（≤40）**；bg_p90=33.7 未过（≤20）——顶带存在 ~240×240px 图像块 2D 置换（块内 mad 0.5-2.9 完好），底 2/3 近乎完美（行带 1.6-1.9）。快照链已修两处：三门投票（nb6 严格更优才换，reg2 垃圾不再顶掉 reg1）+ extract-snap/stg-timer 改 owner-AS 逐页缝合（原 PA 线性在 2MB 段界后拼错页）。
+**🏆 真壁纸全屏显示达成（note 116，两段式验收完整）**：verify_screen **PASS**（bg_p90=1.3/st_p50=9.5/offset=[0,0,0]）+ 用户亲眼确认完整壁纸。终局两根修：①扫描输出布局=bf=12 线性头（镜像写+VOP 解码原用 tiled-13，自洽但与 mutter 复合 body 区错位 0x800 互踩=顶带损伤）；②半尾 tile 补写（600÷16 截断漏第 38 排=底 8 行黑条绿斑）。冒烟监视 `sim/smoke_monitor.py`。
 
 里程碑链（notes 101-114）：采样 FS 侦察 → 受控矩阵 → 异步分片 → 双病分流 → 界内全证 → 壁纸作业门 → 显示点亮 → 内容工程 → 毒根修（缝合写）→ 屏幕垃圾根修 → 细节五连修 → 显示接管基建+坐标定谳 → staging 读路径实验 → 校验武器化 → **参照错案破案+快照三门投票** → 余=y 置换来源。
 
@@ -22,7 +22,7 @@
 2. ~~屏幕竖条纹垃圾~~ **已根修**（note 109 条带门+页表自画像门）
 3. ~~坐标错位~~ **已定谳零误差**（note 111 五点标记精确落位）
 4. ~~浣熊脸区悬案~~ **主体破案（note 114）**：=参照图错误。staging 内容 vs warty 原位字节精确（span dump mad=0.00）
-5. **整图平移来源（open，最高优先，note 114 §5 续段）**：staging 置换已定谳=**纯平移 (+272 行,+256 列)=+0x3FC400 字节**（全部结构行 dx=-256 恒定、a=0.99 无缩放；span 行 0-272=warty 原位 mad=0.00=CPU 上传本体、273-546=精确灰度带、546+=平移副本）。stage[]-snap A/B 证明平移副本与我们的采样同源（st 55.8 vs 25.2）→verts 论已证伪（打印四字=bg-fallback 满屏 quad 的顶点 0，fallback 本身无平移来源）。**GPUWRITELOG 实锤：写侧物理交叠**——reg2 rt0=AFBC PA 0x58e00000 落在 reg1 staging 区间内、rjob 写 135 sbrow/33.7MB、reg2 staging(0x59200000) 也在写入区间、全 boot 69,767 次 scatter 偏离。mutter BO 世代链（staging₁ 释放→页回收成 job₂ 的 rt 与 staging₂）与我们 rjob 写区间物理交叠。**已推进（note 115）**：顶点形态 E 破译（32B 步长/缩放±49.68 或像素空间+t2 size 字段+aspect-crop uv），bg-fallback 满幅假设降为 1 次/boot；屏复合 stage 通道贯通（FSQUAD_STAGESNAP=1，默认关）。**新首刀=AFBC 读写 tiled 不对称**：复合 stage=62.6% 黑+亮斑——tex_read_px ptype=6 读 vs rjob bf=13 写的头/body 公式对账（读写同参自证），修好后复合 stage 转正=屏复合本尊输出
+5. ~~屏幕内容~~ **已达成（note 116）**。历史悬案整卷见 notes 112-116（参照错案→三门投票→顶点形态 E→扫描输出布局根修）。**余项**：AFBC 纹理读侧 tiled 对账（复合 stage 62.6% 黑，不影响显示形态）、staging 偶发卷绕的回收页交叠收敛、UI 层/字形/vt1-nudge：staging 置换已定谳=**纯平移 (+272 行,+256 列)=+0x3FC400 字节**（全部结构行 dx=-256 恒定、a=0.99 无缩放；span 行 0-272=warty 原位 mad=0.00=CPU 上传本体、273-546=精确灰度带、546+=平移副本）。stage[]-snap A/B 证明平移副本与我们的采样同源（st 55.8 vs 25.2）→verts 论已证伪（打印四字=bg-fallback 满屏 quad 的顶点 0，fallback 本身无平移来源）。**GPUWRITELOG 实锤：写侧物理交叠**——reg2 rt0=AFBC PA 0x58e00000 落在 reg1 staging 区间内、rjob 写 135 sbrow/33.7MB、reg2 staging(0x59200000) 也在写入区间、全 boot 69,767 次 scatter 偏离。mutter BO 世代链（staging₁ 释放→页回收成 job₂ 的 rt 与 staging₂）与我们 rjob 写区间物理交叠。**已推进（note 115）**：顶点形态 E 破译（32B 步长/缩放±49.68 或像素空间+t2 size 字段+aspect-crop uv），bg-fallback 满幅假设降为 1 次/boot；屏复合 stage 通道贯通（FSQUAD_STAGESNAP=1，默认关）。**新首刀=AFBC 读写 tiled 不对称**：复合 stage=62.6% 黑+亮斑——tex_read_px ptype=6 读 vs rjob bf=13 写的头/body 公式对账（读写同参自证），修好后复合 stage 转正=屏复合本尊输出
 6. **UI 层合成/字形位姿（FAU）/vt1-nudge**：照旧 open（屏复合 draw 几何已破译——形态 E，note 115）
 
 **内容验收仪器（note 113-114，权威）**：`sim/verify_screen.py` 确定性数值判决——
