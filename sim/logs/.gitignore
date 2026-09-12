@@ -1,0 +1,4 @@
+# 运行日志与截图每次 boot 重生成；证据 PPM 单独 git add -f 入库
+*
+!m2n-*.ppm
+!.gitignore

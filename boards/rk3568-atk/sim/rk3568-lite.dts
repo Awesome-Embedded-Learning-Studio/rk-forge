@@ -1,0 +1,136 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * rk3568-lite QEMU 机器的最小 DTS，只描述已建模设备，其余随机器模型按需迁入。
+ * 与真板差异：DRAM 基址 0x0（U-Boot rk3568_common.h CFG_SYS_SDRAM_BASE=0）；
+ * uart 时钟用 24MHz fixed-clock 替 CRU（真板基准同频）；无 ITS/dma/pinctrl。
+ *
+ * 编译（仓库根目录）：
+ *   cpp -nostdinc -I third_party/src/rk3568-atk/linux/include -undef \
+ *       -x assembler-with-cpp boards/rk3568-atk/sim/rk3568-lite.dts \
+ *     | dtc -@ -I dts -O dtb -o boards/rk3568-atk/sim/rk3568-lite.dtb -
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+/ {
+	compatible = "rockchip,rk3568-lite", "rockchip,rk3568";
+	#address-cells = <2>;
+	#size-cells = <2>;
+	interrupt-parent = <&gic>;
+
+	aliases {
+		serial2 = &uart2;		/* console=ttyS2 靠这个别名 */
+	};
+
+	chosen {
+		stdout-path = "serial2:115200n8";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x0 0x0 0x0 0x40000000>;	/* 1G @ 0x0，与机器模型 DRAM 必须一致 */
+	};
+
+	cpus {
+		#address-cells = <2>;
+		#size-cells = <0>;
+
+		cpu0: cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a55";
+			reg = <0x0 0x0>;
+			enable-method = "psci";
+		};
+		cpu1: cpu@100 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a55";
+			reg = <0x0 0x100>;
+			enable-method = "psci";
+		};
+		cpu2: cpu@200 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a55";
+			reg = <0x0 0x200>;
+			enable-method = "psci";
+		};
+		cpu3: cpu@300 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a55";
+			reg = <0x0 0x300>;
+			enable-method = "psci";
+		};
+	};
+
+	psci {
+		compatible = "arm,psci-1.0";
+		method = "smc";
+	};
+
+	gic: interrupt-controller@fd400000 {
+		compatible = "arm,gic-v3";
+		reg = <0x0 0xfd400000 0x0 0x10000>,	/* GICD */
+		      <0x0 0xfd460000 0x0 0x80000>;	/* GICR */
+		interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-controller;
+		#interrupt-cells = <3>;
+	};
+
+	timer {
+		compatible = "arm,armv8-timer";
+		interrupts = <GIC_PPI 13 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_PPI 14 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_PPI 11 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_PPI 10 IRQ_TYPE_LEVEL_HIGH>;
+	};
+
+	/* CRU 替身：真板 xin24m 本来就是 24MHz 固定基准 */
+	xin24m: clock-24m {
+		compatible = "fixed-clock";
+		clock-frequency = <24000000>;
+		clock-output-names = "xin24m";
+		#clock-cells = <0>;
+	};
+
+	soc {
+		compatible = "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		uart2: serial@fe660000 {
+			compatible = "rockchip,rk3568-uart", "snps,dw-apb-uart";
+			reg = <0x0 0xfe660000 0x0 0x100>;
+			interrupts = <GIC_SPI 118 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&xin24m>, <&xin24m>;
+			clock-names = "baudclk", "apb_pclk";
+			reg-io-width = <4>;
+			reg-shift = <2>;
+			status = "okay";
+		};
+
+		/* QEMU sim-only transports（0xfea00000+ / SPI 160+），与机器模型一致 */
+		virtio_mmio@fea00000 {
+			compatible = "virtio,mmio";
+			reg = <0x0 0xfea00000 0x0 0x200>;
+			interrupts = <GIC_SPI 160 IRQ_TYPE_LEVEL_HIGH>;
+		};
+		virtio_mmio@fea00200 {
+			compatible = "virtio,mmio";
+			reg = <0x0 0xfea00200 0x0 0x200>;
+			interrupts = <GIC_SPI 161 IRQ_TYPE_LEVEL_HIGH>;
+		};
+		virtio_mmio@fea00400 {
+			compatible = "virtio,mmio";
+			reg = <0x0 0xfea00400 0x0 0x200>;
+			interrupts = <GIC_SPI 162 IRQ_TYPE_LEVEL_HIGH>;
+		};
+		virtio_mmio@fea00600 {
+			compatible = "virtio,mmio";
+			reg = <0x0 0xfea00600 0x0 0x200>;
+			interrupts = <GIC_SPI 163 IRQ_TYPE_LEVEL_HIGH>;
+		};
+	};
+};

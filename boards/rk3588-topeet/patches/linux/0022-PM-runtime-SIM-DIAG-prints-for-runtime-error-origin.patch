@@ -1,0 +1,48 @@
+From d16022abaeeed4d595cd3a902ec0aec494539723 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sat, 29 Aug 2026 15:11:49 +0800
+Subject: [PATCH] PM: runtime: SIM-DIAG prints for runtime_error origin (rk3588
+ sim bring-up)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Diagnostic patch for the rk3588 QEMU sim: vop2_enable's
+pm_runtime_resume_and_get fails with -EINVAL at first modeset and
+self-heals minutes later; log (a) every callback failure that sets
+dev->power.runtime_error — the function, device and error code — and
+(b) every sticky -EINVAL return in rpm_resume.  Drop once the
+origin is identified.  Sim campaign 4.
+---
+ drivers/base/power/runtime.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/base/power/runtime.c b/drivers/base/power/runtime.c
+index 335288e8b..d3ff3fd79 100644
+--- a/drivers/base/power/runtime.c
++++ b/drivers/base/power/runtime.c
+@@ -469,8 +469,11 @@ static int rpm_callback(int (*cb)(struct device *), struct device *dev)
+ 	if (retval == -EACCES)
+ 		retval = -EAGAIN;
+ 
+-	if (retval != -EAGAIN && retval != -EBUSY)
++	if (retval != -EAGAIN && retval != -EBUSY) {
+ 		dev->power.runtime_error = retval;
++		pr_info("SIM-DIAG: %s: dev=%s runtime_error=%d set\n",
++			__func__, dev_name(dev), retval);
++	}
+ 
+ 	return retval;
+ }
+@@ -795,6 +798,8 @@ static int rpm_resume(struct device *dev, int rpmflags)
+  repeat:
+ 	if (dev->power.runtime_error) {
+ 		retval = -EINVAL;
++		pr_info("SIM-DIAG: rpm_resume: dev=%s sticky runtime_error=%d\n",
++			dev_name(dev), dev->power.runtime_error);
+ 	} else if (dev->power.disable_depth > 0) {
+ 		if (dev->power.runtime_status == RPM_ACTIVE &&
+ 		    dev->power.last_status == RPM_ACTIVE)
+-- 
+2.43.0
+

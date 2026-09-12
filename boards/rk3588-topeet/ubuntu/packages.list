@@ -47,3 +47,11 @@ curl
 wget
 htop
 i2c-tools
+
+# --- sim 研究机诊断武器（note 83：最小系统缺这些，战役期靠内核 printk
+#     打点 + 手写 mini-readelf 绕行，时间税太高）---
+strace          # ioctl/syscall/mmap 踩点（M1 的 GROUP_CREATE 定位本可用它直取）
+binutils        # objdump/readelf/nm：符号查询 + 崩点反汇编
+gdb             # 用户态 segfault 调试（mesa cs_builder 崩点攻坚）
+xz-utils        # 从 guest 拖大文件（.so 等）出来做宿主反汇编
+sudo            # root 通道（tracefs/kprobe 要 root；NOPASSWD sudoers 由 stage 注入）

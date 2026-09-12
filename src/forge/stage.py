@@ -143,6 +143,16 @@ class StageRootfs:
         else:
             self.log.warn(f"no home to chown at {home} — account created at tar-build only")
 
+        # Dev-board convenience: the login account is in the `sudo` group, but
+        # that still prompts — and this rootfs has no usable root password to
+        # fall back to. Research/bring-up flows (tracefs mounts, kprobes) run
+        # unattended over serial; give the dev account passwordless sudo.
+        sudoers = root / "etc" / "sudoers.d"
+        sudoers.mkdir(parents=True, exist_ok=True)
+        (sudoers / "010-dev-nopasswd").write_text(
+            f"{username} ALL=(ALL) NOPASSWD: ALL\n")
+        os.chmod(sudoers / "010-dev-nopasswd", 0o440)
+
         # DNS: chroot-era resolv.conf leftover resolves nothing.
         dns = u.dns or "223.5.5.5"
         (root / "etc").mkdir(exist_ok=True)
