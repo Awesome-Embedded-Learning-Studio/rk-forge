@@ -27,6 +27,7 @@
 - 1:1 条带：`--strips --strip-rows 100,500,990,1500,2000`（STGSTRIPS dump 后逐行定谳；16px 位移注入已验证判别力）
 - 原始页分类：`--classify`（熵/零/排版字符/LPAE 指针特征→image/pagetable/text/mixed）
 - **MCP 读图永不作判据**（两次把差 94 读成"完美浣熊"）——只可作 diff-heat.ppm 的旁白；人眼复核也只看热图
+- **验收协议（用户令，note 113 后生效）**：数值 PASS ≠ 达成——每轮改动用 verify_screen.py 判决；只有当判决 PASS 后，**必须邀请用户现场把关**（拷 PNG 到 Windows 桌面+用户亲眼看屏/图确认）才可宣称"可见/达成"。note 76 证据门的两段式：机器判据→人眼终审
 - QEMU 取证 dump 必须全分辨率（稀疏降采样会制造碎片伪影）；extract 快照寻址开关：默认线性（量化较优），FSQUAD_STGTILED=1 切瓦片
 
 ## 核心机制地图（全在 hw/arm/rk3588-lite.c，经 qemu patch 落库）
