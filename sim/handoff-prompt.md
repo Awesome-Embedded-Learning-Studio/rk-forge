@@ -4,23 +4,30 @@
 
 ---
 
-我在 `~/rk-forge` 继续 RK3588 QEMU 仿真研究线（战役七 panthor）的工作。开始前先读记忆（`~/.claude/projects/-home-charliechen-rk-forge/memory/` 下 MEMORY.md 及各条目）和 `document/notes/101-107`，这里只给当前落点：
+我在 `~/rk-forge` 继续 RK3588 QEMU 仿真研究线（战役七 panthor）的工作。开始前先读记忆（`~/.claude/projects/-home-charliechen-rk-forge/memory/` 下 MEMORY.md 及各条目）和 `document/notes/101-113`，这里只给当前落点：
 
 ## 总成果（M2n 全线，分支 feat/sim_rk3568，绝不 push）
 
-**显示接管基建落成**（notes 109-111）：帧节拍重绘+屏级快照+AS 捕获自证门+五点标记取证（坐标链路零误差定谳）。现行形态 `FSQUAD_REPAINT=1 GPUDBG=1 FSQUAD=1 FSQUAD_REALIMG=1 FSQUAD_BGFULLRES=1 GDM=1 + resboot` = 稳定 100% 非黑/714 色/0 黑行。**当前悬案**：屏上壁纸内容碎片化（浣熊分解）——staging 缓冲渐进状态（GNOME 渐进上传假说），note 111 §4 三刀口。证据：m2n-repaint-fragmented.ppm（git）。
+**显示接管基建落成**（notes 109-111）：帧节拍重绘（VOP 60fps 重铺+console 缓存失效）+屏级快照+AS 捕获自证门+五点标记取证（坐标链路零误差定谳）。现行形态 `FSQUAD_REPAINT=1 GPUDBG=1 FSQUAD=1 FSQUAD_REALIMG=1 FSQUAD_BGFULLRES=1 GDM=1 + resboot`。
 
-里程碑链（notes 101-111）：采样 FS 侦察 → 受控矩阵 → 异步分片 → 双病分流 → 界内全证 → 壁纸作业门 → 显示点亮 → 内容工程 → 毒根修（缝合写）→ 屏幕垃圾根修 → 细节五连修 → **显示接管基建+坐标定谳** → 余=staging 完整性悬案。
+**屏幕内容现状（note 112-113 诚实定量，verify_screen.py 判决）**：壁纸背景色系+低频光芒在，浣熊未成形——final3（线性快照时代）bg_p90=22.4/st_p50=62（FAIL）；til2（tiled 快照）bg_p90=92 更糟。此前"背景像素级吻合/脸局部成形"宣称=角落采样幸存者偏差+MCP 幻觉，均已翻案。**staging 脸区（偏移 12-18MB）悬案**：与任何壁纸变体、任何读法（线性/tiled/位移±24）都不匹配——内容本质未知。
 
-## 三层残局（notes 108-112）
+里程碑链（notes 101-113）：采样 FS 侦察 → 受控矩阵 → 异步分片 → 双病分流 → 界内全证 → 壁纸作业门 → 显示点亮 → 内容工程 → 毒根修（缝合写）→ 屏幕垃圾根修 → 细节五连修 → 显示接管基建+坐标定谳 → staging 读路径实验 → **校验武器化（verify_screen.py）** → 余=脸区悬案。
+
+## 三层残局（notes 108-113）
 
 1. ~~迟发毒~~ **已根修**（note 108 缝合写；note 110 读侧缝合补齐）
 2. ~~屏幕竖条纹垃圾~~ **已根修**（note 109 条带门+页表自画像门）
 3. ~~坐标错位~~ **已定谳零误差**（note 111 五点标记精确落位）
-4. **浣熊脸区（open）**：背景与参照**像素级吻合（差 5-9=greeter 调光恒偏）**、光芒连贯、脸局部成形（圆眼+三角鼻）；脸区 54-66 悬案=staging 脸区 texel 的确切映射（两种"正确"读法不一致）。刀口：dump 全 AS 脸区页翻译比对/gems-gpuvas 对账/va_pa_in 2MB 块分支嫌疑（note 112 §4）
+4. **浣熊脸区（open，最高优先）**：staging 脸区 6MB 内容本质未知（全变体/全读法不匹配）。**刀口（note 112 §6）**：QEMU 里加 STGDUMPFACE 把脸区原始字节 dump 出来 → `verify_screen.py --classify` 分类（image/pagetable/text/mixed？）→ 按分类结果定读法；辅以 STGSTRIPS 1:1 条带（已埋点，上轮 boot 被杀未取到）+ gems-gpuvas 对账
 5. **UI 层合成/字形位姿（FAU）/vt1-nudge**：照旧 open
 
-**现行最优形态**：`FSQUAD_REPAINT=1 GPUDBG=1 FSQUAD=1 FSQUAD_REALIMG=1 FSQUAD_BGFULLRES=1 GDM=1 + resboot`。取证仪器：STGCROP/STGCROPS/STGDUMPLIN/STGDUMPTILED（全分辨率！稀疏 dump 会制造碎片伪影——note 112 教训）、FSQUAD_MARK 标记注入、区域差值法（参照盒式降采样为期望图）。
+**内容验收仪器（note 113，权威）**：`sim/verify_screen.py` 确定性数值判决——
+- 全屏对照：`python3 sim/verify_screen.py 屏.ppm --ref out/rk3588-topeet/ubuntu-rootfs.work/usr/share/backgrounds/cnusr25-Simple_Raccoon_Dark.png` → 背景域 p90≤20 且结构域 p50≤40=PASS（自动估 greeter 调光恒偏 ~[-11,-9,-10]）
+- 1:1 条带：`--strips --strip-rows 100,500,990,1500,2000`（STGSTRIPS dump 后逐行定谳；16px 位移注入已验证判别力）
+- 原始页分类：`--classify`（熵/零/排版字符/LPAE 指针特征→image/pagetable/text/mixed）
+- **MCP 读图永不作判据**（两次把差 94 读成"完美浣熊"）——只可作 diff-heat.ppm 的旁白；人眼复核也只看热图
+- QEMU 取证 dump 必须全分辨率（稀疏降采样会制造碎片伪影）；extract 快照寻址开关：默认线性（量化较优），FSQUAD_STGTILED=1 切瓦片
 
 ## 核心机制地图（全在 hw/arm/rk3588-lite.c，经 qemu patch 落库）
 
@@ -57,4 +64,4 @@
 
 ## 纪律
 
-**绝不 push**；commit 禁 Co-Authored-By；一课题一编号笔记（下一号 108）；诚实边界（note 76 证据门——未验证的"可见"不宣称）；/tmp 只放可丢的临时物。
+**绝不 push**；commit 禁 Co-Authored-By；一课题一编号笔记（下一号 114）；诚实边界（note 76 证据门——未验证的"可见"不宣称）；/tmp 只放可丢的临时物。
