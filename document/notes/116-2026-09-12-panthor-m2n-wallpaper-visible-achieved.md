@@ -72,3 +72,16 @@ bf=13 tiled——自洽但与 mutter 复合 job 的线性 body 区错位 0x800�
 
 （战役七链：…参照错案破案+三门投票→顶点形态 E+复合通道→**扫描输出
 布局根修=真壁纸全屏显示达成🏆**→余=UI 层/字形/AFBC 读侧对账）
+
+## 6. 后记（同日收官补充）
+
+- **终点定谳（用户令）**：「可点亮」= 本战役终点（已达成并经两段式
+  验收）。SDL 弹窗交互未成——resboot.out 见 libEGL DRI3 告警，窗口
+  未在用户桌面出现（启动环境 DISPLAY/WSLg 变量缺失嫌疑，不再追）。
+  输入日用品已就位：up.py 起机即 HMP `gt911_mouse off`（note 79
+  两路 grab 教训）+ virtio tablet/keyboard。
+- **rk3568 线零干扰回归**：含全部本战役改动的当前二进制上
+  `smoke.py linux --check` 3 PASS + `rootfs --check` 2 PASS。
+- **sim/ 清理**：logs 986MB→22MB（git clean -x，仅留 12 个入库证据
+  PPM，新增 m2n-warty-pass.ppm）；13 个退役取证脚本 git mv 至
+  sim/attic/（README 注明出处与现行面）。
