@@ -22,7 +22,7 @@
 2. ~~屏幕竖条纹垃圾~~ **已根修**（note 109 条带门+页表自画像门）
 3. ~~坐标错位~~ **已定谳零误差**（note 111 五点标记精确落位）
 4. ~~浣熊脸区悬案~~ **主体破案（note 114）**：=参照图错误。staging 内容 vs warty 原位字节精确（span dump mad=0.00）
-5. **y 置换来源（open，最高优先）**：staging 内存里图像整行完好、x 对齐、y 错位（+15ms→5s 恒定=终态非竞速）。两假设：**(a) 我们自己的 rjob 逐页写**——3840×2160 线性 rt（VA 7ffff7c00000）的 VA→PA 若 2MB 段散布（136 行/段），写出的即 y 段位置换，页回收进下一代 staging 表现为"行完好但错位"；(b) mutter 双阶段上传中间 job 语义错。**刀口**：GPUWRITELOG scatter 审计 + 置换边界与 2MB 段界（136 行）对齐检验 + 三个 3840 FBD 的 rt PA 与 staging PA 包含关系表（boot5 实测 reg2 rt0=0x59e00000 落在 reg1 staging [0x58400000,+30MB) 内！）
+5. **整图平移来源（open，最高优先，note 114 §5 续段）**：staging 置换已定谳=**纯平移 (+272 行,+256 列)=+0x3FC400 字节**（全部结构行 dx=-256 恒定、a=0.99 无缩放；span 行 0-272=warty 原位 mad=0.00=CPU 上传本体、273-546=精确灰度带、546+=平移副本）。stage[]-snap A/B 证明平移副本与我们的采样同源（st 55.8 vs 25.2）→**收敛假设=壁纸 job 的 quad verts 只解出 min 角**（log verts=bf800000 bf800000 00000000 00000000，两个 -1.0 两个 0）→rjob 把 draw 画到平移子矩形→页回收带进下一代 staging。**刀口**：t2 顶点四形态对壁纸 job 重新取证（dump 顶点缓冲原文）+光栅 NDC→RT 映射审计；修好后 FSQUAD_STAGESNAP=1 转正
 6. **UI 层合成/字形位姿（FAU）/vt1-nudge**：照旧 open
 
 **内容验收仪器（note 113-114，权威）**：`sim/verify_screen.py` 确定性数值判决——

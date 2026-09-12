@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..d871948
+index 0000000..a25b4fd
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,6705 @@
+@@ -0,0 +1,6716 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1104,6 +1104,10 @@ index 0000000..d871948
 +                           * 快照三门统一：候选须严格更优才换，防垃圾
 +                           * 再注册把好快照顶掉——实测 reg2 垃圾 15ms
 +                           * 后顶掉 reg1 的 bit-exact warty 快照） */
++    bool bg_snap_stage;   /* 当前快照来自 rjob stage[]（draw 自身 UV 映
++                           * 射，权威）——extract/timer 的"假设满幅映射"
++                           * 快照（实测内容在 staging 里平移 +256px/
++                           * +272 行）不得顶替它 */
 +    uint32_t *bg_screen;   /* 屏级快照（rjob 期采样成功后缓存——
 +                            * staging BO 会被 mutter 释放，tick 期直读=黑屏；
 +                            * 脱离 guest BO 生命周期） */
@@ -3910,10 +3914,11 @@ index 0000000..d871948
 +                                nb6++;
 +                            }
 +                        }
-+                        bool better = !g->bg_screen
-+                            || (g->bg_screen_w == ksw
-+                                && g->bg_screen_h == ksh
-+                                && nb6 > g->bg_nb6);
++                        bool better = !g->bg_snap_stage
++                            && (!g->bg_screen
++                                || (g->bg_screen_w == ksw
++                                    && g->bg_screen_h == ksh
++                                    && nb6 > g->bg_nb6));
 +                        if (better && (g->bg_screen || nb6 >= 48)) {
 +                            g_free(g->bg_screen);
 +                            g->bg_screen = snap;
@@ -4556,7 +4561,7 @@ index 0000000..d871948
 +     * （旧 ==64 门被"非黑噪声凑数"的旧样本反超挡死，实测 56/64）。
 +     * note 114 修正：BO 释放后此期样本=回收残页，须严格更优才换
 +     * （与 extract-snap/painter 三门一致），否则顶掉好快照。 */
-+    bool tbetter = nb6 >= 48
++    bool tbetter = nb6 >= 48 && !g->bg_snap_stage
 +        && (!g->bg_screen
 +            || (g->bg_screen_w == sw && g->bg_screen_h == sh
 +                && nb6 > g->bg_nb6));
@@ -5065,11 +5070,14 @@ index 0000000..d871948
 +            };
 +            /* M2n 真源快照：staging 源 job 的 stage[] 在 draw 时刻
 +             * 采样——mutter 先传完再画，此刻 staging 必完整（渐进
-+             * 上传的中间态只存在于事后重读）。降采样直接入屏快照，
-+             * 覆盖一切旧快照。 */
++             * 上传的中间态只存在于事后重读）。降采样直接入屏快照。
++             * note 114 A/B：stage[]=本模型采样的 draw 映射——实测它
++             * 与 staging 内容同带 +256px/+272 行平移（疑似我们 quad
++             * verts 只解出 min 角的错位写入），默认关（extract-snap
++             * 结构域更优 st 25 vs 56），FSQUAD_STAGESNAP=1 开。 */
 +            if (g->rjob.stg_src && stage && w >= 1024 && h >= 768
 +                && *g->vop_scan_w >= 16 && *g->vop_scan_h >= 16
-+                && !g->bg_screen) {   /* extract 期快照权威,勿覆盖 */
++                && !g->bg_snap_stage && getenv("FSQUAD_STAGESNAP")) {
 +                unsigned ksw = *g->vop_scan_w, ksh = *g->vop_scan_h;
 +                uint32_t *snap = g_malloc_n(ksw, ksh * sizeof(uint32_t));
 +                if (snap) {
@@ -5114,9 +5122,12 @@ index 0000000..d871948
 +                        g->bg_screen = snap;
 +                        g->bg_screen_w = ksw;
 +                        g->bg_screen_h = ksh;
++                        g->bg_nb6 = 64;
++                        g->bg_snap_stage = true;
 +                        if (getenv("GPUDBG")) {
 +                            fprintf(stderr,
-+                                    "GPUW stg-snap %ux%u from %ux%u\n",
++                                    "GPUW stg-snap %ux%u from %ux%u "
++                                    "(stage-authoritative)\n",
 +                                    ksw, ksh, w, h);
 +                        }
 +                    } else {
