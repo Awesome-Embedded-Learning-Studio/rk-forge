@@ -4,7 +4,7 @@
 
 ---
 
-我在 `~/rk-forge` 继续 RK3588 QEMU 仿真研究线（战役七 panthor）的工作。开始前先读记忆（`~/.claude/projects/-home-charliechen-rk-forge/memory/` 下 MEMORY.md 及各条目）和 `document/notes/101-114`，这里只给当前落点：
+我在 `~/rk-forge` 继续 RK3588 QEMU 仿真研究线（战役七 panthor）的工作。开始前先读记忆（`~/.claude/projects/-home-charliechen-rk-forge/memory/` 下 MEMORY.md 及各条目）和 `document/notes/101-115`，这里只给当前落点：
 
 ## 总成果（M2n 全线，分支 feat/sim_rk3568，绝不 push）
 
@@ -22,8 +22,8 @@
 2. ~~屏幕竖条纹垃圾~~ **已根修**（note 109 条带门+页表自画像门）
 3. ~~坐标错位~~ **已定谳零误差**（note 111 五点标记精确落位）
 4. ~~浣熊脸区悬案~~ **主体破案（note 114）**：=参照图错误。staging 内容 vs warty 原位字节精确（span dump mad=0.00）
-5. **整图平移来源（open，最高优先，note 114 §5 续段）**：staging 置换已定谳=**纯平移 (+272 行,+256 列)=+0x3FC400 字节**（全部结构行 dx=-256 恒定、a=0.99 无缩放；span 行 0-272=warty 原位 mad=0.00=CPU 上传本体、273-546=精确灰度带、546+=平移副本）。stage[]-snap A/B 证明平移副本与我们的采样同源（st 55.8 vs 25.2）→verts 论已证伪（打印四字=bg-fallback 满屏 quad 的顶点 0，fallback 本身无平移来源）。**GPUWRITELOG 实锤：写侧物理交叠**——reg2 rt0=AFBC PA 0x58e00000 落在 reg1 staging 区间内、rjob 写 135 sbrow/33.7MB、reg2 staging(0x59200000) 也在写入区间、全 boot 69,767 次 scatter 偏离。mutter BO 世代链（staging₁ 释放→页回收成 job₂ 的 rt 与 staging₂）与我们 rjob 写区间物理交叠。**刀口：job₂ rt0 VA(7ffff9400000) 的 va_pa_write 翻译 vs 当刻 guest gpuvas 真值逐页对账**——错=写翻译根修（CSG 重配置窗口别名，M2e 老嫌疑），对=页复用自然形态、快照链按"只信 CPU 上传窗"重构
-6. **UI 层合成/字形位姿（FAU）/vt1-nudge**：照旧 open
+5. **整图平移来源（open，最高优先，note 114 §5 续段）**：staging 置换已定谳=**纯平移 (+272 行,+256 列)=+0x3FC400 字节**（全部结构行 dx=-256 恒定、a=0.99 无缩放；span 行 0-272=warty 原位 mad=0.00=CPU 上传本体、273-546=精确灰度带、546+=平移副本）。stage[]-snap A/B 证明平移副本与我们的采样同源（st 55.8 vs 25.2）→verts 论已证伪（打印四字=bg-fallback 满屏 quad 的顶点 0，fallback 本身无平移来源）。**GPUWRITELOG 实锤：写侧物理交叠**——reg2 rt0=AFBC PA 0x58e00000 落在 reg1 staging 区间内、rjob 写 135 sbrow/33.7MB、reg2 staging(0x59200000) 也在写入区间、全 boot 69,767 次 scatter 偏离。mutter BO 世代链（staging₁ 释放→页回收成 job₂ 的 rt 与 staging₂）与我们 rjob 写区间物理交叠。**已推进（note 115）**：顶点形态 E 破译（32B 步长/缩放±49.68 或像素空间+t2 size 字段+aspect-crop uv），bg-fallback 满幅假设降为 1 次/boot；屏复合 stage 通道贯通（FSQUAD_STAGESNAP=1，默认关）。**新首刀=AFBC 读写 tiled 不对称**：复合 stage=62.6% 黑+亮斑——tex_read_px ptype=6 读 vs rjob bf=13 写的头/body 公式对账（读写同参自证），修好后复合 stage 转正=屏复合本尊输出
+6. **UI 层合成/字形位姿（FAU）/vt1-nudge**：照旧 open（屏复合 draw 几何已破译——形态 E，note 115）
 
 **内容验收仪器（note 113-114，权威）**：`sim/verify_screen.py` 确定性数值判决——
 - 全屏对照：`python3 sim/verify_screen.py 屏.ppm --ref out/rk3588-topeet/ubuntu-rootfs.work/usr/share/backgrounds/warty-final-ubuntu.png` → 背景域 p90≤20 且结构域 p50≤40=PASS（调光恒偏已证伪，offset 应≈0）

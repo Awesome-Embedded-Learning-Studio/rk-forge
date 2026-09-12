@@ -357,10 +357,17 @@ def classify_pages(path, page=4096):
 
 # ---- CLI ---------------------------------------------------------------------
 
+# note 114 定谳：greeter 实际显示 warty-final（非 cnusr25——两壁纸同
+# 为暗紫底色系，历史误判源头）。写死为默认判据。
+DEFAULT_REF = ("out/rk3588-topeet/ubuntu-rootfs.work/usr/share/"
+               "backgrounds/warty-final-ubuntu.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("screen", help="屏幕 PPM（screendump）")
-    ap.add_argument("--ref", help="参照图 PNG/PPM（全屏对照/条带均需）")
+    ap.add_argument("--ref", default=DEFAULT_REF,
+                    help="参照图 PNG/PPM（默认=warty-final，note 114 定谳）")
     ap.add_argument("--out-dir", help="热图输出目录")
     ap.add_argument("--strips", action="store_true",
                     help="1:1 条带模式（screen=条带 PPM，配 --strip-rows）")

@@ -715,10 +715,10 @@ index 0000000..94801f3
 +DEFINE_TYPES(rk3568_lite_machine_types)
 diff --git a/hw/arm/rk3588-lite.c b/hw/arm/rk3588-lite.c
 new file mode 100644
-index 0000000..a25b4fd
+index 0000000..4e9f8b7
 --- /dev/null
 +++ b/hw/arm/rk3588-lite.c
-@@ -0,0 +1,6716 @@
+@@ -0,0 +1,6902 @@
 +/*
 + * Rockchip RK3588-lite: heterogeneous minimal machine (4x Cortex-A55 +
 + * 4x Cortex-A76), DRAM at 0 (CFG_SYS_SDRAM_BASE=0), mainline Linux bring-up.
@@ -1108,6 +1108,8 @@ index 0000000..a25b4fd
 +                           * 射，权威）——extract/timer 的"假设满幅映射"
 +                           * 快照（实测内容在 staging 里平移 +256px/
 +                           * +272 行）不得顶替它 */
++    bool bg_snap_scr;     /* 在位 stage 快照是屏尺寸（复合 draw 本尊输
++                           * 出，最高优先级）——仅屏尺寸候选可顶替 */
 +    uint32_t *bg_screen;   /* 屏级快照（rjob 期采样成功后缓存——
 +                            * staging BO 会被 mutter 释放，tick 期直读=黑屏；
 +                            * 脱离 guest BO 生命周期） */
@@ -3583,6 +3585,150 @@ index 0000000..a25b4fd
 +        memcpy(g->fs_quad, q, sizeof(q));
 +        quad_ok = rk3588_quad_sane(g->fs_quad);
 +    }
++    if (!quad_ok && vbuf[0] != HWADDR_MAX) {
++        /* E：32B 步长非 NDC 空间顶点（note 114 GPUVERTDUMP 实测）——
++         * mutter 上传/合成类：pos@+0 在固定缩放空间（满幅 quad=
++         * ±49.68/±29.05∝屏比，+16 区零/1.0 稀疏）或 FBO 像素空间
++         * （0..1024/0..600，+16 区=归一化 uv 含 aspect-crop
++         * [0.0198..0.9787]）。[-1,1] 门把它们全挡掉=bg-fallback
++         * 满幅假设的来源（越界读/写真身）。空间锚点=全 buffer 顶点
++         * min/max；quad=前 4 顶点；满幅守卫 ≥0.8（条带类弃权走原
++         * 双维门）。uv：+16 区像 uv（∈[0,1]）则用之，否则恒等映射
++         * （TEX_FETCH 像素 uv 预乘纹理尺寸）。 */
++        float vx[8], vy[8], ux[8], uy[8];
++        unsigned nv = 0;
++        float sminx = 1e9f, smaxx = -1e9f, sminy = 1e9f, smaxy = -1e9f;
++        /* 顶点数=t2 array 条目的 size 字段（qword 高 32 位；实测
++         * 128/116/112B=4×32B）。像素空间首顶点合法为 (0,0)——不能
++         * 拿 (0,0) 当缓冲尽头。 */
++        uint64_t t2e0 = address_space_ldq_le(&address_space_memory,
++                                              vb,
++                                              MEMTXATTRS_UNSPECIFIED, NULL);
++        unsigned nvmax = (unsigned)(t2e0 >> 32) / 32;
++
++        if (nvmax < 4 || nvmax > 8) {
++            nvmax = 8;    /* size 不可信=按上限扫，靠范围门兜底 */
++        }
++        for (unsigned v2 = 0; v2 < nvmax; v2++) {
++            uint32_t wx = address_space_ldl_le(
++                &address_space_memory, vbuf[0] + v2 * 32,
++                MEMTXATTRS_UNSPECIFIED, NULL);
++            uint32_t wy = address_space_ldl_le(
++                &address_space_memory, vbuf[0] + v2 * 32 + 4,
++                MEMTXATTRS_UNSPECIFIED, NULL);
++            float fx, fy;
++
++            memcpy(&fx, &wx, 4);
++            memcpy(&fy, &wy, 4);
++            if (!(fx == fx) || !(fy == fy)
++                || !(fx > -4096.0f && fx < 4096.0f)
++                || !(fy > -4096.0f && fy < 4096.0f)) {
++                break;    /* 越界/NaN=缓冲到头 */
++            }
++            vx[nv] = fx;
++            vy[nv] = fy;
++            sminx = MIN(sminx, fx);
++            smaxx = MAX(smaxx, fx);
++            sminy = MIN(sminy, fy);
++            smaxy = MAX(smaxy, fy);
++            nv++;
++        }
++        if (nv >= 4) {
++            float cx = (sminx + smaxx) / 2, hx = (smaxx - sminx) / 2;
++            float cy = (sminy + smaxy) / 2, hy = (smaxy - sminy) / 2;
++            /* 满幅守卫：quad 覆盖 ≥0.8 空间（条带=拉伸伪影，弃权） */
++            float qwx = MAX(vx[0], MAX(vx[1], MAX(vx[2], vx[3])))
++                - MIN(vx[0], MIN(vx[1], MIN(vx[2], vx[3])));
++            float qwy = MAX(vy[0], MAX(vy[1], MAX(vy[2], vy[3])))
++                - MIN(vy[0], MIN(vy[1], MIN(vy[2], vy[3])));
++
++            if (hx > 0 && hy > 0
++                && qwx >= 0.8f * hx * 2 && qwy >= 0.8f * hy * 2) {
++                /* uv：首顶点 +16 区像归一化 uv 则取 buffer uv */
++                uint32_t wu = address_space_ldl_le(
++                    &address_space_memory, vbuf[0] + 16,
++                    MEMTXATTRS_UNSPECIFIED, NULL);
++                uint32_t wv = address_space_ldl_le(
++                    &address_space_memory, vbuf[0] + 20,
++                    MEMTXATTRS_UNSPECIFIED, NULL);
++                float fu, fv;
++                bool have_uv = false;
++
++                memcpy(&fu, &wu, 4);
++                memcpy(&fv, &wv, 4);
++                if (fu >= 0 && fu <= 1.001f && fv >= 0 && fv <= 1.001f
++                    && (fu > 0 || fv > 0)) {
++                    for (unsigned v2 = 0; v2 < 4; v2++) {
++                        uint32_t wu2 = address_space_ldl_le(
++                            &address_space_memory, vbuf[0] + v2 * 32 + 16,
++                            MEMTXATTRS_UNSPECIFIED, NULL);
++                        uint32_t wv2 = address_space_ldl_le(
++                            &address_space_memory, vbuf[0] + v2 * 32 + 20,
++                            MEMTXATTRS_UNSPECIFIED, NULL);
++
++                        memcpy(&ux[v2], &wu2, 4);
++                        memcpy(&uy[v2], &wv2, 4);
++                    }
++                    have_uv = true;
++                }
++                uint32_t q[16];
++                /* 规范角序（raster 消费序：v0=(x0,y0) v1=(x1,·)
++                 * v2=(·,y1) v3=(x1,y1)）——dump 实测 strip 序
++                 * (−,+)(−,−)(+,−)(+,+) 的 v0.x=v1.x 过不了门。
++                 * 角=quad 自身 min/max，NDC 按空间锚点归一。 */
++                float qminx = MIN(MIN(vx[0], vx[1]), MIN(vx[2], vx[3]));
++                float qmaxx = MAX(MAX(vx[0], vx[1]), MAX(vx[2], vx[3]));
++                float qminy = MIN(MIN(vy[0], vy[1]), MIN(vy[2], vy[3]));
++                float qmaxy = MAX(MAX(vy[0], vy[1]), MAX(vy[2], vy[3]));
++                float qx[4] = { qminx, qmaxx, qminx, qmaxx };
++                float qy[4] = { qminy, qminy, qmaxy, qmaxy };
++
++                for (unsigned v2 = 0; v2 < 4; v2++) {
++                    float nx = (qx[v2] - cx) / hx;
++                    float ny = (qy[v2] - cy) / hy;
++                    float uu, vv;
++
++                    if (have_uv && !g->fs_pixel_uv) {
++                        /* 就近顶点的 buffer uv */
++                        unsigned best = 0;
++                        float bd = 1e18;
++
++                        for (unsigned v3 = 0; v3 < 4; v3++) {
++                            float d = (vx[v3] - qx[v2]) * (vx[v3] - qx[v2])
++                                + (vy[v3] - qy[v2]) * (vy[v3] - qy[v2]);
++
++                            if (d < bd) {
++                                bd = d;
++                                best = v3;
++                            }
++                        }
++                        uu = ux[best];
++                        vv = uy[best];
++                    } else {
++                        uu = (nx + 1) / 2;
++                        vv = (ny + 1) / 2;
++                        if (g->fs_pixel_uv) {
++                            uu *= tw;
++                            vv *= th;
++                        }
++                    }
++                    memcpy(&q[v2 * 4], &nx, 4);
++                    memcpy(&q[v2 * 4 + 1], &ny, 4);
++                    memcpy(&q[v2 * 4 + 2], &uu, 4);
++                    memcpy(&q[v2 * 4 + 3], &vv, 4);
++                }
++                memcpy(g->fs_quad, q, sizeof(q));
++                quad_ok = rk3588_quad_sane(g->fs_quad);
++                if (quad_ok && getenv("GPUDBG")) {
++                    fprintf(stderr,
++                            "GPUQUAD vert-E nv=%u space=%.2fx%.2f "
++                            "uv=%s\n",
++                            nv, smaxx - sminx, smaxy - sminy,
++                            have_uv ? "buffer" : "identity");
++                }
++            }
++        }
++    }
 +    if (!quad_ok && vbuf[0] != HWADDR_MAX && vbuf[1] != HWADDR_MAX) {
 +        /* B/C：分离 8B 双缓冲，两种属性序都试（mutter 实测 pos 可在
 +         * buf1——属性发射顺序随 shader 变） */
@@ -3622,6 +3768,35 @@ index 0000000..a25b4fd
 +            quad_ok = true;
 +            if (getenv("GPUDBG")) {
 +                fprintf(stderr, "GPUQUAD bg-fallback tex=%ux%u\n", tw, th);
++            }
++            /* note 114 刀口：fallback 前顶点缓冲原文 dump——满幅 quad
++             * 越界读/写（staging 实为 ~12MB 分块 BO，声明 33MB）的
++             * 真实 sub-rect 就藏在没解出来的顶点里。 */
++            if (getenv("GPUVERTDUMP")) {
++                for (unsigned b = 0; b < 2; b++) {
++                    if (vbuf[b] == HWADDR_MAX) {
++                        continue;
++                    }
++                    fprintf(stderr, "GPUVERT buf%u @%llx:", b,
++                            (unsigned long long)vbuf[b]);
++                    for (unsigned k = 0; k < 64; k++) {
++                        fprintf(stderr, " %08x",
++                                (unsigned)address_space_ldl_le(
++                                    &address_space_memory,
++                                    vbuf[b] + k * 4,
++                                    MEMTXATTRS_UNSPECIFIED, NULL));
++                    }
++                    fprintf(stderr, "\n");
++                }
++                fprintf(stderr, "GPUVERT t2array @%llx:",
++                        (unsigned long long)vb);
++                for (unsigned k = 0; k < 16; k++) {
++                    fprintf(stderr, " %016llx",
++                            (unsigned long long)address_space_ldq_le(
++                                &address_space_memory, vb + k * 8,
++                                MEMTXATTRS_UNSPECIFIED, NULL));
++                }
++                fprintf(stderr, "\n");
 +            }
 +        }
 +    }
@@ -4357,6 +4532,10 @@ index 0000000..a25b4fd
 +        g->rjob.solid = ((uint64_t)w * h > 4ull * 1024 * 1024
 +                         || (getenv("FSQUAD_REALIMG")
 +                             && (uint64_t)w * h >= 256ull * 256))
++                        /* 屏尺寸复合豁免（note 114）：复合 draw 的
++                         * stage[]=屏内容本尊（stg-snap 最高优先源），
++                         * solid 捷径会让 stage=NULL 断源。 */
++                        && !(w == *g->vop_scan_w && h == *g->vop_scan_h)
 +                        /* M2n 全分辨率回归：solid/realimg 是毒时代的
 +                         * 带宽妥协——缝合写根修后（note 108），BG 类
 +                         * job（≥1024×768）可走完整 phase0 采样+phase1
@@ -5075,9 +5254,14 @@ index 0000000..a25b4fd
 +             * 与 staging 内容同带 +256px/+272 行平移（疑似我们 quad
 +             * verts 只解出 min 角的错位写入），默认关（extract-snap
 +             * 结构域更优 st 25 vs 56），FSQUAD_STAGESNAP=1 开。 */
-+            if (g->rjob.stg_src && stage && w >= 1024 && h >= 768
++            /* 屏尺寸 stage（复合 draw 本尊输出）> 其他 stage：允许
++             * 屏尺寸候选顶替非屏尺寸在位 stage，反之不许。 */
++            bool scr_sized = w == *g->vop_scan_w && h == *g->vop_scan_h;
++            if ((g->rjob.stg_src || scr_sized)
++                && stage && w >= 1024 && (h >= 768 || scr_sized)
 +                && *g->vop_scan_w >= 16 && *g->vop_scan_h >= 16
-+                && !g->bg_snap_stage && getenv("FSQUAD_STAGESNAP")) {
++                && (!g->bg_snap_stage || (scr_sized && !g->bg_snap_scr))
++                && getenv("FSQUAD_STAGESNAP")) {
 +                unsigned ksw = *g->vop_scan_w, ksh = *g->vop_scan_h;
 +                uint32_t *snap = g_malloc_n(ksw, ksh * sizeof(uint32_t));
 +                if (snap) {
@@ -5124,11 +5308,13 @@ index 0000000..a25b4fd
 +                        g->bg_screen_h = ksh;
 +                        g->bg_nb6 = 64;
 +                        g->bg_snap_stage = true;
++                        g->bg_snap_scr = scr_sized;
 +                        if (getenv("GPUDBG")) {
 +                            fprintf(stderr,
 +                                    "GPUW stg-snap %ux%u from %ux%u "
-+                                    "(stage-authoritative)\n",
-+                                    ksw, ksh, w, h);
++                                    "(stage-authoritative%s)\n",
++                                    ksw, ksh, w, h,
++                                    scr_sized ? ", screen" : "");
 +                        }
 +                    } else {
 +                        g_free(snap);
