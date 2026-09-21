@@ -45,21 +45,17 @@ defineProps<{
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: 50%;
-  font-size: 22px;
-  background: linear-gradient(
-    135deg,
-    var(--vp-c-brand-soft) 0%,
-    var(--vp-c-indigo-soft) 100%
-  );
-  border: 2px solid var(--vp-c-divider);
+  border-radius: 8px;
+  font-size: 20px;
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-text-1);
   z-index: 1;
-  transition: border-color 0.35s ease, transform 0.35s ease;
+  transition: border-color 0.18s ease;
 }
 
 .step-item:hover .step-item-icon {
   border-color: var(--vp-c-brand-1);
-  transform: scale(1.08);
+  transform: none;
 }
 
 .step-item-connector {
@@ -107,19 +103,16 @@ defineProps<{
   font-size: 11px;
   font-weight: 600;
   color: var(--vp-c-brand-1);
-  background: var(--vp-c-brand-soft);
+  background: transparent;
   padding: 1px 8px;
-  border-radius: 10px;
+  border-radius: 4px;
+  border-bottom: 1px solid var(--vp-c-brand-1);
   margin-top: 2px;
 }
 
 .dark .step-item-icon {
   border-color: var(--vp-c-border);
-  background: linear-gradient(
-    135deg,
-    rgba(81, 107, 232, 0.2) 0%,
-    rgba(177, 127, 232, 0.2) 100%
-  );
+  background: var(--vp-c-bg);
 }
 
 .dark .step-item:hover .step-item-icon {
