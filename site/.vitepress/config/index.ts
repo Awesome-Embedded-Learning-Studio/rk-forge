@@ -2,6 +2,8 @@ import { defineConfig } from 'vitepress'
 import type { DefaultTheme } from 'vitepress'
 import { buildSidebar } from './sidebar'
 import { resolvePlugins } from '../plugins'
+import { articleCodeThemes } from './article-code-theme'
+import { getFooterMessage } from './build-info'
 import type { ProjectConfig } from './schema'
 import { resolve } from 'path'
 
@@ -92,15 +94,17 @@ export default defineConfig({
 
   head: [
     ['link', { rel: 'icon', href: projectConfig.favicon || `${projectConfig.base}favicon.ico` }],
+    // 首屏渲染前应用字号档与侧栏宽度,防刷新闪烁;key/边界值须与 FontSizeSwitcher/ResizableSidebar 的 CONF 一致
+    ['script', {}, `(function(){try{var s=localStorage.getItem('vp-font-size')||'normal';if(s!=='xxsmall'&&s!=='small'&&s!=='normal'&&s!=='large'&&s!=='xxlarge'){s='normal';}document.documentElement.dataset.fontSize=s;}catch(e){}})()`],
+    ['script', {}, `(function(){try{var w=parseInt(localStorage.getItem('vp-sidebar-width-v2'));if(w>=240&&w<=480){document.documentElement.style.setProperty('--vp-sidebar-width',w+'px');}var a=parseInt(localStorage.getItem('vp-aside-width'));if(!a||a<180||a>360){a=256;}document.documentElement.style.setProperty('--vp-aside-width',a+'px');}catch(e){}})()`],
   ],
 
   markdown: {
     lineNumbers: true,
     math: projectConfig.plugins.math ?? false,
-    theme: {
-      light: 'github-light',
-      dark: 'github-dark',
-    },
+    // 注册空 output 语法:Shiki 纯文本别名会丢掉 language-output 语义标签。
+    languages: [{ name: 'output', scopeName: 'text.output', patterns: [] }],
+    theme: articleCodeThemes,
     config(md) {
       resolvePlugins(md, projectConfig)
     },
@@ -127,7 +131,7 @@ export default defineConfig({
     },
 
     footer: {
-      message: 'Built with VitePress',
+      message: getFooterMessage(),
       copyright: projectConfig.copyright,
     },
 

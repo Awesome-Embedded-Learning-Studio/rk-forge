@@ -32,22 +32,17 @@ const effectiveVariant = computed(() => props.variant ?? navVariant)
   gap: 12px;
   padding: 16px 18px;
   border: 1px solid var(--vp-c-divider);
-  border-radius: 12px;
-  background-color: var(--vp-c-bg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
-              0 1px 2px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  background-color: transparent;
+  box-shadow: none;
   text-decoration: none !important;
   color: var(--vp-c-text-1);
-  transition: border-color 0.35s ease,
-              box-shadow 0.35s ease,
-              transform 0.35s ease;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
 }
 
 .chapter-link:hover {
   border-color: var(--vp-c-brand-1);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1),
-              0 4px 8px rgba(0, 0, 0, 0.06);
-  transform: translateY(-3px);
+  background-color: var(--vp-c-bg-soft);
 }
 
 .chapter-badge {
@@ -55,15 +50,12 @@ const effectiveVariant = computed(() => props.variant ?? navVariant)
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  height: 36px;
+  min-width: 30px;
+  height: 30px;
   padding: 0 6px;
-  border-radius: 8px;
-  background: linear-gradient(
-    135deg,
-    var(--vp-c-brand-soft) 0%,
-    var(--vp-c-indigo-soft) 100%
-  );
+  border-radius: 5px;
+  border-right: 1px solid var(--vp-c-divider);
+  background: transparent;
   color: var(--vp-c-brand-1);
   font-size: 13px;
   font-weight: 700;
@@ -73,13 +65,9 @@ const effectiveVariant = computed(() => props.variant ?? navVariant)
 }
 
 .chapter-link:hover .chapter-badge {
-  background: linear-gradient(
-    135deg,
-    var(--vp-c-brand-1) 0%,
-    var(--vp-c-indigo-1) 100%
-  );
-  color: var(--vp-c-white);
-  transform: scale(1.06);
+  background: transparent;
+  color: var(--vp-c-brand-1);
+  transform: none;
 }
 
 .chapter-title {
@@ -109,7 +97,7 @@ const effectiveVariant = computed(() => props.variant ?? navVariant)
 
 .chapter-link--sub {
   padding: 12px 16px;
-  border-radius: 10px;
+  border-radius: 6px;
   gap: 10px;
 }
 
@@ -123,19 +111,18 @@ const effectiveVariant = computed(() => props.variant ?? navVariant)
 }
 
 .chapter-link--sub:hover {
-  transform: translateY(-2px);
+  transform: none;
 }
 
 .dark .chapter-link {
-  background-color: var(--vp-c-bg-elv);
+  background-color: transparent;
   border-color: var(--vp-c-border);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2),
-              0 1px 2px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
 }
 
 .dark .chapter-link:hover {
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3),
-              0 4px 8px rgba(0, 0, 0, 0.2);
+  background-color: var(--vp-c-bg-soft);
+  box-shadow: none;
 }
 
 @media (max-width: 639px) {

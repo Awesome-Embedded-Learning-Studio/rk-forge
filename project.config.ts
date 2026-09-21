@@ -38,7 +38,8 @@ export default defineProject({
       { name: 'planning', srcDir: 'planning', urlPrefix: '/planning' },
       { name: 'tutorial', srcDir: 'tutorial', urlPrefix: '/tutorial' },
       { name: 'pitfalls', srcDir: 'pitfalls', urlPrefix: '/pitfalls' },
-      { name: 'notes', srcDir: 'notes', urlPrefix: '/notes' },
+      // 121 篇日更笔记平铺会撑爆侧栏:按编号每 20 篇收一段,当前段自动展开
+      { name: 'notes', srcDir: 'notes', urlPrefix: '/notes', chunkFlatFiles: 20, chunkLabel: '笔记' },
     ],
     extra: {
       '/blueprint': [
@@ -84,6 +85,6 @@ export default defineProject({
   favicon: '/rk-forge/Awesome-Embedded.ico',
 
   homeBanner: {
-    'zh-CN': '🚀 新手必读：不知道从哪里开始？请先查看 <a href="/rk-forge/planning/">三板教学路线</a>，了解 RK3506B / RK3568 / RK3588 的完整学习路径。',
+    'zh-CN': '第一次来？从 <a href="/rk-forge/planning/">三板教学路线</a> 开始。它会告诉你 RK3506B、RK3568、RK3588 各自走到哪里，以及下一步该做什么。',
   },
 })

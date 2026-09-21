@@ -1,0 +1,108 @@
+/* Markdown quotations in the article body. Keep the native blockquote markup. */
+:root {
+  --article-quote-bg: transparent;
+  --article-quote-tint: transparent;
+  --article-quote-border: #c5bfb1;
+  --article-quote-accent: #c84b2f;
+  --article-quote-ink: #52564e;
+  --article-quote-shadow: none;
+  --article-quote-hover-shadow: none;
+}
+
+.dark {
+  --article-quote-bg: transparent;
+  --article-quote-tint: transparent;
+  --article-quote-border: #43473e;
+  --article-quote-accent: #f07a58;
+  --article-quote-ink: #b8b4a9;
+  --article-quote-shadow: none;
+  --article-quote-hover-shadow: none;
+}
+
+.vp-doc blockquote {
+  position: relative;
+  margin: 24px 0;
+  padding: 8px 22px 8px 32px;
+  border: 0;
+  border-left: 2px solid var(--article-quote-accent);
+  border-radius: 0 6px 6px 0;
+  background: transparent;
+  box-shadow: var(--article-quote-shadow);
+  color: var(--article-quote-ink);
+  font-size: 0.96em;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+
+/* Decorative only: it adds no label to copied text or screen-reader output. */
+.vp-doc blockquote::before {
+  position: absolute;
+  top: 10px;
+  left: 9px;
+  width: 10px;
+  height: 10px;
+  background: var(--article-quote-accent);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 5H6a2 2 0 0 0-2 2v5h6V5Zm0 7c0 4-2 6-5 7M21 5h-4a2 2 0 0 0-2 2v5h6V5Zm0 7c0 4-2 6-5 7' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  pointer-events: none;
+  content: '';
+}
+
+.vp-doc blockquote > p {
+  margin: 0.65em 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Nested quotations stay compact, without repeating the outer decoration. */
+.vp-doc blockquote blockquote {
+  margin: 14px 0;
+  padding: 2px 0 2px 16px;
+  border: 0;
+  border-left: 2px solid var(--article-quote-border);
+  border-radius: 0 4px 4px 0;
+  background: none;
+  box-shadow: none;
+  font-size: inherit;
+}
+
+.vp-doc blockquote blockquote::before {
+  display: none;
+}
+
+.vp-doc blockquote > :first-child {
+  margin-top: 0;
+}
+
+.vp-doc blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 639px) {
+  .vp-doc blockquote {
+    padding: 7px 12px 7px 28px;
+    border-radius: 0 5px 5px 0;
+  }
+
+  .vp-doc blockquote::before {
+    top: 9px;
+    left: 8px;
+    width: 10px;
+    height: 10px;
+  }
+
+  .vp-doc blockquote blockquote {
+    padding: 2px 0 2px 12px;
+    border-radius: 0;
+  }
+}
+
+@media print {
+  .vp-doc blockquote {
+    --article-quote-border: #c5bfb1;
+    --article-quote-accent: #a8422b;
+    background: transparent;
+    box-shadow: none;
+    color: #52564e;
+    break-inside: auto;
+  }
+}

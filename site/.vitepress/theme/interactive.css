@@ -1,0 +1,109 @@
+/* ================================================================
+   交互组件配套样式:FontSizeSwitcher 的五档字号 + ResizableSidebar 的拖拽手柄。
+   (自 TAMCPP custom.css 拆出;localStorage key 与 config head 防闪脚本约定一致,勿改名)
+   ================================================================ */
+
+/* ── 正文字号五档(超小/小/正常/大/超大)──────────────────────
+   由 FontSizeSwitcher 切 documentElement 的 data-font-size,默认「正常」(zoom 1)。
+   用 CSS zoom 整页缩放:rem + 所有 px 字号(自定义组件 + VitePress 默认)一并跟随,
+   等同浏览器 Ctrl+/- 原生缩放,避免「只有正文跳动、组件不动」的割裂感。
+   首屏由 config head 内联脚本提前设 data-font-size(默认 normal),避免刷新闪烁。 */
+html[data-font-size='xxsmall'] {
+  zoom: 0.85;
+}
+
+html[data-font-size='small'] {
+  zoom: 0.92;
+}
+
+html[data-font-size='normal'] {
+  zoom: 1;
+}
+
+html[data-font-size='large'] {
+  zoom: 1.08;
+}
+
+html[data-font-size='xxlarge'] {
+  zoom: 1.16;
+}
+
+/* ── 可拖拽侧栏(ResizableSidebar)─────────────────────────
+   左 handle 在组件模板内(fixed),右 handle 运行时注入 .aside(absolute)。
+   宽度由 --vp-sidebar-width(VitePress 原生,全链路消费)与 --vp-aside-width(本站自定义)驱动。 */
+
+:root {
+  --vp-aside-width: 256px; /* 右大纲栏宽度变量,默认与 VitePress 原值一致 */
+}
+
+/* 右栏宽度由变量驱动,覆盖 VitePress 的固定 max-width / width */
+.VPDoc.has-aside .aside {
+  max-width: var(--vp-aside-width);
+  position: relative; /* 给注入的 absolute handle 提供锚点 */
+}
+.VPDoc .aside-container {
+  width: calc(var(--vp-aside-width) - 32px); /* 保持原 32px 内边距逻辑(原 max-width 256 → container 224) */
+}
+
+/* 手柄公共态:常显一条 1px 淡灰细线(::before),悬浮 / 拖拽时变品牌色加粗。
+   命中热区 8px(透明本体),避免过窄扫不到。z-index 压在 sidebar 之上,防止被侧栏盖住。 */
+.rs-handle {
+  z-index: calc(var(--vp-z-index-sidebar) + 1);
+  width: 8px;
+  background: transparent;
+  cursor: col-resize;
+}
+.rs-handle::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--vp-c-divider);
+  transition: width 0.15s ease, background-color 0.15s ease;
+}
+.rs-handle:hover::before,
+.rs-handle.is-active::before {
+  width: 2px;
+  background: var(--vp-c-brand-1);
+}
+
+/* 左手柄:fixed。left 仅作 SSR 首屏 fallback,onMounted 后由 JS 读取 .VPSidebar 右边缘
+   精确覆盖 —— 宽屏(≥1440px)布局居中,右缘带 (vw-maxW)/2 偏移且受滚动条影响,
+   CSS 公式推算总有小偏差,故由组件 JS 精确设定。 */
+.rs-handle--left {
+  position: fixed;
+  left: var(--vp-sidebar-width);
+  margin-left: -4px;
+  top: var(--vp-nav-height, 64px);
+  bottom: 0;
+}
+
+/* 右手柄:absolute 注入 .aside 内,居中压在其左边缘(默认隐藏,仅大屏显示见下方媒体查询) */
+.rs-handle--right {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  display: none;
+}
+
+/* 拖拽进行中:禁选中文,全屏 col-resize 光标 */
+body.rs-resizing {
+  user-select: none;
+  cursor: col-resize;
+}
+
+/* 响应式:左栏 <960px 沉为抽屉;右栏 aside 仅 ≥1280px 显示 */
+@media (max-width: 959px) {
+  .rs-handle--left {
+    display: none;
+  }
+}
+@media (min-width: 1280px) {
+  .rs-handle--right {
+    display: block;
+  }
+}

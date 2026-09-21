@@ -14,6 +14,10 @@ export interface VolumeConfig {
   name: string
   srcDir: string
   urlPrefix: string
+  /** 卷内顶层平铺文件达到该数量时,按文件名数字前缀每 N 篇收进一个折叠组(防侧栏长蛇) */
+  chunkFlatFiles?: number
+  /** 分段组名前缀,组名形如 "${chunkLabel} 001–020" */
+  chunkLabel?: string
 }
 
 export interface ProjectConfig {

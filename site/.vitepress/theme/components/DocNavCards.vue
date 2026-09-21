@@ -94,7 +94,7 @@ const navInfo = computed(() => {
   gap: 12px;
   margin-top: 2.5em;
   padding-top: 1.5em;
-  border-top: 1px dashed var(--vp-c-divider);
+  border-top: 1px solid var(--vp-c-text-1);
 }
 
 .doc-nav-card {
@@ -103,22 +103,17 @@ const navInfo = computed(() => {
   gap: 6px;
   padding: 16px 18px;
   border: 1px solid var(--vp-c-divider);
-  border-radius: 12px;
-  background-color: var(--vp-c-bg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
-              0 1px 2px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  background-color: transparent;
+  box-shadow: none;
   text-decoration: none !important;
   color: inherit;
-  transition: border-color 0.35s ease,
-              box-shadow 0.35s ease,
-              transform 0.35s ease;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
 }
 
 .doc-nav-card:hover {
   border-color: var(--vp-c-brand-1);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1),
-              0 4px 8px rgba(0, 0, 0, 0.06);
-  transform: translateY(-2px);
+  background-color: var(--vp-c-bg-soft);
 }
 
 .doc-nav-card--next {
@@ -153,15 +148,14 @@ const navInfo = computed(() => {
 }
 
 .dark .doc-nav-card {
-  background-color: var(--vp-c-bg-elv);
+  background-color: transparent;
   border-color: var(--vp-c-border);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2),
-              0 1px 2px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
 }
 
 .dark .doc-nav-card:hover {
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3),
-              0 4px 8px rgba(0, 0, 0, 0.2);
+  background-color: var(--vp-c-bg-soft);
+  box-shadow: none;
 }
 
 @media (max-width: 639px) {

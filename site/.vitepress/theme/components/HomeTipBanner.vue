@@ -4,67 +4,25 @@ import { useData } from 'vitepress'
 import type { ProjectConfig } from '../config/schema'
 
 const { lang } = useData()
-
-const props = defineProps<{
-  config?: ProjectConfig
-}>()
-
+const props = defineProps<{ config?: ProjectConfig }>()
 const bannerText = computed(() => {
   const cfg = props.config
   if (!cfg?.homeBanner) return ''
   return cfg.homeBanner[lang.value] || cfg.homeBanner[Object.keys(cfg.homeBanner)[0]] || ''
 })
-
-const showBanner = computed(() => !!bannerText.value)
 </script>
 
 <template>
-  <div v-if="showBanner" class="home-tip-banner">
-    <span class="home-tip-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
-        <path d="M9 18h6"/>
-        <path d="M10 22h4"/>
-      </svg>
-    </span>
-    <span class="home-tip-text" v-html="bannerText" />
-  </div>
+  <aside v-if="bannerText" class="field-note">
+    <span class="field-note__index">READ / 01</span>
+    <span class="field-note__text" v-html="bannerText" />
+    <span class="field-note__arrow" aria-hidden="true">↗</span>
+  </aside>
 </template>
 
 <style scoped>
-.home-tip-banner {
-  max-width: 1152px;
-  margin: -16px auto 32px;
-  padding: 16px 24px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: linear-gradient(135deg, rgba(83, 162, 83, 0.12) 0%, rgba(83, 162, 83, 0.06) 100%);
-  border: 2px solid var(--vp-tip-border, rgba(83, 162, 83, 0.3));
-  color: var(--vp-tip-text, var(--vp-c-text-2));
-  font-size: 16px;
-  line-height: 1.6;
-  font-weight: 500;
-  box-shadow: 0 2px 8px rgba(83, 162, 83, 0.15);
-}
-
-.home-tip-icon {
-  flex-shrink: 0;
-  color: var(--vp-tip-accent, #53a253);
-  display: flex;
-  align-items: center;
-}
-
-.home-tip-text :deep(a) {
-  color: #3b82f6;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  font-weight: 700;
-  transition: all 0.2s ease;
-}
-
-.home-tip-text :deep(a:hover) {
-  color: #2563eb;
-}
+.field-note { display: grid; grid-template-columns: 104px 1fr auto; align-items: center; gap: 20px; max-width: 1104px; margin: 0 auto 54px; padding: 20px 0; color: var(--vp-c-text-1); border-top: 1px solid var(--vp-c-text-1); border-bottom: 1px solid var(--vp-c-text-1); }
+.field-note__index { color: var(--vp-c-brand-1); font-family: var(--vp-font-family-mono); font-size: 10px; font-weight: 800; letter-spacing: .12em; }.field-note__text { font-size: 14px; line-height: 1.7; }.field-note__text :deep(a) { color: inherit; font-weight: 700; text-decoration: underline; text-decoration-color: var(--vp-c-brand-1); text-decoration-thickness: 2px; text-underline-offset: 4px; }.field-note__arrow { color: var(--vp-c-brand-1); font-size: 22px; }
+@media (max-width: 1152px) { .field-note { margin-right: 24px; margin-left: 24px; } }
+@media (max-width: 639px) { .field-note { grid-template-columns: 1fr auto; gap: 8px 16px; margin: 0 16px 38px; }.field-note__index { grid-column: 1 / -1; }.field-note__text { font-size: 13px; } }
 </style>

@@ -89,7 +89,8 @@ function scanDir(dir: string, urlPrefix: string, depth = 0): SidebarItem[] {
           text: title,
           link: existsSync(indexPath) ? `${urlPrefix}/${name}/` : undefined,
           items: subItems,
-          collapsed: depth > 0,
+          // 默认收起;含当前页的组由 VitePress 自动展开,防止多卷全展开的长蛇侧栏
+          collapsed: true,
         })
       } else if (existsSync(indexPath)) {
         items.push({ text: title, link: `${urlPrefix}/${name}/` })
@@ -109,7 +110,48 @@ export function volumeSidebar(
 ): DefaultTheme.SidebarItem[] {
   const dir = join(docsRoot, vol.srcDir)
   const indexPath = join(dir, 'index.md')
-  const items = scanDir(dir, vol.urlPrefix)
+  let items = scanDir(dir, vol.urlPrefix)
+
+  // 平铺文件过多的卷(如 notes 121 篇日更笔记)按文件名数字前缀分段收组:
+  // 组间按序、组内原序,prev/next 扁平序不变;当前页所在段自动展开,
+  // 其余段收起 —— 任何页面侧栏最多露出一段。
+  if (vol.chunkFlatFiles) {
+    const dirs = items.filter(i => i.items)
+    const files = items.filter(i => !i.items && i.link)
+    if (files.length >= vol.chunkFlatFiles) {
+      const num = (it: SidebarItem) =>
+        parseInt(it.link!.split('/').pop()!.match(/^(\d+)/)?.[1] ?? '', 10)
+      const pad = (n: number) => String(n).padStart(3, '0')
+      const chunks: SidebarItem[] = []
+      const unnumbered: SidebarItem[] = []
+      let cur: SidebarItem[] = []
+      let start = NaN
+      const flush = () => {
+        if (!cur.length) return
+        chunks.push({
+          text: vol.chunkLabel
+            ? `${vol.chunkLabel} ${pad(start)}–${pad(num(cur[cur.length - 1]))}`
+            : `${pad(start)}–${pad(num(cur[cur.length - 1]))}`,
+          items: cur,
+          collapsed: true,
+        })
+        cur = []
+        start = NaN
+      }
+      for (const f of files) {
+        const n = num(f)
+        if (isNaN(n)) { unnumbered.push(f); continue }
+        if (isNaN(start)) start = n
+        cur.push(f)
+        if (cur.length >= vol.chunkFlatFiles) flush()
+      }
+      flush()
+      if (unnumbered.length) {
+        chunks.push({ text: vol.chunkLabel ? `${vol.chunkLabel}·其他` : '其他', items: unnumbered, collapsed: true })
+      }
+      items = [...dirs, ...chunks]
+    }
+  }
 
   const overviewTitle = extractTitle(indexPath) || humanize(vol.srcDir)
   return [
