@@ -20,7 +20,7 @@ sudo apt install device-tree-compiler bison flex cpio libssl-dev libncurses-dev 
 # mtd-utils → pack-ubifs 的 mkfs.ubifs/ubinize；gdisk → pack-sd 的 sgdisk
 ```
 
-> 本项目深度 WSL2 友好（Mirrored 网络模式可直通开发板，USB 设备直通用于烧录/串口）。
+> 本项目深度 WSL2 友好（Mirrored 网络模式可直通开发板，USB 设备直通用于烧录/串口）。从零搭建见教程《[环境准备](document/tutorial/host/)》两章。
 
 ## 2. 工具链环境
 

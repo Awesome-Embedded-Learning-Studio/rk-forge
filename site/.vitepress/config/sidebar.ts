@@ -29,10 +29,11 @@ function humanize(name: string): string {
     .replace(/\b\w/g, c => c.toUpperCase())
 }
 
-// 阅读顺序（rk-forge 的 bring-up 弧线）：引导启动 → 根文件系统 → 外设 → SD 卡启动 → forge 编排器
+// 阅读顺序（rk-forge 的 bring-up 弧线）：host 环境准备 → 引导启动 → 根文件系统 → 外设 → SD 卡启动 → forge 编排器
 // 仅对"无数字前缀的目录"生效（如 document/tutorial/ 下的子卷）；
 // 目录内部、章节文件一律按文件名数字前缀(00_/01_/02_...)排序——例如 boot 卷里 02_uboot 在 03_kernel 之前。
 const LEARNING_ORDER = [
+  'host',
   'boot',
   'rootfs',
   'peripherals',
