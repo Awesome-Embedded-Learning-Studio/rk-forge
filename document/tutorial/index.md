@@ -12,11 +12,20 @@ rk-forge 围绕三块 Rockchip 开发板组织教程，它们是一条递进的�
 - 🟡 **[RK3568 系列](rk3568/)** —— 从 ARM32 进 AArch64、学标准 Linux 驱动框架。当前 MVP：启动首启章已写真板验证，其余课程建设中。
 - 🟡 **[RK3588 系列](rk3588/)** —— 异构、媒体、桌面产品级。启动 / LCD 移植 / GPU 固件 / Ubuntu rootfs 四章已写真板验证。
 
-新手从 RK3506B 进；做过 BSP 想系统学 AArch64 驱动框架的从 RK3568 进；做异构 / 媒体 / 桌面产品的从 RK3588 进。三块板的完整教学目标、课程顺序和当前状态，见 [三板教学路线](../planning/)。
+新手从 RK3506B 进；做过 BSP 想系统学 AArch64 驱动框架的从 RK3568 进；做异构 / 媒体 / 桌面产品的从 RK3588 进。无论从哪块板进，第 0 步都一样——[环境准备](#环境准备三块板共用)：把 WSL2 搭干净、把 USB 设备直通进来。三块板的完整教学目标、课程顺序和当前状态，见 [三板教学路线](../planning/)。
+
+## 环境准备（三块板共用）
+
+整条构建链跑在 Windows 上的 WSL2 里：串口看启动日志、USB 设备直通烧录，都从 host 这边过。这一卷与板无关、两章收口，先于一切板端课程。
+
+<ChapterNav>
+  <ChapterLink num="01" href="host/00_wsl2">想要真 Linux：WSL2 环境搭建</ChapterLink>
+  <ChapterLink num="02" href="host/01_usbipd">usbipd-win：把 USB 设备直通进 WSL</ChapterLink>
+</ChapterNav>
 
 ## RK3506B 系列（完整教程）
 
-rk-forge 的 bring-up 弧线分五个阶段，按下面的顺序读最顺。我们先把板子**启动**起来——主线 U-Boot 加一份板级设备树；再让它**持久登录**，rootfs 这条路把 buildroot、init 时序、UBIFS 与 loader 弱写 saga 一口气走完；接着把**外设**一个个点亮，Ethernet/SPI/MMC、USB、WiFi、I2C/UART、Audio 全上板；之后补 **SD 卡**这条第二条启动路，纯 SD 也能 boot；最后用 **forge 编排器**把整条构建链收成一个命令。这五阶段是主弧线；跑通之后若还想要一套真能 `opkg` / LuCI 的发行版，再岔到 [OpenWrt 支线](openwrt/)——它和 buildroot 并列，是 rootfs 的进阶选择。
+rk-forge 的 bring-up 弧线分五个阶段，按下面的顺序读最顺。[环境准备](#环境准备三块板共用)走完之后，我们先把板子**启动**起来——主线 U-Boot 加一份板级设备树；再让它**持久登录**，rootfs 这条路把 buildroot、init 时序、UBIFS 与 loader 弱写 saga 一口气走完；接着把**外设**一个个点亮，Ethernet/SPI/MMC、USB、WiFi、I2C/UART、Audio 全上板；之后补 **SD 卡**这条第二条启动路，纯 SD 也能 boot；最后用 **forge 编排器**把整条构建链收成一个命令。这五阶段是主弧线；跑通之后若还想要一套真能 `opkg` / LuCI 的发行版，再岔到 [OpenWrt 支线](openwrt/)——它和 buildroot 并列，是 rootfs 的进阶选择。
 
 <RoadMap>
   <RoadMapPhase icon="🚀" title="引导启动" subtitle="Boot" time="主线 U-Boot + Kernel" :difficulty="3" :num="1">
