@@ -1,0 +1,88 @@
+From c3d9b3aaf23baafefb6db137d7b413ce7050d8ee Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 1 Nov 2026 01:19:15 +0800
+Subject: [PATCH] TEMPORARY debug (0026, remove after wedge located): stmmac
+ open/mdio probes
+
+Four netdev_info probes in stmmac_open (enter / post-dma-desc / post-pm-resume
+/ post-init_phy) and three in stmmac_mdio_access (enter / pre-wait / pre-xfer
+/ post-xfer). Netdev_info is ungated by netif_msg. Board wedge reproduces
+between RxQ print and PHY bringup; these pin the exact call.
+---
+ drivers/net/ethernet/stmicro/stmmac/stmmac_main.c |  8 ++++++++
+ drivers/net/ethernet/stmicro/stmmac/stmmac_mdio.c | 11 +++++++++++
+ 2 files changed, 19 insertions(+)
+
+diff --git a/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c b/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c
+index 3591755ea..e53f4e97a 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c
++++ b/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c
+@@ -4192,18 +4192,26 @@ static int stmmac_open(struct net_device *dev)
+ 	if (!priv->tx_lpi_timer)
+ 		priv->tx_lpi_timer = eee_timer * 1000;
+ 
++	netdev_info(dev, "DBG24 open: enter\n");
++
+ 	dma_conf = stmmac_setup_dma_desc(priv, dev->mtu);
+ 	if (IS_ERR(dma_conf))
+ 		return PTR_ERR(dma_conf);
+ 
++	netdev_info(dev, "DBG24 open: post setup_dma_desc, pre pm_runtime_resume\n");
++
+ 	ret = pm_runtime_resume_and_get(priv->device);
+ 	if (ret < 0)
+ 		goto err_dma_resources;
+ 
++	netdev_info(dev, "DBG24 open: post pm_runtime_resume, pre init_phy\n");
++
+ 	ret = stmmac_init_phy(dev);
+ 	if (ret)
+ 		goto err_runtime_pm;
+ 
++	netdev_info(dev, "DBG24 open: post init_phy (ret=%d), pre __stmmac_open\n", ret);
++
+ 	if (!(priv->plat->flags & STMMAC_FLAG_SERDES_UP_AFTER_PHY_LINKUP)) {
+ 		ret = stmmac_legacy_serdes_power_up(priv);
+ 		if (ret < 0)
+diff --git a/drivers/net/ethernet/stmicro/stmmac/stmmac_mdio.c b/drivers/net/ethernet/stmicro/stmmac/stmmac_mdio.c
+index afe98ff5b..417c4215b 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/stmmac_mdio.c
++++ b/drivers/net/ethernet/stmicro/stmmac/stmmac_mdio.c
+@@ -248,23 +248,34 @@ static int stmmac_mdio_access(struct stmmac_priv *priv, unsigned int pa,
+ 	u32 addr;
+ 	int ret;
+ 
++	netdev_info(priv->dev, "DBG24 mdio_%s: phy=%d reg=%d enter\n",
++		    read ? "read" : "write", pa, gr);
++
+ 	ret = pm_runtime_resume_and_get(priv->device);
+ 	if (ret < 0)
+ 		return ret;
+ 
++	netdev_info(priv->dev, "DBG24 mdio: pre wait\n");
++
+ 	ret = stmmac_mdio_wait(mii_address, MII_ADDR_GBUSY);
+ 	if (ret)
+ 		goto out;
+ 
++	netdev_info(priv->dev, "DBG24 mdio: pre xfer\n");
++
+ 	addr = stmmac_mdio_format_addr(priv, pa, gr) | cmd;
+ 
+ 	writel(data, mii_data);
+ 	writel(addr, mii_address);
+ 
++	netdev_info(priv->dev, "DBG24 mdio: xfer kicked, polling done\n");
++
+ 	ret = stmmac_mdio_wait(mii_address, MII_ADDR_GBUSY);
+ 	if (ret)
+ 		goto out;
+ 
++	netdev_info(priv->dev, "DBG24 mdio: xfer done ret=%d\n", ret);
++
+ 	/* Read the data from the MII data register if in read mode */
+ 	ret = read ? readl(mii_data) & MII_DATA_GD_MASK : 0;
+ 
+-- 
+2.43.0
+

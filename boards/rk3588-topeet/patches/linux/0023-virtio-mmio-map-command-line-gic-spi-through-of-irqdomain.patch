@@ -1,3 +1,14 @@
+From 5e3a92c1d4f8b0a6c7e2190d8f3a4b5c6d7e8f9a0 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Mon, 25 Aug 2026 10:00:00 +0800
+Subject: [PATCH] virtio_mmio: map command-line GIC SPI through of_irqdomain
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+
+Sim-line constitution: QEMU brings up virtio-mmio devices from bootargs only
+(:spi syntax); route the command-line-provided SPI through of_irqdomain so
+GIC mapping works without a DT node. No effect on real boards (option unused).
+---
 diff --git a/drivers/virtio/virtio_mmio.c b/drivers/virtio/virtio_mmio.c
 index 595c2274f..d989f92a3 100644
 --- a/drivers/virtio/virtio_mmio.c

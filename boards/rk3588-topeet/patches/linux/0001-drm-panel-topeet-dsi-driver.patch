@@ -1,8 +1,7 @@
-From bf097193d460cbc304133b680d8346a5e1ea5862 Mon Sep 17 00:00:00 2001
+From 7fb5b3ab1b68802bf30695ed337cf8e5a3671a86 Mon Sep 17 00:00:00 2001
 From: Charliechen114514 <725610365@qq.com>
 Date: Tue, 28 Jul 2026 09:45:54 +0800
-Subject: [PATCH 1/2] drm/panel: add topeet DSI panel driver with DT
- init-sequence
+Subject: [PATCH] drm/panel: add topeet DSI panel driver with DT init-sequence
 
 Generic DRM panel driver for DSI panels whose init/exit sequences are provided verbatim via the panel-init-sequence / panel-exit-sequence DT byte blobs (Rockchip BSP "simple-panel-dsi" binding). The topeet iTOP-RK3588 10.1" 1024x600 panel is driven via DSI0 -> a bridge IC -> LVDS; the bridge has no mainline driver, so this replays the vendor blob rather than open-coding a per-IC driver.
 
@@ -12,8 +11,8 @@ Signed-off-by: Charliechen114514 <725610365@qq.com>
 ---
  drivers/gpu/drm/panel/Kconfig            |  12 +
  drivers/gpu/drm/panel/Makefile           |   1 +
- drivers/gpu/drm/panel/panel-topeet-dsi.c | 363 +++++++++++++++++++++++
- 3 files changed, 376 insertions(+)
+ drivers/gpu/drm/panel/panel-topeet-dsi.c | 374 +++++++++++++++++++++++
+ 3 files changed, 387 insertions(+)
  create mode 100644 drivers/gpu/drm/panel/panel-topeet-dsi.c
 
 diff --git a/drivers/gpu/drm/panel/Kconfig b/drivers/gpu/drm/panel/Kconfig
@@ -53,10 +52,10 @@ index a4291dc39..dd1850d6d 100644
  obj-$(CONFIG_DRM_PANEL_TPO_TPG110) += panel-tpo-tpg110.o
 diff --git a/drivers/gpu/drm/panel/panel-topeet-dsi.c b/drivers/gpu/drm/panel/panel-topeet-dsi.c
 new file mode 100644
-index 000000000..cd557c1de
+index 000000000..85f4d99a2
 --- /dev/null
 +++ b/drivers/gpu/drm/panel/panel-topeet-dsi.c
-@@ -0,0 +1,363 @@
+@@ -0,0 +1,374 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * DRM panel driver for DSI panels whose init/exit sequences are provided
@@ -170,6 +169,7 @@ index 000000000..cd557c1de
 +static int topeet_panel_prepare(struct drm_panel *panel)
 +{
 +	struct topeet_panel *ctx = to_topeet_panel(panel);
++	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
 +	int ret;
 +
 +	ret = regulator_enable(ctx->power);
@@ -189,22 +189,30 @@ index 000000000..cd557c1de
 +		msleep(ctx->prepare_delay ?: 20);
 +	}
 +
++	/* The init blob configures a Toshiba TC358775-class DSI-to-LVDS
++	 * bridge and ends with PPI_START/DSI_START, switching it into video
++	 * reception.  That configuration is only latched reliably while the
++	 * DSI host is in command mode, so it is sent here in prepare (with
++	 * prepare_prev_first set at probe so the host is pre-enabled first)
++	 * rather than in enable, which runs after the host has already
++	 * switched to video mode. */
++	if (ctx->init_len) {
++		ret = topeet_panel_send_seq(dsi, ctx->init_seq, ctx->init_len);
++		if (ret) {
++			dev_err(ctx->dev, "init sequence failed: %d\n", ret);
++			if (ctx->reset_gpio)
++				gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++			regulator_disable(ctx->power);
++			return ret;
++		}
++	}
++
 +	return 0;
 +}
 +
 +static int topeet_panel_enable(struct drm_panel *panel)
 +{
 +	struct topeet_panel *ctx = to_topeet_panel(panel);
-+	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
-+	int ret;
-+
-+	if (ctx->init_len) {
-+		ret = topeet_panel_send_seq(dsi, ctx->init_seq, ctx->init_len);
-+		if (ret) {
-+			dev_err(ctx->dev, "init sequence failed: %d\n", ret);
-+			return ret;
-+		}
-+	}
 +
 +	if (ctx->enable_delay)
 +		msleep(ctx->enable_delay);
@@ -328,6 +336,8 @@ index 000000000..cd557c1de
 +		return PTR_ERR(ctx);
 +
 +	ctx->dev = dev;
++	/* The DSI host must be powered in command mode before init writes. */
++	ctx->panel.prepare_prev_first = true;
 +	mipi_dsi_set_drvdata(dsi, ctx);
 +
 +	ctx->reset_gpio = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_HIGH);

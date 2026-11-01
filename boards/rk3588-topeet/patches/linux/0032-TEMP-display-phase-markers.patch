@@ -1,0 +1,163 @@
+From abf7eedb67778014c769e2f6c2213e0cef042d63 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 1 Nov 2026 15:42:03 +0800
+Subject: [PATCH] TEMPORARY debug (0032 v2, remove after wedge located):
+ display bring-up phase markers
+
+One-shot serial markers bracketing the whole first-display-enable
+timeline. v1 covered the modeset stages (vop2_enable entry, dclk
+clk_set_rate with parent chain and return code, the BSP dclk pulse,
+DSI2 phy configure/power_on returns, panel init-seq replay). R30 died
+before any of those ran, so v2 densifies the dead zone between
+'[drm] Initialized' and the first modeset callback: around
+drm_client_setup (fbdev/fbcon), panel prepare milestones (regulator,
+reset GPIO), the CRTC atomic_enable body, and the DSI2 bridge
+pre_enable mode_set.
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ .../gpu/drm/bridge/synopsys/dw-mipi-dsi2.c    |  1 +
+ drivers/gpu/drm/panel/panel-topeet-dsi.c      |  6 ++++++
+ .../gpu/drm/rockchip/dw-mipi-dsi2-rockchip.c  |  6 ++++--
+ drivers/gpu/drm/rockchip/rockchip_drm_drv.c   |  2 ++
+ drivers/gpu/drm/rockchip/rockchip_drm_vop2.c  | 20 ++++++++++++++++++-
+ 5 files changed, 32 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c b/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c
+index a4bfd3ad1..5d7ff14ac 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c
+@@ -831,6 +831,7 @@ static void dw_mipi_dsi2_bridge_atomic_pre_enable(struct drm_bridge *bridge,
+ 	struct dw_mipi_dsi2 *dsi2 = bridge_to_dsi2(bridge);
+ 
+ 	/* Power up the dsi ctl into a command mode */
++	pr_info("DBG32 dsi2 bridge pre_enable (mode_set)\n");
+ 	dw_mipi_dsi2_mode_set(dsi2, &dsi2->mode);
+ }
+ 
+diff --git a/drivers/gpu/drm/panel/panel-topeet-dsi.c b/drivers/gpu/drm/panel/panel-topeet-dsi.c
+index cd557c1de..b10fee77e 100644
+--- a/drivers/gpu/drm/panel/panel-topeet-dsi.c
++++ b/drivers/gpu/drm/panel/panel-topeet-dsi.c
+@@ -113,6 +113,7 @@ static int topeet_panel_prepare(struct drm_panel *panel)
+ 	struct topeet_panel *ctx = to_topeet_panel(panel);
+ 	int ret;
+ 
++	dev_info(ctx->dev, "DBG32 panel prepare enter\n");
+ 	ret = regulator_enable(ctx->power);
+ 	if (ret) {
+ 		dev_err(ctx->dev, "failed to enable power supply: %d\n", ret);
+@@ -130,6 +131,8 @@ static int topeet_panel_prepare(struct drm_panel *panel)
+ 		msleep(ctx->prepare_delay ?: 20);
+ 	}
+ 
++	dev_info(ctx->dev, "DBG32 panel prepare done\n");
++
+ 	return 0;
+ }
+ 
+@@ -140,7 +143,10 @@ static int topeet_panel_enable(struct drm_panel *panel)
+ 	int ret;
+ 
+ 	if (ctx->init_len) {
++		dev_info(ctx->dev, "DBG32 panel init-seq start (%zu bytes)\n",
++			 ctx->init_len);
+ 		ret = topeet_panel_send_seq(dsi, ctx->init_seq, ctx->init_len);
++		dev_info(ctx->dev, "DBG32 panel init-seq done ret=%d\n", ret);
+ 		if (ret) {
+ 			dev_err(ctx->dev, "init sequence failed: %d\n", ret);
+ 			return ret;
+diff --git a/drivers/gpu/drm/rockchip/dw-mipi-dsi2-rockchip.c b/drivers/gpu/drm/rockchip/dw-mipi-dsi2-rockchip.c
+index 0aea764e2..8ffcf909f 100644
+--- a/drivers/gpu/drm/rockchip/dw-mipi-dsi2-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw-mipi-dsi2-rockchip.c
+@@ -110,8 +110,10 @@ static void dw_mipi_dsi2_phy_power_on(void *priv_data)
+ 		return;
+ 	}
+ 
+-	phy_configure(dsi2->phy, &dsi2->phy_opts);
+-	phy_power_on(dsi2->phy);
++	ret = phy_configure(dsi2->phy, &dsi2->phy_opts);
++	dev_info(dsi2->dev, "DBG32 dsi2 phy_configure ret=%d\n", ret);
++	ret = phy_power_on(dsi2->phy);
++	dev_info(dsi2->dev, "DBG32 dsi2 phy_power_on ret=%d\n", ret);
+ }
+ 
+ static void dw_mipi_dsi2_phy_power_off(void *priv_data)
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_drv.c b/drivers/gpu/drm/rockchip/rockchip_drm_drv.c
+index 3099408e9..5a2c404d9 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_drv.c
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_drv.c
+@@ -199,7 +199,9 @@ static int rockchip_drm_bind(struct device *dev)
+ 	if (ret)
+ 		goto err_kms_helper_poll_fini;
+ 
++	pr_info("DBG32 drm registered, before drm_client_setup (fbdev/fbcon)\n");
+ 	drm_client_setup(drm_dev, NULL);
++	pr_info("DBG32 drm_client_setup done\n");
+ 
+ 	return 0;
+ err_kms_helper_poll_fini:
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+index c2dee0af5..8ce8044a8 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+@@ -5,6 +5,7 @@
+  */
+ #include <linux/bitfield.h>
+ #include <linux/clk.h>
++#include <linux/clk-provider.h>	/* TEMP 0032: __clk_get_name */
+ #include <linux/component.h>
+ #include <linux/delay.h>
+ #include <linux/iopoll.h>
+@@ -812,6 +813,8 @@ static void vop2_enable(struct vop2 *vop2)
+ 	int ret;
+ 	u32 version;
+ 
++	pr_info("DBG32 vop2_enable enter\n");
++
+ 	ret = pm_runtime_resume_and_get(vop2->dev);
+ 	if (ret < 0) {
+ 		drm_err(vop2->drm, "failed to get pm runtime: %d\n", ret);
+@@ -1685,6 +1688,7 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc,
+ 		return;
+ 	}
+ 
++	pr_info("DBG32 vp%u atomic_enable body\n", vp->id);
+ 	if (!vop2->enable_count)
+ 		vop2_enable(vop2);
+ 
+@@ -1819,7 +1823,19 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc,
+ 		}
+ 	}
+ 
+-	clk_set_rate(vp->dclk, clock);
++	{
++		struct clk *__p = clk_get_parent(vp->dclk);
++		int __ret;
++
++		pr_info("DBG32 vp%u pre-set-rate dclk=%lu parent=%s req=%lu\n",
++			vp->id, clk_get_rate(vp->dclk),
++			__p ? __clk_get_name(__p) : "?", clock);
++		__ret = clk_set_rate(vp->dclk, clock);
++		__p = clk_get_parent(vp->dclk);
++		pr_info("DBG32 vp%u set_rate ret=%d dclk=%lu parent=%s\n",
++			vp->id, __ret, clk_get_rate(vp->dclk),
++			__p ? __clk_get_name(__p) : "?");
++	}
+ 
+ 	vop2_post_config(crtc);
+ 
+@@ -1832,7 +1848,9 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc,
+ 	/* RK3588 BSP pulses the active VP DCLK reset after the timing and
+ 	 * interface registers are committed.  Without this handoff the VP may
+ 	 * never start scanning and all following vblank waits time out. */
++	pr_info("DBG32 vp%u pre-dclk-pulse\n", vp->id);
+ 	vop2_dclk_reset(vp);
++	pr_info("DBG32 vp%u post-dclk-pulse\n", vp->id);
+ 
+ 	drm_crtc_vblank_on(crtc);
+ 
+-- 
+2.43.0
+

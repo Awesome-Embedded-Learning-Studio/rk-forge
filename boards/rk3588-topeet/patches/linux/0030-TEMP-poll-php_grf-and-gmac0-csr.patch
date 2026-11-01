@@ -1,0 +1,145 @@
+From b0b8818d500819f96cd1ab2bb7d81fbe7687b7d2 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 1 Nov 2026 15:26:27 +0800
+Subject: [PATCH 1/2] TEMPORARY debug (0030 v7, remove after wedge located):
+ add CRU PLL/CLKSEL watch group
+
+Extends the quiet php_grf/PMU change watcher with a CRU group: PLL_CON0-3
+of GPLL/CPLL/V0PLL/AUPLL, MODE_CON0 and the CLKSEL words behind
+dclk_vop2(_src), aclk_vop_root, aclk/pclk_php_root and gmac 125M/50M.
+Tests the shared-PLL propagation hypothesis: the 82MHz pixel-clock
+request may relock a PLL that also feeds the php/gmac island.
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ .../net/ethernet/stmicro/stmmac/dwmac-rk.c    | 117 ++++++++++++++++++
+ 1 file changed, 117 insertions(+)
+
+diff --git a/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c b/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c
+index 1192ec3f6..dbd22beba 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c
++++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c
+@@ -1655,3 +1655,120 @@ module_platform_driver(rk_gmac_dwmac_driver);
+ MODULE_AUTHOR("Chen-Zhi (Roger Chen) <roger.chen@rock-chips.com>");
+ MODULE_DESCRIPTION("Rockchip RK3288 DWMAC specific glue layer");
+ MODULE_LICENSE("GPL");
++
++/* DBG30 (TEMP, remove with 0030): php_grf/PMU/CRU change watcher, v7.
++ * Quiet: reads php_grf CON0/CLK_CON1, the PMU domain set and a CRU watch
++ * group every 20ms, printing a banner ONLY on value change — the
++ * display-family bisect instrument (the R22 CON0 flip banner). No GMAC
++ * reads, no persistent journal (v5's persist ioremap failure made the
++ * whole init bail, which cost R26 its instrument). 0x1f8 bits 0-7 are
++ * CPU/DSU memory-island activity noise (unmapped by the genpd table) and
++ * are masked off.
++ *
++ * v7 adds the CRU group: PLL_CON0-3 of GPLL/CPLL/V0PLL/AUPLL, MODE_CON0
++ * and the CLKSEL words behind dclk_vop2(_src), aclk_vop_root,
++ * aclk/pclk_php_root and gmac 125M/50M. Hypothesis under test (GPT
++ * consult 004): the 82MHz pixel-clock request propagates DCLK_VOP2 ->
++ * DCLK_VOP2_SRC (CLK_SET_RATE_PARENT|NO_REPARENT, gpll/cpll parent
++ * table) into a relock of a PLL that also feeds the php/gmac island;
++ * GPLL/CPLL banner timing vs the CON0 flip banner decides it.
++ */
++static void __iomem *dbg30_php_grf;
++static void __iomem *dbg30_pmu;
++static void __iomem *dbg30_cru;
++static struct delayed_work dbg30_work;
++
++static const unsigned int dbg30_pmu_offs[] = { 0x14c, 0x150, 0x110, 0x118,
++					       0x120, 0x1a4, 0x1f8, 0x290 };
++static const char dbg30_pmu_names[][8] = { "14c", "150", "110", "118",
++					   "120", "1a4", "1f8", "290" };
++static u32 dbg30_pmu_last[8];
++static u32 dbg30_con0_last, dbg30_con1_last;
++static bool dbg30_pmu_seen, dbg30_con0_seen, dbg30_con1_seen;
++
++/* CRU 0xfd7c0000; PLL_CON(x) = 0x4*x, CLKSEL_CON(x) = 0x300 + 0x4*x */
++static const unsigned int dbg30_cru_offs[] = {
++	0x160, 0x164, 0x168, 0x16c,	/* V0PLL_CON0-3 */
++	0x180, 0x184, 0x188, 0x18c,	/* AUPLL_CON0-3 */
++	0x1a0, 0x1a4, 0x1a8, 0x1ac,	/* CPLL_CON0-3 */
++	0x1c0, 0x1c4, 0x1c8, 0x1cc,	/* GPLL_CON0-3 */
++	0x280,				/* MODE_CON0 */
++	0x440,				/* CLKSEL_CON80: aclk/pclk_php_root */
++	0x44c, 0x450,			/* CLKSEL_CON83/84: gmac 125M/50M */
++	0x4bc,				/* CLKSEL_CON110: aclk_vop_root */
++	0x4c4,				/* CLKSEL_CON112: dclk_vop2 + _src */
++};
++static const char dbg30_cru_names[][12] = {
++	"V0PLL0", "V0PLL1", "V0PLL2", "V0PLL3",
++	"AUPLL0", "AUPLL1", "AUPLL2", "AUPLL3",
++	"CPLL0", "CPLL1", "CPLL2", "CPLL3",
++	"GPLL0", "GPLL1", "GPLL2", "GPLL3",
++	"MODE0",
++	"SEL80 php", "SEL83 g125", "SEL84 g50", "SEL110 vop", "SEL112 dclk",
++};
++static u32 dbg30_cru_last[22];
++static bool dbg30_cru_seen;
++
++static void dbg30_poll_fn(struct work_struct *work)
++{
++	u32 con0, con1;
++	int i;
++
++	con0 = readl(dbg30_php_grf + 0x08);
++	con1 = readl(dbg30_php_grf + 0x70);
++	if (!dbg30_con0_seen || con0 != dbg30_con0_last) {
++		pr_info("DBG30 CON0 0x%08x->0x%08x (CLK_CON1=0x%08x)\n",
++			dbg30_con0_seen ? dbg30_con0_last : 0, con0, con1);
++		dbg30_con0_last = con0;
++		dbg30_con0_seen = true;
++	}
++	if (!dbg30_con1_seen || con1 != dbg30_con1_last) {
++		pr_info("DBG30 CLK_CON1 0x%08x->0x%08x\n",
++			dbg30_con1_seen ? dbg30_con1_last : 0, con1);
++		dbg30_con1_last = con1;
++		dbg30_con1_seen = true;
++	}
++
++	for (i = 0; i < ARRAY_SIZE(dbg30_cru_offs); i++) {
++		u32 v = readl(dbg30_cru + dbg30_cru_offs[i]);
++
++		if (!dbg30_cru_seen || v != dbg30_cru_last[i])
++			pr_info("DBG30 CRU %s 0x%08x->0x%08x\n",
++				dbg30_cru_names[i],
++				dbg30_cru_seen ? dbg30_cru_last[i] : 0, v);
++		dbg30_cru_last[i] = v;
++	}
++	dbg30_cru_seen = true;
++
++	for (i = 0; i < 8; i++) {
++		u32 v = readl(dbg30_pmu + dbg30_pmu_offs[i]);
++
++		if (dbg30_pmu_offs[i] == 0x1f8)
++			v &= 0xffffff00;
++		if (!dbg30_pmu_seen || v != dbg30_pmu_last[i])
++			pr_info("DBG30 PMU%s 0x%08x->0x%08x\n", dbg30_pmu_names[i],
++				dbg30_pmu_seen ? dbg30_pmu_last[i] : 0, v);
++		dbg30_pmu_last[i] = v;
++	}
++	dbg30_pmu_seen = true;
++
++	schedule_delayed_work(&dbg30_work, msecs_to_jiffies(20));
++}
++
++static int __init dbg30_watcher_init(void)
++{
++	dbg30_php_grf = ioremap(0xfd5b0000, 0x1000);
++	dbg30_pmu = ioremap(0xfd8d8000, 0x1000);
++	dbg30_cru = ioremap(0xfd7c0000, 0x1000);
++	if (dbg30_php_grf && dbg30_pmu && dbg30_cru) {
++		INIT_DELAYED_WORK(&dbg30_work, dbg30_poll_fn);
++		schedule_delayed_work(&dbg30_work, msecs_to_jiffies(20));
++		pr_info("DBG30 watcher v7 armed: php_grf+PMU+CRU, banners on change only\n");
++	} else {
++		pr_err("DBG30 watcher disabled (ioremap grf=%p pmu=%p cru=%p)\n",
++		       dbg30_php_grf, dbg30_pmu, dbg30_cru);
++	}
++
++	return 0;
++}
++subsys_initcall(dbg30_watcher_init);
+-- 
+2.43.0
+

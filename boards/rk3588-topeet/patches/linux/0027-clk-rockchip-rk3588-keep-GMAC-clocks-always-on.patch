@@ -1,0 +1,59 @@
+From a9111ff5bbc407ecb984472272ac0543365bbb05 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 1 Nov 2026 01:40:36 +0800
+Subject: [PATCH] clk: rockchip: rk3588: keep GMAC clocks always on
+ (CLK_IS_CRITICAL)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+stmmac runtime-autosuspends ~100ms after probe and clk_disable_unprepares
+the GMAC clocks; after that cycle, clk_prepare_enable() reports success
+but the first MMIO/MDIO access to the GMAC wedges the SoC AXI fabric
+(board-wide: console cut mid-line, IRQ starvation, hard lockups on
+whichever CPU touches a starved path; idle shell stays alive for minutes,
+death is exactly the first MDIO readl after open).
+
+The PHY reference clock comes from the SoC (clock_in_out = output), so
+gating CLK_GMAC_50M also drops the RTL8211F reference; the gate/ungate
+cycle leaves the IP unrecoverable on this board.
+
+Vendor BSP ships with clk_gate.always_on=1 (never gate anything — see the
+rk3588-nvr-demo bootargs), which is why vendor never hits this. Scope the
+same semantics to the GMAC clock trio (125M core, 50M ref, pclk APB).
+
+Board evidence: rk-forge logs rk3588/nfs/{8,9-a,9-b}.txt and the 65s-idle
+vs ip-link-up discriminator run (2026-11-01).
+---
+ drivers/clk/rockchip/clk-rk3588.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/clk/rockchip/clk-rk3588.c b/drivers/clk/rockchip/clk-rk3588.c
+index 1694223f4..45570214d 100644
+--- a/drivers/clk/rockchip/clk-rk3588.c
++++ b/drivers/clk/rockchip/clk-rk3588.c
+@@ -1462,10 +1462,10 @@ static struct rockchip_clk_branch rk3588_early_clk_branches[] __initdata = {
+ 	COMPOSITE(CLK_GMAC1_PTP_REF, "clk_gmac1_ptp_ref", clk_gmac1_ptp_ref_p, 0,
+ 			RK3588_CLKSEL_CON(81), 13, 1, MFLAGS, 7, 6, DFLAGS,
+ 			RK3588_CLKGATE_CON(34), 11, GFLAGS),
+-	COMPOSITE(CLK_GMAC_125M, "clk_gmac_125m", gpll_cpll_p, 0,
++	COMPOSITE(CLK_GMAC_125M, "clk_gmac_125m", gpll_cpll_p, CLK_IS_CRITICAL,
+ 			RK3588_CLKSEL_CON(83), 15, 1, MFLAGS, 8, 7, DFLAGS,
+ 			RK3588_CLKGATE_CON(35), 5, GFLAGS),
+-	COMPOSITE(CLK_GMAC_50M, "clk_gmac_50m", gpll_cpll_p, 0,
++	COMPOSITE(CLK_GMAC_50M, "clk_gmac_50m", gpll_cpll_p, CLK_IS_CRITICAL,
+ 			RK3588_CLKSEL_CON(84), 7, 1, MFLAGS, 0, 7, DFLAGS,
+ 			RK3588_CLKGATE_CON(35), 6, GFLAGS),
+ 
+@@ -1542,7 +1542,7 @@ static struct rockchip_clk_branch rk3588_early_clk_branches[] __initdata = {
+ 			RK3588_CLKGATE_CON(37), 1, GFLAGS),
+ 	GATE(CLK_PIPEPHY2_REF, "clk_pipephy2_ref", "xin24m", 0,
+ 			RK3588_CLKGATE_CON(37), 2, GFLAGS),
+-	GATE(PCLK_GMAC0, "pclk_gmac0", "pclk_php_root", 0,
++	GATE(PCLK_GMAC0, "pclk_gmac0", "pclk_php_root", CLK_IS_CRITICAL,
+ 			RK3588_CLKGATE_CON(32), 3, GFLAGS),
+ 	GATE(PCLK_GMAC1, "pclk_gmac1", "pclk_php_root", 0,
+ 			RK3588_CLKGATE_CON(32), 4, GFLAGS),
+-- 
+2.43.0
+

@@ -1,0 +1,115 @@
+From cef5147209a7c45c23b3824e22a1535e2f2cf873 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 1 Nov 2026 10:55:55 +0800
+Subject: [PATCH] TEMPORARY debug (0029, remove after wedge located):
+ open-entry GMAC state snapshot + full bus-clk/SRST re-arm before init_phy
+
+- stmmac_open: canary readl of MII_ADDR (the exact register whose readl
+  wedged the AXI fabric in rounds 3-9) before and after a forced re-arm:
+  plat->clks_config(false) -> SRST_A_GMAC0 pulse -> clks_config(true).
+  Prints rpm_status + canary values so a surviving wedge localizes to
+  pre-open degradation vs open-path trigger.
+- dwmac-rk rk_gmac_clks_config: dump per-clock enable state and
+  php_grf CON0/CLK_CON1 after every enable (E1 snapshot inline).
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ .../net/ethernet/stmicro/stmmac/dwmac-rk.c    | 26 +++++++++++++++-
+ .../net/ethernet/stmicro/stmmac/stmmac_main.c | 30 +++++++++++++++++++
+ 2 files changed, 55 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c b/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c
+index 1192ec3f6..c1cd24597 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c
++++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c
+@@ -18,6 +18,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/regulator/consumer.h>
+ #include <linux/delay.h>
++#include <linux/clk-provider.h>	/* TEMP 0029: __clk_is_enabled for DBG25 dump */
+ #include <linux/mfd/syscon.h>
+ #include <linux/regmap.h>
+ #include <linux/pm_runtime.h>
+@@ -1569,7 +1570,30 @@ static void rk_gmac_exit(struct device *dev, void *bsp_priv_)
+ 
+ static int rk_gmac_clks_config(void *priv, bool enabled)
+ {
+-	return gmac_clk_enable(priv, enabled);
++	struct rk_priv_data *bsp_priv = priv;
++	int ret, i;
++
++	ret = gmac_clk_enable(bsp_priv, enabled);
++
++	/* DBG25 (TEMP): state snapshot at every clks_config cycle. */
++	if (enabled) {
++		for (i = 0; i < bsp_priv->num_clks; i++)
++			dev_info(bsp_priv->dev, "DBG25 clk %s: enabled=%d\n",
++				 bsp_priv->clks[i].id,
++				 bsp_priv->clks[i].clk ?
++				 __clk_is_enabled(bsp_priv->clks[i].clk) : -1);
++		if (bsp_priv->php_grf) {
++			unsigned int con0, con1;
++
++			regmap_read(bsp_priv->php_grf, 0x0008, &con0);
++			regmap_read(bsp_priv->php_grf, 0x0070, &con1);
++			dev_info(bsp_priv->dev,
++				 "DBG25 php_grf CON0=0x%04x CLK_CON1=0x%04x\n",
++				 con0 & 0xffff, con1 & 0xffff);
++		}
++	}
++
++	return ret;
+ }
+ 
+ static int rk_gmac_probe(struct platform_device *pdev)
+diff --git a/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c b/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c
+index e53f4e97a..2366e0ead 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c
++++ b/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c
+@@ -4186,6 +4186,7 @@ static int stmmac_open(struct net_device *dev)
+ {
+ 	struct stmmac_priv *priv = netdev_priv(dev);
+ 	struct stmmac_dma_conf *dma_conf;
++	u32 canary, cfg;
+ 	int ret;
+ 
+ 	/* Initialise the tx lpi timer, converting from msec to usec */
+@@ -4206,6 +4207,35 @@ static int stmmac_open(struct net_device *dev)
+ 
+ 	netdev_info(dev, "DBG24 open: post pm_runtime_resume, pre init_phy\n");
+ 
++	/* DBG25 (TEMP): open-entry canary read of the exact register whose
++	 * readl wedged the fabric in rounds 3-9 (first MDIO wait readl).
++	 * Then force a full re-arm of the platform bus-clock state:
++	 * plat->clks_config(false) + SRST_A pulse + clks_config(true), i.e.
++	 * the dwmac-rk gmac_clk_enable() sequence the vendor runs at every
++	 * powerup but mainline runs only once at probe.
++	 */
++	canary = readl(priv->ioaddr + priv->hw->mii.addr);
++	netdev_info(dev, "DBG25 open-entry A (MII_ADDR): rpm=%d val=0x%08x\n",
++		    priv->device->power.runtime_status, canary);
++	cfg = readl(priv->ioaddr);
++	netdev_info(dev, "DBG25 open-entry B (GMAC_CONFIG): val=0x%08x\n", cfg);
++
++	if (priv->plat->clks_config) {
++		netdev_info(dev, "DBG25 re-arm: clks off -> SRST pulse -> clks on\n");
++		priv->plat->clks_config(priv->plat->bsp_priv, false);
++		if (priv->plat->stmmac_rst) {
++			reset_control_assert(priv->plat->stmmac_rst);
++			udelay(50);
++			reset_control_deassert(priv->plat->stmmac_rst);
++		}
++		priv->plat->clks_config(priv->plat->bsp_priv, true);
++	}
++
++	canary = readl(priv->ioaddr + priv->hw->mii.addr);
++	netdev_info(dev, "DBG25 post-rearm A (MII_ADDR): val=0x%08x\n", canary);
++	cfg = readl(priv->ioaddr);
++	netdev_info(dev, "DBG25 post-rearm B (GMAC_CONFIG): val=0x%08x\n", cfg);
++
+ 	ret = stmmac_init_phy(dev);
+ 	if (ret)
+ 		goto err_runtime_pm;
+-- 
+2.43.0
+
