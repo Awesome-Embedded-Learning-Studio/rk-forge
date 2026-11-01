@@ -1,0 +1,34 @@
+From 13699cf402b252286c674e9e82af30359524fe09 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 1 Nov 2026 23:22:00 +0800
+Subject: [PATCH 3/3] rockchip: boot_mode: handle BOOT_LOADER with rockusb
+
+setup_boot_mode() handles BOOT_FASTBOOT and BOOT_UMS but drops
+BOOT_LOADER on the floor, losing the vendor 'reboot loader' experience.
+Wire it the same way as its neighbours: preboot drops into rockusb on
+eMMC. The kernel side writes the magic via the topeet reboot-mode DT
+node (pmu0_grf + 0x80 = 0xfd588080 = this register).
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ arch/arm/mach-rockchip/boot_mode.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/arm/mach-rockchip/boot_mode.c b/arch/arm/mach-rockchip/boot_mode.c
+index 55e9456668a..08dd1f20b64 100644
+--- a/arch/arm/mach-rockchip/boot_mode.c
++++ b/arch/arm/mach-rockchip/boot_mode.c
+@@ -105,6 +105,10 @@ int setup_boot_mode(void)
+ 		debug("%s: enter UMS!\n", __func__);
+ 		env_set("preboot", "setenv preboot; ums mmc 0");
+ 		break;
++	case BOOT_LOADER:
++		debug("%s: enter rockusb!\n", __func__);
++		env_set("preboot", "setenv preboot; rockusb 0 mmc 0");
++		break;
+ 	}
+ 
+ 	return 0;
+-- 
+2.43.0
+

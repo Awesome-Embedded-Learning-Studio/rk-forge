@@ -11,15 +11,15 @@ identity:
   cpu: cortex-a76                       # big core (big.LITTLE; defconfig targets big core)
 
 kernel:
-  base: v7.1
-  dtb_name: rk3588-topeet               # ported from vendor topeet-rk3588-linux.dts (5.10) → mainline v7.1
+  base: v7.3.1
+  dtb_name: rk3588-topeet               # ported from vendor topeet-rk3588-linux.dts (5.10) → mainline
   img: Image
   base_defconfig: arch/arm64/configs/defconfig
   fragments: [kernel.config]
 
 # §5.1: per-board upstream refs (shared pool buildroot/drivers/busybox in forge.yaml).
 sources:
-  linux: {url: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git, ref: v7.1}
+  linux: {url: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git, ref: v7.3.1}
   uboot: {url: https://gitlab.denx.de/u-boot/u-boot.git, ref: 5ca1a73c}
 
 uboot:

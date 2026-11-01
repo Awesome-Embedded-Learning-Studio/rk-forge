@@ -1,7 +1,8 @@
-# patches/rk3588-topeet/linux/series — board patches for rk3588-topeet (mainline v7.1 base).
+# patches/rk3588-topeet/linux/series — board patches for rk3588-topeet (mainline v7.3.1 base,
+# rebased from v7.1 on 2026-11-01).
 # One patch filename per line (quilt style); '#' = comment, blank lines OK.
 # Applied by forge's PatchApplier (git am --3way --signoff, bisectable) onto the
-# pinned v7.1 tag; forge skips apply only on a series-content fingerprint match.
+# pinned v7.3.1 tag; forge skips apply only on a series-content fingerprint match.
 #
 # 0001 — OOT DRM panel driver (panel-topeet-dsi.c) that replays the vendor
 #        panel-init-sequence / panel-exit-sequence byte blobs (Rockchip BSP
@@ -40,6 +41,8 @@
 #        sg_cpu publication (f0a3f042293a), OPP add/lookup kref
 #        (f5e1cc9a284b), and the rtw88 trio incl. the 8723du-relevant TX
 #        report timeout (c80788f7c, 6b964941b, aa7d92e83).
+#        2026-11-01 v7.3.1 rebase: DROPPED — all five are in v7.2+, carried
+#        upstream; files kept as archive evidence of the v7.1-era backport.
 # 0020 — cluster AFBC modifier lists split per SoC (modifier tables are SoC
 #        hardware capability tables; rk3576 already had its own — the
 #        rk3568/rk3588 sharing let RK3588 silently inherit RK3568's genuine
@@ -67,11 +70,11 @@
 0010-arm64-dts-rk3588-topeet-fix-GT911-axis-mapping.patch
 0011-cpufreq-rockchip-port-rk3588-vendor-dvfs-sequencing.patch
 0012-cpufreq-rockchip-defer-safe-probe-and-panic-notifier.patch
-0013-cpufreq-schedutil-publish-util-hooks-only-after-all-sg_cpu-are-initialized.patch
-0014-opp-fix-race-between-opp-addition-and-lookup.patch
-0015-wifi-rtw88-increase-tx-report-timeout-to-fix-race-condition.patch
-0016-wifi-rtw88-usb-fix-memory-leaks-on-usb-write-failures.patch
-0017-wifi-rtw88-add-more-validation-for-the-rx-descriptor.patch
+#0013-cpufreq-schedutil-publish-util-hooks-only-after-all-sg_cpu-are-initialized.patch  # v7.3.1 起 upstream（f0a3f042293a, v7.2）
+#0014-opp-fix-race-between-opp-addition-and-lookup.patch  # v7.3.1 起 upstream（f5e1cc9a284b, v7.2）
+#0015-wifi-rtw88-increase-tx-report-timeout-to-fix-race-condition.patch  # v7.3.1 起 upstream（c80788f7c, v7.2）
+#0016-wifi-rtw88-usb-fix-memory-leaks-on-usb-write-failures.patch  # v7.3.1 起 upstream（6b964941b, v7.2）
+#0017-wifi-rtw88-add-more-validation-for-the-rx-descriptor.patch  # v7.3.1 起 upstream（aa7d92e83, v7.2）
 0018-arm64-dts-rk3588-topeet-cap-big-2.208ghz-diagnostic.patch
 0019-cpufreq-rockchip-port-dsu-l3-frequency-coupling.patch
 0020-drm-rockchip-vop2-advertise-linear-modifier-on-rk3588-cluster-windows.patch
@@ -83,6 +86,7 @@
 #0026-TEMP-stmmac-open-mdio-debug-probes.patch  # R26 结案后摘除：系统存活后打印洪水淹没控制台
 0027-clk-rockchip-rk3588-keep-GMAC-clocks-always-on.patch
 0028-net-stmmac-dwmac-rk-wire-clks_config-and-conditional-RK3588-delay-lines.patch
+0035-arm64-dts-rk3588-topeet-pmu0-grf-reboot-mode.patch
 #0029-TEMP-stmmac-open-entry-rearm-and-state-snapshot.patch  # R26 结案后摘除：open 已存活，重整装成多余变量
 #0031-TEMP-headless-disable-display-pipeline.patch  # R30 起复现轮转回全显示（=R11 参照），R26 结论已固化
 #0030-TEMP-poll-php_grf-and-gmac0-csr.patch  # R31 结案退役：修复已由 0033 落地（v7 曾立功：GPLL 零变更+V0PLL 重锁判决）

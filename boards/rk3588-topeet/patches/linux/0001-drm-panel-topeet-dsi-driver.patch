@@ -91,6 +91,7 @@ index 000000000..85f4d99a2
 +
 +#include <drm/drm_mipi_dsi.h>
 +#include <drm/drm_modes.h>
++#include <drm/drm_of.h>
 +#include <drm/drm_panel.h>
 +
 +#define DRV_NAME "panel-topeet-dsi"
@@ -368,7 +369,7 @@ index 000000000..85f4d99a2
 +	device_property_read_u32(dev, "unprepare-delay-ms", &ctx->unprepare_delay);
 +	device_property_read_u32(dev, "reset-delay-ms", &ctx->reset_delay);
 +
-+	of_drm_get_panel_orientation(dev->of_node, &ctx->orientation);
++	drm_of_get_panel_orientation(dev->of_node, &ctx->orientation);
 +
 +	/*
 +	 * 1024x600 topeet panel: 4-lane RGB888, video mode + burst, low-power
