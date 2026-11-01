@@ -1,0 +1,78 @@
+From 04f8284366cf5db878d7aacd2310cfb792e9b17e Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 1 Nov 2026 15:42:46 +0800
+Subject: [PATCH] arm64: dts: rk3588-topeet: parent DCLK_VOP2_SRC from V0PLL on
+ the vop device
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The DCLK_VOP2_SRC <- V0PLL parenting intent added in 0009 was written on
+&vp2, a port sub-node of the vop node. Port nodes never become platform
+devices, so of_clk_set_defaults() never applied it and the source mux
+stayed on its default parent GPLL (confirmed on board: CLKSEL_CON112
+mux field 0).
+
+The mainline vop2_crtc_atomic_enable() then issues
+clk_set_rate(vp->dclk, 82 MHz) for the 1024x600 panel. The request
+propagates through DCLK_VOP2 and DCLK_VOP2_SRC — both flagged
+CLK_SET_RATE_PARENT | CLK_SET_RATE_NO_REPARENT — into whichever PLL the
+mux currently selects: the shared GPLL, parent of clk_gmac_125m,
+clk_gmac_50m and aclk_php_root. 82 MHz is not divisible from the GPLL
+rate, so the PLL is asked to relock.
+
+This is the same failure family as the RK3588 DP mode-switch board hang
+analysed by Andy Yan on lkml (2025-03-12, RK3588 DW-DP series thread):
+"The dclk for vp2 is default from GPLL, it can't divde pixel clock for
+such a refresh rates... it seems the frequence of GPLL be changed?
+Plesase try it like this: bond the dclk source for VP2 from V0PLL."
+
+Move the assignment onto the &vop device node (merging with the ACLK
+entry via a <0> placeholder) and drop the dead per-port lines.
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ .../arm64/boot/dts/rockchip/rk3588-topeet.dts | 20 ++++++++++++++-----
+ 1 file changed, 15 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+index 5405342bf..3f536bf30 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+@@ -817,9 +817,21 @@ &pwm1 {
+ &vop {
+ 	/* Match the RK3588 BSP's VOP clock/reset contract.  The DCLK resets
+ 	 * are consumed by the mainline VOP2 enable path below; assigned clocks
+-	 * are applied by the common clock framework before the DRM probe. */
+-	assigned-clocks = <&cru ACLK_VOP>;
+-	assigned-clock-rates = <750000000>;
++	 * are applied by the common clock framework before the DRM probe.
++	 *
++	 * DCLK_VOP2_SRC must be parented from the dedicated V0PLL on this
++	 * *device* node: &vp2 is a port sub-node that never becomes a
++	 * platform device, so of_clk_set_defaults() never ran there and the
++	 * source mux stayed on GPLL.  The mainline vop2 atomic enable then
++	 * issues clk_set_rate(vp->dclk, 82 MHz), which propagates through
++	 * DCLK_VOP2/DCLK_VOP2_SRC (CLK_SET_RATE_PARENT | NO_REPARENT) into a
++	 * relock of the shared GPLL — the parent of clk_gmac_125m/50m and
++	 * aclk_php_root.  Same family as the RK3588 DP mode-switch board
++	 * hang analysed by Andy Yan (lkml, 2025-03-12), whose fix is this
++	 * exact assignment.  The <0> placeholder keeps the ACLK rate entry. */
++	assigned-clocks = <&cru ACLK_VOP>, <&cru DCLK_VOP2_SRC>;
++	assigned-clock-rates = <750000000>, <0>;
++	assigned-clock-parents = <0>, <&cru PLL_V0PLL>;
+ 	resets = <&cru SRST_A_VOP>,
+ 		 <&cru SRST_H_VOP>,
+ 		 <&cru SRST_D_VOP0>,
+@@ -943,8 +955,6 @@ dsi0_out_panel: endpoint {
+ &vp2 {
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
+-	assigned-clocks = <&cru DCLK_VOP2_SRC>;
+-	assigned-clock-parents = <&cru PLL_V0PLL>;
+ 
+ 	vp2_out_dsi0: endpoint@ROCKCHIP_VOP2_EP_MIPI0 {
+ 		reg = <ROCKCHIP_VOP2_EP_MIPI0>;
+-- 
+2.43.0
+

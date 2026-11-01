@@ -1,0 +1,53 @@
+From 3b2e90204152f4bc7676a288c2675d44f11f381f Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 1 Nov 2026 13:57:12 +0800
+Subject: [PATCH] =?UTF-8?q?TEMPORARY=20(0031,=20remove=20after=20wedge=20l?=
+ =?UTF-8?q?ocated):=20headless=20discriminator=20round=20=E2=80=94=20disab?=
+ =?UTF-8?q?le=20the=20display=20pipeline?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The R22 v3-poller round pinned the php_grf reset image flip to 1.2207s,
+13ms after rockchip-drm binds fdd90000.vop + fde20000.dsi. Disable the
+whole display family so the boot is headless; if the DBG30 CON0 flip
+banner no longer appears and eth0 open survives, the display bring-up
+(VOP2 vendor-handoff path, DSI2 controller, or the OOT panel driver)
+owns the php_grf reset and the GMAC read wedge.
+---
+ .../arm64/boot/dts/rockchip/rk3588-topeet.dts | 22 +++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+index 5405342bf..69a222236 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+@@ -974,3 +974,25 @@ touchscreen@14 {
+ 		status = "okay";
+ 	};
+ };
++
++/* TEMP 0031 (headless discriminator round): disable the whole display
++ * pipeline (VOP2 + its MMU + DSI2 + DCPHY + the panel beneath dsi0) to
++ * test whether the ~1.22s php_grf reset event — which lands ~13ms after
++ * rockchip-drm binds VOP+DSI — is caused by the display bring-up path.
++ * Judgment instrument: the DBG30 poller's serial CON0-flip banner.
++ */
++&vop {
++	status = "disabled";
++};
++
++&vop_mmu {
++	status = "disabled";
++};
++
++&mipidcphy0 {
++	status = "disabled";
++};
++
++&dsi0 {
++	status = "disabled";
++};
+-- 
+2.43.0
+

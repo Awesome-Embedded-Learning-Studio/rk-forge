@@ -10,6 +10,7 @@ remote/
 *.mod
 *.mod.c
 *.cmd
+!boards/**/*.cmd
 .tmp_versions/
 Module.symvers
 modules.order

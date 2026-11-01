@@ -76,5 +76,15 @@
 0019-cpufreq-rockchip-port-dsu-l3-frequency-coupling.patch
 0020-drm-rockchip-vop2-advertise-linear-modifier-on-rk3588-cluster-windows.patch
 0021-drm-rockchip-vop2-drop-afbc-only-10bpc-formats-from-rk3588-cluster-windows.patch
-0022-PM-runtime-SIM-DIAG-prints-for-runtime-error-origin.patch
+#0022-PM-runtime-SIM-DIAG-prints-for-runtime-error-origin.patch
 0023-virtio-mmio-map-command-line-gic-spi-through-of-irqdomain.patch
+0024-pmdomain-rockchip-keep-RK3588-PD_GMAC-always-on.patch
+0025-arm64-dts-rk3588-topeet-drop-invented-PHY-reset-GPIO.patch
+#0026-TEMP-stmmac-open-mdio-debug-probes.patch  # R26 结案后摘除：系统存活后打印洪水淹没控制台
+0027-clk-rockchip-rk3588-keep-GMAC-clocks-always-on.patch
+0028-net-stmmac-dwmac-rk-wire-clks_config-and-conditional-RK3588-delay-lines.patch
+#0029-TEMP-stmmac-open-entry-rearm-and-state-snapshot.patch  # R26 结案后摘除：open 已存活，重整装成多余变量
+#0031-TEMP-headless-disable-display-pipeline.patch  # R30 起复现轮转回全显示（=R11 参照），R26 结论已固化
+#0030-TEMP-poll-php_grf-and-gmac0-csr.patch  # R31 结案退役：修复已由 0033 落地（v7 曾立功：GPLL 零变更+V0PLL 重锁判决）
+#0032-TEMP-display-phase-markers.patch  # R34 结案退役：生命周期修复后屏幕点亮，标记使命完成
+# 0033/0034 已于 2026-11-01 结案整合折叠：0033(V0PLL 重父)→0009，0034(init-in-prepare)→0001；文件留档

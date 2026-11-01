@@ -16,7 +16,7 @@ RK3568 的主线支持比 RK3506 成熟太多——pinctrl/clk/GIC/USB/PCIe/GMAC
 
 ## 本卷当前的诚实状态：MVP，只有启动章
 
-这里必须说清楚，免得你读下去以为 RK3568 教程已经齐了。RK3568 的 [ROADMAP](../../planning/RK3568_ROADMAP) 规划了一条完整的课（A0–A5，从 AArch64 启动到 DRM 显示、驱动调试、可维护交付，20 章），但课程化目前只走到了启动首启这一章。其余的——GPIO/IRQ/clock、I2C/SPI/UART、DMA、USB/PCIe、双 GMAC、DRM 显示、驱动调试——ROADMAP 定义了教学目标和顺序，但还没写成 tutorial 章节。
+这里必须说清楚，免得你读下去以为 RK3568 教程已经齐了。RK3568 的 [ROADMAP](../../planning/rk3568/) 规划了一条完整的课（从 AArch64 启动到 DRM 显示、驱动调试、可维护交付，20 章），但课程化目前只走到了启动首启这一章。其余的——GPIO/IRQ/clock、I2C/SPI/UART、DMA、USB/PCIe、双 GMAC、DRM 显示、驱动调试——ROADMAP 定义了教学目标和顺序，但还没写成 tutorial 章节。
 
 更硬的一条约束：RK3568 的板级设备树（PMIC、双 GMAC、RK809 audio、Goodix 触摸、LCD、CAN、RTC 等八个子系统）虽然在真机上移植并验证了，但目前是 `third_party/src/rk3568-atk/` 里的 working-tree delta，没有正式 quilt 化进 `patches/rk3568-atk/linux/series`（那个 series 现在只带 rtl8852bs WiFi 的接线）。也就是说，第二人 `forge setup` clone 下来，复现不了这些外设——这是 RK3568 落后 RK3588（已完整 patch 化）一个工程化阶段的地方。把这个债还上（内部叫 P4）是 RK3568 教程继续往下写的前置。
 

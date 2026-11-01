@@ -1,0 +1,53 @@
+From df6c50b773e2c790eaf85a2b100bae851b5a70ea Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 1 Nov 2026 01:12:22 +0800
+Subject: [PATCH] arm64: dts: rk3588-topeet: drop invented PHY reset GPIO
+ (vendor parity)
+
+The board does not wire the RTL8211F reset to any GPIO: the vendor DTS has
+no reset-gpios on the phy node (nor snps,reset-* with a gpio), and U-Boot
+autonegociates successfully with no reset handling at all. The gpio0_B0
+reset line was invented during bring-up; asserting it inside
+phy_attach_direct() drove an unknown board signal for 20 ms and wedged the
+SoC fabric (instant bus-wide stall: console cut mid-line, IRQ starvation,
+hard lockups). Drop the reset trio and its pinctrl node.
+---
+ arch/arm64/boot/dts/rockchip/rk3588-topeet.dts | 16 ++++------------
+ 1 file changed, 4 insertions(+), 12 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+index e34d774b1..5405342bf 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+@@ -723,24 +723,16 @@ &gmac0_rgmii_clk
+ 
+ &mdio0 {
+ 	rgmii_phy0: ethernet-phy@1 {
+-		/* RTL8211F */
++		/* RTL8211F — NO reset GPIO (vendor parity): the board does not wire
++		 * PHY reset to a GPIO; U-Boot autoneg succeeds with no reset handling.
++		 * The previously invented gpio0_B0 reset line asserted an unknown
++		 * signal during phy_attach_direct() and wedged the SoC fabric. */
+ 		compatible = "ethernet-phy-id001c.c916";
+ 		reg = <0x1>;
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&rtl8211f_rst>;
+-		reset-assert-us = <20000>;
+-		reset-deassert-us = <100000>;
+-		reset-gpios = <&gpio0 RK_PB0 GPIO_ACTIVE_LOW>;
+ 	};
+ };
+ 
+ &pinctrl {
+-	rtl8211f {
+-		rtl8211f_rst: rtl8211f-rst {
+-			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
+-		};
+-	};
+-
+ 	touchscreen {
+ 		gt911_int: gt911-int {
+ 			rockchip,pins = <3 RK_PC0 RK_FUNC_GPIO &pcfg_pull_up>;
+-- 
+2.43.0
+

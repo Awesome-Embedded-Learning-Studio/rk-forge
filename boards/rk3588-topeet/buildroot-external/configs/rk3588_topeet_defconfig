@@ -1,0 +1,61 @@
+# =============================================================================
+# rk3588_topeet_defconfig — minimal buildroot rootfs for rk-forge (iTOP-RK3588).
+#
+# Toolchain: external /opt Arm GNU 15.3.Rel1 (gcc 15.3.1, glibc 2.42, kernel
+# headers 6.6.44, aarch64). RootfsBuilder overrides BR2_TOOLCHAIN_EXTERNAL_PATH
+# at build time from boards/rk3588-topeet/board.yaml (single source of truth),
+# so the path below is the Kconfig-required placeholder.
+#
+# Mirror of the rk3568 MVP (ebcee5a): smallest rootfs that boots to a busybox
+# shell on eMMC (ext4). No GPU/VPU/NPU/audio/wifi — the 2a track upgrades this
+# in place (mesa panfrost-csf/G610, linux-firmware rtw88, …), mapped against
+# vendor rockchip_rk3588_defconfig per notes/38's A/B/C/D methodology.
+# =============================================================================
+
+# --- ARCH --------------------------------------------------------------------
+BR2_aarch64=y
+BR2_cortex_a76=y
+
+# --- External toolchain (same line as rk3568-atk; load-bearing) --------------
+BR2_TOOLCHAIN_EXTERNAL=y
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y
+BR2_TOOLCHAIN_EXTERNAL_PATH="/opt/arm-gnu-toolchain-15.3.rel1-x86_64-aarch64-none-linux-gnu"
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX="$(ARCH)-none-linux-gnu"
+BR2_TOOLCHAIN_EXTERNAL_GCC_15=y
+BR2_TOOLCHAIN_EXTERNAL_HEADERS_6_6=y
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM_GLIBC=y
+BR2_TOOLCHAIN_EXTERNAL_HAS_SSP=y
+# glibc 2.4x dropped Sun RPC from libc (moved to libtirpc); the toolchain sysroot
+# has no rpc/rpc.h, so buildroot's check rejects INET_RPC. Kconfig default is y
+# for glibc → disable explicitly.
+# BR2_TOOLCHAIN_EXTERNAL_INET_RPC is not set
+BR2_TOOLCHAIN_EXTERNAL_LOCALE=y
+BR2_TOOLCHAIN_EXTERNAL_WCHAR=y
+BR2_TOOLCHAIN_EXTERNAL_THREADS=y
+BR2_TOOLCHAIN_EXTERNAL_THREADS_POSIX=y
+BR2_TOOLCHAIN_EXTERNAL_HAS_THREADS_DEBUG=y
+# Arm GNU ships g++ + gfortran + OpenMP; buildroot's toolchain check REQUIRES the
+# config to acknowledge every language the compiler provides or it errors.
+BR2_TOOLCHAIN_EXTERNAL_CXX=y
+BR2_INSTALL_LIBSTDCPP=y
+BR2_TOOLCHAIN_EXTERNAL_FORTRAN=y
+BR2_TOOLCHAIN_EXTERNAL_OPENMP=y
+
+# --- Target ------------------------------------------------------------------
+BR2_TARGET_GENERIC_HOSTNAME="rk3588-topeet"
+BR2_TARGET_GENERIC_ISSUE="Welcome to rk-forge buildroot (rk3588-topeet)"
+BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS=y
+# RK3588's serial console is the FIQ-debugger tty (ttyFIQ0) — the same UART the
+# ubuntu line serves via serial-getty@ttyFIQ0.service. Without this, the getty
+# spawns on the buildroot default port and no login prompt appears.
+BR2_TARGET_GENERIC_GETTY_PORT="ttyFIQ0"
+
+# --- busybox + init (sysvinit via busybox init) -------------------------------
+BR2_PACKAGE_BUSYBOX=y
+BR2_INIT_BUSYBOX=y
+
+# --- Output: tar only ---------------------------------------------------------
+# forge only consumes rootfs.tar; pack-emmc rebuilds the ext4 itself (mke2fs -d on
+# the staged tree). cpio/initramfs NOT needed — RK3588 boots the ext4 root
+# directly (no provisioning ramdisk; that's aes's NAND/ubiprog flow).
+BR2_TARGET_ROOTFS_TAR=y

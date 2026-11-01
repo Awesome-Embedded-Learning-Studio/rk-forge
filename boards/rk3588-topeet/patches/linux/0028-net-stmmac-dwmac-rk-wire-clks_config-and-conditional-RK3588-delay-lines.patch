@@ -1,0 +1,62 @@
+From 428d3155c1a92b3a3a737c3e2eef79c539ffc671 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 1 Nov 2026 10:55:04 +0800
+Subject: [PATCH 1/2] net: stmmac: dwmac-rk: wire clks_config, make RK3588
+ delay lines conditional
+
+stmmac_bus_clks_config() re-manages only the stmmac core clocks on
+runtime/system PM; the dwmac-rk bulk clocks (aclk/pclk/tx/speed) are
+enabled exactly once at probe via gmac_clk_enable() and never re-armed.
+Wire plat->clks_config so every runtime/system resume re-runs the full
+gmac_clk_enable() sequence (bulk clocks + io clksel GRF + RMII ungate +
+5 ms settle window).
+
+rk3588_set_to_rgmii() unconditionally enabled both RGMII delay lines.
+The vendor BSP enables a line only when its delay value is non-zero
+(DELAY_ENABLE_BY_ID). For boards with rx_delay = 0 (rgmii-rxid, the PHY
+adds the RX delay) mainline kept the SoC RX delay line enabled at value
+0; match BSP semantics.
+---
+ drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c b/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c
+index 8d7042e68..1192ec3f6 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c
++++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-rk.c
+@@ -1005,8 +1005,10 @@ static void rk3588_set_to_rgmii(struct rk_priv_data *bsp_priv,
+ 					 RK3588_GRF_GMAC_CON8;
+ 
+ 	regmap_write(bsp_priv->grf, RK3588_GRF_GMAC_CON7,
+-		     RK3588_GMAC_RXCLK_DLY_ENABLE(id) |
+-		     RK3588_GMAC_TXCLK_DLY_ENABLE(id));
++		     (rx_delay ? RK3588_GMAC_RXCLK_DLY_ENABLE(id) :
++				 RK3588_GMAC_RXCLK_DLY_DISABLE(id)) |
++		     (tx_delay ? RK3588_GMAC_TXCLK_DLY_ENABLE(id) :
++				 RK3588_GMAC_TXCLK_DLY_DISABLE(id)));
+ 
+ 	regmap_write(bsp_priv->grf, offset_con,
+ 		     RK3588_GMAC_CLK_RX_DL_CFG(rx_delay) |
+@@ -1565,6 +1567,11 @@ static void rk_gmac_exit(struct device *dev, void *bsp_priv_)
+ 	reset_control_put(bsp_priv->phy_reset);
+ }
+ 
++static int rk_gmac_clks_config(void *priv, bool enabled)
++{
++	return gmac_clk_enable(priv, enabled);
++}
++
+ static int rk_gmac_probe(struct platform_device *pdev)
+ {
+ 	struct plat_stmmacenet_data *plat_dat;
+@@ -1601,6 +1608,7 @@ static int rk_gmac_probe(struct platform_device *pdev)
+ 	plat_dat->exit = rk_gmac_exit;
+ 	plat_dat->suspend = rk_gmac_suspend;
+ 	plat_dat->resume = rk_gmac_resume;
++	plat_dat->clks_config = rk_gmac_clks_config;
+ 
+ 	plat_dat->bsp_priv = rk_gmac_setup(pdev, plat_dat, data);
+ 	if (IS_ERR(plat_dat->bsp_priv))
+-- 
+2.43.0
+
