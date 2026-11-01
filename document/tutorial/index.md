@@ -123,7 +123,7 @@ RK3568 是 AArch64 + 标准驱动框架的中间级。主线 7.1 + binman 自产
   <ChapterLink num="02" href="rk3568/02_peripherals">板级 DT 八子系统：从"能启动"到"能用"</ChapterLink>
 </ChapterNav>
 
-> 🚧 板级 DT 八子系统（PMIC / 双 GMAC / audio / 触摸 / LCD / GPU / CAN / RTC）、rtl8852bs WiFi、buildroot Phase 2a 全栈——在 [notes/40–42](../notes/) 有真机记录，但等板 DT patch 化（P4）落定后再课程化成章节。完整课程目标见 [RK3568 路线](../planning/RK3568_ROADMAP)。
+> 🚧 板级 DT 八子系统（PMIC / 双 GMAC / audio / 触摸 / LCD / GPU / CAN / RTC）、rtl8852bs WiFi、buildroot Phase 2a 全栈——在 [notes/40–42](../notes/) 有真机记录，但等板 DT patch 化（P4）落定后再课程化成章节。完整课程目标见 [RK3568 路线](../planning/rk3568/)。
 
 ## RK3588 系列
 
@@ -138,7 +138,7 @@ RK3588 是异构 / 媒体 / 桌面产品级的顶级。主线 boot 到 Ubuntu GN
   <ChapterLink num="05" href="rk3588/05_stability">稳定性调试：抓看不见的 hard-lock（方法论）</ChapterLink>
 </ChapterNav>
 
-> 🚧 V4L2/ISP 摄像头、MPP 视频编解码、NPU/AI、Android 产品化方向课——主线驱动还在 roadmap、硬件未接齐，等真机数据补齐后补。LCD 的 VOP2 hard-lock 修复当前是候选镜像，连续稳定性板验未完。完整课程目标见 [RK3588 路线](../planning/RK3588_ROADMAP)。
+> 🚧 V4L2/ISP 摄像头、MPP 视频编解码、NPU/AI、Android 产品化方向课——主线驱动还在 roadmap、硬件未接齐，等真机数据补齐后补。LCD 的 VOP2 hard-lock 修复当前是候选镜像，连续稳定性板验未完。完整课程目标见 [RK3588 路线](../planning/rk3588/)。
 
 ::: tip 遇到问题？
 三块板这条链踩了一路坑——rkbin SPL 的隐性契约、SPI-NAND 读写 saga、reserved-memory 那个把人骗过两次的 imprecise abort、RK3588 那场看不见报错的 bootloop、TC358775 桥 IC 的 `.prepare` 生命周期、GPU 固件的 early-probe 时机……全记在 [踩坑日记](../pitfalls/) 和各章的"坑"小节里，每条挂着串口原文。提 [GitHub Issue](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/issues) 也欢迎。

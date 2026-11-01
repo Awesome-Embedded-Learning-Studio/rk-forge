@@ -4,27 +4,37 @@ title: 三板教学路线
 
 # 三板教学路线
 
-> rk-forge 围绕三块 Rockchip 开发板组织教学——从 ARM32 主线 bring-up，到 AArch64 Linux 驱动框架，再到异构计算与产品工程。三块板不是平行的三门课，是一条递进的阶梯；每块板各有一份 ROADMAP，定义要教什么、什么顺序、怎么验收、当前进展到哪。
+> rk-forge 围绕三块 Rockchip 开发板组织教学——从 ARM32 主线 bring-up，到 AArch64 Linux 驱动框架，再到异构计算与产品工程。三块板不是平行的三门课，是一条递进的阶梯；每块板各有一份教学路线（按卷分册，见下表入口），定义要教什么、什么顺序、怎么验收、当前进展到哪。
 
 ## 三块板，一条阶梯
 
-| 板子 | SoC / 架构 | 你会学到 | ROADMAP | 进展 |
+| 板子 | SoC / 架构 | 你会学到 | 路线入口 | 进展 |
 |---|---|---|---|---|
-| **RK3506B** | RK3506B / ARMv7-A · Cortex-A7×3（32-bit armhf） | 主线 bring-up、SPI-NAND/UBIFS 可靠性、SD 启动、Buildroot/OpenWrt、工业接口 | [RK3506B 路线](RK3506B_ROADMAP) | 🟢 `verified` — 真板已验证，教程已在 [tutorial/](../tutorial/) 兑现 |
-| **RK3568** | RK3568 / AArch64 · Cortex-A55×4 | Linux 设备模型、IRQ/clock/regulator、I²C/SPI/UART、DMA、USB/PCIe、网络、DRM | [RK3568 路线](RK3568_ROADMAP) | 🟡 `partial` — ATK 真机 boot 已验证（多外设板验），课程化待建 |
-| **RK3588** | RK3588 / AArch64 · A76+A55 big.LITTLE | 异构、内存/SMMU/dma-buf、DRM/V4L2/MPP/RGA、AI(NPU)/媒体/Android/GPU | [RK3588 路线](RK3588_ROADMAP) | 🟡 `partial` — iTOP 真机 boot 到 GNOME 桌面已验证，课程化待建 |
+| **RK3506B** | RK3506B / ARMv7-A · Cortex-A7×3（32-bit armhf） | 主线 bring-up、SPI-NAND/UBIFS 可靠性、SD 启动、Buildroot/OpenWrt、工业接口 | [RK3506B 路线](rk3506b/) | 🟢 `verified` — 真板已验证，教程已在 [tutorial/](../tutorial/) 兑现 |
+| **RK3568** | RK3568 / AArch64 · Cortex-A55×4 | Linux 设备模型、IRQ/clock/regulator、I²C/SPI/UART、DMA、USB/PCIe、网络、DRM | [RK3568 路线](rk3568/) | 🟡 `partial` — ATK 真机 boot 已验证（多外设板验），课程化待建 |
+| **RK3588** | RK3588 / AArch64 · A76+A55 big.LITTLE | 异构、内存/SMMU/dma-buf、DRM/V4L2/MPP/RGA、AI(NPU)/媒体/Android/GPU | [RK3588 路线](rk3588/) | 🟡 `partial` — iTOP 真机 boot 到 GNOME 桌面已验证，课程化待建 |
+
+## 结构怎么读
+
+每条路线是一个分册目录（`rk3506b/`、`rk3568/`、`rk3588/`）：
+
+- **线总览（index）**：路线承诺、平台边界、适合谁、能力成长地图、卷目录、结课标准、硬件确认门、明确不讲或推迟；
+- **卷**：课程的提纲单位，每卷若干章。**卷文件只写「要说什么」**——每章一句话命题 + 要点清单 + 实践与验收 + 素材锚点，不带教学正文；正文属于 [tutorial/](../tutorial/)，开写时的完整底稿在 git 历史（拆卷时的全量正文版本）；
+- **毕业项目**：每线三个候选，学习者只做一个主项目。项目页只写集成、权衡、故障与验收——原理回链对应卷与教材，不在项目里复制一套缩水版。
+
+RK3588 线另设四个专业方向（AI/NPU、媒体、Android、GPU 选修），**方向内章节独立编号**，引用带方向名（如「AI/NPU 方向 · 第 3 章」）。
 
 ## 从哪块板开始
 
-- **嵌入式新手，或想吃透主线 bring-up** — 从 [RK3506B](RK3506B_ROADMAP) 进。它是三块板里教程最完整、验证最透的一块：主线 U-Boot 2026.07 + Linux 7.1 启动链、SPI-NAND 可靠性、Buildroot 与 OpenWrt 都有完整的 [tutorial/](../tutorial/) 教程和 [真板日志](../logs/) 取证。学完你能独立维护一块 ARM32 板的板级支持。
-- **做过 Linux BSP，想系统学驱动框架** — 从 [RK3568](RK3568_ROADMAP) 进。它假设你懂交叉编译和基础启动链，把精力集中在 AArch64 下的 platform driver、设备树绑定、中断与 DMA、USB/PCIe、DRM 这套标准驱动框架上。
-- **做异构 / 媒体 / AI / Android 产品** — 从 [RK3588](RK3588_ROADMAP) 进。它不收零基础，要求先过它 §3 的六条自测（EL1/EL3、地址类型、设备树、probe 失败分析、perf、AArch64 产物隔离），然后从公共媒体地基进入 NPU / 媒体 / Android 三个方向之一。
+- **嵌入式新手，或想吃透主线 bring-up** — 从 [RK3506B](rk3506b/) 进。它是三块板里教程最完整、验证最透的一块：主线 U-Boot 2026.07 + Linux 7.1 启动链、SPI-NAND 可靠性、Buildroot 与 OpenWrt 都有完整的 [tutorial/](../tutorial/) 教程和 [真板日志](../logs/) 取证。学完你能独立维护一块 ARM32 板的板级支持。
+- **做过 Linux BSP，想系统学驱动框架** — 从 [RK3568](rk3568/) 进。它假设你懂交叉编译和基础启动链，把精力集中在 AArch64 下的 platform driver、设备树绑定、中断与 DMA、USB/PCIe、DRM 这套标准驱动框架上。
+- **做异构 / 媒体 / AI / Android 产品** — 从 [RK3588](rk3588/) 进。它不收零基础，要求先过它的六条自测（EL1/EL3、地址类型、设备树、probe 失败分析、perf、AArch64 产物隔离），然后从公共媒体地基进入 NPU / 媒体 / Android 三个方向之一。
 
-> RK3506B 的主线启动链、设备树、有序补丁库、`forge` 编排器是三块板共用的前置课——已在它的 [tutorial/](../tutorial/) 建立起来，RK3568/RK3588 的 ROADMAP 不再重述，默认你已具备或会回头查。
+> RK3506B 的主线启动链、设备树、有序补丁库、`forge` 编排器是三块板共用的前置课——已在它的 [tutorial/](../tutorial/) 建立起来，RK3568/RK3588 的路线不再重述，默认你已具备或会回头查。
 
 ## 状态怎么读
 
-每份 ROADMAP 的每一章都标了四档状态，你可以据此判断"这节内容现在能不能学到东西"：
+每条路线的卷目录都标了四档状态，你可以据此判断"这节内容现在能不能学到东西"：
 
 | 状态 | 含义 |
 |---|---|
@@ -33,16 +43,57 @@ title: 三板教学路线
 | ⚪ `planned` | 教学目标与课程顺序已定义，但 rk-forge 尚未建立真板 target |
 | 🔴 `blocked` | 明确卡在某项硬依赖（如某闭源 blob、某驱动未上游） |
 
-一句话："跑通过一次" ≠ `verified`，"厂商 SDK 能跑" ≠ rk-forge `verified`。每项能力的状态，都和仓库里对应的 [真板日志](../logs/) 与 [教程](../tutorial/) 一一对应——查不到证据的，就只能停在 `planned`。
+一句话："跑通过一次" ≠ `verified`，"厂商 SDK 能跑" ≠ rk-forge `verified`。每项能力的状态，都和仓库里对应的 [真板日志](../logs/) 与 [教程](../tutorial/) 一一对应——查不到证据的，就只能停在 `planned`。进入毕业项目或方向课**不改变状态口径**：完成项目 ≠ `verified`，升级仍以四档证据为准。
 
 ## 路线之间的边界
 
-这三条让三份 ROADMAP 各有清晰职责、不重复、不模糊：
+这三条让三份路线各有清晰职责、不重复、不模糊：
 
 1. RK3506B 的 **SPI-NAND/UBIFS 可靠性**主课不复制到 RK3568——后者走 eMMC/SD，存储课题完全不同；
 2. RK3568 **不写成缩小版 RK3588**——NPU、复杂 ISP/VPU、Android 属于 RK3588 的方向课；
 3. 三块板可以借鉴方法，但**不默认共享**任何固件、U-Boot、ATF、设备树、内核配置、模块或镜像——SoC 不同，每一块板都要独立建立证据。
 
+边界裁决（防漂移的明确取舍）：
+
+- RK3568 的 NPU 只做**驱动移植练习**（out-of-tree rknpu2 + librknnrt，落 3568 卷七第 20 章），不开 AI 应用课——AI 应用归 RK3588 的 AI/NPU 方向；
+- RK3568 不做 Android 产品化——归 RK3588 的 Android 方向；
+- RK3588 不设通用字符设备与驱动入门——那是 RK3568 的主场，RK3588 只写 SoC 特有课题；
+- GUI/OpenCV/OpenHarmony 等应用层内容仅作选修或项目载体，不进任何线的主干；
+- RK3506B 的 AMP（A7+M0）按主线成熟度诚实标 `partial`/`blocked`——讲概念与现状，不假装主线已支持；
+- PREEMPT-RT/Xenomai 实时化与自研底板硬件设计是跨板暂缓课题，未入三线主干，素材留档内部备忘。
+
+## 素材与取证
+
+### 取舍判据（厂商书怎么用）
+
+rk-forge 是 mainline-first + evidence-based 的工程教学项目，**不照搬厂商教程**。三套厂商书（正点原子 RK3506B/RK3568、迅为 RK3588，本地资料 `.claude/books/`，不入站）按三档过滤：
+
+| 档 | 厂商书特征 | rk-forge 处理 |
+|---|---|---|
+| 🟢 高价值 | 底层原理、外设驱动调试、启动流源码分析、镜像格式原理、用户态 C 编程、交叉工具链、网络调试链路、性能与稳定性方法论 | **收**——用主线工具链/驱动/DT 重写，挂真板证据 |
+| 🟡 中价值 | GUI 应用、显示定制、烧录量产（思路通用但工具厂商化）、rootfs 多发行版 | **选收**——抽通用原理，丢厂商菜单细节，多数做选修 |
+| 🔴 低价值 | SDK 菜单操作、厂商私有脚本、纯 AOSP/Android Studio 流程、OpenHarmony 环境搭建、厂商私有 UI 自启动 | **不收**——只在「vendor vs mainline 对照」里作反面参照 |
+
+一句话：厂商书是"硬件事实与底层原理的来源之一"，不是要复刻的脚本。**把它当矿，不当图纸。**
+
+### 使用与版权边界
+
+- 可吸收：芯片与板卡硬件事实、接口与启动原理、实验线索、厂商与主线的差异、厂商资料暴露但没解释清的问题；
+- 不搬运：大段原文、厂商截图与菜单流水账、厂商品牌语气的章节结构、私有脚本的逐键复刻、未经 rk-forge 验证却写成仓库能力的结果；
+- 每篇正式内容至少贡献两项 rk-forge 增量：mainline 化解释 / 可执行实验 / 故障注入 / 真板或仿真证据 / vendor-mainline 对照 / 被推翻的判断 / 可复现构建入口 / 跨板可迁移结论。
+
+### 总览（每线资料包 × 卷）
+
+| 线 | 资料包（本地 `.claude/books/`） | 主要去向 |
+|---|---|---|
+| RK3506B | 正点原子用户手册 + 参考文档（ARMv7 编程手册、Cortex-A7 TRM、GIC v2/v3/v4、CAN 协议） | 卷一（架构）、卷三（内核）、卷六（工业接口） |
+| RK3568 | 正点原子 60 份（系统开发、驱动、SPI 调试手册）+ 开发笔记（启动流源码走读） | 卷一至卷七，卷四总线、卷六显示尤重 |
+| RK3588 | 迅为 14 目录（NPU 使用与例程、DeepSeek 部署、多媒体、多屏显示、Android、Linux 系统、原厂文档、硬件开发） | 公共必修四卷 + 四方向各取所需 |
+
 ---
 
-rk-forge 走 mainline-first：主线 Linux + 主线 U-Boot + 主线设备树 + 最小化的 `rkbin` blob。想看启动链里哪里闭源、哪里开源，进 [诚实 blob 政策](../blobs.md)；想看 vendor BSP 和主线移植的逐项差距，进 [差距对照](../sdk-diff.md)。
+> 沿革：本课纲的前身是一套四层课程架构（Base / Common Skills / Board Craft / Projects）的内部规划（2026-09），2026-10 起三线分册取代其主线地位。其承重内容已并入本目录（素材取舍判据、边界裁决、[内容与站点规划](content-plan.md)、[host 卷总纲](../tutorial/host/00_roadmap.md)）；18 模块 1001 KP 证据账本与厂商书索引封存于内部区（不入站），开写时按消费触发器回看。
+
+---
+
+rk-forge 走 mainline-first：主线 Linux + 主线 U-Boot + 主线设备树 + 最小化的 `rkbin` blob。想看启动链里哪里闭源、哪里开源，进 [诚实 blob 政策](../blobs.md)；想看 vendor BSP 和主线移植的逐项差距，进 [差距对照](../sdk-diff.md)（[RK3568 版](../sdk-diff-rk3568.md)、[RK3588 版](../sdk-diff-rk3588.md)）。

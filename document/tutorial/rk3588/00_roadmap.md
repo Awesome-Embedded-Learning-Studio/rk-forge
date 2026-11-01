@@ -23,7 +23,7 @@ RK3588 是 Rockchip 当家旗舰：四个 Cortex-A76 加四个 Cortex-A55 的 bi
 | [03 GPU 固件](03_gpu) | Panthor early probe + 内建 raw 固件 | renderD128 起来 + GNOME 桌面 | ✅ 真机验证 |
 | [04 Ubuntu rootfs](04_rootfs) | ubuntu-base + fakeroot + GDM | 桌面账户 + ext4 ownership 修复 | ✅ 真机验证 |
 
-> 诚实的边界：四章覆盖的是「已经板上跑通」的部分。RK3588 ROADMAP 里那个更宏大的课——V4L2/ISP 摄像头、MPP 视频编解码、NPU/AI、Android 产品化——主线驱动要么还在 roadmap、要么硬件咱们没接，本卷不碰，等真机数据齐了再补。完整的教学目标见 [RK3588 路线](../../planning/RK3588_ROADMAP)。
+> 诚实的边界：四章覆盖的是「已经板上跑通」的部分。RK3588 ROADMAP 里那个更宏大的课——V4L2/ISP 摄像头、MPP 视频编解码、NPU/AI、Android 产品化——主线驱动要么还在 roadmap、要么硬件咱们没接，本卷不碰，等真机数据齐了再补。完整的教学目标见 [RK3588 路线](../../planning/rk3588/)。
 
 ## 读这卷之前，确认你手里有这些
 
