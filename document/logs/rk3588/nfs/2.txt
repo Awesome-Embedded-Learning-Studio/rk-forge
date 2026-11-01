@@ -1,0 +1,603 @@
+SoftReset, 7035383 us
+DDR cb12b99cc23 hcy 26/07/27-15:12.42,fwver: v1.21
+ch0 ttot10
+ch1 ttot10
+ch2 ttot10
+ch3 ttot10
+ch0 ttot16
+LPDDR4X, 2112MHz
+channel[0] BW=16 Col=10 Bk=8 CS0 Row=17 CS1 Row=17 CS=2 Die BW=16 Size=4096MB
+ch1 ttot16
+channel[1] BW=16 Col=10 Bk=8 CS0 Row=17 CS1 Row=17 CS=2 Die BW=16 Size=4096MB
+ch2 ttot16
+channel[2] BW=16 Col=10 Bk=8 CS0 Row=17 CS1 Row=17 CS=2 Die BW=16 Size=4096MB
+ch3 ttot16
+channel[3] BW=16 Col=10 Bk=8 CS0 Row=17 CS1 Row=17 CS=2 Die BW=16 Size=4096MB
+Manufacturer ID:0xff
+DQS rds:l0,l0 
+CH0 RX Vref:27.9%, TX Vref:23.8%,22.8%
+DQ rds:h5 h1 h4 l0 h7 h6 h2 h4, h2 h4 h2 h3 h2 l0 h2 h3 
+
+DQS rds:l0,h1 
+CH1 RX Vref:27.9%, TX Vref:21.8%,22.8%
+DQ rds:l0 h2 l1 h3 h2 h1 h2 l0, h4 l0 h3 l0 h1 h2 h2 h1 
+
+DQS rds:h1,h1 
+CH2 RX Vref:27.9%, TX Vref:23.8%,21.8%
+DQ rds:h3 h7 h1 l0 h2 l1 h2 h1, h3 h4 h4 h2 h6 h1 h1 h5 
+
+DQS rds:h2,h2 
+CH3 RX Vref:26.7%, TX Vref:20.8%,20.8%
+DQ rds:h1 h1 h7 h7 h1 h1 l0 h7, h7 h1 l0 h1 h4 l0 h5 h2 
+
+stride=0x2, ddr_config=0x4
+hash ch_mask0-1 0x20 0x40, bank_mask0-3 0xa00 0x1400 0x2800 0x0, rank_mask0 0x401000
+change to F1: 528MHz
+ch0 ttot10
+ch1 ttot10
+ch2 ttot10
+ch3 ttot10
+change to F2: 1068MHz
+ch0 ttot12
+ch1 ttot12
+ch2 ttot12
+ch3 ttot12
+change to F3: 1560MHz
+ch0 ttot14
+ch1 ttot14
+ch2 ttot14
+ch3 ttot14
+change to F0: 2112MHz
+ch0 ttot16
+ch1 ttot18
+ch2 ttot16
+ch3 ttot16
+out
+
+U-Boot SPL 2026.07-rc4-00046-gfe20795b2656 (Aug 15 2026 - 13:17:38 +0000)
+Trying to boot from MMC1
+## Checking hash(es) for config config-1 ... OK
+## Checking hash(es) for Image atf-1 ... sha256+ OK
+## Checking hash(es) for Image u-boot ... sha256+ OK
+## Checking hash(es) for Image fdt-1 ... sha256+ OK
+## Checking hash(es) for Image atf-2 ... sha256+ OK
+## Checking hash(es) for Image atf-3 ... sha256+ OK
+INFO:    Preloader serial: 2
+NOTICE:  BL31: v2.3():v2.3-964-g8319968f5:derrick.huang, fwver: v1.54
+NOTICE:  BL31: Built : 17:20:23, Dec 26 2025
+INFO:    spec: 0x1
+INFO:    code: 0x88
+INFO:    customer demand: 0x0
+INFO:    ext 32k is not valid
+INFO:    ddr: stride-en 4CH
+INFO:    GICv3 without legacy support detected.
+INFO:    ARM GICv3 driver initialized in EL3
+INFO:    valid_cpu_msk=0xff bcore0_rst = 0x0, bcore1_rst = 0x0
+INFO:    l3 cache partition cfg-0
+INFO:    system boots from cpu-hwid-0
+INFO:    bypass memory repair
+INFO:    idle_st=0x21fff, pd_st=0x11fff9, repair_st=0xfff70001
+INFO:    dfs DDR fsp_params[0].freq_mhz= 2112MHz
+INFO:    dfs DDR fsp_params[1].freq_mhz= 528MHz
+INFO:    dfs DDR fsp_params[2].freq_mhz= 1068MHz
+INFO:    dfs DDR fsp_params[3].freq_mhz= 1560MHz
+INFO:    BL31: Initialising Exception Handling Framework
+INFO:    BL31: Initializing runtime services
+WARNING: No OPTEE provided by BL2 boot loader, Booting device without OPTEE initialization. SMC`s destined for OPTEE will return SMC_UNK
+ERROR:   Error initializing runtime service opteed_fast
+INFO:    BL31: Preparing for EL3 exit to normal world
+INFO:    Entry point address = 0x800000
+INFO:    SPSR = 0x3c9
+
+
+U-Boot 2026.07-rc4-00046-gfe20795b2656 (Aug 15 2026 - 13:17:38 +0000)
+
+Model: Rockchip RK3588 EVB1 V10 Board
+SoC:   RK3588
+DRAM:  16 GiB
+Core:  813 devices, 30 uclasses, devicetree: separate
+MMC:   mmc@fe2e0000: 0
+Loading Environment from nowhere... OK
+In:    serial@feb50000
+Out:   serial@feb50000
+Err:   serial@feb50000
+Model: Rockchip RK3588 EVB1 V10 Board
+SoC:   RK3588
+Net:   eth0: ethernet@fe1b0000
+Hit any key to stop autoboot: 0
+2844 bytes read in 12 ms (231.4 KiB/s)
+## Executing script at 00c00000
+switch to partitions #0, OK
+mmc0(part 0) is current device
+MMC read: dev # 0, block # 24576, count 131072 ... 131072 blocks read: OK
+## Loading kernel (any) from FIT Image at 08000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel (arm64 Image, self-decompressing)
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x08000800
+     Data Size:    54577664 Bytes = 52 MiB
+     Architecture: AArch64
+     OS:           Linux
+     Load Address: 0x02000000
+     Entry Point:  0x02000000
+     Hash algo:    sha256
+     Hash value:   2c555b264009c41f3f7271c6627981a23ecb9579573e4c1ce80f9d2bd37a8aa2
+   Verifying Hash Integrity ... sha256+ OK
+## Loading fdt (any) from FIT Image at 08000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'fdt' fdt subimage
+     Description:  Topeet RK3588 board DT (ported from vendor; bootargs set by U-Boot: root=/dev/mmcblk?1p3)
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x0b40d200
+     Data Size:    101307 Bytes = 98.9 KiB
+     Architecture: AArch64
+     Load Address: 0x12000000
+     Hash algo:    sha256
+     Hash value:   9525a710befac1ba37f744b4c340fe8be21a44df87153993836babadde39c048
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x0b40d200 to 0x12000000
+   Booting using the fdt blob at 0x12000000
+Working FDT set to 12000000
+   Loading Kernel Image to 2000000
+   Loading Device Tree to 00000000eceb3000, end 00000000ececebba ... OK
+Working FDT set to eceb3000
+
+Starting kernel ...
+
+[    0.000000] Booting Linux on physical CPU 0x0000000000 [0x412fd050]
+[    0.000000] Linux version 7.1.0-00021-ga1166908ce19 (charliechen@DESKTOP-65DBAA7) (aarch64-none-linux-gnu-gcc (Arm GNU Toolchain 15.3.Rel1 (Build arm-15.149)) 15.3.1 20260627, GNU ld (Arm GNU Toolchain 15.3.Rel1 (Build arm-15.149)) 2.45.1.20260126) #34 SMP PREEMPT Sat Oct 31 21:22:35 CST 2026
+[    0.000000] KASLR enabled
+[    0.000000] Machine model: Topeet RK3588 Board (iTOP-RK3588)
+[    0.000000] earlycon: uart8250 at MMIO32 0x00000000feb50000 (options '')
+[    0.000000] printk: legacy bootconsole [uart8250] enabled
+[    0.000000] efi: UEFI not found.
+[    0.000000] OF: reserved mem: 0x000000000010f000..0x000000000010f0ff (0 KiB) nomap non-reusable shmem@10f000
+[    0.000000] OF: reserved mem: 0x0000000010000000..0x00000000100dffff (896 KiB) map non-reusable ramoops@10000000
+[    0.000000] NUMA: Faking a node at [mem 0x0000000000200000-0x00000004ffffffff]
+[    0.000000] NODE_DATA(0) allocated [mem 0x4fdf68fc0-0x4fdf6b6bf]
+[    0.000000] cma: Reserved 32 MiB at 0x00000000ee000000
+[    0.000000] psci: probing for conduit method from DT.
+[    0.000000] psci: PSCIv1.1 detected in firmware.
+[    0.000000] psci: Using standard PSCI v0.2 function IDs
+[    0.000000] psci: MIGRATE_INFO_TYPE not supported.
+[    0.000000] psci: SMC Calling Convention v1.2
+[    0.000000] Zone ranges:
+[    0.000000]   DMA      [mem 0x0000000000200000-0x00000000ffffffff]
+[    0.000000]   DMA32    empty
+[    0.000000]   Normal   [mem 0x0000000100000000-0x00000004ffffffff]
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000200000-0x00000000efffffff]
+[    0.000000]   node   0: [mem 0x0000000100000000-0x00000003fbffffff]
+[    0.000000]   node   0: [mem 0x00000003fc500000-0x00000003ffefffff]
+[    0.000000]   node   0: [mem 0x00000004f0000000-0x00000004ffffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000200000-0x00000004ffffffff]
+[    0.000000] On node 0, zone DMA: 512 pages in unavailable ranges
+[    0.000000] On node 0, zone Normal: 1280 pages in unavailable ranges
+[    0.000000] On node 0, zone Normal: 256 pages in unavailable ranges
+[    0.000000] percpu: Embedded 35 pages/cpu s106264 r8192 d28904 u143360
+[    0.000000] Detected VIPT I-cache on CPU0
+[    0.000000] CPU features: detected: GICv3 CPU interface
+[    0.000000] CPU features: detected: IRQ priority masking
+[    0.000000] CPU features: detected: Virtualization Host Extensions
+[    0.000000] CPU features: kernel page table isolation forced ON by KASLR
+[    0.000000] CPU features: detected: Kernel page table isolation (KPTI)
+[    0.000000] CPU features: detected: ARM errata 1165522, 1319367, or 1530923
+[    0.000000] alternatives: applying boot alternatives
+[    0.000000] Kernel command line: earlycon=uart8250,mmio32,0xfeb50000 console=ttyFIQ0 irqchip.gicv3_pseudo_nmi=1 root=/dev/nfs nfsroot=192.168.50.5:/home/charliechen/rk-forge/out/rk3588-topeet/rootfs,vers=3,tcp ip=192.168.50.99:192.168.50.5::255.255.255.0::eth0:off rw rcupdate.rcu_expedited=1 rcu_nocbs=all
+[    0.000000] Unknown kernel command line parameters "rcu_nocbs=all", will be passed to user space.
+[    0.000000] printk: log buffer data + meta data: 131072 + 458752 = 589824 bytes
+[    0.000000] Dentry cache hash table entries: 2097152 (order: 12, 16777216 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 1048576 (order: 11, 8388608 bytes, linear)
+[    0.000000] software IO TLB: area num 8.
+[    0.000000] software IO TLB: mapped [mem 0x00000000e8eb3000-0x00000000eceb3000] (64MB)
+[    0.000000] Fallback order for Node 0: 0 
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 4192256
+[    0.000000] Policy zone: Normal
+[    0.000000] mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=8, Nodes=1
+[    0.000000] ftrace: allocating 78785 entries in 308 pages
+[    0.000000] ftrace: allocated 308 pages with 4 groups
+[    0.000000] rcu: Preemptible hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=512 to nr_cpu_ids=8.
+[    0.000000] 	All grace periods are expedited (rcu_expedited).
+[    0.000000] 	Trampoline variant of Tasks RCU enabled.
+[    0.000000] 	Rude variant of Tasks RCU enabled.
+[    0.000000] 	Tracing variant of Tasks RCU enabled.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=8
+[    0.000000] RCU Tasks: Setting shift to 3 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=8.
+[    0.000000] RCU Tasks Rude: Setting shift to 3 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=8.
+[    0.000000] NR_IRQS: 64, nr_irqs: 64, preallocated irqs: 0
+[    0.000000] GIC: enabling workaround for GICv3: non-coherent attribute
+[    0.000000] GICv3: GIC: Using split EOI/Deactivate mode
+[    0.000000] GICv3: 480 SPIs implemented
+[    0.000000] GICv3: 0 Extended SPIs implemented
+[    0.000000] GICv3: MBI range [424:479]
+[    0.000000] GICv3: Using MBI frame 0x00000000fe610000
+[    0.000000] Root IRQ handler: gic_handle_irq
+[    0.000000] GICv3: GICv3 features: 16 PPIs
+[    0.000000] GICv3: GICD_CTLR.DS=0, SCR_EL3.FIQ=1
+[    0.000000] GICv3: CPU0: found redistributor 0 region 0:0x00000000fe680000
+[    0.000000] GICv3: Pseudo-NMIs enabled using relaxed ICC_PMR_EL1 synchronisation
+[    0.000000] ITS [mem 0xfe640000-0xfe65ffff]
+[    0.000000] GIC: enabling workaround for ITS: Rockchip erratum RK3588001
+[    0.000000] GIC: enabling workaround for ITS: non-coherent attribute
+[    0.000000] ITS@0x00000000fe640000: allocated 8192 Devices @1001b0000 (indirect, esz 8, psz 64K, shr 0)
+[    0.000000] ITS@0x00000000fe640000: allocated 32768 Interrupt Collections @1001c0000 (flat, esz 2, psz 64K, shr 0)
+[    0.000000] ITS: using cache flushing for cmd queue
+[    0.000000] ITS [mem 0xfe660000-0xfe67ffff]
+[    0.000000] GIC: enabling workaround for ITS: Rockchip erratum RK3588001
+[    0.000000] GIC: enabling workaround for ITS: non-coherent attribute
+[    0.000000] ITS@0x00000000fe660000: allocated 8192 Devices @1001e0000 (indirect, esz 8, psz 64K, shr 0)
+[    0.000000] ITS@0x00000000fe660000: allocated 32768 Interrupt Collections @1001f0000 (flat, esz 2, psz 64K, shr 0)
+[    0.000000] ITS: using cache flushing for cmd queue
+[    0.000000] GICv3: using LPI property table @0x0000000100200000
+[    0.000000] GIC: using cache flushing for LPI property table
+[    0.000000] GICv3: CPU0: using allocated LPI pending table @0x0000000100210000
+[    0.000000] GICv3: GIC: PPI partition interrupt-partition-0[0] { /cpus/cpu@0[0] /cpus/cpu@100[1] /cpus/cpu@200[2] /cpus/cpu@300[3] }
+[    0.000000] GICv3: GIC: PPI partition interrupt-partition-1[1] { /cpus/cpu@400[4] /cpus/cpu@500[5] /cpus/cpu@600[6] /cpus/cpu@700[7] }
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] arch_timer: cp15 timer running at 24.00MHz (phys).
+[    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.000000] sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+[    0.013371] Console: colour dummy device 80x25
+[    0.018400] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=96000)
+[    0.029678] pid_max: default: 32768 minimum: 301
+[    0.035103] Mount-cache hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    0.043466] Mountpoint-cache hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    0.052610] VFS: Finished mounting rootfs on nullfs
+[    0.061139] rcu: Hierarchical SRCU implementation.
+[    0.066413] rcu: 	Max phase no-delay instances is 1000.
+[    0.072477] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.082183] fsl-mc MSI: msi-controller@fe640000 domain created
+[    0.088618] fsl-mc MSI: msi-controller@fe660000 domain created
+[    0.101940] EFI services will not be available.
+[    0.107494] smp: Bringing up secondary CPUs ...
+[    0.113252] Detected VIPT I-cache on CPU1
+[    0.113565] GICv3: CPU1: found redistributor 100 region 0:0x00000000fe6a0000
+[    0.113583] GICv3: CPU1: using allocated LPI pending table @0x0000000100220000
+[    0.113640] CPU1: Booted secondary processor 0x0000000100 [0x412fd050]
+[    0.114576] Detected VIPT I-cache on CPU2
+[    0.114884] GICv3: CPU2: found redistributor 200 region 0:0x00000000fe6c0000
+[    0.114901] GICv3: CPU2: using allocated LPI pending table @0x0000000100230000
+[    0.114953] CPU2: Booted secondary processor 0x0000000200 [0x412fd050]
+[    0.115866] Detected VIPT I-cache on CPU3
+[    0.116170] GICv3: CPU3: found redistributor 300 region 0:0x00000000fe6e0000
+[    0.116186] GICv3: CPU3: using allocated LPI pending table @0x0000000100240000
+[    0.116238] CPU3: Booted secondary processor 0x0000000300 [0x412fd050]
+[    0.117208] CPU features: detected: Spectre-v4
+[    0.117216] CPU features: detected: Spectre-BHB
+[    0.117222] CPU features: detected: SSBS not fully self-synchronizing
+[    0.117225] Detected PIPT I-cache on CPU4
+[    0.117383] GICv3: CPU4: found redistributor 400 region 0:0x00000000fe700000
+[    0.117393] GICv3: CPU4: using allocated LPI pending table @0x0000000100250000
+[    0.117426] CPU4: Booted secondary processor 0x0000000400 [0x414fd0b0]
+[    0.118267] Detected PIPT I-cache on CPU5
+[    0.118435] GICv3: CPU5: found redistributor 500 region 0:0x00000000fe720000
+[    0.118445] GICv3: CPU5: using allocated LPI pending table @0x0000000100260000
+[    0.118480] CPU5: Booted secondary processor 0x0000000500 [0x414fd0b0]
+[    0.119388] Detected PIPT I-cache on CPU6
+[    0.119555] GICv3: CPU6: found redistributor 600 region 0:0x00000000fe740000
+[    0.119564] GICv3: CPU6: using allocated LPI pending table @0x0000000100270000
+[    0.119598] CPU6: Booted secondary processor 0x0000000600 [0x414fd0b0]
+[    0.120447] Detected PIPT I-cache on CPU7
+[    0.120614] GICv3: CPU7: found redistributor 700 region 0:0x00000000fe760000
+[    0.120624] GICv3: CPU7: using allocated LPI pending table @0x0000000100280000
+[    0.120658] CPU7: Booted secondary processor 0x0000000700 [0x414fd0b0]
+[    0.120769] smp: Brought up 1 node, 8 CPUs
+[    0.332205] SMP: Total of 8 processors activated.
+[    0.337382] CPU: All CPU(s) started at EL2
+[    0.341902] CPU features: detected: 32-bit EL0 Support
+[    0.347544] CPU features: detected: Data cache clean to the PoU not required for I/D coherence
+[    0.357009] CPU features: detected: Common not Private translations
+[    0.363863] CPU features: detected: CRC32 instructions
+[    0.369513] CPU features: detected: RCpc load-acquire (LDAPR)
+[    0.375816] CPU features: detected: LSE atomic instructions
+[    0.381937] CPU features: detected: Privileged Access Never
+[    0.388056] CPU features: detected: PMUv3
+[    0.392416] CPU features: detected: RAS Extension Support
+[    0.398330] CPU features: detected: XNX
+[    0.402545] CPU features: detected: Speculative Store Bypassing Safe (SSBS)
+[    0.410269] alternatives: applying system-wide alternatives
+[    0.422604] CPU features: detected: ICV_DIR_EL1 trapping
+[    0.428450] CPU features: detected: Hardware dirty bit management on CPU4-7
+[    0.436736] Memory: 16283644K/16769024K available (24768K kernel code, 6898K rwdata, 16932K rodata, 4544K init, 750K bss, 442756K reserved, 32768K cma-reserved)
+[    0.456909] devtmpfs: initialized
+[    0.471779] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+[    0.482491] posixtimers hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.490650] futex hash table entries: 2048 (131072 bytes on 1 NUMA nodes, total 128 KiB, linear).
+[    0.500571] 2G module region forced by RANDOMIZE_MODULE_REGION_FULL
+[    0.507452] 0 pages in range for non-PLT usage
+[    0.507455] 510752 pages in range for PLT usage
+[    0.514428] DMI: not present or invalid.
+[    0.525538] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.532605] DMA: preallocated 2048 KiB GFP_KERNEL pool for atomic allocations
+[    0.540616] DMA: preallocated 2048 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+[    0.549230] audit: initializing netlink subsys (disabled)
+[    0.555302] audit: type=2000 audit(0.368:1): state=initialized audit_enabled=0 res=1
+[    0.557538] Registered FIQ tty driver
+[    0.568342] thermal_sys: Registered thermal governor 'step_wise'
+[    0.568347] thermal_sys: Registered thermal governor 'power_allocator'
+[    0.574992] cpuidle: using governor menu
+[    0.586683] hw-breakpoint: found 6 breakpoint and 4 watchpoint registers.
+[    0.594299] ASID allocator initialised with 32768 entries
+[    0.601897] Serial: AMBA PL011 UART driver
+[    0.606899] pstore: Using crash dump compression: deflate
+[    0.612819] printk: legacy console [ramoops-1] enabled
+[    0.618831] pstore: Registered ramoops as persistent store backend
+[    0.625612] ramoops: using 0xe0000@0x10000000, ecc: 0
+[    0.639762] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.701 runtime_error=0 set
+[    0.648489] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.701 runtime_error=0 set
+[    0.657240] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.702 runtime_error=0 set
+[    0.665939] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.702 runtime_error=0 set
+[    0.674676] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.703 runtime_error=0 set
+[    0.683377] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.703 runtime_error=0 set
+[    0.692128] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.704 runtime_error=0 set
+[    0.700825] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.704 runtime_error=0 set
+[    0.709572] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.705 runtime_error=0 set
+[    0.718269] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.705 runtime_error=0 set
+[    0.727012] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.706 runtime_error=0 set
+[    0.735709] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.706 runtime_error=0 set
+[    0.744460] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.707 runtime_error=0 set
+[    0.753167] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.707 runtime_error=0 set
+[    0.761951] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.708 runtime_error=0 set
+[    0.770647] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.708 runtime_error=0 set
+[    0.779392] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.709 runtime_error=0 set
+[    0.788080] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.709 runtime_error=0 set
+[    0.796826] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.710 runtime_error=0 set
+[    0.805521] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.710 runtime_error=0 set
+[    0.814270] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.711 runtime_error=0 set
+[    0.822967] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.711 runtime_error=0 set
+[    0.831710] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.712 runtime_error=0 set
+[    0.840405] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.712 runtime_error=0 set
+[    0.849147] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.713 runtime_error=0 set
+[    0.857842] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.713 runtime_error=0 set
+[    0.866595] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.714 runtime_error=0 set
+[    0.875295] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.714 runtime_error=0 set
+[    0.884043] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.715 runtime_error=0 set
+[    0.892740] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.715 runtime_error=0 set
+[    0.901482] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.716 runtime_error=0 set
+[    0.910175] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.716 runtime_error=0 set
+[    0.918919] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.717 runtime_error=0 set
+[    0.927614] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.717 runtime_error=0 set
+[    0.936362] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.718 runtime_error=0 set
+[    0.945055] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.718 runtime_error=0 set
+[    0.953801] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.719 runtime_error=0 set
+[    0.962493] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.719 runtime_error=0 set
+[    0.971235] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.703 runtime_error=0 set
+[    0.979895] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.720 runtime_error=0 set
+[    0.988587] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.720 runtime_error=0 set
+[    0.997333] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.715 runtime_error=0 set
+[    1.006023] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.489 runtime_error=0 set
+[    1.014713] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.489 runtime_error=0 set
+[    1.023458] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.717 runtime_error=0 set
+[    1.032167] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.721 runtime_error=0 set
+[    1.040891] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.721 runtime_error=0 set
+[    1.049759] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.713 runtime_error=0 set
+[    1.058450] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.713 runtime_error=0 set
+[    1.067141] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.711 runtime_error=0 set
+[    1.075829] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.711 runtime_error=0 set
+[    1.087121] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.710 runtime_error=0 set
+[    1.095819] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.711 runtime_error=0 set
+[    1.104559] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.712 runtime_error=0 set
+[    1.113247] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.713 runtime_error=0 set
+[    1.122069] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.709 runtime_error=0 set
+[    1.130765] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.708 runtime_error=0 set
+[    1.139656] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.707 runtime_error=0 set
+[    1.148349] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.706 runtime_error=0 set
+[    1.157305] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.719 runtime_error=0 set
+[    1.165997] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.718 runtime_error=0 set
+[    1.174874] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.714 runtime_error=0 set
+[    1.183627] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.716 runtime_error=0 set
+[    1.192522] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.702 runtime_error=0 set
+[    1.201211] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.701 runtime_error=0 set
+[    1.210137] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.704 runtime_error=0 set
+[    1.218826] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.705 runtime_error=0 set
+[    1.227664] SIM-DIAG: rpm_callback: dev=rockchip-gate-link-clk.720 runtime_error=0 set
+[    1.243432] /vop@fdd90000: Fixed dependency cycle(s) with /dsi@fde20000
+[    1.250741] /dsi@fde20000: Fixed dependency cycle(s) with /dsi@fde20000/panel@0
+[    1.258771] /dsi@fde20000: Fixed dependency cycle(s) with /vop@fdd90000
+[    1.266114] /dsi@fde20000/panel@0: Fixed dependency cycle(s) with /dsi@fde20000
+[    1.294978] rockchip-gpio fd8a0000.gpio: probed /pinctrl/gpio@fd8a0000
+[    1.302572] rockchip-gpio fec20000.gpio: probed /pinctrl/gpio@fec20000
+[    1.310149] rockchip-gpio fec30000.gpio: probed /pinctrl/gpio@fec30000
+[    1.317731] rockchip-gpio fec40000.gpio: probed /pinctrl/gpio@fec40000
+[    1.325293] rockchip-gpio fec50000.gpio: probed /pinctrl/gpio@fec50000
+[    1.338453] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    1.345914] HugeTLB: 0 KiB vmemmap can be freed for a 1.00 GiB page
+[    1.352790] HugeTLB: registered 32.0 MiB page size, pre-allocated 0 pages
+[    1.360227] HugeTLB: 0 KiB vmemmap can be freed for a 32.0 MiB page
+[    1.367101] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    1.374542] HugeTLB: 0 KiB vmemmap can be freed for a 2.00 MiB page
+[    1.381416] HugeTLB: registered 64.0 KiB page size, pre-allocated 0 pages
+[    1.388852] HugeTLB: 0 KiB vmemmap can be freed for a 64.0 KiB page
+[    1.397538] ACPI: Interpreter disabled.
+[    1.406165] fiq_debugger fiq_debugger.0: error -ENXIO: IRQ fiq not found
+[    1.413538] fiq_debugger fiq_debugger.0: error -ENXIO: IRQ wakeup not found
+[    1.421208] fiq_debugger_probe: could not install nmi irq handler
+[[    1.427942] printk: legacy console [ttyFIQ0] enabled
+    1.427942] printk: legacy console [ttyFIQ0] enabled
+[    1.438331] printk: legacy boo[    1.438331] printk: legacy bootconsole [uart8250] disabled
+tconsole [uart8250] disabled
+[    1.449975] Registered fiq debugger ttyFIQ0
+[    1.451026] iommu: Default domain type: Translated
+[    1.451036] iommu: DMA domain TLB invalidation policy: strict mode
+[    1.451497] SCSI subsystem initialized
+[    1.451758] usbcore: registered new interface driver usbfs
+[    1.451780] usbcore: registered new interface driver hub
+[    1.451800] usbcore: registered new device driver usb
+[    1.453102] pps_core: LinuxPPS API ver. 1 registered
+[    1.453109] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    1.453120] PTP clock support registered
+[    1.453281] EDAC MC: Ver: 3.0.0
+[    1.453692] scmi_core: SCMI protocol bus registered
+[    1.454970] FPGA manager framework
+[    1.455825] vgaarb: loaded
+[    1.456193] clocksource: Switched to clocksource arch_sys_counter
+[    1.456398] VFS: Disk quotas dquot_6.6.0
+[    1.456415] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    1.456711] pnp: PnP ACPI: disabled
+[    1.462785] NET: Registered PF_INET protocol family
+[    1.463098] IP idents hash table entries: 262144 (order: 9, 2097152 bytes, linear)
+[    1.472102] tcp_listen_portaddr_hash hash table entries: 8192 (order: 5, 131072 bytes, linear)
+[    1.472241] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    1.472255] TCP established hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    1.473231] TCP bind hash table entries: 65536 (order: 9, 2097152 bytes, linear)
+[    1.475119] TCP: Hash tables configured (established 131072 bind 65536)
+[    1.475179] UDP hash table entries: 8192 (order: 7, 524288 bytes, linear)
+[    1.475794] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    1.476146] RPC: Registered named UNIX socket transport module.
+[    1.476155] RPC: Registered udp transport module.
+[    1.476161] RPC: Registered tcp transport module.
+[    1.476166] RPC: Registered tcp-with-tls transport module.
+[    1.476172] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    1.476824] PCI: CLS 0 bytes, default 64
+[    1.486118] kvm [1]: nv: 570 coarse grained trap handlers
+[    1.486270] kvm [1]: nv: 710 fine grained trap handlers
+[    1.486507] kvm [1]: IPA Size Limit: 40 bits
+[    1.486533] kvm [1]: GICv3: no GICV resource entry
+[    1.486540] kvm [1]: disabling GICv2 emulation
+[    1.486571] kvm [1]: GIC system register CPU interface enabled
+[    1.486594] kvm [1]: vgic interrupt IRQ9
+[    1.486625] kvm [1]: VHE mode initialized successfully
+[    1.487763] Initialise system trusted keyrings
+[    1.487930] workingset: timestamp_bits=42 (anon: 38) max_order=22 bucket_order=0 (anon: 0)
+[    1.488164] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    1.488437] NFS: Registering the id_resolver key type
+[    1.488454] Key type id_resolver registered
+[    1.488460] Key type id_legacy registered
+[    1.488476] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    1.488484] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    1.488606] 9p: Installing v9fs 9p2000 file system support
+[    1.488740] Key type asymmetric registered
+[    1.488749] Asymmetric key parser 'x509' registered
+[    1.488787] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 242)
+[    1.488795] io scheduler mq-deadline registered
+[    1.488802] io scheduler kyber registered
+[    1.488829] io scheduler bfq registered
+[    1.511666] ledtrig-cpu: registered to indicate activity on CPUs
+[    1.545564] dma-pl330 fea10000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    1.545578] dma-pl330 fea10000.dma-controller: 	DBUFF-128x8bytes Num_Chans-8 Num_Peri-32 Num_Events-16
+[    1.546404] dma-pl330 fea30000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    1.546414] dma-pl330 fea30000.dma-controller: 	DBUFF-128x8bytes Num_Chans-8 Num_Peri-32 Num_Events-16
+[    1.547265] dma-pl330 fed10000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    1.547276] dma-pl330 fed10000.dma-controller: 	DBUFF-128x8bytes Num_Chans-8 Num_Peri-32 Num_Events-16
+[    1.563767] Serial: 8250/16550 driver, 4 ports, IRQ sharing enabled
+[    1.564210] SIM-DIAG: rpm_callback: dev=serial8250:0 runtime_error=0 set
+[    1.564259] SIM-DIAG: rpm_callback: dev=serial8250:0 runtime_error=0 set
+[    1.564303] SIM-DIAG: rpm_callback: dev=serial8250:0 runtime_error=0 set
+[    1.564313] SIM-DIAG: rpm_callback: dev=serial8250:0.0 runtime_error=0 set
+[    1.564497] SIM-DIAG: rpm_callback: dev=serial8250:0.1 runtime_error=0 set
+[    1.564662] SIM-DIAG: rpm_callback: dev=serial8250:0.2 runtime_error=0 set
+[    1.564825] SIM-DIAG: rpm_callback: dev=serial8250:0.3 runtime_error=0 set
+[    1.567583] msm_serial: driver initialized
+[    1.568233] SIM-DIAG: rpm_callback: dev=fea10000.dma-controller runtime_error=0 set
+[    1.568251] SIM-DIAG: rpm_callback: dev=fea30000.dma-controller runtime_error=0 set
+[    1.568263] SuperH (H)SCI(F) driver initialized
+[    1.568609] STM32 USART driver initialized
+[    1.572231] SIM-DIAG: rpm_callback: dev=fed10000.dma-controller runtime_error=0 set
+[    1.572394] arm-smmu-v3 fc900000.iommu: oas 48-bit (features 0x001c1eaf)
+[    1.572873] arm-smmu-v3 fc900000.iommu: allocated 65536 entries for cmdq
+[    1.573216] arm-smmu-v3 fc900000.iommu: allocated 32768 entries for evtq
+[    1.573681] arm-smmþ;-v3 fc900000.iommu: msi_domain absent - falling back to wired irqs
+[    1.575620] platform fdb50000.video-codec: Adding to iommu group 0
+[    1.576674] platform fdba0000.video-codec: Adding to iommu group 1
+[    1.577648] platform fdba4000.video-codec: Adding to iommu group 2
+[    1.578611] platform fdba8000.video-codec: Adding to iommu group 3
+[    1.579571] platform fdbac000.video-codec: Adding to iommu group 4
+[    1.580513] platform fdd90000.vop: Adding to iommu group 5
+[    1.581614] SIM-DIAG: rpm_callback: dev=fdd97e00.iommu runtime_error=0 set
+[    1.581849] SIM-DIAG: rpm_callback: dev=fdd97e00.iommu runtime_error=0 set
+[    1.583393] SIM-DIAG: rpm_callback: dev=feda0000.phy runtime_error=0 set
+[    1.583704] /dsi@fde20000: Fixed dependency cycle(s) with /dsi@fde20000/panel@0
+[    1.583742] /dsi@fde20000/panel@0: Fixed dependency cycle(s) with /dsi@fde20000
+[    1.583831] SIM-DIAG: rpm_callback: dev=fde20000.dsi runtime_error=0 set
+[    1.583872] SIM-DIAG: rpm_callback: dev=fde20000.dsi runtime_error=0 set
+[    1.584089] SIM-DIAG: rpm_callback: dev=feda0000.phy runtime_error=0 set
+[    1.586506] SIM-DIAG: rpm_callback: dev=feda0000.phy runtime_error=0 set
+[    1.586520] SIM-DIAG: rpm_callback: dev=fde20000.dsi runtime_error=0 set
+[    1.586559] SIM-DIAG: rpm_callback: dev=fde20000.dsi runtime_error=0 set
+[    1.586598] SIM-DIAG: rpm_callback: dev=feda0000.phy runtime_error=0 set
+[    1.591179] loop: module loaded
+[    1.592354] megasas: 07.734.00.00-rc1
+[    1.597676] /spi@feb20000/pmic@0: Fixed dependency cycle(s) with /spi@feb20000/pmic@0/regulators/dcdc-reg7
+[    1.597729] /spi@feb20000/pmic@0: Fixed dependency cycle(s) with /spi@feb20000/pmic@0/dvs3-null-pins
+[    1.597745] /spi@feb20000/pmic@0: Fixed dependency cycle(s) with /spi@feb20000/pmic@0/dvs2-null-pins
+[    1.597759] /spi@feb20000/pmic@0: Fixed dependency cycle(s) with /spi@feb20000/pmic@0/dvs1-null-pins
+[    1.601102] tun: Universal TUN/TAP device driver, 1.6
+[    1.602423] thunder_xcv, ver 1.0
+[    1.602451] thunder_bgx, ver 1.0
+[    1.602474] nicpf, ver 1.0
+[    1.604150] e1000: Intel(R) PRO/1000 Network Driver
+[    1.604159] e1000: Copyright (c) 1999-2006 Intel Corporation.
+[    1.604201] e1000e: Intel(R) PRO/1000 Network Driver
+[    1.604208] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[    1.604234] igb: Intel(R) Gigabit Ethernet Network Driver
+[    1.604240] igb: Copyright (c) 2007-2014 Intel Corporation.
+[    1.604263] igbvf: Intel(R) Gigabit Virtual Function Network Driver
+[    1.604269] igbvf: Copyright (c) 2009 - 2012 Intel Corporation.
+[    1.604715] sky2: driver version 1.30
+[    1.607628] rk_gmac-dwmac fe1b0000.ethernet: IRQ sfty not found
+[    1.607847] rk_gmac-dwmac fe1b0000.ethernet: supply phy not found, using dummy regulator
+[    1.607914] rk_gmac-dwmac fe1b0000.ethernet: clock input or output? (output).
+[    1.607923] rk_gmac-dwmac fe1b0000.ethernet: TX delay(0x44).
+[    1.607931] rk_gmac-dwmac fe1b0000.ethernet: RX delay(0x0).
+[    1.607944] rk_gmac-dwmac fe1b0000.ethernet: integrated PHY? (no).
+[    1.612970] rk_gmac-dwmac fe1b0000.ethernet: init for RGMII_RXID
+[    1.613159] rk_gmac-dwmac fe1b0000.ethernet: User ID: 0x30, Synopsys ID: 0x51
+[    1.613170] rk_gmac-dwmac fe1b0000.ethernet: 	DWMAC4/5
+[    1.613178] rk_gmac-dwmac fe1b0000.ethernet: DMA HW capability register supported
+[    1.613185] rk_gmac-dwmac fe1b0000.ethernet: Active PHY interface: RGMII (1)
+[    1.613192] rk_gmac-dwmac fe1b0000.ethernet: RX Checksum Offload Engine supported
+[    1.613199] rk_gmac-dwmac fe1b0000.ethernet: TX Checksum insertion supported
+[    1.613206] rk_gmac-dwmac fe1b0000.ethernet: Wake-Up On Lan supported
+[    1.613243] rk_gmac-dwmac fe1b0000.ethernet: Enable RX Mitigation via HW Watchdog Timer
+[    1.613251] rk_gmac-dwmac fe1b0000.ethernet: Enabled L3L4 Flow TC (entries=2)
+[    1.613259] rk_gmac-dwmac fe1b0000.ethernet: Enabled RFS Flow TC (entries=10)
+[    1.613266] rk_gmac-dwmac fe1b0000.ethernet: TSO supported
+[    1.613272] rk_gmac-dwmac fe1b0000.ethernet: TSO feature enabled
+[    1.613279] rk_gmac-dwmac fe1b0000.ethernet: SPH feature enabled
+[    1.613285] rk_gmac-dwmac fe1b0000.ethernet: Using 32/32 bits DMA host/device width
+[    1.744728] usbcore: registered new interface driver rtw88_8723du
+[    1.745041] VFIO - User Level meta-driver version: 0.3
+[    1.750131] usbcore: registered new interface driver usb-storage
+[    1.751073] ehci-platform fc800000.usb: EHCI Host Controller
+[    1.751093] ohci-platform fc840000.usb: Generic Platform OHCI controller
+[    1.751120] ehci-platform fc800000.usb: new USB bus registered, assigned bus number 1
+[    1.751145] ohci-platform fc840000.usb: new USB bus registered, assigned bus number 2
+[    1.751169] ehci-platform fc880000.usb: EHCI Host Controller
+[    1.751186] ohci-platform fc8c0000.usb: Generic Platform OHCI controller
+[    1.751209] ehci-platform fc880000.usb: new USB bus registered, assigned bus number 3
+[    1.751231] ohci-platform fc8c0000.usb: new USB bus registered, assigned bus number 4
+[    1.751266] ehci-platform fc800000.usb: irq 43, io mem 0xfc800000
+[    1.751301] ohci-platform fc840000.usb: irq 45, io mem 0xfc840000
+[    1.751338] ehci-platform fc880000.usb: irq 44, io mem 0xfc880000
+[    1.751441] ohci-platform fc8c0000.usb: irq 46, io mem 0xfc8c0000
+[    1.754391] i2c_dev: i2c /dev entries driver
+[    1.760229] ehci-platform fc800000.usb: USB 2.0 started, EHCI 1.00
+[    1.761103] hub 1-0:1.0: USB hub found
+[    1.761160] hub 1-0:1.0: 1 port detected
+[    1.768552] rockchip-rk3588-cpufreq rockchip-rk3588-cpufreq: failed to initialize RK3588 CPUFreq cluster for cpu0: -517
+[    1.772263] ehci-platform fc880000.usb: USB 2.0 started, EHCI 1.00
+[    1.773206] hub 3-0:1.0: USB hub found
+[    1.773265] hub 3-0:1.0: 1 port detected
+[    1.775165] mmc0: CQHCI version 5.10
+[    1.777066] arm-scmi arm-scmi.0.auto: Using scmi_smc_transport
+[    1.777080] arm-scmi arm-scmi.0.auto: SCMI max-rx-timeout: 30ms / max-msg-size: 104bytes / max-msg: 20
+[    1.777169] scmi_protocol scmi_dev.1: Enabled polling mode TX channel - prot_id:16
+[    1.777294] arm-scmi arm-scmi.0.auto: SCMI Notifications - Core Enabled.
+[    1.777336] arm-scmi arm-scmi.0.auto: SCMI Protocol v2.0 'rockchip:' Firmware version 0x0
+[    1.777376] arm-scmi arm-scmi.0.auto: Enabling SCMI Quirk [quirk_clock_rates_triplet_out_of_spec]
+[    1.778764] SMCCC: SOC_ID: ARCH_SOC_ID not implemented, skipping ....
+[    1.779965] usbcore: registered new interface driver usbhid
+[    1.779973] usbhid: USB HID core driver
+[    1.785304] SIM-DIAG: rpm_callback: dev=usb1 runtime_error=0 set
+[    1.786055] hw perfevents: enabled with armv8_cortex_a55 PMU driver, 7 (0,8000003f) counters available, using NMIs
+[    1.786965] hw per

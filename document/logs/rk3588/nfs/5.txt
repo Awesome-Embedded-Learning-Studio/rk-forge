@@ -1,0 +1,63 @@
+E3 experiment log — 2026-11-01
+kernel: 7.1.0-00020-g220f49e58acd-dirty #37 (20 patches, 0022 SIM-DIAG dropped, E2 gmac0 1+1 queue DT override)
+bootargs: earlycon=uart8250,mmio32,0xfeb50000 console=ttyFIQ0 cpuidle.off=1 root=/dev/mmcblk0p3 rw rootwait init=/bin/sh
+sequence: boot to /bin/sh OK -> `ip link set eth0 up` at ~11s -> RxQ-0 registered -> vblank timeout storm (CRTC video_port2) -> hard LOCKUP on cpu 0 (A55; detector CPU7) -> NMI unanswered by cpu0 -> panic; SMP stop cpu0 failed.
+panic notifier: cpu0 1200000 Hz @ 712500 uV; cpu4/cpu6 1200000 Hz @ 675000 uV.
+
+[    2.306965] rtw88_8723du 3-1.1:1.2: probe with driver rtw88_8723du failed with error -22
+
+~ # ip link set eth0 up
+[   11.116527] rk_gmac-dwmac fe1b0000.ethernet eth0: Register MEM_TYPE_PAGE_POOL RxQ-0
+[   12.062967] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdb50000.video-codec
+[   12.062981] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdb80000.rga
+[   12.062987] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdba0000.video-codec
+[   12.062993] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdba4000.video-codec
+[   12.062999] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdba8000.video-codec
+[   12.063005] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdbac000.video-codec
+[   12.063010] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdc38100.video-codec
+[   12.063016] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdc40100.video-codec
+[   12.063022] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdc70000.video-codec
+[   13.218884] ------------[ cut here ]------------
+[   13.218895] rockchip-drm display-subsystem: [drm] vblank wait timed out on crtc 0
+[   13.218919] WARNING: drivers/gpu/drm/drm_vblank.c:1320 at drm_crtc_wait_one_vblank+0x1b0/0x240, CPU#7: kworker/7:0/53
+[   13.218934] Modules linked in:
+[   13.218942] CPU: 7 UID: 0 PID: 53 Comm: kworker/7:0 Not tainted 7.1.0-00020-g220f49e58acd-dirty #37 PREEMPT
+[   13.218950] Hardware name: Topeet RK3588 Board (iTOP-RK3588) (DT)
+[   13.218955] Workqueue: events drm_fb_helper_damage_work
+[   13.218974] pc : drm_crtc_wait_one_vblank+0x1b0/0x240
+[   13.219078] Call trace:
+[   13.219078]  drm_crtc_wait_one_vblank+0x1b0/0x240 (P)
+[   13.219087]  drm_client_modeset_wait_for_vblank+0x74/0x90
+[   13.219097]  drm_fb_helper_damage_work+0x90/0x1e0
+[   16.268870] ------------[ cut here ]------------
+[   16.268878] [CRTC:83:video_port2] vblank wait timed out
+[   16.268899] WARNING: drivers/gpu/drm/drm_atomic_helper.c:1921 at drm_atomic_helper_wait_for_vblanks.part.0+0x244/0x280, CPU#7: kworker/7:0/53
+[   16.269052] Call trace:
+[   16.269052]  drm_atomic_helper_wait_for_vblanks.part.0+0x244/0x280 (P)
+[   16.269062]  drm_atomic_helper_commit_tail_rpm+0xc4/0xe8
+[   16.269072]  commit_tail+0xac/0x1b8
+[   16.269080]  drm_atomic_helper_commit+0x180/0x1b0
+[   16.269086]  drm_atomic_helper_dirtyfb+0x1a0/0x2b8
+[   16.269100]  drm_fbdev_dma_helper_fb_dirty+0x168/0x2b8
+[   16.269108]  drm_fb_helper_damage_work+0xe8/0x1e0
+[   18.160915] ------------[ cut here ]------------
+[   18.160922] rockchip-drm display-subsystem: [drm] vblank wait timed out on crtc 0
+[   18.160943] WARNING: drivers/gpu/drm/drm_vblank.c:1320 at drm_crtc_wait_one_vblank+0x1b0/0x240, CPU#7: kworker/7:0/53
+[   20.264864] watchdog: CPU7: Watchdog detected hard LOCKUP on cpu 0
+[   20.264873] Modules linked in:
+[   20.264876] Sending NMI from CPU 7 to CPUs 0:
+[   30.266132] Kernel panic - not syncing: Hard LOCKUP
+[   30.271010] CPU: 7 UID: 0 PID: 0 Comm: swapper/7 Tainted: G        W           7.1.0-00020-g220f49e58acd-dirty #37 PREEMPT
+[   30.313494]  watchdog_hardlockup_check+0x268/0x380
+[   30.318280]  watchdog_buddy_check_hardlockup+0x3c/0x60
+[   30.323419]  watchdog_timer_fn+0xdc/0x768
+[   30.331785]  hrtimer_interrupt+0xec/0x340
+[   30.335789]  arch_timer_handler_phys+0x3c/0x60
+[   30.376137]  default_idle_call+0x38/0x220 (P)
+[   30.380491]  do_idle+0x28c/0x2e0
+[   30.396350] SMP: stopping secondary CPUs
+[   31.566937] SMP: failed to stop secondary CPUs 0
+[   31.590771] cpu cpu0: cur_freq: 1200000 Hz, volt_vdd: 712500 uV, volt_mem: 712500 uV
+[   31.598507] cpu cpu4: cur_freq: 1200000 Hz, volt_vdd: 675000 uV, volt_mem: 675000 uV
+[   31.606244] cpu cpu6: cur_freq: 1200000 Hz, volt_vdd: 675000 uV, volt_mem: 675000 uV
+[   31.617948] Rebooting in 10 seconds..

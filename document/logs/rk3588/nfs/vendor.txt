@@ -1,0 +1,30 @@
+~ # devmem 0xfe1b0000
+0x00000000
+~ # ip link set eth0 up
+[   39.160663] terry in : phy_rtl8211f_led_fixup
+[   39.161421] terry in : phy_rtl8211f_led_fixup
+[   39.191021] rk_gmac-dwmac fe1c0000.ethernet eth0: PHY [stmmac-1:01] driver [RTL8211F Gigabit Ethernet] (irq=POLL)
+[   39.193924] dwmac4: Master AXI performs any burst length
+[   39.193953] rk_gmac-dwmac fe1c0000.ethernet eth0: No Safety Features support found
+[   39.193984] rk_gmac-dwmac fe1c0000.ethernet eth0: IEEE 1588-2008 Advanced Timestamp supported
+[   39.194437] rk_gmac-dwmac fe1c0000.ethernet eth0: registered PTP clock
+~ # [   39.194980] rk_gmac-dwmac fe1c0000.ethernet eth0: configuring for phy/rgmii-rxid link mode
+
+~ # 
+~ # ip addr add 192.168.50.99/24 dev eth0
+5 192.168.50.5~ # ping -c 5 192.168.50.5
+PING 192.168.50.5 (192.168.50.5): 56 data bytes
+^C^C
+
+
+--- 192.168.50.5 ping statistics ---
+5 packets transmitted, 0 packets received, 100% packet loss
+~ # 
+~ # 
+~ # ^C
+
+~ # 
+
+这里说明一下i=0; while [ $i -lt 300000 ]; do devmem 0xfe1b0000 >/dev/null; i=$((i+1)); [ $((i % 10000)) -eq 0 ] && echo $i; done; echo HAMMER_SURVIVED
+是正常的，一点问题都没有
+

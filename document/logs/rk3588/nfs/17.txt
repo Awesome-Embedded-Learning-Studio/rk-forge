@@ -1,0 +1,1655 @@
+DDR cb12b99cc23 hcy 26/07/27-15:12.42,fwver: v1.21
+ch0 ttot10
+ch1 ttot10
+ch2 ttot10
+ch3 ttot10
+ch0 ttot16
+LPDDR4X, 2112MHz
+channel[0] BW=16 Col=10 Bk=8 CS0 Row=17 CS1 Row=17 CS=2 Die BW=16 Size=4096MB
+ch1 ttot16
+channel[1] BW=16 Col=10 Bk=8 CS0 Row=17 CS1 Row=17 CS=2 Die BW=16 Size=4096MB
+ch2 ttot16
+channel[2] BW=16 Col=10 Bk=8 CS0 Row=17 CS1 Row=17 CS=2 Die BW=16 Size=4096MB
+ch3 ttot16
+channel[3] BW=16 Col=10 Bk=8 CS0 Row=17 CS1 Row=17 CS=2 Die BW=16 Size=4096MB
+Manufacturer ID:0xff
+DQS rds:l0,l0 
+CH0 RX Vref:27.9%, TX Vref:22.8%,22.8%
+DQ rds:h5 l0 h3 l1 h6 h5 h2 h3, h1 h5 h2 h2 h2 l0 h2 h2 
+
+DQS rds:l0,h1 
+CH1 RX Vref:27.5%, TX Vref:21.8%,21.8%
+DQ rds:l0 h3 l1 h3 h2 h1 h2 l0, h4 l0 h4 l0 h1 h1 h2 h1 
+
+DQS rds:h1,h1 
+CH2 RX Vref:27.5%, TX Vref:23.8%,21.8%
+DQ rds:h3 h7 h1 l0 h2 l1 h2 h1, h3 h6 h6 h2 h6 h2 h1 h6 
+
+DQS rds:h2,h2 
+CH3 RX Vref:27.1%, TX Vref:20.8%,20.8%
+DQ rds:h1 h1 h6 h7 h1 h1 l0 h7, h7 h1 l0 h1 h4 l0 h6 h2 
+
+stride=0x2, ddr_config=0x4
+hash ch_mask0-1 0x20 0x40, bank_mask0-3 0xa00 0x1400 0x2800 0x0, rank_mask0 0x401000
+change to F1: 528MHz
+ch0 ttot10
+ch1 ttot10
+ch2 ttot10
+ch3 ttot10
+change to F2: 1068MHz
+ch0 ttot12
+ch1 ttot12
+ch2 ttot12
+ch3 ttot12
+change to F3: 1560MHz
+ch0 ttot14
+ch1 ttot14
+ch2 ttot14
+ch3 ttot14
+change to F0: 2112MHz
+ch0 ttot16
+ch1 ttot18
+ch2 ttot16
+ch3 ttot16
+out
+
+U-Boot SPL 2026.07-rc4-00046-gfe20795b2656 (Aug 15 2026 - 13:17:38 +0000)
+Trying to boot from MMC1
+## Checking hash(es) for config config-1 ... OK
+## Checking hash(es) for Image atf-1 ... sha256+ OK
+## Checking hash(es) for Image u-boot ... sha256+ OK
+## Checking hash(es) for Image fdt-1 ... sha256+ OK
+## Checking hash(es) for Image atf-2 ... sha256+ OK
+## Checking hash(es) for Image atf-3 ... sha256+ OK
+INFO:    Preloader serial: 2
+NOTICE:  BL31: v2.3():v2.3-964-g8319968f5:derrick.huang, fwver: v1.54
+NOTICE:  BL31: Built : 17:20:23, Dec 26 2025
+INFO:    spec: 0x1
+INFO:    code: 0x88
+INFO:    customer demand: 0x0
+INFO:    ext 32k is not valid
+INFO:    ddr: stride-en 4CH
+INFO:    GICv3 without legacy support detected.
+INFO:    ARM GICv3 driver initialized in EL3
+INFO:    valid_cpu_msk=0xff bcore0_rst = 0x0, bcore1_rst = 0x0
+INFO:    l3 cache partition cfg-0
+INFO:    system boots from cpu-hwid-0
+INFO:    bypass memory repair
+INFO:    idle_st=0x21fff, pd_st=0x11fff9, repair_st=0xfff70001
+INFO:    dfs DDR fsp_params[0].freq_mhz= 2112MHz
+INFO:    dfs DDR fsp_params[1].freq_mhz= 528MHz
+INFO:    dfs DDR fsp_params[2].freq_mhz= 1068MHz
+INFO:    dfs DDR fsp_params[3].freq_mhz= 1560MHz
+INFO:    BL31: Initialising Exception Handling Framework
+INFO:    BL31: Initializing runtime services
+WARNING: No OPTEE provided by BL2 boot loader, Booting device without OPTEE initialization. SMC`s destined for OPTEE will return SMC_UNK
+ERROR:   Error initializing runtime service opteed_fast
+INFO:    BL31: Preparing for EL3 exit to normal world
+INFO:    Entry point address = 0x800000
+INFO:    SPSR = 0x3c9
+
+
+U-Boot 2026.07-rc4-00046-gfe20795b2656 (Aug 15 2026 - 13:17:38 +0000)
+
+Model: Rockchip RK3588 EVB1 V10 Board
+SoC:   RK3588
+DRAM:  16 GiB
+Core:  813 devices, 30 uclasses, devicetree: separate
+MMC:   mmc@fe2e0000: 0
+Loading Environment from nowhere... OK
+In:    serial@feb50000
+Out:   serial@feb50000
+Err:   serial@feb50000
+Model: Rockchip RK3588 EVB1 V10 Board
+SoC:   RK3588
+Net:   eth0: ethernet@fe1b0000
+Hit any key to stop autoboot: 0
+=> 
+=> setenv ipaddr 192.168.50.99
+=> setenv serverip 192.168.50.5
+=> setenv bootargs earlycon=uart8250,mmio32,0xfeb50000 console=ttyFIQ0 irqchip.gicv3_pseudo_nmi=1 root=/dev/nfs nfsroot=192.168.50.5:/home/charliechen/rk-forge/out/rk3588-topeet/rootfs,vers=3,tcp ip=192.168.50.99:192.168.50.5::255.255.255.0::eth0:off rw rcupdate.rcu_expedited=1 rcu_nocbs=all 
+=> tftp 0x08000000 192.168.50.5:boot.img && bootm 0x08000000
+ethernet@fe1b0000 Waiting for PHY auto negotiation to complete........ done
+Using ethernet@fe1b0000 device
+TFTP from server 192.168.50.5; our IP address is 192.168.50.99
+Filename 'boot.img'.
+Load address: 0x8000000
+Loading: T #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #################################################################
+	 #########################
+	 4.1 MiB/s
+done
+Bytes transferred = 54746357 (3435cf5 hex)
+## Loading kernel (any) from FIT Image at 08000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel (arm64 Image, self-decompressing)
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x08000800
+     Data Size:    54643200 Bytes = 52.1 MiB
+     Architecture: AArch64
+     OS:           Linux
+     Load Address: 0x02000000
+     Entry Point:  0x02000000
+     Hash algo:    sha256
+     Hash value:   3e358d9ea4343277eb7765a9e37eb24fd9e8d34fd15b25ed694c02a45b4ec380
+   Verifying Hash Integrity ... sha256+ OK
+## Loading fdt (any) from FIT Image at 08000000 ...
+   Using 'conf' configuration
+   Verifying Hash Integrity ... OK
+   Trying 'fdt' fdt subimage
+     Description:  Topeet RK3588 board DT (ported from vendor; bootargs set by U-Boot: root=/dev/mmcblk?1p3)
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x0b41d200
+     Data Size:    101109 Bytes = 98.7 KiB
+     Architecture: AArch64
+     Load Address: 0x12000000
+     Hash algo:    sha256
+     Hash value:   5064588cb994c1e72ebf6547f5c812519a7b018e8273b7fc2a49e7c03fd01ec9
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x0b41d200 to 0x12000000
+   Booting using the fdt blob at 0x12000000
+Working FDT set to 12000000
+   Loading Kernel Image to 2000000
+   Loading Device Tree to 00000000eceb3000, end 00000000ececeaf4 ... OK
+Working FDT set to eceb3000
+
+Starting kernel ...
+
+[    0.000000] Booting Linux on physical CPU 0x0000000000 [0x412fd050]
+[    0.000000] Linux version 7.1.0-00028-gd3ee96babbf3 (charliechen@DESKTOP-65DBAA7) (aarch64-none-linux-gnu-gcc (Arm GNU Toolchain 15.3.Rel1 (Build arm-15.149)) 15.3.1 20260627, GNU ld (Arm GNU Toolchain 15.3.Rel1 (Build arm-15.149)) 2.45.1.20260126) #51 SMP PREEMPT Sun Nov  1 13:57:36 CST 2026
+[    0.000000] KASLR enabled
+[    0.000000] Machine model: Topeet RK3588 Board (iTOP-RK3588)
+[    0.000000] earlycon: uart8250 at MMIO32 0x00000000feb50000 (options '')
+[    0.000000] printk: legacy bootconsole [uart8250] enabled
+[    0.000000] efi: UEFI not found.
+[    0.000000] OF: reserved mem: 0x000000000010f000..0x000000000010f0ff (0 KiB) nomap non-reusable shmem@10f000
+[    0.000000] OF: reserved mem: 0x0000000010000000..0x00000000100dffff (896 KiB) map non-reusable ramoops@10000000
+[    0.000000] NUMA: Faking a node at [mem 0x0000000000200000-0x00000004ffffffff]
+[    0.000000] NODE_DATA(0) allocated [mem 0x4fdf69580-0x4fdf6bc7f]
+[    0.000000] cma: Reserved 32 MiB at 0x00000000ee000000
+[    0.000000] psci: probing for conduit method from DT.
+[    0.000000] psci: PSCIv1.1 detected in firmware.
+[    0.000000] psci: Using standard PSCI v0.2 function IDs
+[    0.000000] psci: MIGRATE_INFO_TYPE not supported.
+[    0.000000] psci: SMC Calling Convention v1.2
+[    0.000000] Zone ranges:
+[    0.000000]   DMA      [mem 0x0000000000200000-0x00000000ffffffff]
+[    0.000000]   DMA32    empty
+[    0.000000]   Normal   [mem 0x0000000100000000-0x00000004ffffffff]
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000200000-0x00000000efffffff]
+[    0.000000]   node   0: [mem 0x0000000100000000-0x00000003fbffffff]
+[    0.000000]   node   0: [mem 0x00000003fc500000-0x00000003ffefffff]
+[    0.000000]   node   0: [mem 0x00000004f0000000-0x00000004ffffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000200000-0x00000004ffffffff]
+[    0.000000] On node 0, zone DMA: 512 pages in unavailable ranges
+[    0.000000] On node 0, zone Normal: 1280 pages in unavailable ranges
+[    0.000000] On node 0, zone Normal: 256 pages in unavailable ranges
+[    0.000000] percpu: Embedded 35 pages/cpu s106264 r8192 d28904 u143360
+[    0.000000] Detected VIPT I-cache on CPU0
+[    0.000000] CPU features: detected: GICv3 CPU interface
+[    0.000000] CPU features: detected: IRQ priority masking
+[    0.000000] CPU features: detected: Virtualization Host Extensions
+[    0.000000] CPU features: kernel page table isolation forced ON by KASLR
+[    0.000000] CPU features: detected: Kernel page table isolation (KPTI)
+[    0.000000] CPU features: detected: ARM errata 1165522, 1319367, or 1530923
+[    0.000000] alternatives: applying boot alternatives
+[    0.000000] Kernel command line: earlycon=uart8250,mmio32,0xfeb50000 console=ttyFIQ0 irqchip.gicv3_pseudo_nmi=1 root=/dev/nfs nfsroot=192.168.50.5:/home/charliechen/rk-forge/out/rk3588-topeet/rootfs,vers=3,tcp ip=192.168.50.99:192.168.50.5::255.255.255.0::eth0:off rw rcupdate.rcu_expedited=1 rcu_nocbs=all
+[    0.000000] Unknown kernel command line parameters "rcu_nocbs=all", will be passed to user space.
+[    0.000000] printk: log buffer data + meta data: 131072 + 458752 = 589824 bytes
+[    0.000000] Dentry cache hash table entries: 2097152 (order: 12, 16777216 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 1048576 (order: 11, 8388608 bytes, linear)
+[    0.000000] software IO TLB: area num 8.
+[    0.000000] software IO TLB: mapped [mem 0x00000000e8eb3000-0x00000000eceb3000] (64MB)
+[    0.000000] Fallback order for Node 0: 0 
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 4192256
+[    0.000000] Policy zone: Normal
+[    0.000000] mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=8, Nodes=1
+[    0.000000] ftrace: allocating 78792 entries in 308 pages
+[    0.000000] ftrace: allocated 308 pages with 4 groups
+[    0.000000] rcu: Preemptible hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=512 to nr_cpu_ids=8.
+[    0.000000] 	All grace periods are expedited (rcu_expedited).
+[    0.000000] 	Trampoline variant of Tasks RCU enabled.
+[    0.000000] 	Rude variant of Tasks RCU enabled.
+[    0.000000] 	Tracing variant of Tasks RCU enabled.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=8
+[    0.000000] RCU Tasks: Setting shift to 3 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=8.
+[    0.000000] RCU Tasks Rude: Setting shift to 3 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=8.
+[    0.000000] NR_IRQS: 64, nr_irqs: 64, preallocated irqs: 0
+[    0.000000] GIC: enabling workaround for GICv3: non-coherent attribute
+[    0.000000] GICv3: GIC: Using split EOI/Deactivate mode
+[    0.000000] GICv3: 480 SPIs implemented
+[    0.000000] GICv3: 0 Extended SPIs implemented
+[    0.000000] GICv3: MBI range [424:479]
+[    0.000000] GICv3: Using MBI frame 0x00000000fe610000
+[    0.000000] Root IRQ handler: gic_handle_irq
+[    0.000000] GICv3: GICv3 features: 16 PPIs
+[    0.000000] GICv3: GICD_CTLR.DS=0, SCR_EL3.FIQ=1
+[    0.000000] GICv3: CPU0: found redistributor 0 region 0:0x00000000fe680000
+[    0.000000] GICv3: Pseudo-NMIs enabled using relaxed ICC_PMR_EL1 synchronisation
+[    0.000000] ITS [mem 0xfe640000-0xfe65ffff]
+[    0.000000] GIC: enabling workaround for ITS: Rockchip erratum RK3588001
+[    0.000000] GIC: enabling workaround for ITS: non-coherent attribute
+[    0.000000] ITS@0x00000000fe640000: allocated 8192 Devices @1001b0000 (indirect, esz 8, psz 64K, shr 0)
+[    0.000000] ITS@0x00000000fe640000: allocated 32768 Interrupt Collections @1001c0000 (flat, esz 2, psz 64K, shr 0)
+[    0.000000] ITS: using cache flushing for cmd queue
+[    0.000000] ITS [mem 0xfe660000-0xfe67ffff]
+[    0.000000] GIC: enabling workaround for ITS: Rockchip erratum RK3588001
+[    0.000000] GIC: enabling workaround for ITS: non-coherent attribute
+[    0.000000] ITS@0x00000000fe660000: allocated 8192 Devices @1001e0000 (indirect, esz 8, psz 64K, shr 0)
+[    0.000000] ITS@0x00000000fe660000: allocated 32768 Interrupt Collections @1001f0000 (flat, esz 2, psz 64K, shr 0)
+[    0.000000] ITS: using cache flushing for cmd queue
+[    0.000000] GICv3: using LPI property table @0x0000000100200000
+[    0.000000] GIC: using cache flushing for LPI property table
+[    0.000000] GICv3: CPU0: using allocated LPI pending table @0x0000000100210000
+[    0.000000] GICv3: GIC: PPI partition interrupt-partition-0[0] { /cpus/cpu@0[0] /cpus/cpu@100[1] /cpus/cpu@200[2] /cpus/cpu@300[3] }
+[    0.000000] GICv3: GIC: PPI partition interrupt-partition-1[1] { /cpus/cpu@400[4] /cpus/cpu@500[5] /cpus/cpu@600[6] /cpus/cpu@700[7] }
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] arch_timer: cp15 timer running at 24.00MHz (phys).
+[    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.000000] sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+[    0.013557] Console: colour dummy device 80x25
+[    0.018559] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=96000)
+[    0.029801] pid_max: default: 32768 minimum: 301
+[    0.035253] Mount-cache hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    0.043607] Mountpoint-cache hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    0.052762] VFS: Finished mounting rootfs on nullfs
+[    0.061301] rcu: Hierarchical SRCU implementation.
+[    0.066583] rcu: 	Max phase no-delay instances is 1000.
+[    0.072653] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.082396] fsl-mc MSI: msi-controller@fe640000 domain created
+[    0.088839] fsl-mc MSI: msi-controller@fe660000 domain created
+[    0.102417] EFI services will not be available.
+[    0.107981] smp: Bringing up secondary CPUs ...
+[    0.113738] Detected VIPT I-cache on CPU1
+[    0.114053] GICv3: CPU1: found redistributor 100 region 0:0x00000000fe6a0000
+[    0.114070] GICv3: CPU1: using allocated LPI pending table @0x0000000100220000
+[    0.114129] CPU1: Booted secondary processor 0x0000000100 [0x412fd050]
+[    0.115063] Detected VIPT I-cache on CPU2
+[    0.115370] GICv3: CPU2: found redistributor 200 region 0:0x00000000fe6c0000
+[    0.115386] GICv3: CPU2: using allocated LPI pending table @0x0000000100230000
+[    0.115439] CPU2: Booted secondary processor 0x0000000200 [0x412fd050]
+[    0.116349] Detected VIPT I-cache on CPU3
+[    0.116654] GICv3: CPU3: found redistributor 300 region 0:0x00000000fe6e0000
+[    0.116671] GICv3: CPU3: using allocated LPI pending table @0x0000000100240000
+[    0.116722] CPU3: Booted secondary processor 0x0000000300 [0x412fd050]
+[    0.117692] CPU features: detected: Spectre-v4
+[    0.117700] CPU features: detected: Spectre-BHB
+[    0.117705] CPU features: detected: SSBS not fully self-synchronizing
+[    0.117708] Detected PIPT I-cache on CPU4
+[    0.117865] GICv3: CPU4: found redistributor 400 region 0:0x00000000fe700000
+[    0.117875] GICv3: CPU4: using allocated LPI pending table @0x0000000100250000
+[    0.117907] CPU4: Booted secondary processor 0x0000000400 [0x414fd0b0]
+[    0.118744] Detected PIPT I-cache on CPU5
+[    0.118913] GICv3: CPU5: found redistributor 500 region 0:0x00000000fe720000
+[    0.118924] GICv3: CPU5: using allocated LPI pending table @0x0000000100260000
+[    0.118959] CPU5: Booted secondary processor 0x0000000500 [0x414fd0b0]
+[    0.119926] Detected PIPT I-cache on CPU6
+[    0.120092] GICv3: CPU6: found redistributor 600 region 0:0x00000000fe740000
+[    0.120102] GICv3: CPU6: using allocated LPI pending table @0x0000000100270000
+[    0.120135] CPU6: Booted secondary processor 0x0000000600 [0x414fd0b0]
+[    0.120982] Detected PIPT I-cache on CPU7
+[    0.121147] GICv3: CPU7: found redistributor 700 region 0:0x00000000fe760000
+[    0.121158] GICv3: CPU7: using allocated LPI pending table @0x0000000100280000
+[    0.121191] CPU7: Booted secondary processor 0x0000000700 [0x414fd0b0]
+[    0.121303] smp: Brought up 1 node, 8 CPUs
+[    0.333015] SMP: Total of 8 processors activated.
+[    0.338190] CPU: All CPU(s) started at EL2
+[    0.342717] CPU features: detected: 32-bit EL0 Support
+[    0.348359] CPU features: detected: Data cache clean to the PoU not required for I/D coherence
+[    0.357832] CPU features: detected: Common not Private translations
+[    0.364712] CPU features: detected: CRC32 instructions
+[    0.370353] CPU features: detected: RCpc load-acquire (LDAPR)
+[    0.376655] CPU features: detected: LSE atomic instructions
+[    0.382775] CPU features: detected: Privileged Access Never
+[    0.388894] CPU features: detected: PMUv3
+[    0.393297] CPU features: detected: RAS Extension Support
+[    0.399228] CPU features: detected: XNX
+[    0.403434] CPU features: detected: Speculative Store Bypassing Safe (SSBS)
+[    0.411145] alternatives: applying system-wide alternatives
+[    0.423479] CPU features: detected: ICV_DIR_EL1 trapping
+[    0.429323] CPU features: detected: Hardware dirty bit management on CPU4-7
+[    0.437595] Memory: 16283588K/16769024K available (24832K kernel code, 6898K rwdata, 16932K rodata, 4544K init, 750K bss, 442812K reserved, 32768K cma-reserved)
+[    0.457810] devtmpfs: initialized
+[    0.472716] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+[    0.483428] posixtimers hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.491587] futex hash table entries: 2048 (131072 bytes on 1 NUMA nodes, total 128 KiB, linear).
+[    0.501505] 2G module region forced by RANDOMIZE_MODULE_REGION_FULL
+[    0.508387] 0 pages in range for non-PLT usage
+[    0.508390] 510736 pages in range for PLT usage
+[    0.515463] DMI: not present or invalid.
+[    0.526571] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.533640] DMA: preallocated 2048 KiB GFP_KERNEL pool for atomic allocations
+[    0.541651] DMA: preallocated 2048 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+[    0.550261] audit: initializing netlink subsys (disabled)
+[    0.556336] audit: type=2000 audit(0.368:1): state=initialized audit_enabled=0 res=1
+[    0.558567] Registered FIQ tty driver
+[    0.569344] thermal_sys: Registered thermal governor 'step_wise'
+[    0.569349] thermal_sys: Registered thermal governor 'power_allocator'
+[    0.575993] cpuidle: using governor menu
+[    0.587680] hw-breakpoint: found 6 breakpoint and 4 watchpoint registers.
+[    0.595291] ASID allocator initialised with 32768 entries
+[    0.603012] Serial: AMBA PL011 UART driver
+[    0.608009] pstore: Using crash dump compression: deflate
+[    0.613936] printk: legacy console [ramoops-1] enabled
+[    0.619939] pstore: Registered ramoops as persistent store backend
+[    0.626719] ramoops: using 0xe0000@0x10000000, ecc: 0
+[    0.673805] rockchip-gpio fd8a0000.gpio: probed /pinctrl/gpio@fd8a0000
+[    0.681418] rockchip-gpio fec20000.gpio: probed /pinctrl/gpio@fec20000
+[    0.688986] rockchip-gpio fec30000.gpio: probed /pinctrl/gpio@fec30000
+[    0.696560] rockchip-gpio fec40000.gpio: probed /pinctrl/gpio@fec40000
+[    0.704112] rockchip-gpio fec50000.gpio: probed /pinctrl/gpio@fec50000
+[    0.717323] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    0.724784] HugeTLB: 0 KiB vmemmap can be freed for a 1.00 GiB page
+[    0.731662] HugeTLB: registered 32.0 MiB page size, pre-allocated 0 pages
+[    0.739107] HugeTLB: 0 KiB vmemmap can be freed for a 32.0 MiB page
+[    0.745982] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    0.753427] HugeTLB: 0 KiB vmemmap can be freed for a 2.00 MiB page
+[    0.760301] HugeTLB: registered 64.0 KiB page size, pre-allocated 0 pages
+[    0.767746] HugeTLB: 0 KiB vmemmap can be freed for a 64.0 KiB page
+[    0.776351] ACPI: Interpreter disabled.
+[    0.785035] fiq_debugger fiq_debugger.0: error -ENXIO: IRQ fiq not found
+[    0.792417] fiq_debugger fiq_debugger.0: error -ENXIO: IRQ wakeup not found
+[    0.800094] fiq_debugger_probe: could not install nmi irq handler
+[[    0.806827] printk: legacy console [ttyFIQ0] enabled
+    0.806827] printk: legacy console [ttyFIQ0] enabled
+[    0.817217] printk: legacy bootconsole [ua[    0.817217] printk: legacy bootconsole [uart8250] disabled
+rt8250] disabled
+[    0.828851] Registered fiq debugger ttyFIQ0
+[    0.829900] iommu: Default domain type: Translated
+[    0.829909] iommu: DMA domain TLB invalidation policy: strict mode
+[    0.832381] SCSI subsystem initialized
+[    0.832611] ------------[ cut here ]------------
+[    0.832618] ioremap attempted on RAM pfn
+[    0.832628] WARNING: arch/arm64/mm/ioremap.c:27 at __ioremap_prot+0xcc/0xe0, CPU#5: swapper/0/1
+[    0.832647] Modules linked in:
+[    0.832658] CPU: 5 UID: 0 PID: 1 Comm: swapper/0 Not tainted 7.1.0-00028-gd3ee96babbf3 #51 PREEMPT 
+[    0.832669] Hardware name: Topeet RK3588 Board (iTOP-RK3588) (DT)
+[    0.832675] pstate: 60400009 (nZCv daif +PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[    0.832685] pc : __ioremap_prot+0xcc/0xe0
+[    0.832695] lr : __ioremap_prot+0xcc/0xe0
+[    0.832704] sp : ffff80008005bd30
+[    0.832710] pmr: 000000e0
+[    0.832715] x29: ffff80008005bd30 x28: 0000000000000000 x27: ffffda09d2e42698
+[    0.832729] x26: ffffda09d36cb000 x25: ffffda09d2f68000 x24: 0000000000000803
+[    0.832742] x23: 0068000000000410 x22: 0000000000000300 x21: 0000000000000000
+[    0.832754] x20: 0000000000000003 x19: ffffda09d36cb370 x18: 000000000000000a
+[    0.832767] x17: 000000008d3ddb35 x16: 0000000007312292 x15: 0000000000000000
+[    0.832779] x14: 0000000000000000 x13: 6e6670204d415220 x12: 6e6f20646574706d
+[    0.832791] x11: ffff80008005b92f x10: 000000000000005d x9 : ffffda09d0389c94
+[    0.832803] x8 : 3fffffffffffefff x7 : ffffda09d2fe6f38 x6 : 00000000000000d5
+[    0.832815] x5 : ffffda09d2fe6f38 x4 : 0000000000000000 x3 : 0000000000000000
+[    0.832827] x2 : 0000000000000000 x1 : 0000000000000000 x0 : ffff0001008c30c0
+[    0.832840] Call trace:
+[    0.832846]  __ioremap_prot+0xcc/0xe0 (P)
+[    0.832857]  dbg30_poll_init+0xf8/0x1e0
+[    0.832871]  do_one_initcall+0x5c/0x438
+[    0.832883]  kernel_init_freeable+0x264/0x318
+[    0.832899]  kernel_init+0x2c/0x150
+[    0.832912]  ret_from_fork+0x10/0x20
+[    0.832925] ---[ end trace 0000000000000000 ]---
+[    0.832989] usbcore: registered new interface driver usbfs
+[    0.833011] usbcore: registered new interface driver hub
+[    0.833031] usbcore: registered new device driver usb
+[    0.834443] pps_core: LinuxPPS API ver. 1 registered
+[    0.834451] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.834462] PTP clock support registered
+[    0.834622] EDAC MC: Ver: 3.0.0
+[    0.835047] scmi_core: SCMI protocol bus registered
+[    0.836338] FPGA manager framework
+[    0.837239] vgaarb: loaded
+[    0.837582] clocksource: Switched to clocksource arch_sys_counter
+[    0.837839] VFS: Disk quotas dquot_6.6.0
+[    0.837856] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    0.838126] pnp: PnP ACPI: disabled
+[    0.844168] NET: Registered PF_INET protocol family
+[    0.844472] IP idents hash table entries: 262144 (order: 9, 2097152 bytes, linear)
+[    0.853415] tcp_listen_portaddr_hash hash table entries: 8192 (order: 5, 131072 bytes, linear)
+[    0.853547] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.853560] TCP established hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    0.854544] TCP bind hash table entries: 65536 (order: 9, 2097152 bytes, linear)
+[    0.856432] TCP: Hash tables configured (established 131072 bind 65536)
+[    0.856497] UDP hash table entries: 8192 (order: 7, 524288 bytes, linear)
+[    0.857109] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.857467] RPC: Registered named UNIX socket transport module.
+[    0.857476] RPC: Registered udp transport module.
+[    0.857482] RPC: Registered tcp transport module.
+[    0.857487] RPC: Registered tcp-with-tls transport module.
+[    0.857493] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.858121] PCI: CLS 0 bytes, default 64
+[    0.863653] kvm [1]: nv: 570 coarse grained trap handlers
+[    0.863790] kvm [1]: nv: 710 fine grained trap handlers
+[    0.864022] kvm [1]: IPA Size Limit: 40 bits
+[    0.864046] kvm [1]: GICv3: no GICV resource entry
+[    0.864053] kvm [1]: disabling GICv2 emulation
+[    0.864082] kvm [1]: GIC system register CPU interface enabled
+[    0.864100] kvm [1]: vgic interrupt IRQ9
+[    0.864132] kvm [1]: VHE mode initialized successfully
+[    0.865252] Initialise system trusted keyrings
+[    0.865426] workingset: timestamp_bits=42 (anon: 38) max_order=22 bucket_order=0 (anon: 0)
+[    0.865668] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.865925] NFS: Registering the id_resolver key type
+[    0.865951] Key type id_resolver registered
+[    0.865957] Key type id_legacy registered
+[    0.865972] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    0.865979] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    0.866125] 9p: Installing v9fs 9p2000 file system support
+[    0.866266] Key type asymmetric registered
+[    0.866275] Asymmetric key parser 'x509' registered
+[    0.866310] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 242)
+[    0.866318] io scheduler mq-deadline registered
+[    0.866324] io scheduler kyber registered
+[    0.866353] io scheduler bfq registered
+[    0.889402] ledtrig-cpu: registered to indicate activity on CPUs
+[    0.923425] dma-pl330 fea10000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    0.923439] dma-pl330 fea10000.dma-controller: 	DBUFF-128x8bytes Num_Chans-8 Num_Peri-32 Num_Events-16
+[    0.924273] dma-pl330 fea30000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    0.924283] dma-pl330 fea30000.dma-controller: 	DBUFF-128x8bytes Num_Chans-8 Num_Peri-32 Num_Events-16
+[    0.925097] dma-pl330 fed10000.dma-controller: Loaded driver for PL330 DMAC-241330
+[    0.925107] dma-pl330 fed10000.dma-controller: 	DBUFF-128x8bytes Num_Chans-8 Num_Peri-32 Num_Events-16
+[    0.941929] Serial: 8250/16550 driver, 4 ports, IRQ sharing enabled
+[    0.945817] msm_serial: driver initialized
+[    0.946495] SuperH (H)SCI(F) driver initialized
+[    0.946863] STM32 USART driver initialized
+[    0.950698] arm-smmu-v3 fc900000.iommu: oas 48-bit (features 0x001c1eaf)
+[    0.951168] arm-smmu-v3 fc900000.iommu: allocated 65536 entries for cmdq
+[    0.951501] arm-smmu-v3 fc900000.iommu: allocated 32768 entries for evtq
+[    0.951968] arm-smmu-v3 fc900000.iommu: msi_domain absent - falling back to wired irqs
+[    0.953883] platform fdb50000.video-codec: Adding to iommu group 0
+[    0.954885] platform fdba0000.video-codec: Adding to iommu group 1
+[    0.955840] platform fdba4000.video-codec: Adding to iommu group 2
+[    0.956823] platform fdba8000.video-codec: Adding to iommu group 3
+[    0.957771] platform fdbac000.video-codec: Adding to iommu group 4
+[    0.960723] rockchip-drm display-subsystem: [drm:rockchip_drm_platform_probe] *ERROR* No available vop found for display-subsystem.
+[    0.965551] loop: module loaded
+[    0.966724] megasas: 07.734.00.00-rc1
+[    0.972181] /spi@feb20000/pmic@0: Fixed dependency cycle(s) with /spi@feb20000/pmic@0/regulators/dcdc-reg7
+[    0.972231] /spi@feb20000/pmic@0: Fixed dependency cycle(s) with /spi@feb20000/pmic@0/dvs3-null-pins
+[    0.972247] /spi@feb20000/pmic@0: Fixed dependency cycle(s) with /spi@feb20000/pmic@0/dvs2-null-pins
+[    0.972262] /spi@feb20000/pmic@0: Fixed dependency cycle(s) with /spi@feb20000/pmic@0/dvs1-null-pins
+[    0.975544] tun: Universal TUN/TAP device driver, 1.6
+[    0.976985] thunder_xcv, ver 1.0
+[    0.977015] thunder_bgx, ver 1.0
+[    0.977037] nicpf, ver 1.0
+[    0.978764] e1000: Intel(R) PRO/1000 Network Driver
+[    0.978773] e1000: Copyright (c) 1999-2006 Intel Corporation.
+[    0.978802] e1000e: Intel(R) PRO/1000 Network Driver
+[    0.978807] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[    0.978830] igb: Intel(R) Gigabit Ethernet Network Driver
+[    0.978836] igb: Copyright (c) 2007-2014 Intel Corporation.
+[    0.978858] igbvf: Intel(R) Gigabit Virtual Function Network Driver
+[    0.978864] igbvf: Copyright (c) 2009 - 2012 Intel Corporation.
+[    0.979318] sky2: driver version 1.30
+[    0.982314] rk_gmac-dwmac fe1b0000.ethernet: IRQ sfty not found
+[    0.982533] rk_gmac-dwmac fe1b0000.ethernet: supply phy not found, using dummy regulator
+[    0.982593] rk_gmac-dwmac fe1b0000.ethernet: clock input or output? (output).
+[    0.982603] rk_gmac-dwmac fe1b0000.ethernet: TX delay(0x44).
+[    0.982611] rk_gmac-dwmac fe1b0000.ethernet: RX delay(0x0).
+[    0.982624] rk_gmac-dwmac fe1b0000.ethernet: integrated PHY? (no).
+[    0.987649] rk_gmac-dwmac fe1b0000.ethernet: init for RGMII_RXID
+[    0.987842] rk_gmac-dwmac fe1b0000.ethernet: User ID: 0x30, Synopsys ID: 0x51
+[    0.987852] rk_gmac-dwmac fe1b0000.ethernet: 	DWMAC4/5
+[    0.987860] rk_gmac-dwmac fe1b0000.ethernet: DMA HW capability register supported
+[    0.987867] rk_gmac-dwmac fe1b0000.ethernet: Active PHY interface: RGMII (1)
+[    0.987875] rk_gmac-dwmac fe1b0000.ethernet: RX Checksum Offload Engine supported
+[    0.987881] rk_gmac-dwmac fe1b0000.ethernet: TX Checksum insertion supported
+[    0.987888] rk_gmac-dwmac fe1b0000.ethernet: Wake-Up On Lan supported
+[    0.987925] rk_gmac-dwmac fe1b0000.ethernet: Enable RX Mitigation via HW Watchdog Timer
+[    0.987933] rk_gmac-dwmac fe1b0000.ethernet: Enabled L3L4 Flow TC (entries=2)
+[    0.987941] rk_gmac-dwmac fe1b0000.ethernet: Enabled RFS Flow TC (entries=10)
+[    0.987948] rk_gmac-dwmac fe1b0000.ethernet: TSO supported
+[    0.987954] rk_gmac-dwmac fe1b0000.ethernet: TSO feature enabled
+[    0.987961] rk_gmac-dwmac fe1b0000.ethernet: SPH feature enabled
+[    0.987968] rk_gmac-dwmac fe1b0000.ethernet: Using 32/32 bits DMA host/device width
+[    0.988705] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_read: phy=1 reg=31 enter
+[    0.988717] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.988726] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.988733] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.988851] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.988860] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_write: phy=1 reg=31 enter
+[    0.988869] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.988876] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.988883] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.988998] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.989006] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_write: phy=1 reg=16 enter
+[    0.989014] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.989021] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.989028] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.989142] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.989150] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_write: phy=1 reg=31 enter
+[    0.989158] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.989165] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.989172] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.989285] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.989294] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_read: phy=1 reg=31 enter
+[    0.989302] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.989309] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.989316] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.989430] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.989438] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_write: phy=1 reg=31 enter
+[    0.989446] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.989453] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.989461] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.989603] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.989612] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_write: phy=1 reg=18 enter
+[    0.989620] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.989627] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.989634] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.989749] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.989757] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_write: phy=1 reg=31 enter
+[    0.989764] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.989772] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.989779] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.989893] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.989901] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_read: phy=1 reg=29 enter
+[    0.989909] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.989916] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.989923] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.990037] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.990044] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_read: phy=1 reg=2 enter
+[    0.990053] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.990060] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.990067] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.990181] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.990189] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_read: phy=1 reg=1 enter
+[    0.990197] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.990204] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.990211] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.990325] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.990333] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_read: phy=1 reg=15 enter
+[    0.990341] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.990348] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.990355] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.990469] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.990478] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_write: phy=1 reg=13 enter
+[    0.990485] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.990493] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.990500] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.990614] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.990621] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_write: phy=1 reg=14 enter
+[    0.990629] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.990636] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.990643] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.990757] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.990765] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_write: phy=1 reg=13 enter
+[    0.990772] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.990780] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.990787] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.990901] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.990908] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_read: phy=1 reg=14 enter
+[    0.990917] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.990924] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.990931] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.991044] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.991058] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_write: phy=1 reg=13 enter
+[    0.991066] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.991073] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.991080] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.991194] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.991202] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_write: phy=1 reg=14 enter
+[    0.991209] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.991217] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.991224] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.991337] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.991345] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_write: phy=1 reg=13 enter
+[    0.991353] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.991360] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.991367] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.991481] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.991489] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio_read: phy=1 reg=14 enter
+[    0.991496] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre wait
+[    0.991504] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: pre xfer
+[    0.991511] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer kicked, polling done
+[    0.991624] rk_gmac-dwmac fe1b0000.ethernet (unnamed net_device) (uninitialized): DBG24 mdio: xfer done ret=0
+[    0.993942] usbcore: registered new interface driver rtw88_8723du
+[    0.994255] VFIO - User Level meta-driver version: 0.3
+[    0.999459] usbcore: registered new interface driver usb-storage
+[    1.000363] ehci-platform fc800000.usb: EHCI Host Controller
+[    1.000380] ohci-platform fc840000.usb: Generic Platform OHCI controller
+[    1.000407] ehci-platform fc800000.usb: new USB bus registered, assigned bus number 1
+[    1.000422] ohci-platform fc840000.usb: new USB bus registered, assigned bus number 2
+[    1.000431] ehci-platform fc880000.usb: EHCI Host Controller
+[    1.000449] ohci-platform fc8c0000.usb: Generic Platform OHCI controller
+[    1.000459] ehci-platform fc880000.usb: new USB bus registered, assigned bus number 3
+[    1.000498] ohci-platform fc8c0000.usb: new USB bus registered, assigned bus number 4
+[    1.000563] ehci-platform fc800000.usb: irq 42, io mem 0xfc800000
+[    1.000584] ohci-platform fc840000.usb: irq 44, io mem 0xfc840000
+[    1.000601] ehci-platform fc880000.usb: irq 43, io mem 0xfc880000
+[    1.000631] ohci-platform fc8c0000.usb: irq 45, io mem 0xfc8c0000
+[    1.003799] i2c_dev: i2c /dev entries driver
+[    1.009628] ehci-platform fc800000.usb: USB 2.0 started, EHCI 1.00
+[    1.010445] hub 1-0:1.0: USB hub found
+[    1.010502] hub 1-0:1.0: 1 port detected
+[    1.018133] rockchip-rk3588-cpufreq rockchip-rk3588-cpufreq: failed to initialize RK3588 CPUFreq cluster for cpu0: -517
+[    1.021734] ehci-platform fc880000.usb: USB 2.0 started, EHCI 1.00
+[    1.022681] hub 3-0:1.0: USB hub found
+[    1.022742] hub 3-0:1.0: 1 port detected
+[    1.025219] mmc0: CQHCI version 5.10
+[    1.027192] arm-scmi arm-scmi.0.auto: Using scmi_smc_transport
+[    1.027207] arm-scmi arm-scmi.0.auto: SCMI max-rx-timeout: 30ms / max-msg-size: 104bytes / max-msg: 20
+[    1.027300] scmi_protocol scmi_dev.1: Enabled polling mode TX channel - prot_id:16
+[    1.027426] arm-scmi arm-scmi.0.auto: SCMI Notifications - Core Enabled.
+[    1.027468] arm-scmi arm-scmi.0.auto: SCMI Protocol v2.0 'rockchip:' Firmware version 0x0
+[    1.027507] arm-scmi arm-scmi.0.auto: Enabling SCMI Quirk [quirk_clock_rates_triplet_out_of_spec]
+[    1.028914] SMCCC: SOC_ID: ARCH_SOC_ID not implemented, skipping ....
+[    1.030151] usbcore: registered new interface driver usbhid
+[    1.030160] usbhid: USB HID core driver
+[    1.035928] hw perfevents: enabled with armv8_cortex_a55 PMU driver, 7 (0,8000003f) counters available, using NMIs
+[    1.036735] hw perfevents: enabled with armv8_cortex_a76 PMU driver, 7 (0,8000003f) counters available, using NMIs
+[    1.044449] NET: Registered PF_INET6 protocol family
+[    1.045211] Segment Routing with IPv6
+[    1.045246] In-situ OAM (IOAM) with IPv6
+[    1.045287] NET: Registered PF_PACKET protocol family
+[    1.045343] 9pnet: Installing 9P2000 support
+[    1.045382] Key type dns_resolver registered
+[    1.052457] registered taskstats version 1
+[    1.052608] Loading compiled-in X.509 certificates
+[    1.057414] Demotion targets for Node 0: null
+[    1.057629] mmc0: SDHCI controller on fe2e0000.mmc [fe2e0000.mmc] using ADMA
+[    1.058600] hub 2-0:1.0: USB hub found
+[    1.058663] hub 2-0:1.0: 1 port detected
+[    1.060017] hub 4-0:1.0: USB hub found
+[    1.060078] hub 4-0:1.0: 1 port detected
+[    1.083337] random: crng init done
+[    1.110438] sdhci-dwcmshc fe2e0000.mmc: Can't reduce the clock below 52MHz in HS200/HS400 mode
+[    1.110683] mmc0: new HS400 Enhanced strobe MMC card at address 0001
+[    1.111129] rockchip-pm-domain fd8d8000.power-management:power-controller: Failed to create device link (0x180) with supplier spi2.0 for /power-management@fd8d8000/power-controller/power-domain@12
+[    1.111719] mmcblk0: mmc0:0001 METORA 116 GiB
+[    1.116734]  mmcblk0: p1 p2 p3
+[    1.117864] mmcblk0boot0: mmc0:0001 METORA 4.00 MiB
+[    1.120184] mmcblk0boot1: mmc0:0001 METORA 4.00 MiB
+[    1.122571] mmcblk0rpmb: mmc0:0001 METORA 4.00 MiB, chardev (509:0)
+[    1.142686] cpufreq: cpufreq_policy_online: CPU0: Running at unlisted initial frequency: 816000 kHz, changing to: 1008000 kHz
+[    1.142894] cpu cpu0: EM: created perf domain
+[    1.152517] cpufreq: cpufreq_policy_online: CPU4: Running at unlisted initial frequency: 816000 kHz, changing to: 1200000 kHz
+[    1.152676] cpu cpu4: EM: created perf domain
+[    1.168198] cpufreq: cpufreq_policy_online: CPU6: Running at unlisted initial frequency: 816000 kHz, changing to: 1200000 kHz
+[    1.168362] cpu cpu6: EM: created perf domain
+[    1.169267] rockchip-rk3588-cpufreq rockchip-rk3588-cpufreq: Rockchip RK3588 CPUFreq transition helper initialized
+[    1.173308] platform fdc38100.video-codec: Adding to iommu group 5
+[    1.176062] platform fdc40100.video-codec: Adding to iommu group 6
+[    1.178421] panthor fb000000.gpu: [drm] clock rate = 198000000
+[    1.179401] panthor fb000000.gpu: EM: created perf domain
+[    1.179931] panthor fb000000.gpu: [drm] Mali-G610 id 0xa867 major 0x0 minor 0x0 status 0x5
+[    1.179943] panthor fb000000.gpu: [drm] Features: L2:0x7120306 Tiler:0x809 Mem:0x301 MMU:0x2830 AS:0xff
+[    1.179953] panthor fb000000.gpu: [drm] shader_present=0x50005 l2_present=0x1 tiler_present=0x1
+[    1.181596] panthor fb000000.gpu: [drm] Firmware protected mode entry is not supported, ignoring
+[    1.181707] panthor fb000000.gpu: [drm] Firmware git sha: 95a25d71030715381f33105394285e1dcc860a65 
+[    1.181903] panthor fb000000.gpu: [drm] CSF FW using interface v1.5.0, Features 0x0 Instrumentation features 0x71
+[    1.182131] panthor fb000000.gpu: [drm] Using Transparent Hugepage
+[    1.182552] [drm] Initialized panthor 1.8.0 for fb000000.gpu on minor 0
+[    1.269689] usb 3-1: new high-speed USB device number 2 using ehci-platform
+[    1.299641] Goodix-TS 2-0014: ID 911, version: 1060
+[    1.299712] Goodix-TS 2-0014: Direct firmware load for goodix_911_cfg.bin failed with error -2
+[    1.300346] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 open: enter
+[    1.301090] rk_gmac-dwmac fe1b0000.ethernet eth0: Register MEM_TYPE_PAGE_POOL RxQ-0
+[    1.301679] rk_gmac-dwmac fe1b0000.ethernet eth0: Register MEM_TYPE_PAGE_POOL RxQ-1
+[    1.302396] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 open: post setup_dma_desc, pre pm_runtime_resume
+[    1.302403] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 open: post pm_runtime_resume, pre init_phy
+[    1.302409] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG25 open-entry A (MII_ADDR): rpm=0 val=0x002e010c
+[    1.302415] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG25 open-entry B (GMAC_CONFIG): val=0x00000000
+[    1.302421] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG25 re-arm: clks off -> SRST pulse -> clks on
+[    1.307484] rk_gmac-dwmac fe1b0000.ethernet: DBG25 clk aclk_mac: enabled=1
+[    1.307490] rk_gmac-dwmac fe1b0000.ethernet: DBG25 clk pclk_mac: enabled=1
+[    1.307494] rk_gmac-dwmac fe1b0000.ethernet: DBG25 clk mac_clk_tx: enabled=-1
+[    1.307498] rk_gmac-dwmac fe1b0000.ethernet: DBG25 clk clk_mac_speed: enabled=-1
+[    1.307502] rk_gmac-dwmac fe1b0000.ethernet: DBG25 php_grf CON0=0x0008 CLK_CON1=0x0010
+[    1.307507] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG25 post-rearm A (MII_ADDR): val=0x00000000
+[    1.307511] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG25 post-rearm B (GMAC_CONFIG): val=0x00000000
+[    1.307531] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=31 enter
+[    1.307537] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.307540] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.307545] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.307656] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.307661] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=31 enter
+[    1.307666] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.307670] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.307673] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.307828] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.307833] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=17 enter
+[    1.307837] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.307841] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.307845] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.307954] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.307959] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=31 enter
+[    1.307963] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.307967] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.307970] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.308079] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.308083] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=31 enter
+[    1.308087] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.308091] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.308095] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.308203] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.308208] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=31 enter
+[    1.308212] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.308216] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.308220] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.308328] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.308332] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=21 enter
+[    1.308336] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.308340] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.308344] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.308452] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.308456] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=31 enter
+[    1.308460] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.308464] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.308468] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.308576] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.308581] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=31 enter
+[    1.308585] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.308588] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.308592] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.308700] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.308704] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=31 enter
+[    1.308708] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.308712] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.308716] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.308824] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.308828] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=18 enter
+[    1.308832] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.308836] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.308840] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.308954] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.308958] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=31 enter
+[    1.308963] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.308966] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.308970] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.309078] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.309082] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=29 enter
+[    1.309087] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.309090] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.309094] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.309203] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.309208] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[    1.309212] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.309215] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.309219] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.309327] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.317655] input: Goodix Capacitive TouchScreen as /devices/platform/feaa0000.i2c/i2c-2/2-0014/input/input0
+[    1.329725] rk_gmac-dwmac fe1b0000.ethernet eth0: PHY [stmmac-0:01] driver [RTL8211F Gigabit Ethernet] (irq=POLL)
+[    1.329739] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=25 enter
+[    1.329747] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.329752] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.329758] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.329875] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.329881] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=25 enter
+[    1.329887] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.329893] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.329898] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.330011] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.330018] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=13 enter
+[    1.330024] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.330029] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.330034] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.330146] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.330152] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=14 enter
+[    1.330157] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.330163] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.330168] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.330280] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.330285] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=13 enter
+[    1.330291] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.330296] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.330301] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.330413] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.330419] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=14 enter
+[    1.330424] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.330430] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.330435] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.330547] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.330553] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=13 enter
+[    1.330558] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.330563] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.330569] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.330680] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.330686] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=14 enter
+[    1.330692] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.330697] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.330702] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.330814] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.330819] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=13 enter
+[    1.330825] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.330830] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.330835] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.330947] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.330953] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=14 enter
+[    1.330958] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.330963] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.330968] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.331079] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.331086] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=13 enter
+[    1.331092] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.331097] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.331102] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.331213] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.331219] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=14 enter
+[    1.331224] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.331229] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.331234] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.331347] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.331352] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=13 enter
+[    1.331357] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.331363] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.331368] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.331480] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.331485] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=14 enter
+[    1.331491] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.331496] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.331501] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.331613] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.331620] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=13 enter
+[    1.331626] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.331631] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.331636] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.331748] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.331753] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=14 enter
+[    1.331759] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.331764] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.331769] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.331881] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.331886] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=13 enter
+[    1.331892] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.331897] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.331902] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.332014] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.332019] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=14 enter
+[    1.332025] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.332030] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.332035] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.332147] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.332153] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 open: post init_phy (ret=0), pre __stmmac_open
+[    1.341583] dwmac4: Master AXI performs any burst length
+[    1.341601] rk_gmac-dwmac fe1b0000.ethernet eth0: No Safety Features support found
+[    1.341935] rk_gmac-dwmac fe1b0000.ethernet eth0: IEEE 1588-2008 Advanced Timestamp supported
+[    1.342165] rk_gmac-dwmac fe1b0000.ethernet eth0: registered PTP clock
+[    1.342176] rk_gmac-dwmac fe1b0000.ethernet eth0: configuring for phy/rgmii-rxid link mode
+[    1.342192] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[    1.342199] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.342204] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.342209] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.342323] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.365717] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=13 enter
+[    1.365729] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.365736] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.365742] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.365859] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.365865] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=14 enter
+[    1.365871] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.365876] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.365881] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.365994] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.365999] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=13 enter
+[    1.366005] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.366010] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.366015] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.366128] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.366133] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=14 enter
+[    1.366139] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.366144] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.366149] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.366261] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.366268] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=4 enter
+[    1.366273] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.366278] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.366283] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.366395] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.366401] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=4 enter
+[    1.366406] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.366411] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.366416] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.366528] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.366534] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    1.366539] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.366544] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.366549] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.366661] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.366667] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=9 enter
+[    1.366672] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.366677] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.366683] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.366794] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.366800] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[    1.366805] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.366811] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.366816] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.366927] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.366933] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=0 enter
+[    1.366938] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.366943] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.366948] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.367060] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.367066] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[    1.367072] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.367077] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.367082] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.367194] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.367200] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    1.367205] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.367211] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.367216] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.367327] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.367333] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    1.367339] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.367344] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.367349] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.367460] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.367466] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=9 enter
+[    1.367472] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.367477] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.367482] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.367593] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.367599] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=10 enter
+[    1.367605] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    1.367610] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    1.367615] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    1.367726] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    1.419413] hub 3-1:1.0: USB hub found
+[    1.419534] hub 3-1:1.0: 4 ports detected
+[    1.797721] usb 3-1.1: new high-speed USB device number 3 using ehci-platform
+[    1.996457] rtw88_8723du 3-1.1:1.2: Direct firmware load for rtw88/rtw8723d_fw.bin failed with error -2
+[    1.996470] rtw88_8723du 3-1.1:1.2: failed to request firmware
+[    2.009023] rtw88_8723du 3-1.1:1.2: failed to load firmware
+[    2.009030] rtw88_8723du 3-1.1:1.2: failed to setup chip efuse info
+[    2.009035] rtw88_8723du 3-1.1:1.2: failed to setup chip information
+[    2.009156] rtw88_8723du 3-1.1:1.2: probe with driver rtw88_8723du failed with error -22
+[    2.397731] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[    2.397744] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    2.397750] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    2.397756] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    2.397873] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    2.397879] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    2.397885] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    2.397890] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    2.397895] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    2.398008] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    2.398014] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    2.398019] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    2.398025] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    2.398030] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    2.398141] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    2.398147] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=9 enter
+[    2.398152] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    2.398158] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    2.398163] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    2.398274] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    2.398280] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=10 enter
+[    2.398285] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    2.398291] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    2.398296] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    2.398407] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    3.421741] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[    3.421753] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    3.421759] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    3.421765] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    3.421880] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    3.421887] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    3.421893] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    3.421898] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    3.421903] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    3.422015] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    3.422021] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    3.422027] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    3.422032] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    3.422037] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    3.422149] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    3.422154] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=9 enter
+[    3.422160] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    3.422165] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    3.422170] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    3.422281] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    3.422287] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=10 enter
+[    3.422293] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    3.422298] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    3.422304] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    3.422415] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    4.445664] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[    4.445676] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    4.445682] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    4.445687] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    4.445804] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    4.445810] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    4.445816] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    4.445821] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    4.445826] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    4.445938] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    4.445944] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    4.445950] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    4.445955] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    4.445960] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    4.446071] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    4.446077] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=9 enter
+[    4.446083] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    4.446088] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    4.446093] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    4.446204] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    4.446210] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=10 enter
+[    4.446216] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    4.446221] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    4.446226] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    4.446337] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.469782] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[    5.469794] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    5.469800] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    5.469806] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    5.469922] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.469929] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    5.469934] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    5.469940] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    5.469945] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    5.470057] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.470063] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    5.470068] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    5.470073] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    5.470078] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    5.470189] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.470195] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=9 enter
+[    5.470201] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    5.470206] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    5.470211] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    5.470322] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.470328] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=10 enter
+[    5.470334] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    5.470339] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    5.470344] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    5.470455] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.470461] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=10 enter
+[    5.470467] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    5.470472] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    5.470477] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    5.470588] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.470594] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=5 enter
+[    5.470599] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    5.470604] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    5.470610] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    5.470721] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.470727] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[    5.470733] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    5.470738] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    5.470743] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    5.470854] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.470861] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=13 enter
+[    5.470867] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    5.470872] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    5.470877] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    5.470988] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.470994] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=14 enter
+[    5.471000] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    5.471005] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    5.471010] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    5.471121] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.471126] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_write: phy=1 reg=13 enter
+[    5.471132] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    5.471137] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    5.471142] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    5.471253] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.471259] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=14 enter
+[    5.471264] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    5.471270] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    5.471275] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    5.471386] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    5.471407] rk_gmac-dwmac fe1b0000.ethernet eth0: Link is Up - 1Gbps/Full - flow control rx/tx
+[    5.493723] IP-Config: Complete:
+[    5.493732]      device=eth0, hwaddr=66:50:1b:af:7e:d2, ipaddr=192.168.50.99, mask=255.255.255.0, gw=255.255.255.255
+[    5.493740]      host=192.168.50.99, domain=, nis-domain=(none)
+[    5.493745]      bootserver=192.168.50.5, rootserver=192.168.50.5, rootpath=
+[    5.493805] cfg80211: Loading compiled-in X.509 certificates for regulatory database
+[    5.495427] Loaded X.509 cert 'sforshee: 00b28ddf47aef9cea7'
+[    5.495807] Loaded X.509 cert 'wens: 61c038651aabdcf94bd0ac7ff06c7248db18c600'
+[    5.495868] clk: Disabling unused clocks
+[    5.496423] PM: genpd: Disabling unused power domains
+[    5.496669] faux_driver regulatory: Direct firmware load for regulatory.db failed with error -2
+[    5.496679] cfg80211: failed to load regulatory.db
+[    6.493735] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[    6.493752] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    6.493759] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    6.493764] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    6.493878] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    6.493884] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    6.493890] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    6.493895] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    6.493900] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    6.494012] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    6.494017] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[    6.494023] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    6.494028] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    6.494033] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    6.494145] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    7.517743] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[    7.517761] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    7.517767] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    7.517773] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    7.517887] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    7.517893] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    7.517899] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    7.517904] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    7.517909] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    7.518021] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    7.518027] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[    7.518032] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    7.518038] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    7.518043] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    7.518154] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    8.541753] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[    8.541770] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    8.541777] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    8.541782] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    8.541896] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    8.541902] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    8.541908] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    8.541913] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    8.541917] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    8.542029] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    8.542035] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[    8.542041] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    8.542046] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    8.542051] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    8.542162] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    9.565735] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[    9.565752] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    9.565758] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    9.565764] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    9.565878] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    9.565884] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[    9.565890] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    9.565895] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    9.565900] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    9.566012] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[    9.566018] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[    9.566024] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[    9.566029] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[    9.566034] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[    9.566146] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   10.589722] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   10.589738] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   10.589745] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   10.589750] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   10.589864] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   10.589870] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   10.589876] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   10.589882] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   10.589886] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   10.589998] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   10.590004] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   10.590010] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   10.590015] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   10.590020] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   10.590131] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   11.613738] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   11.613755] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   11.613762] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   11.613767] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   11.613882] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   11.613888] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   11.613894] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   11.613900] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   11.613904] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   11.614016] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   11.614022] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   11.614028] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   11.614033] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   11.614038] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   11.614149] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   12.637723] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   12.637741] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   12.637747] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   12.637752] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   12.637866] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   12.637872] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   12.637878] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   12.637883] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   12.637888] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   12.638000] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   12.638006] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   12.638011] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   12.638017] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   12.638022] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   12.638133] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   13.661727] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   13.661745] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   13.661752] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   13.661757] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   13.661871] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   13.661878] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   13.661884] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   13.661889] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   13.661894] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   13.662005] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   13.662011] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   13.662017] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   13.662022] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   13.662027] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   13.662138] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   14.685739] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   14.685757] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   14.685764] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   14.685769] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   14.685883] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   14.685890] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   14.685896] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   14.685901] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   14.685906] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   14.686017] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   14.686023] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   14.686029] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   14.686034] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   14.686039] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   14.686150] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   15.517788] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdb50000.video-codec
+[   15.517823] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdb80000.rga
+[   15.517841] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdba0000.video-codec
+[   15.517858] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdba4000.video-codec
+[   15.517874] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdba8000.video-codec
+[   15.517891] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdbac000.video-codec
+[   15.517907] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdc38100.video-codec
+[   15.517923] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdc40100.video-codec
+[   15.517939] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdc70000.video-codec
+[   15.709667] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   15.709682] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   15.709688] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   15.709694] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   15.709808] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   15.709815] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   15.709821] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   15.709826] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   15.709831] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   15.709944] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   15.709950] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   15.709956] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   15.709961] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   15.709966] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   15.710078] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   16.733740] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   16.733757] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   16.733764] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   16.733769] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   16.733883] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   16.733890] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   16.733896] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   16.733901] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   16.733906] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   16.734017] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   16.734023] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   16.734029] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   16.734034] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   16.734039] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   16.734150] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   17.757739] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   17.757757] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   17.757763] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   17.757768] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   17.757883] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   17.757889] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   17.757895] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   17.757900] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   17.757905] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   17.758017] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   17.758023] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   17.758029] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   17.758034] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   17.758039] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   17.758150] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   18.781736] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   18.781754] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   18.781760] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   18.781766] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   18.781880] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   18.781886] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   18.781892] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   18.781897] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   18.781902] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   18.782015] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   18.782021] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   18.782026] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   18.782031] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   18.782037] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   18.782148] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   19.805723] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   19.805741] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   19.805748] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   19.805754] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   19.805867] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   19.805873] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   19.805879] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   19.805884] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   19.805889] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   19.806001] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   19.806007] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   19.806013] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   19.806018] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   19.806023] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   19.806134] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   20.829724] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   20.829742] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   20.829749] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   20.829754] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   20.829867] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   20.829874] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   20.829880] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   20.829885] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   20.829890] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   20.830002] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   20.830007] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   20.830013] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   20.830018] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   20.830023] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   20.830135] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   21.853739] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   21.853757] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   21.853764] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   21.853769] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   21.853883] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   21.853889] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   21.853895] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   21.853901] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   21.853905] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   21.854017] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   21.854023] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   21.854029] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   21.854034] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   21.854039] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   21.854150] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   22.877727] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   22.877743] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   22.877749] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   22.877755] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   22.877868] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   22.877875] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   22.877880] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   22.877886] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   22.877890] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   22.878002] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   22.878008] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   22.878013] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   22.878019] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   22.878023] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   22.878135] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   23.901730] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   23.901748] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   23.901754] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   23.901760] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   23.901874] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   23.901880] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   23.901886] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   23.901891] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   23.901896] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   23.902008] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   23.902014] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   23.902019] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   23.902025] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   23.902030] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   23.902141] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   24.925740] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   24.925758] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   24.925765] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   24.925770] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   24.925884] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   24.925891] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   24.925897] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   24.925902] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   24.925907] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   24.926018] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   24.926024] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   24.926030] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   24.926035] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   24.926040] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   24.926151] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   25.949722] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   25.949740] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   25.949746] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   25.949751] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   25.949864] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   25.949871] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   25.949877] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   25.949882] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   25.949887] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   25.949998] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   25.950004] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   25.950009] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   25.950015] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   25.950020] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   25.950131] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   26.973721] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   26.973740] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   26.973746] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   26.973751] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   26.973865] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   26.973872] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   26.973878] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   26.973883] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   26.973887] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   26.973999] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   26.974004] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   26.974010] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   26.974015] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   26.974020] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   26.974131] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   27.997739] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   27.997757] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   27.997763] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   27.997769] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   27.997883] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   27.997889] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   27.997895] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   27.997900] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   27.997905] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   27.998017] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   27.998023] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   27.998029] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   27.998034] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   27.998039] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   27.998150] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   29.021728] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   29.021746] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   29.021752] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   29.021757] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   29.021871] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   29.021878] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   29.021884] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   29.021889] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   29.021894] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   29.022006] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   29.022011] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   29.022017] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   29.022022] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   29.022027] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   29.022139] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   30.045740] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   30.045759] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   30.045766] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   30.045771] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   30.045885] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   30.045891] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   30.045897] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   30.045903] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   30.045907] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   30.046019] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   30.046025] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   30.046031] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   30.046036] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   30.046041] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   30.046152] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   31.069720] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   31.069737] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   31.069743] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   31.069749] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   31.069864] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   31.069870] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   31.069877] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   31.069882] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   31.069887] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   31.069999] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   31.070005] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   31.070011] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   31.070016] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   31.070021] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   31.070133] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   32.093725] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   32.093740] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   32.093747] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   32.093752] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   32.093866] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   32.093873] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   32.093879] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   32.093884] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   32.093889] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   32.094002] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   32.094007] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   32.094013] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   32.094019] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   32.094023] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   32.094136] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   33.117742] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   33.117761] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   33.117767] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   33.117772] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   33.117886] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   33.117893] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   33.117899] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   33.117904] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   33.117909] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   33.118021] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   33.118027] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   33.118032] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   33.118038] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   33.118043] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   33.118154] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   34.141721] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   34.141739] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   34.141745] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   34.141751] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   34.141864] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   34.141871] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   34.141876] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   34.141882] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   34.141887] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   34.141998] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   34.142004] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   34.142010] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   34.142015] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   34.142020] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   34.142131] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   35.165737] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   35.165756] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   35.165762] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   35.165768] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   35.165881] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   35.165888] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   35.165894] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   35.165899] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   35.165904] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   35.166015] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   35.166021] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   35.166027] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   35.166032] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   35.166037] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   35.166148] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   36.189740] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   36.189757] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   36.189764] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   36.189770] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   36.189885] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   36.189891] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   36.189897] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   36.189902] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   36.189907] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   36.190019] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   36.190026] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   36.190031] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   36.190036] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   36.190041] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   36.190154] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   37.213732] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   37.213749] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   37.213755] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   37.213761] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   37.213876] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   37.213882] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   37.213888] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   37.213893] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   37.213898] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   37.214011] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   37.214017] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   37.214022] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   37.214028] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   37.214033] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   37.214145] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   38.237741] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=0 enter
+[   38.237758] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   38.237764] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   38.237770] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   38.237884] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   38.237890] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=1 enter
+[   38.237896] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   38.237902] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   38.237906] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   38.238018] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0
+[   38.238024] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio_read: phy=1 reg=26 enter
+[   38.238030] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre wait
+[   38.238035] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: pre xfer
+[   38.238040] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer kicked, polling done
+[   38.238151] rk_gmac-dwmac fe1b0000.ethernet eth0: DBG24 mdio: xfer done ret=0

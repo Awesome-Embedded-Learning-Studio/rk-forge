@@ -1,0 +1,31 @@
+E5 experiment log — 2026-11-01 (devmem timing A/B)
+kernel: 7.1.0-00020-g220f49e58acd-dirty #37 (20 patches + gmac0 1+1 DT override)
+bootargs: earlycon + console=ttyFIQ0 root=/dev/mmcblk0p3 rw rootwait init=/bin/sh (cpuidle ON this run)
+sequence: mount sysfs ~1.3s -> devmem 0xfe1b0000 #1 -> RETURNED 0x00000000 (bus ALIVE)
+       -> sleep 5 -> devmem #2 at ~6.3s -> INSTANT fabric wedge: vblank timeout storm starts at 6.303480s (same instant), shell dead (subsequent typed commands echo garbled, never execute)
+       -> 11.935s sync_state() pending prints (video-codec/rga x9)
+       -> 12.463s rk8xx-spi spi2.0: SPI transfer timed out x5 (PMIC RK806 bus dead!)
+       -> 13.279s cpu cpu0: failed to set mem voltage (950000 uV): -110; cpufreq __target_index: Failed to change cpu frequency: -110
+
+KEY FACTS:
+- devmem#1 OK (~1.3-4s), devmem#2 (~6.3s) hangs bus -> killer acts between the two reads
+  (candidates in window: late_initcall clk_disable_unused ~1.5-2s; stmmac runtime autosuspend after probe)
+- vblank starvation = same-instant symptom of fabric wedge, NOT display issue
+- SPI2/PMIC (RK806) timeouts at 12.4s = same wedge, first SPI customer was cpufreq's
+  mem-voltage set -> -110 resurfaces (note 51's August disease, via SPI2 this time)
+- fabric-wide wedge: GMAC read + SPI2 + vblank IRQ all dead after ~6.3s single event
+
+[    6.303480] rockchip-drm display-subsystem: [drm] vblank wait timed out on crtc 0
+[    6.303517] WARNING: drivers/gpu/drm/drm_vblank.c:1320 ... CPU#6: kworker/6:1/77
+[    6.303731] ---[ end trace 0000000000000000 ]---
+[    7.327547] [CRTC:83:video_port2] vblank wait timed out
+[    8.351485] rockchip-drm display-subsystem: [drm] vblank wait timed out on crtc 0
+[   11.935556] rockchip-pm-domain fd8d8000.power-management:power-controller: sync_state() pending due to fdb50000.video-codec
+   (... x9 ...)
+[   12.463533] rk8xx-spi spi2.0: SPI transfer timed out
+[   12.463556] spi_master spi2: failed to transfer one message from queue
+[   12.667535] rk8xx-spi spi2.0: SPI transfer timed out
+   (... x5 total ...)
+[   13.279580] cpu cpu0: failed to set mem voltage (950000 950000 950000 uV): -110
+[   13.279597] cpu cpu0: Failed to set regulator voltages: -110
+[   13.279609] cpufreq: __target_index: Failed to change cpu frequency: -110

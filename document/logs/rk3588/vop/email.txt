@@ -1,0 +1,1087 @@
+The Linux Kernel Mailing List
+ help / color / mirror / Atom feed
+* Re:Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-02-28 20:30 ` Piotr Oniszczuk
+@ 2025-03-01 12:24   ` Andy Yan
+  0 siblings, 0 replies; 14+ messages in thread
+From: Andy Yan @ 2025-03-01 12:24 UTC (permalink / raw)
+  To: Piotr Oniszczuk
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel
+
+
+Hi Piotr,
+
+在 2025-03-01 04:30:33，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+>
+>
+>> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 23 lut 2025, o godz. 12:30:
+>> 
+>> From: Andy Yan <andy.yan@rock-chips.com>
+>> 
+>> 
+>> There are two DW DPTX based DisplayPort Controller on rk3588 which
+>> are compliant with the DisplayPort Specification Version 1.4 with
+>> the following features:
+>> 
+>> * DisplayPort 1.4a
+>> * Main Link: 1/2/4 lanes
+>> * Main Link Support 1.62Gbps, 2.7Gbps, 5.4Gbps and 8.1Gbps
+>> * AUX channel 1Mbps
+>> * Single Stream Transport(SST)
+>> * Multistream Transport (MST)
+>> *Type-C support (alternate mode)
+>> * HDCP 2.2, HDCP 1.3
+>> * Supports up to 8/10 bits per color component
+>> * Supports RBG, YCbCr4:4:4, YCbCr4:2:2, YCbCr4:2:0
+>> * Pixel clock up to 594MHz
+>> * I2S, SPDIF audio interface
+>> 
+>> The current version of this patch series only supports basic display outputs.
+>> I conducted tests in 1080p and 4K@60 YCbCr4:2:0 modes; the ALT/Type-C mode
+>> hasn't been tested yet, but I suspect it will likely work. HDCP and audio
+>> features remain unimplemented. For RK3588, it's only support SST, while in
+>> the upcoming RK3576, it can support MST output.
+>> 
+>
+>Andy,
+>
+>Is tis series enough to get usbc1/dp1 working as video output ?
+>(assuming i will add necessary code in dt) 
+>
+>rock5-itx has second hdmi port using usbc1/dp1 lanes 2,3 to ra620 dp->hdmi converter
+>
+>is it worth to play with this or it is too early?
+
+I think you could give it a try if it using the Standard DP（non-ALT mode） port for output. 
+Since I don't currently have a development board with DP1 output available, I haven't been
+able to test it yet. As for the Type-C Alternate Mode output, some patches are still required 
+I'll  send it with V2 tomorrow or next week.
+Feel free to let me know if If you encounter any issues。
+
+
+> 
+
+^ permalink raw reply	[flat|nested] 14+ messages in thread
+* Re:Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+@ 2025-03-05  2:30 Andy Yan
+  2025-03-05 13:56 ` Piotr Oniszczuk
+  0 siblings, 1 reply; 14+ messages in thread
+From: Andy Yan @ 2025-03-05  2:30 UTC (permalink / raw)
+  To: Piotr Oniszczuk
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel
+
+
+Hi Piotr,
+
+在 2025-03-04 21:12:50，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+>
+>
+>> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 1 mar 2025, o godz. 13:24:
+>> 
+>> 
+>> Hi Piotr,
+>> 
+>>> 
+>>> is it worth to play with this or it is too early?
+>> 
+>> I think you could give it a try if it using the Standard DP（non-ALT mode） port for output. 
+>> Since I don't currently have a development board with DP1 output available, I haven't been
+>> able to test it yet. As for the Type-C Alternate Mode output, some patches are still required 
+>> I'll  send it with V2 tomorrow or next week.
+>> Feel free to let me know if If you encounter any issues。
+>> 
+>
+>Andy,
+>I added dp1 enablement in rock5 itx like this: https://gist.github.com/warpme/bddf75912193f57724c49216d5d85d4a
+>Unfortunately it not works.
+>For /sys/kernel/debug/dri/0/state - pls see above link…
+>I’m not sure: do i missed something in dt or rather issue issue  is in dp code...
+
+I only see the HDMI connector from your dri/state ; so it appears the DP driver hasn't been successfully
+initialized（I think kernel dmesg can tell that）. 
+Have you enabled CONFIG_ROCKCHIP_DW_DP ? This is needed.
+
+
+>
+>FYI: schematic: https://dl.radxa.com/rock5/5itx/v1110/radxa_rock_5itx_v1110_schematic.pdf
+>
+>
+>
+
+^ permalink raw reply	[flat|nested] 14+ messages in thread
+* Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-03-05  2:30 Re:Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller Andy Yan
+@ 2025-03-05 13:56 ` Piotr Oniszczuk
+  2025-03-06  0:59   ` Andy Yan
+  0 siblings, 1 reply; 14+ messages in thread
+From: Piotr Oniszczuk @ 2025-03-05 13:56 UTC (permalink / raw)
+  To: Andy Yan
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel
+
+
+
+> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 5 mar 2025, o godz. 03:30:
+> 
+>> 
+> 
+> I only see the HDMI connector from your dri/state ; so it appears the DP driver hasn't been successfully
+> initialized（I think kernel dmesg can tell that）. 
+> Have you enabled CONFIG_ROCKCHIP_DW_DP ? This is needed.
+> 
+
+
+Andy,
+
+Do you mean CONFIG_ROCKCHIP_DW_DP or CONFIG_DRM_DW_DP ?
+
+If CONFIG_DRM_DW_DP - then yes - i have it: https://github.com/warpme/minimyth2/blob/2e267842b1033bbc4c2c5d80c1756a142e347cc5/script/kernel/linux-6.14/files/linux-6.14-arm64-armv8.config#L5024
+
+Kernel dmesg: https://termbin.com/uiup
+
+
+
+
+^ permalink raw reply	[flat|nested] 14+ messages in thread
+* Re:Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-03-05 13:56 ` Piotr Oniszczuk
+@ 2025-03-06  0:59   ` Andy Yan
+  2025-03-06  8:42     ` Piotr Oniszczuk
+  0 siblings, 1 reply; 14+ messages in thread
+From: Andy Yan @ 2025-03-06  0:59 UTC (permalink / raw)
+  To: Piotr Oniszczuk
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel
+
+
+Hi Piotr,
+
+在 2025-03-05 21:56:12，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+>
+>
+>> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 5 mar 2025, o godz. 03:30:
+>> 
+>>> 
+>> 
+>> I only see the HDMI connector from your dri/state ; so it appears the DP driver hasn't been successfully
+>> initialized（I think kernel dmesg can tell that）. 
+>> Have you enabled CONFIG_ROCKCHIP_DW_DP ? This is needed.
+>> 
+>
+>
+>Andy,
+>
+>Do you mean CONFIG_ROCKCHIP_DW_DP or CONFIG_DRM_DW_DP ?
+>
+>If CONFIG_DRM_DW_DP - then yes - i have it: https://github.com/warpme/minimyth2/blob/2e267842b1033bbc4c2c5d80c1756a142e347cc5/script/kernel/linux-6.14/files/linux-6.14-arm64-armv8.config#L5024
+>
+>Kernel dmesg: https://termbin.com/uiup
+
+
+Both of the two config options should be enabled.
+andy@Pro480:~/WorkSpace/linux-next$ rg DW_DP .config
+4044:CONFIG_ROCKCHIP_DW_DP=y
+4218:CONFIG_DRM_DW_DP=y
+
+And if dw dp driver boots success, you will see dmesg like bellow:
+
+ [    1.058634] arm-smmu-v3 fc900000.iommu: msi_domain absent - falling back to wired irqs
+[    1.062458] rockchip-vop2 fdd90000.vop: Adding to iommu group 0
+[    1.067908] rockchip-drm display-subsystem: bound fdd90000.vop (ops vop2_component_ops)
+[    1.068981] rockchip-drm display-subsystem: bound fde60000.dp (ops dw_dp_rockchip_component_ops)
+[    1.070133] dwhdmiqp-rockchip fde80000.hdmi: registered DesignWare HDMI QP I2C bus driver
+[    1.070859] rockchip-drm display-subsystem: bound fde80000.hdmi (ops dw_hdmi_qp_rockchip_ops)
+[    1.072103] [drm] Initialized rockchip 1.0.0 for display-subsystem on minor 0
+[    1.080191] loop: module loaded
+
+But I just see hdmi  driver boots from your dmesg.
+
+>
+>
+>
+
+^ permalink raw reply	[flat|nested] 14+ messages in thread
+* Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-03-06  0:59   ` Andy Yan
+@ 2025-03-06  8:42     ` Piotr Oniszczuk
+  2025-03-06  8:53       ` Andy Yan
+  0 siblings, 1 reply; 14+ messages in thread
+From: Piotr Oniszczuk @ 2025-03-06  8:42 UTC (permalink / raw)
+  To: Andy Yan
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel
+
+
+
+> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 6 mar 2025, o godz. 01:59:
+> 
+> 
+> 
+> 
+> Both of the two config options should be enabled.
+> andy@Pro480:~/WorkSpace/linux-next$ rg DW_DP .config
+> 4044:CONFIG_ROCKCHIP_DW_DP=y
+
+here i’m a bit lost….
+greping on full kernel sources (with applied https://patchwork.kernel.org/project/linux-rockchip/list/?series=936784) gives me no single appearance of ROCKCHIP_DW_DP…
+Do i miss something?
+
+
+
+^ permalink raw reply	[flat|nested] 14+ messages in thread
+* Re:Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-03-06  8:42     ` Piotr Oniszczuk
+@ 2025-03-06  8:53       ` Andy Yan
+  2025-03-06 11:47         ` Piotr Oniszczuk
+  0 siblings, 1 reply; 14+ messages in thread
+From: Andy Yan @ 2025-03-06  8:53 UTC (permalink / raw)
+  To: Piotr Oniszczuk
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel
+
+
+Hi,
+
+在 2025-03-06 16:42:00，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+>
+>
+>> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 6 mar 2025, o godz. 01:59:
+>> 
+>> 
+>> 
+>> 
+>> Both of the two config options should be enabled.
+>> andy@Pro480:~/WorkSpace/linux-next$ rg DW_DP .config
+>> 4044:CONFIG_ROCKCHIP_DW_DP=y
+>
+>here i’m a bit lost….
+>greping on full kernel sources (with applied https://patchwork.kernel.org/project/linux-rockchip/list/?series=936784) gives me no single appearance of ROCKCHIP_DW_DP…
+>Do i miss something?
+
+see PATCH 3/6:   
+
+
+diff --git a/drivers/gpu/drm/rockchip/Kconfig b/drivers/gpu/drm/rockchip/Kconfig
+index 26c4410b2407..c8638baf9641 100644
+--- a/drivers/gpu/drm/rockchip/Kconfig
++++ b/drivers/gpu/drm/rockchip/Kconfig
+@@ -8,6 +8,7 @@ config DRM_ROCKCHIP
+ 	select DRM_PANEL
+ 	select VIDEOMODE_HELPERS
+ 	select DRM_ANALOGIX_DP if ROCKCHIP_ANALOGIX_DP
++	select DRM_DW_DP if ROCKCHIP_DW_DP
+ 	select DRM_DW_HDMI if ROCKCHIP_DW_HDMI
+ 	select DRM_DW_HDMI_QP if ROCKCHIP_DW_HDMI_QP
+ 	select DRM_DW_MIPI_DSI if ROCKCHIP_DW_MIPI_DSI
+@@ -58,6 +59,12 @@ config ROCKCHIP_CDN_DP
+ 	  RK3399 based SoC, you should select this
+ 	  option.
+ 
++config ROCKCHIP_DW_DP
++	bool "Rockchip specific extensions for Synopsys DW DP"
++	help
++	  Choose this option for Synopsys DesignWare Cores DisplayPort
++	  transmit controller support on Rockchip SoC.
+
+ https://lore.kernel.org/linux-rockchip/047EECFC-7E55-44EC-896F-13FE04333E4D@gmail.com/T/#m178a325ea0ebc64187aae474d77c3f7a9e0bc93d
+>
+
+^ permalink raw reply related	[flat|nested] 14+ messages in thread
+* Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-03-06  8:53       ` Andy Yan
+@ 2025-03-06 11:47         ` Piotr Oniszczuk
+  2025-03-06 12:15           ` Andy Yan
+  0 siblings, 1 reply; 14+ messages in thread
+From: Piotr Oniszczuk @ 2025-03-06 11:47 UTC (permalink / raw)
+  To: Andy Yan
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel
+
+
+> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 6 mar 2025, o godz. 09:53:
+> 
+> 
+> Hi,
+> 
+> 在 2025-03-06 16:42:00，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+>> 
+>> 
+>>> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 6 mar 2025, o godz. 01:59:
+>>> 
+>>> 
+>>> 
+>>> 
+>>> Both of the two config options should be enabled.
+>>> andy@Pro480:~/WorkSpace/linux-next$ rg DW_DP .config
+>>> 4044:CONFIG_ROCKCHIP_DW_DP=y
+>> 
+>> here i’m a bit lost….
+>> greping on full kernel sources (with applied https://patchwork.kernel.org/project/linux-rockchip/list/?series=936784) gives me no single appearance of ROCKCHIP_DW_DP…
+>> Do i miss something?
+> 
+> see PATCH 3/6:   
+> 
+> 
+> diff --git a/drivers/gpu/drm/rockchip/Kconfig b/drivers/gpu/drm/rockchip/Kconfig
+> index 26c4410b2407..c8638baf9641 100644
+> --- a/drivers/gpu/drm/rockchip/Kconfig
+> +++ b/drivers/gpu/drm/rockchip/Kconfig
+> @@ -8,6 +8,7 @@ config DRM_ROCKCHIP
+> select DRM_PANEL
+> select VIDEOMODE_HELPERS
+> select DRM_ANALOGIX_DP if ROCKCHIP_ANALOGIX_DP
+> + select DRM_DW_DP if ROCKCHIP_DW_DP
+> select DRM_DW_HDMI if ROCKCHIP_DW_HDMI
+> select DRM_DW_HDMI_QP if ROCKCHIP_DW_HDMI_QP
+> select DRM_DW_MIPI_DSI if ROCKCHIP_DW_MIPI_DSI
+> @@ -58,6 +59,12 @@ config ROCKCHIP_CDN_DP
+>  RK3399 based SoC, you should select this
+>  option.
+> 
+> +config ROCKCHIP_DW_DP
+> + bool "Rockchip specific extensions for Synopsys DW DP"
+> + help
+> +  Choose this option for Synopsys DesignWare Cores DisplayPort
+> +  transmit controller support on Rockchip SoC.
+> 
+> https://lore.kernel.org/linux-rockchip/047EECFC-7E55-44EC-896F-13FE04333E4D@gmail.com/T/#m178a325ea0ebc64187aae474d77c3f7a9e0bc93d
+>> 
+
+
+Ah my bad!
+One patch patch was commented - so not all dp code was applied.
+
+Now it is much better:
+
+root@myth-frontend-56b0f018b5e0:~ # dmesg | grep drm
+[    9.795380] panthor fb000000.gpu: [drm] clock rate = 198000000
+[    9.796257] panthor fb000000.gpu: [drm] mali-g610 id 0xa867 major 0x0 minor 0x0 status 0x5
+[    9.796262] panthor fb000000.gpu: [drm] Features: L2:0x7120306 Tiler:0x809 Mem:0x301 MMU:0x2830 AS:0xff
+[    9.796265] panthor fb000000.gpu: [drm] shader_present=0x50005 l2_present=0x1 tiler_present=0x1
+[    9.851869] panthor fb000000.gpu: [drm] Firmware protected mode entry not be supported, ignoring
+[    9.851921] panthor fb000000.gpu: [drm] Firmware git sha: 814b47b551159067b67a37c4e9adda458ad9d852
+[    9.852127] panthor fb000000.gpu: [drm] CSF FW using interface v1.1.0, Features 0x0 Instrumentation features 0x71
+[    9.852436] [drm] Initialized panthor 1.3.0 for fb000000.gpu on minor 0
+[   10.003108] rockchip-drm display-subsystem: bound fdd90000.vop (ops vop2_component_ops)
+[   10.004705] rockchip-drm display-subsystem: bound fde60000.dp (ops dw_dp_rockchip_component_ops)
+[   10.006085] rockchip-drm display-subsystem: bound fdea0000.hdmi (ops dw_hdmi_qp_rockchip_ops)
+[   10.006679] [drm] Initialized rockchip 1.0.0 for display-subsystem on minor 1
+[   10.006737] rockchip-drm display-subsystem: [drm] Cannot find any crtc or sizes
+[   10.007663] rockchip-drm display-subsystem: [drm] Cannot find any crtc or sizes
+
+Unfortunately still nothing on screen
+
+dri state: https://gist.github.com/warpme/5e971dfd2e9fd52fae76641831cebe46
+
+and kernel dmesg https://termbin.com/r0m3
+
+i’m not sure what is missing (some dts enablement or….)
+  
+
+
+
+
+
+
+
+^ permalink raw reply	[flat|nested] 14+ messages in thread
+* Re:Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-03-06 11:47         ` Piotr Oniszczuk
+@ 2025-03-06 12:15           ` Andy Yan
+  2025-03-06 14:08             ` Piotr Oniszczuk
+  2025-03-06 16:39             ` Dmitry Baryshkov
+  0 siblings, 2 replies; 14+ messages in thread
+From: Andy Yan @ 2025-03-06 12:15 UTC (permalink / raw)
+  To: Piotr Oniszczuk
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel
+
+Hi Piotr,
+
+在 2025-03-06 19:47:31，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+>
+>> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 6 mar 2025, o godz. 09:53:
+>> 
+>> 
+>> Hi,
+>> 
+>> 在 2025-03-06 16:42:00，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+>>> 
+>>> 
+>>>> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 6 mar 2025, o godz. 01:59:
+>>>> 
+>>>> 
+>>>> 
+>>>> 
+>>>> Both of the two config options should be enabled.
+>>>> andy@Pro480:~/WorkSpace/linux-next$ rg DW_DP .config
+>>>> 4044:CONFIG_ROCKCHIP_DW_DP=y
+>>> 
+>>> here i’m a bit lost….
+>>> greping on full kernel sources (with applied https://patchwork.kernel.org/project/linux-rockchip/list/?series=936784) gives me no single appearance of ROCKCHIP_DW_DP…
+>>> Do i miss something?
+>> 
+>> see PATCH 3/6:   
+>> 
+>> 
+>> diff --git a/drivers/gpu/drm/rockchip/Kconfig b/drivers/gpu/drm/rockchip/Kconfig
+>> index 26c4410b2407..c8638baf9641 100644
+>> --- a/drivers/gpu/drm/rockchip/Kconfig
+>> +++ b/drivers/gpu/drm/rockchip/Kconfig
+>> @@ -8,6 +8,7 @@ config DRM_ROCKCHIP
+>> select DRM_PANEL
+>> select VIDEOMODE_HELPERS
+>> select DRM_ANALOGIX_DP if ROCKCHIP_ANALOGIX_DP
+>> + select DRM_DW_DP if ROCKCHIP_DW_DP
+>> select DRM_DW_HDMI if ROCKCHIP_DW_HDMI
+>> select DRM_DW_HDMI_QP if ROCKCHIP_DW_HDMI_QP
+>> select DRM_DW_MIPI_DSI if ROCKCHIP_DW_MIPI_DSI
+>> @@ -58,6 +59,12 @@ config ROCKCHIP_CDN_DP
+>>  RK3399 based SoC, you should select this
+>>  option.
+>> 
+>> +config ROCKCHIP_DW_DP
+>> + bool "Rockchip specific extensions for Synopsys DW DP"
+>> + help
+>> +  Choose this option for Synopsys DesignWare Cores DisplayPort
+>> +  transmit controller support on Rockchip SoC.
+>> 
+>> https://lore.kernel.org/linux-rockchip/047EECFC-7E55-44EC-896F-13FE04333E4D@gmail.com/T/#m178a325ea0ebc64187aae474d77c3f7a9e0bc93d
+>>> 
+>
+>
+>Ah my bad!
+>One patch patch was commented - so not all dp code was applied.
+>
+>Now it is much better:
+>
+>root@myth-frontend-56b0f018b5e0:~ # dmesg | grep drm
+>[    9.795380] panthor fb000000.gpu: [drm] clock rate = 198000000
+>[    9.796257] panthor fb000000.gpu: [drm] mali-g610 id 0xa867 major 0x0 minor 0x0 status 0x5
+>[    9.796262] panthor fb000000.gpu: [drm] Features: L2:0x7120306 Tiler:0x809 Mem:0x301 MMU:0x2830 AS:0xff
+>[    9.796265] panthor fb000000.gpu: [drm] shader_present=0x50005 l2_present=0x1 tiler_present=0x1
+>[    9.851869] panthor fb000000.gpu: [drm] Firmware protected mode entry not be supported, ignoring
+>[    9.851921] panthor fb000000.gpu: [drm] Firmware git sha: 814b47b551159067b67a37c4e9adda458ad9d852
+>[    9.852127] panthor fb000000.gpu: [drm] CSF FW using interface v1.1.0, Features 0x0 Instrumentation features 0x71
+>[    9.852436] [drm] Initialized panthor 1.3.0 for fb000000.gpu on minor 0
+>[   10.003108] rockchip-drm display-subsystem: bound fdd90000.vop (ops vop2_component_ops)
+>[   10.004705] rockchip-drm display-subsystem: bound fde60000.dp (ops dw_dp_rockchip_component_ops)
+>[   10.006085] rockchip-drm display-subsystem: bound fdea0000.hdmi (ops dw_hdmi_qp_rockchip_ops)
+>[   10.006679] [drm] Initialized rockchip 1.0.0 for display-subsystem on minor 1
+>[   10.006737] rockchip-drm display-subsystem: [drm] Cannot find any crtc or sizes
+>[   10.007663] rockchip-drm display-subsystem: [drm] Cannot find any crtc or sizes
+>
+>Unfortunately still nothing on screen
+>
+>dri state: https://gist.github.com/warpme/5e971dfd2e9fd52fae76641831cebe46
+>
+>and kernel dmesg https://termbin.com/r0m3
+>
+>i’m not sure what is missing (some dts enablement or….)
+
+From your dts,  I find you use gpio for hpd, I'm not sure how to handle it  with upstream  code now.
+
+
+&dp1 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&dp1_hpd>;
+	hpd-gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_HIGH>;
+};
+
+I suggest a change like this:
+
+&dp1 {
+	status = "okay";
+	pinctrl-names = "default";
+        pinctrl-0 = <&dp1m0_pins>;
+
+};
+
+And also remove dp1_hpd pinctrl in your dts.
+
+Then when you DP cable plugin, you can run command as bellow to see if the driver detects the HPD:
+
+# cat /sys/class/drm/card0-DP-1/status 
+connected
+# 
+
+
+
+
+
+>  
+>
+>
+>
+>
+>
+
+^ permalink raw reply	[flat|nested] 14+ messages in thread
+* Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-03-06 12:15           ` Andy Yan
+@ 2025-03-06 14:08             ` Piotr Oniszczuk
+  2025-03-06 14:28               ` Piotr Oniszczuk
+  2025-03-06 16:39             ` Dmitry Baryshkov
+  1 sibling, 1 reply; 14+ messages in thread
+From: Piotr Oniszczuk @ 2025-03-06 14:08 UTC (permalink / raw)
+  To: Andy Yan
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel
+
+
+
+> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 6 mar 2025, o godz. 13:15:
+> 
+> Hi Piotr,
+> 
+> 
+> 
+> Then when you DP cable plugin, you can run command as bellow to see if the driver detects the HPD:
+> 
+> # cat /sys/class/drm/card0-DP-1/status 
+> connected
+> # 
+> 
+
+
+Andy,
+Thx!
+
+With above changes i’m getting „connected”.
+Also it looks crtc gets reasonable mode: https://gist.github.com/warpme/d6220e3cc502086a4c95f05bd9f9cf0c
+
+Still black screen however...  
+
+^ permalink raw reply	[flat|nested] 14+ messages in thread
+* Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-03-06 14:08             ` Piotr Oniszczuk
+@ 2025-03-06 14:28               ` Piotr Oniszczuk
+  2025-03-07  0:48                 ` Andy Yan
+  0 siblings, 1 reply; 14+ messages in thread
+From: Piotr Oniszczuk @ 2025-03-06 14:28 UTC (permalink / raw)
+  To: Andy Yan
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel
+
+
+
+> Wiadomość napisana przez Piotr Oniszczuk <piotr.oniszczuk@gmail.com> w dniu 6 mar 2025, o godz. 15:08:
+> 
+> 
+> 
+>> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 6 mar 2025, o godz. 13:15:
+>> 
+>> Hi Piotr,
+>> 
+>> 
+>> 
+>> Then when you DP cable plugin, you can run command as bellow to see if the driver detects the HPD:
+>> 
+>> # cat /sys/class/drm/card0-DP-1/status 
+>> connected
+>> # 
+>> 
+> 
+> 
+> Andy,
+> Thx!
+> 
+> With above changes i’m getting „connected”.
+> Also it looks crtc gets reasonable mode: https://gist.github.com/warpme/d6220e3cc502086a4c95f05bd9f9cf0c
+> 
+> Still black screen however…
+>   
+
+some additional data point: /sys/kernel/debug/dri/1/vop2/summary 
+
+
+working hdmi:
+
+Video Port1: ACTIVE
+    Connector: HDMI-A-1
+        bus_format[0]: Unknown
+        output_mode[f] color_space[0]
+    Display mode: 1920x1080p60
+        clk[148500] real_clk[148500] type[48] flag[5]
+        H: 1920 2008 2052 2200
+        V: 1080 1084 1089 1125
+    Cluster0-win0: ACTIVE
+        win_id: 0
+        format: XR24 little-endian (0x34325258) glb_alpha[0xff]
+        rotate: xmirror: 0 ymirror: 0 rotate_90: 0 rotate_270: 0
+        zpos: 0
+        src: pos[0, 0] rect[1920 x 1080]
+        dst: pos[0, 0] rect[1920 x 1080]
+        buf[0]: addr: 0x00000000017e1000 pitch: 7680 offset: 0
+Video Port2: DISABLED
+
+
+
+
+non-working DP:
+
+Video Port1: DISABLED
+Video Port2: ACTIVE
+    Connector: DP-1
+        bus_format[100a]: RGB888_1X24
+        output_mode[f] color_space[0]
+    Display mode: 1920x1080p60
+        clk[148500] real_clk[148500] type[48] flag[5]
+        H: 1920 2008 2052 2200
+        V: 1080 1084 1089 1125
+    Cluster1-win0: ACTIVE
+        win_id: 1
+        format: XR24 little-endian (0x34325258) glb_alpha[0xff]
+        rotate: xmirror: 0 ymirror: 0 rotate_90: 0 rotate_270: 0
+        zpos: 0
+        src: pos[0, 0] rect[1920 x 1080]
+        dst: pos[0, 0] rect[1920 x 1080]
+        buf[0]: addr: 0x00000000007ed000 pitch: 7680 offset: 0
+
+
+^ permalink raw reply	[flat|nested] 14+ messages in thread
+* Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-03-06 12:15           ` Andy Yan
+  2025-03-06 14:08             ` Piotr Oniszczuk
+@ 2025-03-06 16:39             ` Dmitry Baryshkov
+  1 sibling, 0 replies; 14+ messages in thread
+From: Dmitry Baryshkov @ 2025-03-06 16:39 UTC (permalink / raw)
+  To: Andy Yan
+  Cc: Piotr Oniszczuk, heiko, neil.armstrong, sebastian.reichel,
+	devicetree, hjc, mripard, linux-kernel, linux-rockchip,
+	yubing.zhang, dri-devel, Andy Yan, krzk+dt, robh,
+	linux-arm-kernel
+
+On Thu, Mar 06, 2025 at 08:15:13PM +0800, Andy Yan wrote:
+> Hi Piotr,
+> 
+> 在 2025-03-06 19:47:31，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+> >
+> >> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 6 mar 2025, o godz. 09:53:
+> >> 
+> >> 
+> >> Hi,
+> >> 
+> >> 在 2025-03-06 16:42:00，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+> >>> 
+> >>> 
+> >>>> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 6 mar 2025, o godz. 01:59:
+> >>>> 
+> >>>> 
+> >>>> 
+> >>>> 
+> >>>> Both of the two config options should be enabled.
+> >>>> andy@Pro480:~/WorkSpace/linux-next$ rg DW_DP .config
+> >>>> 4044:CONFIG_ROCKCHIP_DW_DP=y
+> >>> 
+> >>> here i’m a bit lost….
+> >>> greping on full kernel sources (with applied https://patchwork.kernel.org/project/linux-rockchip/list/?series=936784) gives me no single appearance of ROCKCHIP_DW_DP…
+> >>> Do i miss something?
+> >> 
+> >> see PATCH 3/6:   
+> >> 
+> >> 
+> >> diff --git a/drivers/gpu/drm/rockchip/Kconfig b/drivers/gpu/drm/rockchip/Kconfig
+> >> index 26c4410b2407..c8638baf9641 100644
+> >> --- a/drivers/gpu/drm/rockchip/Kconfig
+> >> +++ b/drivers/gpu/drm/rockchip/Kconfig
+> >> @@ -8,6 +8,7 @@ config DRM_ROCKCHIP
+> >> select DRM_PANEL
+> >> select VIDEOMODE_HELPERS
+> >> select DRM_ANALOGIX_DP if ROCKCHIP_ANALOGIX_DP
+> >> + select DRM_DW_DP if ROCKCHIP_DW_DP
+> >> select DRM_DW_HDMI if ROCKCHIP_DW_HDMI
+> >> select DRM_DW_HDMI_QP if ROCKCHIP_DW_HDMI_QP
+> >> select DRM_DW_MIPI_DSI if ROCKCHIP_DW_MIPI_DSI
+> >> @@ -58,6 +59,12 @@ config ROCKCHIP_CDN_DP
+> >>  RK3399 based SoC, you should select this
+> >>  option.
+> >> 
+> >> +config ROCKCHIP_DW_DP
+> >> + bool "Rockchip specific extensions for Synopsys DW DP"
+> >> + help
+> >> +  Choose this option for Synopsys DesignWare Cores DisplayPort
+> >> +  transmit controller support on Rockchip SoC.
+> >> 
+> >> https://lore.kernel.org/linux-rockchip/047EECFC-7E55-44EC-896F-13FE04333E4D@gmail.com/T/#m178a325ea0ebc64187aae474d77c3f7a9e0bc93d
+> >>> 
+> >
+> >
+> >Ah my bad!
+> >One patch patch was commented - so not all dp code was applied.
+> >
+> >Now it is much better:
+> >
+> >root@myth-frontend-56b0f018b5e0:~ # dmesg | grep drm
+> >[    9.795380] panthor fb000000.gpu: [drm] clock rate = 198000000
+> >[    9.796257] panthor fb000000.gpu: [drm] mali-g610 id 0xa867 major 0x0 minor 0x0 status 0x5
+> >[    9.796262] panthor fb000000.gpu: [drm] Features: L2:0x7120306 Tiler:0x809 Mem:0x301 MMU:0x2830 AS:0xff
+> >[    9.796265] panthor fb000000.gpu: [drm] shader_present=0x50005 l2_present=0x1 tiler_present=0x1
+> >[    9.851869] panthor fb000000.gpu: [drm] Firmware protected mode entry not be supported, ignoring
+> >[    9.851921] panthor fb000000.gpu: [drm] Firmware git sha: 814b47b551159067b67a37c4e9adda458ad9d852
+> >[    9.852127] panthor fb000000.gpu: [drm] CSF FW using interface v1.1.0, Features 0x0 Instrumentation features 0x71
+> >[    9.852436] [drm] Initialized panthor 1.3.0 for fb000000.gpu on minor 0
+> >[   10.003108] rockchip-drm display-subsystem: bound fdd90000.vop (ops vop2_component_ops)
+> >[   10.004705] rockchip-drm display-subsystem: bound fde60000.dp (ops dw_dp_rockchip_component_ops)
+> >[   10.006085] rockchip-drm display-subsystem: bound fdea0000.hdmi (ops dw_hdmi_qp_rockchip_ops)
+> >[   10.006679] [drm] Initialized rockchip 1.0.0 for display-subsystem on minor 1
+> >[   10.006737] rockchip-drm display-subsystem: [drm] Cannot find any crtc or sizes
+> >[   10.007663] rockchip-drm display-subsystem: [drm] Cannot find any crtc or sizes
+> >
+> >Unfortunately still nothing on screen
+> >
+> >dri state: https://gist.github.com/warpme/5e971dfd2e9fd52fae76641831cebe46
+> >
+> >and kernel dmesg https://termbin.com/r0m3
+> >
+> >i’m not sure what is missing (some dts enablement or….)
+> 
+> From your dts,  I find you use gpio for hpd, I'm not sure how to handle it  with upstream  code now.
+> 
+> 
+> &dp1 {
+> 	status = "okay";
+> 	pinctrl-names = "default";
+> 	pinctrl-0 = <&dp1_hpd>;
+> 	hpd-gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_HIGH>;
+
+If this GPIO is handled by the DP controller itself, it should be a part
+of DP's node. Otherwise please move it to the correctponding
+dp-connector node.
+
+> };
+> 
+> I suggest a change like this:
+> 
+> &dp1 {
+> 	status = "okay";
+> 	pinctrl-names = "default";
+>         pinctrl-0 = <&dp1m0_pins>;
+> 
+> };
+> 
+> And also remove dp1_hpd pinctrl in your dts.
+> 
+> Then when you DP cable plugin, you can run command as bellow to see if the driver detects the HPD:
+> 
+> # cat /sys/class/drm/card0-DP-1/status 
+> connected
+> # 
+
+-- 
+With best wishes
+Dmitry
+
+^ permalink raw reply	[flat|nested] 14+ messages in thread
+* Re:Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-03-06 14:28               ` Piotr Oniszczuk
+@ 2025-03-07  0:48                 ` Andy Yan
+  2025-03-09 20:53                   ` Piotr Oniszczuk
+  0 siblings, 1 reply; 14+ messages in thread
+From: Andy Yan @ 2025-03-07  0:48 UTC (permalink / raw)
+  To: Piotr Oniszczuk
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel
+
+
+Hi Piotr,
+在 2025-03-06 22:28:08，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+>
+>
+>> Wiadomość napisana przez Piotr Oniszczuk <piotr.oniszczuk@gmail.com> w dniu 6 mar 2025, o godz. 15:08:
+>> 
+>> 
+>> 
+>>> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 6 mar 2025, o godz. 13:15:
+>>> 
+>>> Hi Piotr,
+>>> 
+>>> 
+>>> 
+>>> Then when you DP cable plugin, you can run command as bellow to see if the driver detects the HPD:
+>>> 
+>>> # cat /sys/class/drm/card0-DP-1/status 
+>>> connected
+>>> # 
+>>> 
+>> 
+>> 
+>> Andy,
+>> Thx!
+>> 
+>> With above changes i’m getting „connected”.
+>> Also it looks crtc gets reasonable mode: https://gist.github.com/warpme/d6220e3cc502086a4c95f05bd9f9cf0c
+>> 
+>> Still black screen however…
+>>   
+>
+>some additional data point: /sys/kernel/debug/dri/1/vop2/summary 
+>
+>
+>working hdmi:
+>
+>Video Port1: ACTIVE
+>    Connector: HDMI-A-1
+>        bus_format[0]: Unknown
+>        output_mode[f] color_space[0]
+>    Display mode: 1920x1080p60
+>        clk[148500] real_clk[148500] type[48] flag[5]
+>        H: 1920 2008 2052 2200
+>        V: 1080 1084 1089 1125
+>    Cluster0-win0: ACTIVE
+>        win_id: 0
+>        format: XR24 little-endian (0x34325258) glb_alpha[0xff]
+>        rotate: xmirror: 0 ymirror: 0 rotate_90: 0 rotate_270: 0
+>        zpos: 0
+>        src: pos[0, 0] rect[1920 x 1080]
+>        dst: pos[0, 0] rect[1920 x 1080]
+>        buf[0]: addr: 0x00000000017e1000 pitch: 7680 offset: 0
+>Video Port2: DISABLED
+>
+>
+>
+>
+>non-working DP:
+>
+>Video Port1: DISABLED
+>Video Port2: ACTIVE
+>    Connector: DP-1
+>        bus_format[100a]: RGB888_1X24
+>        output_mode[f] color_space[0]
+>    Display mode: 1920x1080p60
+>        clk[148500] real_clk[148500] type[48] flag[5]
+>        H: 1920 2008 2052 2200
+>        V: 1080 1084 1089 1125
+>    Cluster1-win0: ACTIVE
+>        win_id: 1
+>        format: XR24 little-endian (0x34325258) glb_alpha[0xff]
+>        rotate: xmirror: 0 ymirror: 0 rotate_90: 0 rotate_270: 0
+>        zpos: 0
+>        src: pos[0, 0] rect[1920 x 1080]
+>        dst: pos[0, 0] rect[1920 x 1080]
+>        buf[0]: addr: 0x00000000007ed000 pitch: 7680 offset: 0
+
+>
+
+All dump information currently appears to be correct, so I'm temporarily unsure why
+there is no display on the monitor.
+Maybe try some plug and unplug for the DP cable, or try another cable or monitor?
+
+It seems that this board uses a DP to HDMI converter? Does this transmitter need a driver?
+
+I won't be at my computer over the next two or three days, so any further replies to your email
+might have to wait until next week.
+
+
+
+^ permalink raw reply	[flat|nested] 14+ messages in thread
+* Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-03-07  0:48                 ` Andy Yan
+@ 2025-03-09 20:53                   ` Piotr Oniszczuk
+  2025-03-12  3:51                     ` Andy Yan
+  0 siblings, 1 reply; 14+ messages in thread
+From: Piotr Oniszczuk @ 2025-03-09 20:53 UTC (permalink / raw)
+  To: Andy Yan
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel
+
+
+
+> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 7 mar 2025, o godz. 01:48:
+> 
+> 
+> Hi Piotr,
+> 在 2025-03-06 22:28:08，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+>> 
+>> 
+> 
+> All dump information currently appears to be correct, so I'm temporarily unsure why
+> there is no display on the monitor.
+> Maybe try some plug and unplug for the DP cable, or try another cable or monitor?
+> 
+> It seems that this board uses a DP to HDMI converter? Does this transmitter need a driver?
+> 
+> I won't be at my computer over the next two or three days, so any further replies to your email
+> might have to wait until next week.
+> 
+> 
+
+Andy,
+FYI:
+
+I done test on mine rock5a with applied Naoki dp0 enablement in dts (and only in dts).
+No any changes in dw dp driver (so i’m on vanilla  https://patchwork.kernel.org/project/linux-rockchip/cover/20250223113036.74252-1-andyshrk@163.com/   )
+
+on mine rock5a ra620 hdmi port works ok.
+(I contacted also Radxa about ra620 and they confirmed: ra620 is just DP->HDMI converter. No any driver nor special programming/enablement is needed)
+
+This tells me that dp0 (rock5a) works ok while dp1 (rock5itx) not.
+i suspect issue is probably in https://patchwork.kernel.org/project/linux-rockchip/cover/20250223113036.74252-1-andyshrk@163.com/ and is related to dp1 handling?
+
+BTW: there seems to be issue with video modes handling on dp0 port: 
+-playing video 1920@1080@50 - ok
+-playing then video1920@1080@59,64 hangs board….
+
+hdmi0 works ok. video modes issue is only on dp0
+
+
+
+
+^ permalink raw reply	[flat|nested] 14+ messages in thread
+* Re:Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller
+  2025-03-09 20:53                   ` Piotr Oniszczuk
+@ 2025-03-12  3:51                     ` Andy Yan
+  0 siblings, 0 replies; 14+ messages in thread
+From: Andy Yan @ 2025-03-12  3:51 UTC (permalink / raw)
+  To: Piotr Oniszczuk
+  Cc: heiko, neil.armstrong, sebastian.reichel, devicetree, hjc,
+	mripard, linux-kernel, linux-rockchip, yubing.zhang, dri-devel,
+	Andy Yan, krzk+dt, robh, linux-arm-kernel, lumag, stephen
+
+
+Hi Piotr,
+在 2025-03-10 04:53:50，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+>
+>
+>> Wiadomość napisana przez Andy Yan <andyshrk@163.com> w dniu 7 mar 2025, o godz. 01:48:
+>> 
+>> 
+>> Hi Piotr,
+>> 在 2025-03-06 22:28:08，"Piotr Oniszczuk" <piotr.oniszczuk@gmail.com> 写道：
+>>> 
+>>> 
+>> 
+>> All dump information currently appears to be correct, so I'm temporarily unsure why
+>> there is no display on the monitor.
+>> Maybe try some plug and unplug for the DP cable, or try another cable or monitor?
+>> 
+>> It seems that this board uses a DP to HDMI converter? Does this transmitter need a driver?
+>> 
+>> I won't be at my computer over the next two or three days, so any further replies to your email
+>> might have to wait until next week.
+>> 
+>> 
+>
+>Andy,
+>FYI:
+>
+>I done test on mine rock5a with applied Naoki dp0 enablement in dts (and only in dts).
+>No any changes in dw dp driver (so i’m on vanilla  https://patchwork.kernel.org/project/linux-rockchip/cover/20250223113036.74252-1-andyshrk@163.com/   )
+>
+>on mine rock5a ra620 hdmi port works ok.
+>(I contacted also Radxa about ra620 and they confirmed: ra620 is just DP->HDMI converter. No any driver nor special programming/enablement is needed)
+>
+>This tells me that dp0 (rock5a) works ok while dp1 (rock5itx) not.
+
+
+>i suspect issue is probably in https://patchwork.kernel.org/project/linux-rockchip/cover/20250223113036.74252-1-andyshrk@163.com/ and is related to dp1 handling?
+
+With help from Stephen, we do some online debug, the DP1 display is  ok on his rock5itx board now。
+
+
+Try the patch as bellow:
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 75a03e6a875c..d9434310a141 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -329,7 +329,7 @@ struct dw_dp {
+ 
+        struct dw_dp_link link;
+        struct dw_dp_video video;
+-       const struct dw_dp_plat_data *plat_data;
++       struct dw_dp_plat_data plat_data;
+
+
+@@ -1998,7 +2012,7 @@ struct dw_dp *dw_dp_bind(struct device *dev, struct drm_encoder *encoder,
+        dp->dev = dev;
+        dp->video.pixel_mode = DW_DP_MP_QUAD_PIXEL;
+ 
+-       dp->plat_data = plat_data;
++       dp->plat_data.max_link_rate = plat_data->max_link_rate;
+        bridge = &dp->bridge;
+        mutex_init(&dp->irq_lock);
+        INIT_WORK(&dp->hpd_work, dw_dp_hpd_work);
+ 
+
+
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+index 17a98845fd31..2cf79a1409af 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+@@ -2089,9 +2089,9 @@ static unsigned long rk3588_set_intf_mux(struct vop2_video_port *vp, int id, u32
+                dip |= FIELD_PREP(RK3588_DSP_IF_POL__DP0_PIN_POL, polflags);
+                break;
+        case ROCKCHIP_VOP2_EP_DP1:
+-               die &= ~RK3588_SYS_DSP_INFACE_EN_MIPI1_MUX;
+-               die |= RK3588_SYS_DSP_INFACE_EN_MIPI1 |
+-                          FIELD_PREP(RK3588_SYS_DSP_INFACE_EN_MIPI1_MUX, vp->id);
++               die &= ~RK3588_SYS_DSP_INFACE_EN_DP1_MUX;
++               die |= RK3588_SYS_DSP_INFACE_EN_DP1 |
++                          FIELD_PREP(RK3588_SYS_DSP_INFACE_EN_DP1_MUX, vp->id);
+                dip &= ~RK3588_DSP_IF_POL__DP1_PIN_POL;
+                dip |= FIELD_PREP(RK3588_DSP_IF_POL__DP1_PIN_POL, polflags);
+                break;
+
+
+
+>
+>BTW: there seems to be issue with video modes handling on dp0 port: 
+>-playing video 1920@1080@50 - ok
+>-playing then video1920@1080@59,64 hangs board….
+>
+>hdmi0 works ok. video modes issue is only on dp0
+The dclk for vp2 is default from GPLL, it can't divde pixel clock for such a refresh rates, 
+But it should not hang the board, Sebastian, it seems the frequence of  GPLL be changed?
+
+
+Plesase try it like this: bond the dclk source for VP2 from V0PLL.
+
++&vop {
++	assigned-clocks = <&cru DCLK_VOP2_SRC>;
++	assigned-clock-parents = <&cru PLL_V0PLL>;
++	status = "okay";
++};
++
+>
+>
+
+^ permalink raw reply related	[flat|nested] 14+ messages in thread
+end of thread, other threads:[~2025-03-12  3:53 UTC | newest]
+
+Thread overview: 14+ messages (download: mbox.gz follow: Atom feed
+-- links below jump to the message on this page --
+2025-03-05  2:30 Re:Re: [PATCH 0/6] Add support for RK3588 DisplayPort Controller Andy Yan
+2025-03-05 13:56 ` Piotr Oniszczuk
+2025-03-06  0:59   ` Andy Yan
+2025-03-06  8:42     ` Piotr Oniszczuk
+2025-03-06  8:53       ` Andy Yan
+2025-03-06 11:47         ` Piotr Oniszczuk
+2025-03-06 12:15           ` Andy Yan
+2025-03-06 14:08             ` Piotr Oniszczuk
+2025-03-06 14:28               ` Piotr Oniszczuk
+2025-03-07  0:48                 ` Andy Yan
+2025-03-09 20:53                   ` Piotr Oniszczuk
+2025-03-12  3:51                     ` Andy Yan
+2025-03-06 16:39             ` Dmitry Baryshkov
+  -- strict thread matches above, loose matches on Subject: below --
+2025-02-23 11:30 Andy Yan
+2025-02-28 20:30 ` Piotr Oniszczuk
+2025-03-01 12:24   ` Andy Yan
+This is a public inbox, see mirroring instructions
+for how to clone and mirror all data and code used for this inbox
