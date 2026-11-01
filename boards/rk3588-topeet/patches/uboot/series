@@ -23,3 +23,20 @@
 # load mmc 0:3 ${scriptaddr} /boot/boot.scr; source  (boot.scr then mmc read +
 # bootm the raw boot partition). boot_targets (0001) is now moot but harmless.
 0003-evb-rk3588-bootcommand-emmc.patch
+# 0004/0005 — Loader mode (rockusb), 2026-11-01: mainline implements the vendor
+# flash protocol fully; the only thing missing was enabling it. 0004 turns on
+# the gadget stack (same 5-line delta as generic-rk3588_defconfig; ums rides
+# along) AND sets CONFIG_ROCKCHIP_BOOT_MODE_REG=0xfd588080 (vendor value) — the
+# default 0 compiles setup_boot_mode() into a stub, so the FASTBOOT/UMS
+# branches were dead code before this. 0005 pins the OTG dwc3 to the USB2 phy
+# (rk3588-generic.dts shape): the combo usbdp PHY has no peripheral mode.
+# VID/PID auto-default to 2207:350b (RK3588). Host-side LBA map: wl 64
+# idbloader.img, wl 16384 u-boot.itb.
+0004-evb-rk3588-rockusb-defconfig.patch
+0005-evb-rk3588-otg-peripheral-usb2-phy.patch
+# 0006 — 'reboot loader' revival: BOOT_LOADER case in setup_boot_mode() (the
+# FASTBOOT/UMS neighbours were already there; LOADER was dropped). Pairs with
+# kernel patch 0035 (topeet reboot-mode DT node writing the same register).
+# Userspace trigger: reboot(2) RESTART2 "loader" — systemdctl/busybox don't
+# pass mode strings, use a raw syscall one-liner (see notes/123).
+0006-boot-mode-BOOT_LOADER-rockusb.patch

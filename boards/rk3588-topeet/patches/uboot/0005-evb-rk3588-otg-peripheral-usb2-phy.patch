@@ -1,0 +1,47 @@
+From 859045ce7a44f5ab7eee73a9e0032e03afd1cbb5 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 1 Nov 2026 23:21:00 +0800
+Subject: [PATCH 2/3] dts: rk3588-evb1-v10: pin OTG dwc3 to the USB2 phy for
+ gadget mode
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Mirror the u-boot-native rk3588-generic.dts shape: the combo USB3/usbdp
+PHY has no peripheral support, so the rockusb gadget runs over the USB2
+OTG phy (u2phy0_otg) capped at high-speed — the same port and cable the
+maskrom flashing path uses. The upstream evb dts keeps the node at
+dr_mode="otg"; u-boot's dwc3-generic binds it as a peripheral once a
+gadget is started.
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ arch/arm/dts/rk3588-evb1-v10-u-boot.dtsi | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/arch/arm/dts/rk3588-evb1-v10-u-boot.dtsi b/arch/arm/dts/rk3588-evb1-v10-u-boot.dtsi
+index e8566785e96..51cd647e743 100644
+--- a/arch/arm/dts/rk3588-evb1-v10-u-boot.dtsi
++++ b/arch/arm/dts/rk3588-evb1-v10-u-boot.dtsi
+@@ -10,3 +10,18 @@
+ 		u-boot,spl-boot-order = "same-as-spl", &sdhci;
+ 	};
+ };
++
++/*
++ * Loader-mode (rockusb) gadget on the OTG port — same shape the u-boot-native
++ * rk3588-generic.dts carries. The combo USB3/usbdp PHY is not supported in
++ * peripheral mode, so pin the dwc3 to the USB2 OTG phy capped at high-speed;
++ * this is the same port/cable the maskrom flashing uses. Upstream evb dts
++ * leaves the node dr_mode="otg"; u-boot's dwc3-generic then binds it as a
++ * peripheral once a gadget (rockusb/ums) is started.
++ */
++&usb_host0_xhci {
++	dr_mode = "peripheral";
++	maximum-speed = "high-speed";
++	phys = <&u2phy0_otg>;
++	phy-names = "usb2-phy";
++};
+-- 
+2.43.0
+

@@ -1,0 +1,62 @@
+From 5a833a8b551728c6b62613bdad9baba7e03f1b62 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Sun, 1 Nov 2026 23:10:00 +0800
+Subject: [PATCH] arm64: dts: rk3588-topeet: add pmu0_grf reboot-mode node
+
+Port the vendor rk3588s.dtsi reboot-mode block that mainline
+rk3588-base.dtsi is still missing: pmu0_grf syscon@fd588000 with a
+syscon-reboot-mode child at offset 0x80 (= 0xfd588080, the register
+U-Boot's CONFIG_ROCKCHIP_BOOT_MODE_REG / setup_boot_mode() reads).
+Maps reboot(2) RESTART2 strings normal/loader/recovery/fastboot/ums to
+the boot_mode.h magics, reviving the vendor 'reboot loader' -> rockusb
+experience against U-Boot patch 0006.
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ .../arm64/boot/dts/rockchip/rk3588-topeet.dts | 26 +++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+index ed4f94257..ff8adcc7c 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+@@ -24,6 +24,7 @@
+ #include <dt-bindings/leds/common.h>
+ #include <dt-bindings/pinctrl/rockchip.h>
+ #include <dt-bindings/pwm/pwm.h>
++#include <dt-bindings/soc/rockchip,boot-mode.h>
+ #include <dt-bindings/soc/rockchip,vop2.h>
+ #include "rk3588.dtsi"
+ 
+@@ -983,3 +984,28 @@ touchscreen@14 {
+ 		status = "okay";
+ 	};
+ };
++
++/*
++ * pmu0_grf + reboot-mode: mainline rk3588-base.dtsi has no node at fd588000
++ * yet, ported from the vendor rk3588s.dtsi. offset 0x80 -> 0xfd588080 is the
++ * register U-Boot's CONFIG_ROCKCHIP_BOOT_MODE_REG reads (setup_boot_mode);
++ * the magics match arch-rockchip boot_mode.h (BOOT_LOADER = REBOOT_FLAG+1 =
++ * vendor BOOT_BL_DOWNLOAD). Strings are reboot(2) RESTART2 args; BOOT_UMS
++ * is absent from the mainline dt-binding header so it is spelled out.
++ */
++/ {
++	pmu0_grf: syscon@fd588000 {
++		compatible = "rockchip,rk3588-pmu0-grf", "syscon", "simple-mfd";
++		reg = <0x0 0xfd588000 0x0 0x2000>;
++
++		reboot_mode: reboot-mode {
++			compatible = "syscon-reboot-mode";
++			offset = <0x80>;
++			mode-normal = <BOOT_NORMAL>;
++			mode-loader = <BOOT_BL_DOWNLOAD>;
++			mode-recovery = <BOOT_RECOVERY>;
++			mode-fastboot = <BOOT_FASTBOOT>;
++			mode-ums = <0x5242C30C>;	/* BOOT_UMS = REBOOT_FLAG + 12 (dtc: no expr in cells) */
++		};
++	};
++};
+-- 
+2.43.0
+
