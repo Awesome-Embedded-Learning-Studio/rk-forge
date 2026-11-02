@@ -1,0 +1,129 @@
+From d53c56816ff99bfe3aba2e426027f54feb436264 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Mon, 2 Nov 2026 22:50:31 +0800
+Subject: [PATCH] rk3588: vol-up ADC key enters Loader mode via rockusb
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Power-on with vol-up held now starts rockusb directly from the boot-mode
+key check, mirroring the BOOT_LOADER register case — the same gesture
+vendor firmware supported. Three enabling fixes ride along:
+
+- CONFIG_USE_PREBOOT: main_loop() skips the preboot environment command
+  entirely without it, so both the BOOT_LOADER register case and this
+  key check silently set a variable nothing ever runs — reboot loader
+  has never actually worked on this chain (board-confirmed dead end).
+- The device lookup in rockchip_dnl_key_pressed() gains a compatible
+  match: rk3588's dts moved to generic node names (adc@fec10000 — the
+  'saradc' prefix survives only as a label), so the name-only match
+  never finds the device and the ladder goes unsampled.
+- The key window widens from raw 30 to 128: the vendor ladder's vol-up
+  rung sits at <=17mV (~raw 39 at the 1.8V full-scale) and upstream's 30
+  clips it; the next rung up (vol-down, 417mV ~ raw 949) stays a 7x
+  margin away. CONFIG_CMD_ADC rides along for on-prompt ladder checks.
+
+The saradc node follows the rk3588-rock-5b-u-boot.dtsi shape.
+---
+ arch/arm/dts/rk3588-evb1-v10-u-boot.dtsi | 11 ++++++++++
+ arch/arm/mach-rockchip/boot_mode.c       | 27 +++++++++++++++++++-----
+ configs/evb-rk3588_defconfig             | 12 +++++++++++
+ 3 files changed, 45 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm/dts/rk3588-evb1-v10-u-boot.dtsi b/arch/arm/dts/rk3588-evb1-v10-u-boot.dtsi
+index 51cd647e743..0bea3194765 100644
+--- a/arch/arm/dts/rk3588-evb1-v10-u-boot.dtsi
++++ b/arch/arm/dts/rk3588-evb1-v10-u-boot.dtsi
+@@ -25,3 +25,14 @@
+ 	phys = <&u2phy0_otg>;
+ 	phy-names = "usb2-phy";
+ };
++
++/*
++ * SARADC channel 1 carries the vendor 4-key ladder (vol-up 17mV rung is the
++ * bottom). rockchip_dnl_key_pressed() samples it at boot so a held vol-up
++ * enters Loader mode — the same power-on gesture vendor firmware had. Same
++ * shape as rk3588-rock-5b-u-boot.dtsi.
++ */
++&saradc {
++	bootph-pre-ram;
++	vdd-microvolts = <1800000>;
++};
+diff --git a/arch/arm/mach-rockchip/boot_mode.c b/arch/arm/mach-rockchip/boot_mode.c
+index 08dd1f20b64..37230dd5346 100644
+--- a/arch/arm/mach-rockchip/boot_mode.c
++++ b/arch/arm/mach-rockchip/boot_mode.c
+@@ -35,7 +35,12 @@ void set_back_to_bootrom_dnl_flag(void)
+  * some special boards.
+  */
+ #define KEY_DOWN_MIN_VAL	0
+-#define KEY_DOWN_MAX_VAL	30
++/*
++ * Vendor key ladder on SARADC ch1: vol-up is the bottom rung (<=17mV ~ raw 39
++ * at the 1.8V full-scale); vol-down sits at 417mV ~ raw 949. Upstream's 30
++ * clips the vol-up rung; 128 keeps a 7x margin to the next rung up.
++ */
++#define KEY_DOWN_MAX_VAL	128
+ 
+ __weak int rockchip_dnl_key_pressed(void)
+ {
+@@ -51,7 +56,15 @@ __weak int rockchip_dnl_key_pressed(void)
+ 
+ 	ret = -ENODEV;
+ 	uclass_foreach_dev(dev, uc) {
+-		if (!strncmp(dev->name, "saradc", 6)) {
++		/*
++		 * Name match alone stopped working when the rockchip dts moved to
++		 * generic node names: rk3588's saradc node is adc@fec10000 (the
++		 * "saradc" prefix survives only as a label/alias). Also accept the
++		 * compatible so the ladder actually gets sampled on rk3588.
++		 */
++		if (!strncmp(dev->name, "saradc", 6) ||
++		    ofnode_device_is_compatible(dev_ofnode(dev),
++						"rockchip,rk3588-saradc")) {
+ 			ret = adc_channel_single_shot(dev->name, 1, &val);
+ 			break;
+ 		}
+@@ -77,9 +90,13 @@ __weak int rockchip_dnl_key_pressed(void)
+ void rockchip_dnl_mode_check(void)
+ {
+ 	if (rockchip_dnl_key_pressed()) {
+-		printf("download key pressed, entering download mode...");
+-		set_back_to_bootrom_dnl_flag();
+-		do_reset(NULL, 0, 0, NULL);
++		/*
++		 * Held vol-up at power-on: serve Loader mode ourselves instead of
++		 * warm-resetting into BROM download (maskrom). Same preboot the
++		 * BOOT_LOADER register case below arms.
++		 */
++		printf("download key pressed, entering Loader mode (rockusb)\n");
++		env_set("preboot", "setenv preboot; rockusb 0 mmc 0");
+ 	}
+ }
+ 
+diff --git a/configs/evb-rk3588_defconfig b/configs/evb-rk3588_defconfig
+index 07b0e90f16f..f4b025057df 100644
+--- a/configs/evb-rk3588_defconfig
++++ b/configs/evb-rk3588_defconfig
+@@ -42,6 +42,18 @@ CONFIG_USB_GADGET_DOWNLOAD=y
+ CONFIG_USB_FUNCTION_ROCKUSB=y
+ CONFIG_CMD_ROCKUSB=y
+ CONFIG_CMD_USB_MASS_STORAGE=y
++# vol-up Loader entry: rockchip_dnl_key_pressed() samples the SARADC key
++# ladder at boot; a held vol-up then starts rockusb. The board's other
++# download entry (the maskrom switch) is a BROM-level strap no firmware
++# can intercept.
++CONFIG_ADC=y
++CONFIG_SARADC_ROCKCHIP=y
++# preboot is the delivery vehicle for the rockusb one-liner (the key check
++# below AND the BOOT_LOADER register case) — main_loop() skips preboot
++# entirely without USE_PREBOOT, so both paths silently no-op. CMD_ADC for
++# on-prompt ladder diagnostics (adc single adc@fec10000 1).
++CONFIG_USE_PREBOOT=y
++CONFIG_CMD_ADC=y
+ # CONFIG_CMD_SETEXPR is not set
+ CONFIG_CMD_REGULATOR=y
+ # CONFIG_SPL_DOS_PARTITION is not set
+-- 
+2.43.0
+

@@ -13,7 +13,7 @@
 | 内核 series | +0035：topeet dts 增 `pmu0_grf@fd588000` + reboot-mode 节点（reboot loader 的内核侧另一半）；kernel.config +`SYSCON_REBOOT_MODE=y` |
 | 重放/构建 | u-boot 6/6（`5ca1a73c → bbfc9f83`）、linux 20/20 全绿；u-boot.dtb `usb@fc000000` = peripheral/high-speed/okay 实证 |
 | 产物 | out/: u-boot.itb（含 rockusb，版本串 `…gbbfc9f83`）+ idbloader.img（23:27 新鲜）+ boot.img 顺手重包成 v7.3.1 内核 FIT |
-| 板验 | **通过（2026-11-01 深夜，用户确认）**：Loader 模式链路（烧录→rockusb→reboot loader）成活 |
+| 板验 | ~~通过（2026-11-01 深夜，用户确认）~~ **2026-11-02 翻案**：用户澄清 `reboot loader` 从未真正板面确认；当晚确认的只有烧录链路。根因：**CONFIG_USE_PREBOOT 未开**——main_loop()（common/main.c `IS_ENABLED(CONFIG_USE_PREBOOT)`）根本不执行 preboot，0006 的 BOOT_LOADER 分支一直在给一个永不运行的变量赋值。修复见 notes/loader/001 §8（0007 v3） |
 
 ## 1. 三个补丁的决策记录
 

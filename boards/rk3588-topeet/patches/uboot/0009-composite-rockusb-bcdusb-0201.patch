@@ -1,0 +1,54 @@
+From 7610e4be9568d724070ef660ce93abfe81ccc127 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Mon, 2 Nov 2026 23:28:58 +0800
+Subject: [PATCH] usb: composite: keep bcdUSB 0x0201 for rockusb on USB2
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Rockchip upgrade tools (RKDevTool / upgrade_tool / rkdeveloptool) tell
+maskrom and loader devices apart by bcdUSB: 0x0201 = loader — "Rockchip
+upgrade tool use bcdUSB (0x0201) field distinguishing maskrom or loader
+device", per vendor composite.c. The vendor g_dnl fixup sets 0x0201 for
+usb_dnl_rockusb and vendor composite never forces 0x0200 on the USB2
+path; mainline's unconditional forcing here relabels our rockusb gadget
+as a maskrom device (PID 0x300a alone is not enough). Keep 0x0201 for
+the rockusb function.
+---
+ drivers/usb/gadget/composite.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/drivers/usb/gadget/composite.c b/drivers/usb/gadget/composite.c
+index 04b85419931..d68cf277401 100644
+--- a/drivers/usb/gadget/composite.c
++++ b/drivers/usb/gadget/composite.c
+@@ -11,6 +11,7 @@
+ #include <dm/devres.h>
+ #include <linux/bitops.h>
+ #include <linux/bug.h>
++#include <linux/string.h>
+ #include <linux/usb/composite.h>
+ #include "u_os_desc.h"
+ 
+@@ -1052,6 +1053,18 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
+ 				cdev->desc.bMaxPacketSize0 = 9;
+ 			} else {
+ 				cdev->desc.bcdUSB = cpu_to_le16(0x0200);
++				/*
++				 * Rockchip upgrade tools (RKDevTool / upgrade_tool /
++				 * rkdeveloptool) tell maskrom and loader devices apart
++				 * by bcdUSB: 0x0201 = loader ("Rockchip upgrade tool use
++				 * bcdUSB (0x0201) field distinguishing maskrom or loader
++				 * device" — vendor composite.c). Vendor g_dnl sets 0x0201
++				 * for usb_dnl_rockusb and vendor composite never forces
++				 * 0x0200 on the USB2 path; mainline's forcing here
++				 * relabels our rockusb gadget as a maskrom device.
++				 */
++				if (!strcmp(cdev->driver->name, "usb_dnl_rockusb"))
++					cdev->desc.bcdUSB = cpu_to_le16(0x0201);
+ 			}
+ 			value = min(w_length, (u16) sizeof cdev->desc);
+ 			memcpy(req->buf, &cdev->desc, value);
+-- 
+2.43.0
+

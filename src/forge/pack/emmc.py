@@ -26,6 +26,7 @@ from pathlib import Path
 
 from forge.config.board import Board
 from forge.config.project import Project
+from forge.core.guards import unreadable_tree_entries, unreadable_tree_message
 from forge.core.log import Log
 from forge.core.proc import Proc
 
@@ -64,6 +65,10 @@ class EmPacker:
         if not root.is_dir():
             self.log.die(f"missing staged rootfs tree: {root} (run forge pack first — stage-rootfs)")
         self._require_tool("mke2fs", "e2fsprogs")
+
+        bad = unreadable_tree_entries(root)  # NFS-pollution guard (see guards.py)
+        if bad:
+            self.log.die(unreadable_tree_message(root, bad))
 
         self._gen_boot_scr(root)
         rootfs_ext4 = out_dir / "rootfs.ext4"

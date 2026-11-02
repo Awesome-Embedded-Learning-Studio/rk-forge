@@ -1,0 +1,85 @@
+From 46a71946f4698f496bb288aaa7874c0ad5046822 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Mon, 2 Nov 2026 23:43:53 +0800
+Subject: [PATCH] usb: composite: answer BOS for rockusb on USB2
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+bcdUSB 0x0201 (0009's loader-vs-maskrom classification) obliges a BOS
+descriptor, and Windows 8+ requests it right at enumeration — stalling
+there fails the rockusb.sys driver start with STATUS_NO_SUCH_DEVICE
+(code 10), exactly the conflict vendor composite.c documents. Answer
+GET_DESCRIPTOR(BOS) for the rockusb function on USB2 links too.
+
+The served BOS is a bare USB2 extension cap (12 B) claiming nothing:
+bos_desc() must not advertise LPM/BESL the gadget cannot deliver, and
+its superspeed cap set is keyed on gadget_is_superspeed() — which
+reflects driver capability (dwc3 is SS-capable), not the current link
+speed — so key it on the link speed instead.
+---
+ drivers/usb/gadget/composite.c | 20 +++++++++++++++++---
+ 1 file changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/usb/gadget/composite.c b/drivers/usb/gadget/composite.c
+index d68cf277401..e1d89bb5c63 100644
+--- a/drivers/usb/gadget/composite.c
++++ b/drivers/usb/gadget/composite.c
+@@ -789,6 +789,7 @@ static int bos_desc(struct usb_composite_dev *cdev)
+ 	struct usb_ext_cap_descriptor   *usb_ext;
+ 	struct usb_dcd_config_params	dcd_config_params;
+ 	struct usb_bos_descriptor       *bos = cdev->req->buf;
++	bool usb2 = cdev->gadget->speed < USB_SPEED_SUPER;
+ 
+ 	bos->bLength = USB_DT_BOS_SIZE;
+ 	bos->bDescriptorType = USB_DT_BOS;
+@@ -799,6 +800,11 @@ static int bos_desc(struct usb_composite_dev *cdev)
+ 	/*
+ 	 * A SuperSpeed device shall include the USB2.0 extension descriptor
+ 	 * and shall support LPM when operating in USB2.0 HS mode.
++	 *
++	 * On a USB2 link (rockusb serves bcdUSB 0x0201 there — see the
++	 * GET_DESCRIPTOR(Device) path) answer with a bare USB2 extension cap
++	 * and claim nothing: LPM/BESL support the gadget cannot deliver must
++	 * stay clear, and the SS cap set below is superspeed-only business.
+ 	 */
+ 	usb_ext = cdev->req->buf + le16_to_cpu(bos->wTotalLength);
+ 	bos->bNumDeviceCaps++;
+@@ -807,14 +813,14 @@ static int bos_desc(struct usb_composite_dev *cdev)
+ 	usb_ext->bLength = USB_DT_USB_EXT_CAP_SIZE;
+ 	usb_ext->bDescriptorType = USB_DT_DEVICE_CAPABILITY;
+ 	usb_ext->bDevCapabilityType = USB_CAP_TYPE_EXT;
+-	usb_ext->bmAttributes =
++	usb_ext->bmAttributes = usb2 ? 0 :
+ 		cpu_to_le32(USB_LPM_SUPPORT | USB_BESL_SUPPORT);
+ 
+ 	/*
+ 	 * The Superspeed USB Capability descriptor shall be implemented
+ 	 * by all SuperSpeed devices.
+ 	 */
+-	if (gadget_is_superspeed(cdev->gadget)) {
++	if (!usb2 && gadget_is_superspeed(cdev->gadget)) {
+ 		struct usb_ss_cap_descriptor *ss_cap;
+ 
+ 		ss_cap = cdev->req->buf + le16_to_cpu(bos->wTotalLength);
+@@ -1099,8 +1105,16 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
+ 			 * USB compliance test (USB 2.0 Command Verifier)
+ 			 * also issues this request, return for now for
+ 			 * USB 2.0 connection.
++			 *
++			 * rockusb on USB2 serves bcdUSB 0x0201 (loader-vs-
++			 * maskrom classification, see the Device path) — and
++			 * 0x0201 obliges a BOS answer. Windows 8+ asks for it
++			 * right at enumeration; stalling there fails the driver
++			 * start with STATUS_NO_SUCH_DEVICE (vendor composite.c
++			 * carries the same workaround for exactly this).
+ 			 */
+-			if (gadget->speed >= USB_SPEED_SUPER) {
++			if (gadget->speed >= USB_SPEED_SUPER ||
++			    !strcmp(cdev->driver->name, "usb_dnl_rockusb")) {
+ 				value = bos_desc(cdev);
+ 				value = min(w_length, (u16)value);
+ 			}
+-- 
+2.43.0
+
