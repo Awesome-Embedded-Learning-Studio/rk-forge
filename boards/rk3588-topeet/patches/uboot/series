@@ -40,3 +40,33 @@
 # Userspace trigger: reboot(2) RESTART2 "loader" — systemdctl/busybox don't
 # pass mode strings, use a raw syscall one-liner (see notes/123).
 0006-boot-mode-BOOT_LOADER-rockusb.patch
+# 0007 — vol-up Loader entry, 2026-11-02: the maskrom switch is a BROM-level
+# strap (E1 board test: no ddrbin banner at all when held), so no firmware can
+# intercept it. The board's OTHER vendor entry is the vol-up key — the bottom
+# rung (<=17mV) of the SARADC ch1 4-key ladder. Enable the ADC stack and route
+# rockchip_dnl_mode_check() to rockusb (mirroring 0006's BOOT_LOADER preboot)
+# instead of warm-resetting into BROM download. Key window 30 -> 128: vol-up
+# reads ~raw 39 at 1.8V full-scale (30 would clip it); vol-down (417mV ~ raw
+# 949) keeps a 7x margin. CONFIG_USE_PREBOOT is the critical ride-along:
+# main_loop() never runs preboot without it, so 0006's BOOT_LOADER case has
+# been setting a variable nothing executes all along (reboot loader was never
+# actually board-confirmed). saradc node shape from rk3588-rock-5b-u-boot.dtsi.
+0007-evb-rk3588-adc-volup-loader-key.patch
+# 0008 — rockusb PID, 2026-11-02: 0x350b (Kconfig default) is the RK3588 BROM
+# maskrom PID, so RKDevTool mislabels our rockusb gadget "MASKROM设备". The
+# vendor usbplug that RKDevTool shows as a LOADER device uses 2207:300a
+# (descriptor @0x26846 in out/MiniLoaderAll.bin). One-line override.
+0008-evb-rk3588-rockusb-pid-300a.patch
+# 0009 — bcdUSB classification, 2026-11-02: RKDevTool/upgrade_tool/rkdeveloptool
+# classify maskrom-vs-loader by bcdUSB (0x0201 = loader; vendor composite.c
+# comment, vendor g_dnl fixup for usb_dnl_rockusb). Mainline composite forces
+# 0x0200 on USB2 at descriptor-serve time, so even with PID 0x300a (0008) our
+# gadget gets labeled MASKROM. Keep 0x0201 for the rockusb function only.
+0009-composite-rockusb-bcdusb-0201.patch
+# 0010 — USB2 BOS for rockusb, 2026-11-02: bcdUSB 0x0201 obliges a BOS answer;
+# Windows 8+ requests it at enumeration and the stall fails rockusb.sys start
+# (STATUS_NO_SUCH_DEVICE / code 10 — board-caught; vendor composite.c carries
+# the same workaround). Serve a bare 12-byte USB2-extension BOS (claims
+# nothing); also key bos_desc()'s SS cap set on LINK speed —
+# gadget_is_superspeed() reflects driver capability, not the HS link.
+0010-composite-rockusb-usb2-bos.patch
