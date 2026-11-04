@@ -1,0 +1,78 @@
+From 4fad778b0c5a6d7a86b17b72b177d0c556ac79bc Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Tue, 3 Nov 2026 23:57:51 +0800
+Subject: [PATCH] arm64: dts: rockchip: enable all topeet replicated media
+ cores
+
+The media drivers now aggregate identical instances behind one frontend
+and distribute independent sessions across ready physical cores. Remove
+the temporary board-level secondary-core disables, including their
+private IOMMUs. This restores both RGA3 cores, all four VEPU121 encoders
+and both RKVDEC engines while retaining the NPU resource-window fix.
+
+Validation: DTB build and availability checks; actual concurrent buffer
+processing and per-core IRQ/completion verification await the user's
+manual board run with the supplied media demos.
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ .../arm64/boot/dts/rockchip/rk3588-topeet.dts | 46 -------------------
+ 1 file changed, 46 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+index c84b3ed95..741729f98 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+@@ -1060,49 +1060,3 @@ rknpu: rknpu@fdab0000 {
+ &rknn_mmu_0 {
+ 	status = "okay";
+ };
+-
+-/*
+- * 主线 RGA/Hantro/rkvdec 只绑定同类 IP 的首个实例,副核心 probe 会返回
+- * -ENODEV。显式停用副核心及其独立 IOMMU,
+- * 避免电源域永远等待未绑定消费者。
+- * 未来驱动具备多核调度能力时,再成对启用这些节点。
+- */
+-&rga3_core1 {
+-	status = "disabled";
+-};
+-
+-&rga3_1_mmu {
+-	status = "disabled";
+-};
+-
+-&vepu121_1 {
+-	status = "disabled";
+-};
+-
+-&vepu121_1_mmu {
+-	status = "disabled";
+-};
+-
+-&vepu121_2 {
+-	status = "disabled";
+-};
+-
+-&vepu121_2_mmu {
+-	status = "disabled";
+-};
+-
+-&vepu121_3 {
+-	status = "disabled";
+-};
+-
+-&vepu121_3_mmu {
+-	status = "disabled";
+-};
+-
+-&vdec1 {
+-	status = "disabled";
+-};
+-
+-&vdec1_mmu {
+-	status = "disabled";
+-};
+-- 
+2.43.0
+

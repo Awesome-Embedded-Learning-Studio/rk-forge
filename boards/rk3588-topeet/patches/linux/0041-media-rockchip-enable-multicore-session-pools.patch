@@ -1,0 +1,1118 @@
+From 94b2c1897748611ac5c2f828eed07bc9e910eefa Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Tue, 3 Nov 2026 23:57:51 +0800
+Subject: [PATCH] media: balance sessions across replicated Rockchip M2M cores
+
+RGA3, VEPU121 and RKVDEC currently reject all but the first instance of
+each compatible. Keep a single V4L2 frontend and enroll the remaining
+instances as independently scheduled hardware backends instead.
+
+Pick the ready core with the fewest open sessions before allocating
+command or video buffers. Keep that assignment until close so that
+buffer DMA mappings, decoder references, registers, IRQs, watchdogs and
+runtime PM always belong to the same physical device. Each core uses
+its own existing M2M queue; concurrent sessions can execute in parallel.
+Keep frontend/queue ioctl locking consistent across those sessions.
+This is session-level parallelism, not splitting one frame across cores.
+
+Secondary cores defer until their frontend is ready and take managed
+device links to order teardown. Probe failures do not enroll partially
+initialized cores, and failed opens return their session reservations.
+Only the leader registers video/media nodes; request-backed buffers on
+workers continue to use the frontend media device.
+
+Expose documented per-core session, submitted, completed and error
+counters for validation alongside IRQ deltas and checked output buffers.
+Also unwind Hantro clock/runtime-PM references when a job fails to start.
+
+Validation: affected drivers cross-build; host execution of the actual
+pool helper with mocked OF/sysfs/device operations, including 8000
+concurrent acquire/release operations and registration failure rollback.
+Hardware multi-core validation is pending the user's board run.
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ .../testing/sysfs-platform-v4l2-m2m-corepool  |  31 +++
+ drivers/media/platform/rockchip/rga/rga.c     | 143 ++++++-------
+ drivers/media/platform/rockchip/rga/rga.h     |   7 +
+ .../media/platform/rockchip/rkvdec/rkvdec.c   |  96 ++++-----
+ .../media/platform/rockchip/rkvdec/rkvdec.h   |   7 +
+ drivers/media/platform/verisilicon/hantro.h   |   7 +
+ .../media/platform/verisilicon/hantro_drv.c   | 107 +++++-----
+ include/media/v4l2-m2m-corepool.h             | 198 ++++++++++++++++++
+ 8 files changed, 409 insertions(+), 187 deletions(-)
+ create mode 100644 Documentation/ABI/testing/sysfs-platform-v4l2-m2m-corepool
+ create mode 100644 include/media/v4l2-m2m-corepool.h
+
+diff --git a/Documentation/ABI/testing/sysfs-platform-v4l2-m2m-corepool b/Documentation/ABI/testing/sysfs-platform-v4l2-m2m-corepool
+new file mode 100644
+index 000000000..72ba7cab0
+--- /dev/null
++++ b/Documentation/ABI/testing/sysfs-platform-v4l2-m2m-corepool
+@@ -0,0 +1,31 @@
++What:           /sys/bus/platform/devices/.../m2m_core_users
++Date:           November 2026
++Contact:        RK3588 board maintainers
++Description:
++                Number of open V4L2 sessions assigned to this physical core.
++                A family exposes one frontend. Sessions are balanced across
++                ready cores before allocating DMA buffers and keep core
++                affinity until close. The value includes idle open sessions.
++
++What:           /sys/bus/platform/devices/.../m2m_core_submitted
++Date:           November 2026
++Contact:        RK3588 board maintainers
++Description:
++                Read-only count of jobs dispatched to this physical core
++                since probe. Includes jobs that subsequently fail to start.
++
++What:           /sys/bus/platform/devices/.../m2m_core_completed
++Date:           November 2026
++Contact:        RK3588 board maintainers
++Description:
++                Read-only count of successfully completed jobs on this core
++                since probe. Aggregate together with IRQ and output evidence
++                when validating concurrent use of multiple hardware cores.
++
++What:           /sys/bus/platform/devices/.../m2m_core_errors
++Date:           November 2026
++Contact:        RK3588 board maintainers
++Description:
++                Read-only count of jobs completed with an error, including
++                existing decoder watchdog recovery, since probe. These
++                counters do not expose a new userspace core-selection API.
+diff --git a/drivers/media/platform/rockchip/rga/rga.c b/drivers/media/platform/rockchip/rga/rga.c
+index b3cb6bf8e..0f164ef38 100644
+--- a/drivers/media/platform/rockchip/rga/rga.c
++++ b/drivers/media/platform/rockchip/rga/rga.c
+@@ -31,6 +31,8 @@
+ static int debug;
+ module_param(debug, int, 0644);
+ 
++static DEFINE_V4L2_M2M_CORE_POOL(rga_cores);
++
+ static void device_run(void *prv)
+ {
+ 	struct rga_ctx *ctx = prv;
+@@ -46,6 +48,7 @@ static void device_run(void *prv)
+ 	spin_unlock_irqrestore(&rga->ctrl_lock, flags);
+ 
+ 	rga->curr = ctx;
++	atomic64_inc(&rga->core.submitted);
+ 
+ 	src = v4l2_m2m_next_src_buf(ctx->fh.m2m_ctx);
+ 	src->sequence = ctx->osequence++;
+@@ -66,6 +69,7 @@ static irqreturn_t rga_isr(int irq, void *prv)
+ 		WARN_ON(!ctx);
+ 
+ 		rga->curr = NULL;
++		atomic64_inc(&rga->core.completed);
+ 
+ 		src = v4l2_m2m_src_buf_remove(ctx->fh.m2m_ctx);
+ 		dst = v4l2_m2m_dst_buf_remove(ctx->fh.m2m_ctx);
+@@ -106,7 +110,7 @@ queue_init(void *priv, struct vb2_queue *src_vq, struct vb2_queue *dst_vq)
+ 	src_vq->gfp_flags = __GFP_DMA32;
+ 	src_vq->buf_struct_size = sizeof(struct rga_vb_buffer);
+ 	src_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
+-	src_vq->lock = &ctx->rga->mutex;
++	src_vq->lock = &rga_frontend(ctx->rga)->mutex;
+ 	src_vq->dev = ctx->rga->v4l2_dev.dev;
+ 
+ 	ret = vb2_queue_init(src_vq);
+@@ -124,7 +128,7 @@ queue_init(void *priv, struct vb2_queue *src_vq, struct vb2_queue *dst_vq)
+ 	dst_vq->gfp_flags = __GFP_DMA32;
+ 	dst_vq->buf_struct_size = sizeof(struct rga_vb_buffer);
+ 	dst_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
+-	dst_vq->lock = &ctx->rga->mutex;
++	dst_vq->lock = &rga_frontend(ctx->rga)->mutex;
+ 	dst_vq->dev = ctx->rga->v4l2_dev.dev;
+ 
+ 	return vb2_queue_init(dst_vq);
+@@ -248,20 +252,26 @@ struct rga_frame *rga_get_frame(struct rga_ctx *ctx, enum v4l2_buf_type type)
+ static int rga_open(struct file *file)
+ {
+ 	struct rockchip_rga *rga = video_drvdata(file);
++	struct v4l2_m2m_core *core = v4l2_m2m_core_acquire(&rga->core);
+ 	struct rga_ctx *ctx = NULL;
+ 	int ret = 0;
+-	u32 def_width = clamp(DEFAULT_WIDTH, rga->hw->min_width, rga->hw->max_width);
+-	u32 def_height = clamp(DEFAULT_HEIGHT, rga->hw->min_height, rga->hw->max_height);
+-	struct rga_frame def_frame = {
+-		.crop.left = 0,
+-		.crop.top = 0,
+-		.crop.width = def_width,
+-		.crop.height = def_height,
+-	};
++
++	u32 def_width, def_height;
++	struct rga_frame def_frame = { };
++
++	if (!core)
++		return -ENODEV;
++	rga = container_of(core, struct rockchip_rga, core);
++	def_width = clamp(DEFAULT_WIDTH, rga->hw->min_width, rga->hw->max_width);
++	def_height = clamp(DEFAULT_HEIGHT, rga->hw->min_height, rga->hw->max_height);
++	def_frame.crop.width = def_width;
++	def_frame.crop.height = def_height;
+ 
+ 	ctx = kzalloc_obj(*ctx);
+-	if (!ctx)
+-		return -ENOMEM;
++	if (!ctx) {
++		ret = -ENOMEM;
++		goto rel_core;
++	}
+ 
+ 	/* Create CMD buffer */
+ 	ctx->cmdbuf_virt = dma_alloc_attrs(rga->dev, rga->hw->cmdbuf_size,
+@@ -286,7 +296,7 @@ static int rga_open(struct file *file)
+ 	v4l2_fill_pixfmt_mp_aligned(&ctx->out.pix, ctx->out.pix.pixelformat,
+ 				    def_width, def_height, rga->hw->stride_alignment);
+ 
+-	if (mutex_lock_interruptible(&rga->mutex)) {
++	if (mutex_lock_interruptible(&rga_frontend(rga)->mutex)) {
+ 		ret = -ERESTARTSYS;
+ 		goto rel_cmdbuf;
+ 	}
+@@ -304,17 +314,19 @@ static int rga_open(struct file *file)
+ 	v4l2_ctrl_handler_setup(&ctx->ctrl_handler);
+ 
+ 	ctx->fh.ctrl_handler = &ctx->ctrl_handler;
+-	mutex_unlock(&rga->mutex);
++	mutex_unlock(&rga_frontend(rga)->mutex);
+ 
+ 	return 0;
+ 
+ unlock_mutex:
+-	mutex_unlock(&rga->mutex);
++	mutex_unlock(&rga_frontend(rga)->mutex);
+ rel_cmdbuf:
+ 	dma_free_attrs(rga->dev, rga->hw->cmdbuf_size, ctx->cmdbuf_virt,
+ 		       ctx->cmdbuf_phy, DMA_ATTR_WRITE_COMBINE);
+ rel_ctx:
+ 	kfree(ctx);
++rel_core:
++	v4l2_m2m_core_release(core);
+ 	return ret;
+ }
+ 
+@@ -323,7 +335,7 @@ static int rga_release(struct file *file)
+ 	struct rga_ctx *ctx = file_to_rga_ctx(file);
+ 	struct rockchip_rga *rga = ctx->rga;
+ 
+-	mutex_lock(&rga->mutex);
++	mutex_lock(&rga_frontend(rga)->mutex);
+ 
+ 	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
+ 
+@@ -336,7 +348,8 @@ static int rga_release(struct file *file)
+ 
+ 	kfree(ctx);
+ 
+-	mutex_unlock(&rga->mutex);
++	mutex_unlock(&rga_frontend(rga)->mutex);
++	v4l2_m2m_core_release(&rga->core);
+ 
+ 	return 0;
+ }
+@@ -711,49 +724,6 @@ static int rga_parse_dt(struct rockchip_rga *rga)
+ 	return 0;
+ }
+ 
+-/*
+- * Some SoCs, like RK3588 have multiple identical RGA3 cores, but the
+- * kernel is currently missing support for multi-core handling. Exposing
+- * separate devices for each core to userspace is bad, since that does
+- * not allow scheduling tasks properly (and creates ABI). With this workaround
+- * the driver will only probe for the first core and early exit for the other
+- * cores. Once the driver gains multi-core support, the same technique
+- * for detecting the main core can be used to cluster all cores together.
+- */
+-static int rga_disable_multicore(struct device *dev)
+-{
+-	struct device_node *node = NULL;
+-	const char *compatible;
+-	bool is_main_core;
+-	int ret;
+-
+-	/* Intentionally ignores the fallback strings */
+-	ret = of_property_read_string(dev->of_node, "compatible", &compatible);
+-	if (ret)
+-		return ret;
+-
+-	/* The first compatible and available node found is considered the main core */
+-	do {
+-		node = of_find_compatible_node(node, NULL, compatible);
+-		if (of_device_is_available(node))
+-			break;
+-	} while (node);
+-
+-	if (!node)
+-		return -EINVAL;
+-
+-	is_main_core = (dev->of_node == node);
+-
+-	of_node_put(node);
+-
+-	if (!is_main_core) {
+-		dev_info(dev, "missing multi-core support, ignoring this instance\n");
+-		return -ENODEV;
+-	}
+-
+-	return 0;
+-}
+-
+ static int rga_probe(struct platform_device *pdev)
+ {
+ 	struct rockchip_rga *rga;
+@@ -764,10 +734,6 @@ static int rga_probe(struct platform_device *pdev)
+ 	if (!pdev->dev.of_node)
+ 		return -ENODEV;
+ 
+-	ret = rga_disable_multicore(&pdev->dev);
+-	if (ret)
+-		return ret;
+-
+ 	rga = devm_kzalloc(&pdev->dev, sizeof(*rga), GFP_KERNEL);
+ 	if (!rga)
+ 		return -ENOMEM;
+@@ -777,6 +743,9 @@ static int rga_probe(struct platform_device *pdev)
+ 		return dev_err_probe(&pdev->dev, -ENODEV, "failed to get match data\n");
+ 
+ 	rga->dev = &pdev->dev;
++	ret = v4l2_m2m_core_init(&rga_cores, &rga->core, rga->dev);
++	if (ret)
++		return ret;
+ 	spin_lock_init(&rga->ctrl_lock);
+ 	mutex_init(&rga->mutex);
+ 
+@@ -815,25 +784,12 @@ static int rga_probe(struct platform_device *pdev)
+ 	ret = v4l2_device_register(&pdev->dev, &rga->v4l2_dev);
+ 	if (ret)
+ 		goto err_put_clk;
+-	vfd = video_device_alloc();
+-	if (!vfd) {
+-		v4l2_err(&rga->v4l2_dev, "Failed to allocate video device\n");
+-		ret = -ENOMEM;
+-		goto unreg_v4l2_dev;
+-	}
+-	*vfd = rga_videodev;
+-	vfd->lock = &rga->mutex;
+-	vfd->v4l2_dev = &rga->v4l2_dev;
+-
+-	video_set_drvdata(vfd, rga);
+-	rga->vfd = vfd;
+-
+ 	platform_set_drvdata(pdev, rga);
+ 	rga->m2m_dev = v4l2_m2m_init(&rga_m2m_ops);
+ 	if (IS_ERR(rga->m2m_dev)) {
+ 		v4l2_err(&rga->v4l2_dev, "Failed to init mem2mem device\n");
+ 		ret = PTR_ERR(rga->m2m_dev);
+-		goto rel_vdev;
++		goto unreg_v4l2_dev;
+ 	}
+ 
+ 	ret = pm_runtime_resume_and_get(rga->dev);
+@@ -847,9 +803,32 @@ static int rga_probe(struct platform_device *pdev)
+ 
+ 	pm_runtime_put(rga->dev);
+ 
++	if (!v4l2_m2m_core_is_leader(&rga->core)) {
++		ret = v4l2_m2m_core_register(&rga->core);
++		if (ret)
++			goto rel_m2m;
++		return 0;
++	}
++
++	vfd = video_device_alloc();
++	if (!vfd) {
++		ret = -ENOMEM;
++		goto rel_m2m;
++	}
++	*vfd = rga_videodev;
++	vfd->lock = &rga->mutex;
++	vfd->v4l2_dev = &rga->v4l2_dev;
++	video_set_drvdata(vfd, rga);
++	rga->vfd = vfd;
++
+ 	ret = video_register_device(vfd, VFL_TYPE_VIDEO, -1);
+ 	if (ret) {
+ 		v4l2_err(&rga->v4l2_dev, "Failed to register video device\n");
++		goto rel_vdev;
++	}
++	ret = v4l2_m2m_core_register(&rga->core);
++	if (ret) {
++		video_unregister_device(vfd);
+ 		goto rel_m2m;
+ 	}
+ 
+@@ -858,10 +837,10 @@ static int rga_probe(struct platform_device *pdev)
+ 
+ 	return 0;
+ 
+-rel_m2m:
+-	v4l2_m2m_release(rga->m2m_dev);
+ rel_vdev:
+ 	video_device_release(vfd);
++rel_m2m:
++	v4l2_m2m_release(rga->m2m_dev);
+ unreg_v4l2_dev:
+ 	v4l2_device_unregister(&rga->v4l2_dev);
+ err_put_clk:
+@@ -876,8 +855,10 @@ static void rga_remove(struct platform_device *pdev)
+ 
+ 	v4l2_info(&rga->v4l2_dev, "Removing\n");
+ 
++	v4l2_m2m_core_remove(&rga->core);
++	if (rga->vfd)
++		video_unregister_device(rga->vfd);
+ 	v4l2_m2m_release(rga->m2m_dev);
+-	video_unregister_device(rga->vfd);
+ 	v4l2_device_unregister(&rga->v4l2_dev);
+ 
+ 	pm_runtime_disable(rga->dev);
+diff --git a/drivers/media/platform/rockchip/rga/rga.h b/drivers/media/platform/rockchip/rga/rga.h
+index bd431534d..6be28095d 100644
+--- a/drivers/media/platform/rockchip/rga/rga.h
++++ b/drivers/media/platform/rockchip/rga/rga.h
+@@ -12,6 +12,7 @@
+ #include <media/videobuf2-v4l2.h>
+ #include <media/v4l2-ctrls.h>
+ #include <media/v4l2-device.h>
++#include <media/v4l2-m2m-corepool.h>
+ 
+ #define RGA_NAME "rockchip-rga"
+ 
+@@ -66,6 +67,7 @@ static inline struct rga_ctx *file_to_rga_ctx(struct file *filp)
+ struct rga_hw;
+ 
+ struct rockchip_rga {
++	struct v4l2_m2m_core core;
+ 	struct v4l2_device v4l2_dev;
+ 	struct v4l2_m2m_dev *m2m_dev;
+ 	struct video_device *vfd;
+@@ -87,6 +89,11 @@ struct rockchip_rga {
+ 	const struct rga_hw *hw;
+ };
+ 
++static inline struct rockchip_rga *rga_frontend(struct rockchip_rga *rga)
++{
++	return container_of(rga->core.leader, struct rockchip_rga, core);
++}
++
+ struct rga_addrs {
+ 	dma_addr_t y_addr;
+ 	dma_addr_t u_addr;
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.c b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
+index 061281f90..98d35d44e 100644
+--- a/drivers/media/platform/rockchip/rkvdec/rkvdec.c
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
+@@ -1056,6 +1056,8 @@ static const struct vb2_ops rkvdec_queue_ops = {
+ 	.stop_streaming = rkvdec_stop_streaming,
+ };
+ 
++static DEFINE_V4L2_M2M_CORE_POOL(rkvdec_cores);
++
+ static int rkvdec_request_validate(struct media_request *req)
+ {
+ 	unsigned int count;
+@@ -1077,6 +1079,11 @@ static const struct media_device_ops rkvdec_media_ops = {
+ static void rkvdec_job_finish_no_pm(struct rkvdec_ctx *ctx,
+ 				    enum vb2_buffer_state result)
+ {
++	if (result == VB2_BUF_STATE_DONE)
++		atomic64_inc(&ctx->dev->core.completed);
++	else
++		atomic64_inc(&ctx->dev->core.errors);
++
+ 	if (ctx->coded_fmt_desc->ops->done) {
+ 		struct vb2_v4l2_buffer *src_buf, *dst_buf;
+ 
+@@ -1165,6 +1172,8 @@ static void rkvdec_device_run(void *priv)
+ 	const struct rkvdec_coded_fmt_desc *desc = ctx->coded_fmt_desc;
+ 	int ret;
+ 
++	atomic64_inc(&rkvdec->core.submitted);
++
+ 	if (WARN_ON(!desc))
+ 		return;
+ 
+@@ -1206,7 +1215,7 @@ static int rkvdec_queue_init(void *priv,
+ 			    DMA_ATTR_NO_KERNEL_MAPPING;
+ 	src_vq->buf_struct_size = sizeof(struct v4l2_m2m_buffer);
+ 	src_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
+-	src_vq->lock = &rkvdec->vdev_lock;
++	src_vq->lock = &rkvdec_frontend(rkvdec)->vdev_lock;
+ 	src_vq->dev = rkvdec->v4l2_dev.dev;
+ 	src_vq->supports_requests = true;
+ 	src_vq->requires_requests = true;
+@@ -1225,7 +1234,7 @@ static int rkvdec_queue_init(void *priv,
+ 	dst_vq->ops = &rkvdec_queue_ops;
+ 	dst_vq->buf_struct_size = sizeof(struct rkvdec_decoded_buffer);
+ 	dst_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
+-	dst_vq->lock = &rkvdec->vdev_lock;
++	dst_vq->lock = &rkvdec_frontend(rkvdec)->vdev_lock;
+ 	dst_vq->dev = rkvdec->v4l2_dev.dev;
+ 
+ 	return vb2_queue_init(dst_vq);
+@@ -1279,12 +1288,19 @@ static int rkvdec_init_ctrls(struct rkvdec_ctx *ctx)
+ static int rkvdec_open(struct file *filp)
+ {
+ 	struct rkvdec_dev *rkvdec = video_drvdata(filp);
++	struct v4l2_m2m_core *core = v4l2_m2m_core_acquire(&rkvdec->core);
+ 	struct rkvdec_ctx *ctx;
+ 	int ret;
+ 
++	if (!core)
++		return -ENODEV;
++	rkvdec = container_of(core, struct rkvdec_dev, core);
++
+ 	ctx = kzalloc_obj(*ctx);
+-	if (!ctx)
++	if (!ctx) {
++		v4l2_m2m_core_release(core);
+ 		return -ENOMEM;
++	}
+ 
+ 	ctx->dev = rkvdec;
+ 	rkvdec_reset_coded_fmt(ctx);
+@@ -1310,6 +1326,8 @@ static int rkvdec_open(struct file *filp)
+ 	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
+ 
+ err_free_ctx:
++	v4l2_m2m_core_release(core);
++	v4l2_fh_exit(&ctx->fh);
+ 	kfree(ctx);
+ 	return ret;
+ }
+@@ -1322,6 +1340,7 @@ static int rkvdec_release(struct file *filp)
+ 	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
+ 	v4l2_ctrl_handler_free(&ctx->ctrl_hdl);
+ 	v4l2_fh_exit(&ctx->fh);
++	v4l2_m2m_core_release(&ctx->dev->core);
+ 	kfree(ctx);
+ 
+ 	return 0;
+@@ -1353,6 +1372,11 @@ static int rkvdec_v4l2_init(struct rkvdec_dev *rkvdec)
+ 		goto err_unregister_v4l2;
+ 	}
+ 
++	if (!v4l2_m2m_core_is_leader(&rkvdec->core)) {
++		rkvdec->v4l2_dev.mdev = &rkvdec_frontend(rkvdec)->mdev;
++		return 0;
++	}
++
+ 	rkvdec->mdev.dev = rkvdec->dev;
+ 	strscpy(rkvdec->mdev.model, "rkvdec", sizeof(rkvdec->mdev.model));
+ 	strscpy(rkvdec->mdev.bus_info, "platform:rkvdec",
+@@ -1361,7 +1385,7 @@ static int rkvdec_v4l2_init(struct rkvdec_dev *rkvdec)
+ 	rkvdec->mdev.ops = &rkvdec_media_ops;
+ 	rkvdec->v4l2_dev.mdev = &rkvdec->mdev;
+ 
+-	rkvdec->vdev.lock = &rkvdec->vdev_lock;
++	rkvdec->vdev.lock = &rkvdec_frontend(rkvdec)->vdev_lock;
+ 	rkvdec->vdev.v4l2_dev = &rkvdec->v4l2_dev;
+ 	rkvdec->vdev.fops = &rkvdec_fops;
+ 	rkvdec->vdev.release = video_device_release_empty;
+@@ -1411,10 +1435,12 @@ static int rkvdec_v4l2_init(struct rkvdec_dev *rkvdec)
+ 
+ static void rkvdec_v4l2_cleanup(struct rkvdec_dev *rkvdec)
+ {
+-	media_device_unregister(&rkvdec->mdev);
+-	v4l2_m2m_unregister_media_controller(rkvdec->m2m_dev);
+-	video_unregister_device(&rkvdec->vdev);
+-	media_device_cleanup(&rkvdec->mdev);
++	if (v4l2_m2m_core_is_leader(&rkvdec->core)) {
++		media_device_unregister(&rkvdec->mdev);
++		v4l2_m2m_unregister_media_controller(rkvdec->m2m_dev);
++		video_unregister_device(&rkvdec->vdev);
++		media_device_cleanup(&rkvdec->mdev);
++	}
+ 	v4l2_m2m_release(rkvdec->m2m_dev);
+ 	v4l2_device_unregister(&rkvdec->v4l2_dev);
+ }
+@@ -1611,49 +1637,6 @@ static void rkvdec_watchdog_func(struct work_struct *work)
+ 	}
+ }
+ 
+-/*
+- * Some SoCs, like RK3588 have multiple identical VDPU cores, but the
+- * kernel is currently missing support for multi-core handling. Exposing
+- * separate devices for each core to userspace is bad, since that does
+- * not allow scheduling tasks properly (and creates ABI). With this workaround
+- * the driver will only probe for the first core and early exit for the other
+- * cores. Once the driver gains multi-core support, the same technique
+- * for detecting the first core can be used to cluster all cores together.
+- */
+-static int rkvdec_disable_multicore(struct rkvdec_dev *rkvdec)
+-{
+-	struct device_node *node = NULL;
+-	const char *compatible;
+-	bool is_first_core;
+-	int ret;
+-
+-	/* Intentionally ignores the fallback strings */
+-	ret = of_property_read_string(rkvdec->dev->of_node, "compatible", &compatible);
+-	if (ret)
+-		return ret;
+-
+-	/* The first compatible and available node found is considered the main core */
+-	do {
+-		node = of_find_compatible_node(node, NULL, compatible);
+-		if (of_device_is_available(node))
+-			break;
+-	} while (node);
+-
+-	if (!node)
+-		return -EINVAL;
+-
+-	is_first_core = (rkvdec->dev->of_node == node);
+-
+-	of_node_put(node);
+-
+-	if (!is_first_core) {
+-		dev_info(rkvdec->dev, "missing multi-core support, ignoring this instance\n");
+-		return -ENODEV;
+-	}
+-
+-	return 0;
+-}
+-
+ static const struct rkvdec_variant_ops rk3399_variant_ops = {
+ 	.irq_handler = rk3399_irq_handler,
+ 	.colmv_size = rkvdec_colmv_size,
+@@ -1784,7 +1767,7 @@ static int rkvdec_probe(struct platform_device *pdev)
+ 	mutex_init(&rkvdec->vdev_lock);
+ 	INIT_DELAYED_WORK(&rkvdec->watchdog_work, rkvdec_watchdog_func);
+ 
+-	ret = rkvdec_disable_multicore(rkvdec);
++	ret = v4l2_m2m_core_init(&rkvdec_cores, &rkvdec->core, rkvdec->dev);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -1851,6 +1834,14 @@ static int rkvdec_probe(struct platform_device *pdev)
+ 		}
+ 	}
+ 
++	ret = v4l2_m2m_core_register(&rkvdec->core);
++	if (ret) {
++		if (rkvdec->empty_domain)
++			iommu_domain_free(rkvdec->empty_domain);
++		rkvdec_v4l2_cleanup(rkvdec);
++		goto err_disable_runtime_pm;
++	}
++
+ 	return 0;
+ 
+ err_disable_runtime_pm:
+@@ -1867,6 +1858,7 @@ static void rkvdec_remove(struct platform_device *pdev)
+ {
+ 	struct rkvdec_dev *rkvdec = platform_get_drvdata(pdev);
+ 
++	v4l2_m2m_core_remove(&rkvdec->core);
+ 	cancel_delayed_work_sync(&rkvdec->watchdog_work);
+ 
+ 	rkvdec_v4l2_cleanup(rkvdec);
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.h b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
+index a24be6638..29d1f52cd 100644
+--- a/drivers/media/platform/rockchip/rkvdec/rkvdec.h
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
+@@ -11,6 +11,7 @@
+ #ifndef RKVDEC_H_
+ #define RKVDEC_H_
+ 
++#include <media/v4l2-m2m-corepool.h>
+ #include <linux/platform_device.h>
+ #include <linux/videodev2.h>
+ #include <linux/wait.h>
+@@ -126,6 +127,7 @@ struct rkvdec_coded_fmt_desc {
+ };
+ 
+ struct rkvdec_dev {
++	struct v4l2_m2m_core core;
+ 	struct v4l2_device v4l2_dev;
+ 	struct media_device mdev;
+ 	struct video_device vdev;
+@@ -144,6 +146,11 @@ struct rkvdec_dev {
+ 	const struct rkvdec_variant *variant;
+ };
+ 
++static inline struct rkvdec_dev *rkvdec_frontend(struct rkvdec_dev *rkvdec)
++{
++	return container_of(rkvdec->core.leader, struct rkvdec_dev, core);
++}
++
+ struct rkvdec_ctx {
+ 	struct v4l2_fh fh;
+ 	struct v4l2_format coded_fmt;
+diff --git a/drivers/media/platform/verisilicon/hantro.h b/drivers/media/platform/verisilicon/hantro.h
+index 0353de154..efa8d3bc6 100644
+--- a/drivers/media/platform/verisilicon/hantro.h
++++ b/drivers/media/platform/verisilicon/hantro.h
+@@ -12,6 +12,7 @@
+ #ifndef HANTRO_H_
+ #define HANTRO_H_
+ 
++#include <media/v4l2-m2m-corepool.h>
+ #include <linux/platform_device.h>
+ #include <linux/videodev2.h>
+ #include <linux/wait.h>
+@@ -195,6 +196,7 @@ hantro_vdev_to_func(struct video_device *vdev)
+  * @watchdog_work:	Delayed work for hardware timeout handling.
+  */
+ struct hantro_dev {
++	struct v4l2_m2m_core core;
+ 	struct v4l2_device v4l2_dev;
+ 	struct v4l2_m2m_dev *m2m_dev;
+ 	struct media_device mdev;
+@@ -215,6 +217,11 @@ struct hantro_dev {
+ 	struct delayed_work watchdog_work;
+ };
+ 
++static inline struct hantro_dev *hantro_frontend(struct hantro_dev *vpu)
++{
++	return container_of(vpu->core.leader, struct hantro_dev, core);
++}
++
+ /**
+  * struct hantro_ctx - Context (instance) private data.
+  *
+diff --git a/drivers/media/platform/verisilicon/hantro_drv.c b/drivers/media/platform/verisilicon/hantro_drv.c
+index ad71c0402..33894def1 100644
+--- a/drivers/media/platform/verisilicon/hantro_drv.c
++++ b/drivers/media/platform/verisilicon/hantro_drv.c
+@@ -31,6 +31,8 @@
+ 
+ #define DRIVER_NAME "hantro-vpu"
+ 
++static DEFINE_V4L2_M2M_CORE_POOL(hantro_cores);
++
+ int hantro_debug;
+ module_param_named(debug, hantro_debug, int, 0644);
+ MODULE_PARM_DESC(debug,
+@@ -65,6 +67,11 @@ static void hantro_job_finish_no_pm(struct hantro_dev *vpu,
+ {
+ 	struct vb2_v4l2_buffer *src, *dst;
+ 
++	if (result == VB2_BUF_STATE_DONE)
++		atomic64_inc(&vpu->core.completed);
++	else
++		atomic64_inc(&vpu->core.errors);
++
+ 	src = v4l2_m2m_next_src_buf(ctx->fh.m2m_ctx);
+ 	dst = v4l2_m2m_next_dst_buf(ctx->fh.m2m_ctx);
+ 
+@@ -173,6 +180,8 @@ static void device_run(void *priv)
+ 	struct vb2_v4l2_buffer *src, *dst;
+ 	int ret;
+ 
++	atomic64_inc(&ctx->dev->core.submitted);
++
+ 	src = hantro_get_src_buf(ctx);
+ 	dst = hantro_get_dst_buf(ctx);
+ 
+@@ -182,15 +191,19 @@ static void device_run(void *priv)
+ 
+ 	ret = clk_bulk_enable(ctx->dev->variant->num_clocks, ctx->dev->clocks);
+ 	if (ret)
+-		goto err_cancel_job;
++		goto err_put_pm;
+ 
+ 	v4l2_m2m_buf_copy_metadata(src, dst);
+ 
+-	if (ctx->codec_ops->run(ctx))
+-		goto err_cancel_job;
++	if (ctx->codec_ops->run(ctx)) {
++		clk_bulk_disable(ctx->dev->variant->num_clocks, ctx->dev->clocks);
++		goto err_put_pm;
++	}
+ 
+ 	return;
+ 
++err_put_pm:
++	pm_runtime_put_autosuspend(ctx->dev->dev);
+ err_cancel_job:
+ 	hantro_job_finish_no_pm(ctx->dev, ctx, VB2_BUF_STATE_ERROR);
+ }
+@@ -220,7 +233,7 @@ queue_init(void *priv, struct vb2_queue *src_vq, struct vb2_queue *dst_vq)
+ 			    DMA_ATTR_NO_KERNEL_MAPPING;
+ 	src_vq->buf_struct_size = sizeof(struct v4l2_m2m_buffer);
+ 	src_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
+-	src_vq->lock = &ctx->dev->vpu_mutex;
++	src_vq->lock = &hantro_frontend(ctx->dev)->vpu_mutex;
+ 	src_vq->dev = ctx->dev->v4l2_dev.dev;
+ 	src_vq->supports_requests = true;
+ 
+@@ -246,7 +259,7 @@ queue_init(void *priv, struct vb2_queue *src_vq, struct vb2_queue *dst_vq)
+ 	dst_vq->ops = &hantro_queue_ops;
+ 	dst_vq->buf_struct_size = sizeof(struct hantro_decoded_buffer);
+ 	dst_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
+-	dst_vq->lock = &ctx->dev->vpu_mutex;
++	dst_vq->lock = &hantro_frontend(ctx->dev)->vpu_mutex;
+ 	dst_vq->dev = ctx->dev->v4l2_dev.dev;
+ 
+ 	return vb2_queue_init(dst_vq);
+@@ -626,6 +639,7 @@ static int hantro_ctrls_setup(struct hantro_dev *vpu,
+ static int hantro_open(struct file *filp)
+ {
+ 	struct hantro_dev *vpu = video_drvdata(filp);
++	struct v4l2_m2m_core *core = v4l2_m2m_core_acquire(&vpu->core);
+ 	struct video_device *vdev = video_devdata(filp);
+ 	struct hantro_func *func = hantro_vdev_to_func(vdev);
+ 	struct hantro_ctx *ctx;
+@@ -640,9 +654,15 @@ static int hantro_open(struct file *filp)
+ 	 * helper functions used here.
+ 	 */
+ 
++	if (!core)
++		return -ENODEV;
++	vpu = container_of(core, struct hantro_dev, core);
++
+ 	ctx = kzalloc_obj(*ctx);
+-	if (!ctx)
++	if (!ctx) {
++		v4l2_m2m_core_release(core);
+ 		return -ENOMEM;
++	}
+ 
+ 	ctx->dev = vpu;
+ 	if (func->id == MEDIA_ENT_F_PROC_VIDEO_ENCODER) {
+@@ -679,7 +699,9 @@ static int hantro_open(struct file *filp)
+ err_fh_free:
+ 	v4l2_fh_del(&ctx->fh, filp);
+ 	v4l2_fh_exit(&ctx->fh);
++	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
+ err_ctx_free:
++	v4l2_m2m_core_release(core);
+ 	kfree(ctx);
+ 	return ret;
+ }
+@@ -696,6 +718,7 @@ static int hantro_release(struct file *filp)
+ 	v4l2_fh_del(&ctx->fh, filp);
+ 	v4l2_fh_exit(&ctx->fh);
+ 	v4l2_ctrl_handler_free(&ctx->ctrl_handler);
++	v4l2_m2m_core_release(&ctx->dev->core);
+ 	kfree(ctx);
+ 
+ 	return 0;
+@@ -999,49 +1022,6 @@ static const struct media_device_ops hantro_m2m_media_ops = {
+ 	.req_queue = v4l2_m2m_request_queue,
+ };
+ 
+-/*
+- * Some SoCs, like RK3588 have multiple identical Hantro cores, but the
+- * kernel is currently missing support for multi-core handling. Exposing
+- * separate devices for each core to userspace is bad, since that does
+- * not allow scheduling tasks properly (and creates ABI). With this workaround
+- * the driver will only probe for the first core and early exit for the other
+- * cores. Once the driver gains multi-core support, the same technique
+- * for detecting the main core can be used to cluster all cores together.
+- */
+-static int hantro_disable_multicore(struct hantro_dev *vpu)
+-{
+-	struct device_node *node = NULL;
+-	const char *compatible;
+-	bool is_main_core;
+-	int ret;
+-
+-	/* Intentionally ignores the fallback strings */
+-	ret = of_property_read_string(vpu->dev->of_node, "compatible", &compatible);
+-	if (ret)
+-		return ret;
+-
+-	/* The first compatible and available node found is considered the main core */
+-	do {
+-		node = of_find_compatible_node(node, NULL, compatible);
+-		if (of_device_is_available(node))
+-			break;
+-	} while (node);
+-
+-	if (!node)
+-		return -EINVAL;
+-
+-	is_main_core = (vpu->dev->of_node == node);
+-
+-	of_node_put(node);
+-
+-	if (!is_main_core) {
+-		dev_info(vpu->dev, "missing multi-core support, ignoring this instance\n");
+-		return -ENODEV;
+-	}
+-
+-	return 0;
+-}
+-
+ static struct v4l2_m2m_dev *hantro_get_v4l2_m2m_dev(struct hantro_dev *vpu)
+ {
+ 	struct device_node *node;
+@@ -1096,7 +1076,7 @@ static int hantro_probe(struct platform_device *pdev)
+ 	match = of_match_node(of_hantro_match, pdev->dev.of_node);
+ 	vpu->variant = match->data;
+ 
+-	ret = hantro_disable_multicore(vpu);
++	ret = v4l2_m2m_core_init(&hantro_cores, &vpu->core, vpu->dev);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -1235,6 +1215,14 @@ static int hantro_probe(struct platform_device *pdev)
+ 		goto err_v4l2_unreg;
+ 	}
+ 
++	if (!v4l2_m2m_core_is_leader(&vpu->core)) {
++		vpu->v4l2_dev.mdev = &hantro_frontend(vpu)->mdev;
++		ret = v4l2_m2m_core_register(&vpu->core);
++		if (ret)
++			goto err_worker_m2m;
++		return 0;
++	}
++
+ 	vpu->mdev.dev = vpu->dev;
+ 	strscpy(vpu->mdev.model, DRIVER_NAME, sizeof(vpu->mdev.model));
+ 	media_device_init(&vpu->mdev);
+@@ -1259,6 +1247,12 @@ static int hantro_probe(struct platform_device *pdev)
+ 		goto err_rm_dec_func;
+ 	}
+ 
++	ret = v4l2_m2m_core_register(&vpu->core);
++	if (ret) {
++		media_device_unregister(&vpu->mdev);
++		goto err_rm_dec_func;
++	}
++
+ 	return 0;
+ 
+ err_rm_dec_func:
+@@ -1267,6 +1261,7 @@ static int hantro_probe(struct platform_device *pdev)
+ 	hantro_remove_enc_func(vpu);
+ err_m2m_rel:
+ 	media_device_cleanup(&vpu->mdev);
++err_worker_m2m:
+ 	v4l2_m2m_put(vpu->m2m_dev);
+ err_v4l2_unreg:
+ 	v4l2_device_unregister(&vpu->v4l2_dev);
+@@ -1286,10 +1281,14 @@ static void hantro_remove(struct platform_device *pdev)
+ 
+ 	v4l2_info(&vpu->v4l2_dev, "Removing %s\n", pdev->name);
+ 
+-	media_device_unregister(&vpu->mdev);
+-	hantro_remove_dec_func(vpu);
+-	hantro_remove_enc_func(vpu);
+-	media_device_cleanup(&vpu->mdev);
++	v4l2_m2m_core_remove(&vpu->core);
++	cancel_delayed_work_sync(&vpu->watchdog_work);
++	if (v4l2_m2m_core_is_leader(&vpu->core)) {
++		media_device_unregister(&vpu->mdev);
++		hantro_remove_dec_func(vpu);
++		hantro_remove_enc_func(vpu);
++		media_device_cleanup(&vpu->mdev);
++	}
+ 	v4l2_m2m_put(vpu->m2m_dev);
+ 	v4l2_device_unregister(&vpu->v4l2_dev);
+ 	clk_bulk_unprepare(vpu->variant->num_clocks, vpu->clocks);
+diff --git a/include/media/v4l2-m2m-corepool.h b/include/media/v4l2-m2m-corepool.h
+new file mode 100644
+index 000000000..0fecd23da
+--- /dev/null
++++ b/include/media/v4l2-m2m-corepool.h
+@@ -0,0 +1,198 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _V4L2_M2M_COREPOOL_H
++#define _V4L2_M2M_COREPOOL_H
++
++#include <linux/atomic.h>
++#include <linux/device.h>
++#include <linux/list.h>
++#include <linux/mutex.h>
++#include <linux/of.h>
++
++struct v4l2_m2m_core;
++struct v4l2_m2m_core_attr {
++	struct device_attribute attr;
++	struct v4l2_m2m_core *core;
++	unsigned int stat;
++};
++
++struct v4l2_m2m_core_pool {
++	struct mutex lock;
++	struct list_head cores;
++};
++
++#define DEFINE_V4L2_M2M_CORE_POOL(name) \
++	struct v4l2_m2m_core_pool name = { \
++		.lock = __MUTEX_INITIALIZER(name.lock), \
++		.cores = LIST_HEAD_INIT(name.cores), \
++	}
++
++struct v4l2_m2m_core {
++	struct list_head node;
++	struct device *dev;
++	struct v4l2_m2m_core_pool *pool;
++	struct v4l2_m2m_core *leader;
++	unsigned int users;
++	atomic64_t submitted;
++	atomic64_t completed;
++	atomic64_t errors;
++	struct v4l2_m2m_core_attr attrs[4];
++};
++
++/* 会话在分配 buffer 前选核,整个生命周期保持 DMA/IOMMU 归属不变。 */
++static inline struct v4l2_m2m_core *
++v4l2_m2m_core_acquire(struct v4l2_m2m_core *frontend)
++{
++	struct v4l2_m2m_core_pool *pool = frontend->pool;
++	struct v4l2_m2m_core *core, *best = NULL;
++
++	mutex_lock(&pool->lock);
++	list_for_each_entry(core, &pool->cores, node) {
++		if (core->leader != frontend->leader)
++			continue;
++		if (!best || core->users < best->users)
++			best = core;
++	}
++	if (best) {
++		best->users++;
++		get_device(best->dev);
++		/* 相同负载轮转,短会话也能覆盖所有核心。 */
++		list_move_tail(&best->node, &pool->cores);
++	}
++	mutex_unlock(&pool->lock);
++	return best;
++}
++
++static inline void v4l2_m2m_core_release(struct v4l2_m2m_core *core)
++{
++	mutex_lock(&core->pool->lock);
++	core->users--;
++	mutex_unlock(&core->pool->lock);
++	put_device(core->dev);
++}
++
++static inline ssize_t v4l2_m2m_core_stat_show(struct device *dev,
++					   struct device_attribute *attr,
++					   char *buf)
++{
++	struct v4l2_m2m_core_attr *ca =
++		container_of(attr, struct v4l2_m2m_core_attr, attr);
++	struct v4l2_m2m_core *core = ca->core;
++	u64 value;
++
++	if (!ca->stat) {
++		mutex_lock(&core->pool->lock);
++		value = core->users;
++		mutex_unlock(&core->pool->lock);
++	} else if (ca->stat == 1) {
++		value = atomic64_read(&core->submitted);
++	} else if (ca->stat == 2) {
++		value = atomic64_read(&core->completed);
++	} else {
++		value = atomic64_read(&core->errors);
++	}
++	return sysfs_emit(buf, "%llu\n", value);
++}
++
++/* 首个 available 同类节点保留用户入口,其余节点成为独立执行后端。 */
++static inline int v4l2_m2m_core_init(struct v4l2_m2m_core_pool *pool,
++				   struct v4l2_m2m_core *core,
++				   struct device *dev)
++{
++	struct device_node *node = NULL;
++	struct v4l2_m2m_core *leader;
++	const char *compatible;
++	int ret;
++
++	INIT_LIST_HEAD(&core->node);
++	core->pool = pool;
++	core->dev = dev;
++	core->leader = core;
++	atomic64_set(&core->submitted, 0);
++	atomic64_set(&core->completed, 0);
++	atomic64_set(&core->errors, 0);
++	ret = of_property_read_string(dev->of_node, "compatible", &compatible);
++	if (ret)
++		return ret;
++	while ((node = of_find_compatible_node(node, NULL, compatible))) {
++		if (of_device_is_available(node))
++			break;
++	}
++	if (!node)
++		return -ENODEV;
++	if (node == dev->of_node) {
++		of_node_put(node);
++		return 0;
++	}
++
++	mutex_lock(&pool->lock);
++	list_for_each_entry(leader, &pool->cores, node) {
++		if (leader->dev->of_node == node) {
++			core->leader = leader;
++			get_device(leader->dev);
++			break;
++		}
++	}
++	mutex_unlock(&pool->lock);
++	of_node_put(node);
++	if (core->leader == core)
++		return -EPROBE_DEFER;
++	/* 先解绑后端再移除前端,防止核心池留下失效的 leader。 */
++	if (!device_link_add(dev, core->leader->dev,
++			     DL_FLAG_AUTOREMOVE_CONSUMER))
++		ret = -ENOMEM;
++	else
++		ret = 0;
++	put_device(core->leader->dev);
++	return ret;
++}
++
++static inline bool v4l2_m2m_core_is_leader(struct v4l2_m2m_core *core)
++{
++	return core == core->leader;
++}
++
++static inline void v4l2_m2m_core_remove(struct v4l2_m2m_core *core)
++{
++	unsigned int i;
++
++	mutex_lock(&core->pool->lock);
++	list_del_init(&core->node);
++	mutex_unlock(&core->pool->lock);
++	for (i = 0; i < ARRAY_SIZE(core->attrs); i++)
++		device_remove_file(core->dev, &core->attrs[i].attr);
++}
++
++static inline int v4l2_m2m_core_register(struct v4l2_m2m_core *core)
++{
++	static const char * const names[] = {
++		"m2m_core_users", "m2m_core_submitted",
++		"m2m_core_completed", "m2m_core_errors",
++	};
++	unsigned int i;
++	int ret;
++
++	for (i = 0; i < ARRAY_SIZE(names); i++) {
++		struct v4l2_m2m_core_attr *ca = &core->attrs[i];
++
++		ca->core = core;
++		ca->stat = i;
++		sysfs_attr_init(&ca->attr.attr);
++		ca->attr.attr.name = names[i];
++		ca->attr.attr.mode = 0444;
++		ca->attr.show = v4l2_m2m_core_stat_show;
++		ret = device_create_file(core->dev, &ca->attr);
++		if (ret) {
++			while (i--)
++				device_remove_file(core->dev, &core->attrs[i].attr);
++			return ret;
++		}
++	}
++	mutex_lock(&core->pool->lock);
++	list_add_tail(&core->node, &core->pool->cores);
++	mutex_unlock(&core->pool->lock);
++	dev_info(core->dev, "m2m core online, frontend=%s\n",
++		 dev_name(core->leader->dev));
++	return 0;
++}
++
++#endif
+-- 
+2.43.0
+

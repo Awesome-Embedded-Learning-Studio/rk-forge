@@ -1,0 +1,44 @@
+From 575708c546982771cc63996862c371808169fbd4 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Tue, 3 Nov 2026 23:18:37 +0800
+Subject: [PATCH] arm64: dts: rockchip: keep topeet NPU resources clear of
+ IOMMUs
+
+The vendor-style 64 KiB NPU windows encompass the separately registered
+Rockchip IOMMU registers at offsets 0x9000/0xa000. NPU probe therefore
+logs an EBUSY resource error and takes the driver's unreserved mapping
+fallback even though initialization succeeds.
+
+Describe only the PC/CNA/CORE control banks used by the ported driver,
+covering offsets 0 through 0x3fff for each core. These are the same banks
+listed separately in the mainline rknn-core nodes. The IOMMU resources
+remain owned by their own devices. NPU task command streams do not use
+the CPU register mapping and are unaffected by its extent.
+
+Fixes: 71fa2f577d47 ("drivers/rknpu: port vendor RKNPU 0.9.x driver to mainline 7.3.1")
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3588-topeet.dts | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+index ed4d96db5..741729f98 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+@@ -1025,9 +1025,10 @@ reboot_mode: reboot-mode {
+ / {
+ 	rknpu: rknpu@fdab0000 {
+ 		compatible = "rockchip,rk3588-rknpu";
+-		reg = <0x0 0xfdab0000 0x0 0x10000>,
+-		      <0x0 0xfdac0000 0x0 0x10000>,
+-		      <0x0 0xfdad0000 0x0 0x10000>;
++		/* 只登记 PC/CNA/CORE 控制区,不能抢占 0x9000/0xa000 的独立 IOMMU。 */
++		reg = <0x0 0xfdab0000 0x0 0x4000>,
++		      <0x0 0xfdac0000 0x0 0x4000>,
++		      <0x0 0xfdad0000 0x0 0x4000>;
+ 		interrupts = <GIC_SPI 110 IRQ_TYPE_LEVEL_HIGH 0>,
+ 			     <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH 0>,
+ 			     <GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH 0>;
+-- 
+2.43.0
+

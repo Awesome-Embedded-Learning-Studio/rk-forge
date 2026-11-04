@@ -87,6 +87,20 @@
 0027-clk-rockchip-rk3588-keep-GMAC-clocks-always-on.patch
 0028-net-stmmac-dwmac-rk-wire-clks_config-and-conditional-RK3588-delay-lines.patch
 0035-arm64-dts-rk3588-topeet-pmu0-grf-reboot-mode.patch
+# 0036 vendor RKNPU 0.9.x → mainline 7.3.1（/dev/rknpu legacy ioctl，rknn 板验线）2026-11-03
+0036-drivers-rknpu-port-vendor-driver-to-mainline.patch
+# 0037 legacy /dev/rknpu 表面接 DRM GEM 后端(librknnrt legacy 路径入口)2026-11-03
+0037-drivers-rknpu-legacy-dev-rknpu-surface-on-DRM-GEM.patch
+# 0038 修正 0037 的 legacy/GEM 同步契约,阻塞提交前后交接会话 buffer
+0038-drivers-rknpu-fix-legacy-GEM-memory-sync.patch
+# 0039 NPU 控制窗口不再覆盖独立 IOMMU 资源,消除 probe 的 EBUSY
+0039-arm64-dts-rk3588-topeet-fix-NPU-resource-overlap.patch
+# 0040 按主线单实例驱动能力停用多媒体副核心,配合 media 内建配置解除 sync_state 等待
+0040-arm64-dts-rk3588-topeet-disable-secondary-media-cores.patch
+# 0041 共用用户入口,按会话均衡使用独立的物理核心/队列/DMA/IRQ/PM
+0041-media-rockchip-enable-multicore-session-pools.patch
+# 0042 撤销 0040 的临时停用,恢复 RGA3×2 / VEPU121×4 / RKVDEC×2 及各 IOMMU
+0042-arm64-dts-rk3588-topeet-enable-all-media-cores.patch
 #0029-TEMP-stmmac-open-entry-rearm-and-state-snapshot.patch  # R26 结案后摘除：open 已存活，重整装成多余变量
 #0031-TEMP-headless-disable-display-pipeline.patch  # R30 起复现轮转回全显示（=R11 参照），R26 结论已固化
 #0030-TEMP-poll-php_grf-and-gmac0-csr.patch  # R31 结案退役：修复已由 0033 落地（v7 曾立功：GPLL 零变更+V0PLL 重锁判决）
