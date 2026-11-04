@@ -1,0 +1,439 @@
+From 3cc062ad68d9430e3ca79d0e32281cff933e33b4 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Tue, 3 Nov 2026 22:25:57 +0800
+Subject: [PATCH] drivers/rknpu: legacy /dev/rknpu surface on the DRM GEM
+ backend
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The vendor kernel only registers the legacy misc device together with the
+DMA_HEAP memory manager (vendor heap framework, absent on mainline); the
+misc open is what selects librknnrt's legacy 'r'-ioctl path (dsh-006
+mode 0, RE evidence .claude/rknn/dyn/run7.log). Without it the runtime
+falls back to the DRM path — a surface our byte-exact engine does not
+speak.
+
+rknpu_legacy.c wires the legacy contract onto GEM:
+- ACTION/SUBMIT share the same cores as the DRM path (rknpu_action /
+  rknpu_submit, now non-static)
+- MEM_CREATE = rknpu_gem_object_create + prime export; handle field
+  carries the dma-buf fd (matches the RE'd contract), obj_addr/dma_addr
+  filled like the GEM create ioctl
+- MEM_SYNC reuses rknpu_gem_sync_ioctl (it addresses by obj_addr)
+- MEM_DESTROY drops the session-tracked reference after obj_addr
+  validation; MEM_MAP is -ENOTTY (legacy blob path never uses it)
+
+miscdev member moves out of the DMA_HEAP ifdef; rknpu_legacy_register()
+is called from probe after rknpu_drm_probe().
+---
+ drivers/rknpu/Makefile               |   2 +-
+ drivers/rknpu/include/rknpu_drv.h    |   5 +-
+ drivers/rknpu/include/rknpu_job.h    |   2 +
+ drivers/rknpu/include/rknpu_legacy.h |  10 ++
+ drivers/rknpu/rknpu_drv.c            |  17 +-
+ drivers/rknpu/rknpu_gem.c            |   1 -
+ drivers/rknpu/rknpu_job.c            |   2 +-
+ drivers/rknpu/rknpu_legacy.c         | 243 +++++++++++++++++++++++++++
+ 8 files changed, 273 insertions(+), 9 deletions(-)
+ create mode 100644 drivers/rknpu/include/rknpu_legacy.h
+ create mode 100644 drivers/rknpu/rknpu_legacy.c
+
+diff --git a/drivers/rknpu/Makefile b/drivers/rknpu/Makefile
+index d7451c7ad..03db51653 100644
+--- a/drivers/rknpu/Makefile
++++ b/drivers/rknpu/Makefile
+@@ -12,5 +12,5 @@ rknpu-y += rknpu_iommu.o
+ rknpu-$(CONFIG_PM_DEVFREQ) += rknpu_devfreq.o
+ rknpu-$(CONFIG_ROCKCHIP_RKNPU_SRAM) += rknpu_mm.o
+ rknpu-$(CONFIG_ROCKCHIP_RKNPU_FENCE) += rknpu_fence.o
+-rknpu-$(CONFIG_ROCKCHIP_RKNPU_DRM_GEM) += rknpu_gem.o
++rknpu-$(CONFIG_ROCKCHIP_RKNPU_DRM_GEM) += rknpu_gem.o rknpu_legacy.o
+ rknpu-$(CONFIG_ROCKCHIP_RKNPU_DMA_HEAP) += rknpu_mem.o
+diff --git a/drivers/rknpu/include/rknpu_drv.h b/drivers/rknpu/include/rknpu_drv.h
+index 4a04d1215..a6b94104a 100644
+--- a/drivers/rknpu/include/rknpu_drv.h
++++ b/drivers/rknpu/include/rknpu_drv.h
+@@ -113,9 +113,9 @@ struct rknpu_device {
+ 	struct drm_device *drm_dev;
+ #endif
+ #ifdef CONFIG_ROCKCHIP_RKNPU_DMA_HEAP
+-	struct miscdevice miscdev;
+ 	struct rk_dma_heap *heap;
+ #endif
++	struct miscdevice miscdev;   /* legacy 表面(DRM_GEM 模式由 rknpu_legacy.c 注册) */
+ 	atomic_t sequence;
+ 	spinlock_t lock;
+ 	spinlock_t irq_lock;
+@@ -169,6 +169,9 @@ struct rknpu_device {
+ 	atomic_t iommu_domain_refcount;
+ };
+ 
++struct rknpu_action;
++int rknpu_action(struct rknpu_device *rknpu_dev, struct rknpu_action *args);
++
+ struct rknpu_session {
+ 	struct rknpu_device *rknpu_dev;
+ 	struct list_head list;
+diff --git a/drivers/rknpu/include/rknpu_job.h b/drivers/rknpu/include/rknpu_job.h
+index 46eb304ac..10e331e2f 100644
+--- a/drivers/rknpu/include/rknpu_job.h
++++ b/drivers/rknpu/include/rknpu_job.h
+@@ -58,6 +58,8 @@ irqreturn_t rknpu_core2_irq_handler(int irq, void *data);
+ #ifdef CONFIG_ROCKCHIP_RKNPU_DRM_GEM
+ int rknpu_submit_ioctl(struct drm_device *dev, void *data,
+ 		       struct drm_file *file_priv);
++int rknpu_submit(struct rknpu_device *rknpu_dev,
++		 struct rknpu_submit *args);
+ #endif
+ #ifdef CONFIG_ROCKCHIP_RKNPU_DMA_HEAP
+ int rknpu_submit_ioctl(struct rknpu_device *rknpu_dev, unsigned long data);
+diff --git a/drivers/rknpu/include/rknpu_legacy.h b/drivers/rknpu/include/rknpu_legacy.h
+new file mode 100644
+index 000000000..885ae0bcb
+--- /dev/null
++++ b/drivers/rknpu/include/rknpu_legacy.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __LINUX_RKNPU_LEGACY_H_
++#define __LINUX_RKNPU_LEGACY_H_
++
++struct rknpu_device;
++/* legacy /dev/rknpu('r' magic ioctl)表面,后端 = DRM GEM(rknpu_legacy.c) */
++int rknpu_legacy_register(struct rknpu_device *rknpu_dev);
++void rknpu_legacy_unregister(struct rknpu_device *rknpu_dev);
++
++#endif
+diff --git a/drivers/rknpu/rknpu_drv.c b/drivers/rknpu/rknpu_drv.c
+index 44d05674a..fc16ea4b8 100644
+--- a/drivers/rknpu/rknpu_drv.c
++++ b/drivers/rknpu/rknpu_drv.c
+@@ -43,6 +43,7 @@
+ #include "rknpu_drv.h"
+ #include "rknpu_gem.h"
+ #include "rknpu_devfreq.h"
++#include "rknpu_legacy.h"
+ #include "rknpu_iommu.h"
+ 
+ #ifdef CONFIG_ROCKCHIP_RKNPU_DRM_GEM
+@@ -389,8 +390,8 @@ int rknpu_power_put_delay(struct rknpu_device *rknpu_dev)
+ 	return 0;
+ }
+ 
+-static int rknpu_action(struct rknpu_device *rknpu_dev,
+-			struct rknpu_action *args)
++int rknpu_action(struct rknpu_device *rknpu_dev,
++		 struct rknpu_action *args)
+ {
+ 	int ret = -EINVAL;
+ 
+@@ -1005,9 +1006,6 @@ static int rknpu_power_off(struct rknpu_device *rknpu_dev)
+ 	struct device *dev = rknpu_dev->dev;
+ 
+ #ifndef FPGA_PLATFORM
+-	int ret;
+-	bool val;
+-
+ 	rknpu_devfreq_lock(rknpu_dev);
+ #endif
+ 
+@@ -1411,6 +1409,13 @@ static int rknpu_probe(struct platform_device *pdev)
+ 		LOG_DEV_ERROR(dev, "failed to probe device for rknpu\n");
+ 		return ret;
+ 	}
++
++	/* legacy /dev/rknpu 表面(RE 契约 'r' ioctl)挂在 GEM 后端 */
++	ret = rknpu_legacy_register(rknpu_dev);
++	if (ret) {
++		LOG_DEV_ERROR(dev, "failed to register legacy miscdev\n");
++		return ret;
++	}
+ #endif
+ #ifdef CONFIG_ROCKCHIP_RKNPU_DMA_HEAP
+ 	rknpu_dev->miscdev.minor = MISC_DYNAMIC_MINOR;
+@@ -1593,6 +1598,8 @@ static void rknpu_remove(struct platform_device *pdev)
+ 			dev_pm_domain_detach(rknpu_dev->genpd_dev_npu2, true);
+ 	}
+ 
++	rknpu_legacy_unregister(rknpu_dev);
++
+ 	pm_runtime_disable(&pdev->dev);
+ }
+ 
+diff --git a/drivers/rknpu/rknpu_gem.c b/drivers/rknpu/rknpu_gem.c
+index 67dc5a4e1..50fe66a23 100644
+--- a/drivers/rknpu/rknpu_gem.c
++++ b/drivers/rknpu/rknpu_gem.c
+@@ -1257,7 +1257,6 @@ vm_fault_t rknpu_gem_fault(struct vm_fault *vmf)
+ 	struct drm_gem_object *obj = vma->vm_private_data;
+ 	struct rknpu_gem_object *rknpu_obj = to_rknpu_obj(obj);
+ 	struct drm_device *drm = rknpu_obj->base.dev;
+-	unsigned long pfn = 0;
+ 	pgoff_t page_offset = 0;
+ 
+ 	page_offset = (vmf->address - vma->vm_start) >> PAGE_SHIFT;
+diff --git a/drivers/rknpu/rknpu_job.c b/drivers/rknpu/rknpu_job.c
+index 23ed8e5cf..7962f6a41 100644
+--- a/drivers/rknpu/rknpu_job.c
++++ b/drivers/rknpu/rknpu_job.c
+@@ -743,7 +743,7 @@ static void rknpu_job_timeout_clean(struct rknpu_device *rknpu_dev,
+ 	}
+ }
+ 
+-static int rknpu_submit(struct rknpu_device *rknpu_dev,
++int rknpu_submit(struct rknpu_device *rknpu_dev,
+ 			struct rknpu_submit *args)
+ {
+ 	struct rknpu_job *job = NULL;
+diff --git a/drivers/rknpu/rknpu_legacy.c b/drivers/rknpu/rknpu_legacy.c
+new file mode 100644
+index 000000000..6524aad57
+--- /dev/null
++++ b/drivers/rknpu/rknpu_legacy.c
+@@ -0,0 +1,243 @@
++// rknpu_legacy.c — legacy /dev/rknpu 表面挂在 DRM GEM 后端上(mainline 移植补记)
++//
++// vendor 内核里 legacy misc 设备只随 DMA_HEAP 内存管理器注册(mainline 无 vendor
++// heap 体系,那半边编不出来);但 librknnrt 1.5.0 的 legacy 路径(open("/dev/rknpu")
++// 成功即锁定,RE 见 .claude/rknn/dyn/run7.log + dsh-006)说的是 'r' magic ioctl,
++// 契约与 DRM 私有 ioctl 同号不同码。此文件把该契约接到 GEM 后端:
++//   ACTION/SUBMIT → 与 DRM 路径共用同一核心(rknpu_action/rknpu_submit)
++//   MEM_CREATE    → rknpu_gem_object_create + prime 导出 dma-buf fd(handle 字段
++//                   装 fd,与 RE 实测一致);obj_addr/dma_addr 语义同 GEM create
++//   MEM_SYNC      → 直接复用 rknpu_gem_sync_ioctl(它本就按 obj_addr 寻址)
++//   MEM_DESTROY   → 会话表按 obj_addr 校验后还引用
++// 所有结构体共用 rknpu_ioctl.h,用户侧无感。
++#include <linux/dma-buf.h>
++#include <linux/file.h>
++#include <linux/fs.h>
++#include <linux/miscdevice.h>
++#include <linux/slab.h>
++#include <linux/uaccess.h>
++
++#include "rknpu_drv.h"
++#include "rknpu_gem.h"
++#include "rknpu_ioctl.h"
++#include "rknpu_job.h"
++#include "rknpu_legacy.h"
++
++struct rknpu_legacy_obj {
++	struct list_head head;
++	struct rknpu_gem_object *obj;
++};
++
++static int rknpu_legacy_open(struct inode *inode, struct file *file)
++{
++	struct rknpu_device *rknpu_dev =
++		container_of(file->private_data, struct rknpu_device, miscdev);
++	struct rknpu_session *session;
++
++	session = kzalloc(sizeof(*session), GFP_KERNEL);
++	if (!session)
++		return -ENOMEM;
++	session->rknpu_dev = rknpu_dev;
++	INIT_LIST_HEAD(&session->list);
++	file->private_data = session;
++
++	return nonseekable_open(inode, file);
++}
++
++static int rknpu_legacy_release(struct inode *inode, struct file *file)
++{
++	struct rknpu_session *session = file->private_data;
++	struct rknpu_legacy_obj *entry, *tmp;
++
++	list_for_each_entry_safe(entry, tmp, &session->list, head) {
++		list_del(&entry->head);
++		drm_gem_object_put(&entry->obj->base);
++		kfree(entry);
++	}
++	kfree(session);
++	file->private_data = NULL;
++
++	return 0;
++}
++
++static int rknpu_legacy_mem_create(struct rknpu_device *rknpu_dev,
++				   struct rknpu_session *session,
++				   unsigned int cmd, unsigned long data)
++{
++	struct rknpu_mem_create args;
++	struct rknpu_gem_object *obj = NULL;
++	struct rknpu_legacy_obj *entry;
++	struct dma_buf *dmabuf;
++	unsigned int in_size = _IOC_SIZE(cmd);
++	int fd;
++
++	if (copy_from_user(&args, (void __user *)data, in_size))
++		return -EFAULT;
++	if (in_size < sizeof(args))
++		memset((char *)&args + in_size, 0, sizeof(args) - in_size);
++
++	obj = rknpu_gem_object_create(rknpu_dev->drm_dev, args.flags,
++				      args.size, args.sram_size,
++				      args.iommu_domain_id, args.core_mask);
++	if (IS_ERR(obj))
++		return PTR_ERR(obj);
++
++	dmabuf = obj->base.funcs->export(&obj->base, O_RDWR | O_CLOEXEC);
++	if (IS_ERR(dmabuf)) {
++		rknpu_gem_object_destroy(obj);
++		return PTR_ERR(dmabuf);
++	}
++	fd = dma_buf_fd(dmabuf, O_RDWR | O_CLOEXEC);
++	if (fd < 0) {
++		dma_buf_put(dmabuf);
++		rknpu_gem_object_destroy(obj);
++		return fd;
++	}
++
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	if (!entry) {
++		dma_buf_put(dmabuf);
++		rknpu_gem_object_destroy(obj);
++		return -ENOMEM;
++	}
++	entry->obj = obj;
++	list_add(&entry->head, &session->list);
++
++	args.handle = fd;   /* legacy 契约: handle 字段装 dma-buf fd */
++	args.size = obj->size;
++	args.sram_size = obj->sram_size;
++	args.obj_addr = (__u64)(uintptr_t)obj;
++	args.dma_addr = obj->dma_addr;
++
++	if (copy_to_user((void __user *)data, &args,
++			 min(in_size, sizeof(args)))) {
++		list_del(&entry->head);
++		kfree(entry);
++		/* 已装的 fd 自持引用,进程退出自然回收;这里只还我们的引用 */
++		dma_buf_put(dmabuf);
++		rknpu_gem_object_destroy(obj);
++		return -EFAULT;
++	}
++
++	return 0;
++}
++
++static int rknpu_legacy_mem_destroy(struct rknpu_device *rknpu_dev,
++				    struct rknpu_session *session,
++				    unsigned long data)
++{
++	struct rknpu_mem_destroy args;
++	struct rknpu_legacy_obj *entry;
++
++	if (copy_from_user(&args, (void __user *)data, sizeof(args)))
++		return -EFAULT;
++	if (!args.obj_addr)
++		return -EINVAL;
++
++	list_for_each_entry(entry, &session->list, head) {
++		if ((__u64)(uintptr_t)entry->obj == args.obj_addr) {
++			list_del(&entry->head);
++			drm_gem_object_put(&entry->obj->base);
++			kfree(entry);
++			return 0;
++		}
++	}
++
++	return -EINVAL;
++}
++
++static long rknpu_legacy_ioctl(struct file *file, unsigned int cmd,
++			       unsigned long data)
++{
++	struct rknpu_session *session = file->private_data;
++	struct rknpu_device *rknpu_dev = session->rknpu_dev;
++	union {
++		struct rknpu_action action;
++		struct rknpu_submit submit;
++		struct rknpu_mem_sync sync;
++	} args;
++	long ret = -EINVAL;
++	unsigned int in_size = _IOC_SIZE(cmd);
++
++	if (!rknpu_dev)
++		return -EINVAL;
++
++	rknpu_power_get(rknpu_dev);
++
++	switch (_IOC_NR(cmd)) {
++	case RKNPU_ACTION:
++		if (copy_from_user(&args.action, (void __user *)data, in_size))
++			{ ret = -EFAULT; break; }
++		if (in_size < sizeof(args.action))
++			memset((char *)&args.action + in_size, 0,
++			       sizeof(args.action) - in_size);
++		ret = rknpu_action(rknpu_dev, &args.action);
++		if (!ret && copy_to_user((void __user *)data, &args.action,
++					 min(in_size, sizeof(args.action))))
++			ret = -EFAULT;
++		break;
++	case RKNPU_SUBMIT:
++		if (copy_from_user(&args.submit, (void __user *)data,
++				   sizeof(args.submit))) {
++			ret = -EFAULT;
++			break;
++		}
++		ret = rknpu_submit(rknpu_dev, &args.submit);
++		if (copy_to_user((void __user *)data, &args.submit,
++				 sizeof(args.submit)))
++			ret = -EFAULT;
++		break;
++	case RKNPU_MEM_CREATE:
++		ret = rknpu_legacy_mem_create(rknpu_dev, session, cmd, data);
++		break;
++	case RKNPU_MEM_MAP:
++		ret = -ENOTTY;   /* legacy blob 路径不使用(见 RE 线取证) */
++		break;
++	case RKNPU_MEM_DESTROY:
++		ret = rknpu_legacy_mem_destroy(rknpu_dev, session, data);
++		break;
++	case RKNPU_MEM_SYNC:
++		if (copy_from_user(&args.sync, (void __user *)data,
++				   sizeof(args.sync))) {
++			ret = -EFAULT;
++			break;
++		}
++		/* GEM 版 sync 本就按 obj_addr 寻址,直接复用 */
++		ret = rknpu_gem_sync_ioctl(rknpu_dev->drm_dev, &args.sync,
++					   NULL);
++		if (!ret &&
++		    copy_to_user((void __user *)data, &args.sync,
++				 sizeof(args.sync)))
++			ret = -EFAULT;
++		break;
++	default:
++		break;
++	}
++
++	rknpu_power_put(rknpu_dev);
++
++	return ret;
++}
++
++static const struct file_operations rknpu_legacy_fops = {
++	.owner = THIS_MODULE,
++	.open = rknpu_legacy_open,
++	.release = rknpu_legacy_release,
++	.unlocked_ioctl = rknpu_legacy_ioctl,
++	.compat_ioctl = rknpu_legacy_ioctl,
++	.llseek = noop_llseek,
++};
++
++int rknpu_legacy_register(struct rknpu_device *rknpu_dev)
++{
++	rknpu_dev->miscdev.minor = MISC_DYNAMIC_MINOR;
++	rknpu_dev->miscdev.name = "rknpu";
++	rknpu_dev->miscdev.fops = &rknpu_legacy_fops;
++
++	return misc_register(&rknpu_dev->miscdev);
++}
++
++void rknpu_legacy_unregister(struct rknpu_device *rknpu_dev)
++{
++	misc_deregister(&rknpu_dev->miscdev);
++}
+-- 
+2.43.0
+

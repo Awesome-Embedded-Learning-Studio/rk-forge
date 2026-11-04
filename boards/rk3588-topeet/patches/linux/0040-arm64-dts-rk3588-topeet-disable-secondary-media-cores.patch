@@ -1,0 +1,85 @@
+From a0c7eb0acef3773b7e34dd6971be82fb9af68d01 Mon Sep 17 00:00:00 2001
+From: Charliechen114514 <725610365@qq.com>
+Date: Tue, 3 Nov 2026 23:19:15 +0800
+Subject: [PATCH] arm64: dts: rockchip: disable unsupported topeet media
+ secondary cores
+
+RGA, Hantro and rkvdec deliberately bind only the first available
+instance with the same primary compatible. Secondary instances return
+ENODEV because the drivers do not support scheduling across them. Those
+available but unbound devices keep the PM-domain supplier's strict
+sync_state pending, even when the primary drivers are present.
+
+Disable the secondary RGA3, VEPU121 and RKVDEC nodes together with their
+private IOMMUs in this board DT. Keep the primary instance of each media
+engine and the AV1 pair enabled. This makes the described availability
+match the actual single-instance driver support; it does not change
+fw_devlink synchronization policy or suppress its diagnostics.
+
+The companion board configuration enables the media core, Hantro, RGA,
+rkvdec and VSI IOMMU built-in. The BusyBox/NFS rootfs has no module tree;
+without the parent media symbols set to y, the existing RGA=y request
+was silently reduced to m and all media consumers remained unbound.
+
+Signed-off-by: Charliechen114514 <725610365@qq.com>
+---
+ .../arm64/boot/dts/rockchip/rk3588-topeet.dts | 46 +++++++++++++++++++
+ 1 file changed, 46 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+index 741729f98..c84b3ed95 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-topeet.dts
+@@ -1060,3 +1060,49 @@ rknpu: rknpu@fdab0000 {
+ &rknn_mmu_0 {
+ 	status = "okay";
+ };
++
++/*
++ * 主线 RGA/Hantro/rkvdec 只绑定同类 IP 的首个实例,副核心 probe 会返回
++ * -ENODEV。显式停用副核心及其独立 IOMMU,
++ * 避免电源域永远等待未绑定消费者。
++ * 未来驱动具备多核调度能力时,再成对启用这些节点。
++ */
++&rga3_core1 {
++	status = "disabled";
++};
++
++&rga3_1_mmu {
++	status = "disabled";
++};
++
++&vepu121_1 {
++	status = "disabled";
++};
++
++&vepu121_1_mmu {
++	status = "disabled";
++};
++
++&vepu121_2 {
++	status = "disabled";
++};
++
++&vepu121_2_mmu {
++	status = "disabled";
++};
++
++&vepu121_3 {
++	status = "disabled";
++};
++
++&vepu121_3_mmu {
++	status = "disabled";
++};
++
++&vdec1 {
++	status = "disabled";
++};
++
++&vdec1_mmu {
++	status = "disabled";
++};
+-- 
+2.43.0
+
