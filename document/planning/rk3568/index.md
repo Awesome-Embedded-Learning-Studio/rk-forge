@@ -4,7 +4,7 @@ title: "RK3568 教学路线：AArch64 Linux 驱动与接口工程"
 
 # RK3568 教学路线：AArch64 Linux 驱动与接口工程
 
-> 状态：**partial**。RK3568（正点原子 ATK-DLRK3568 EVB1 DDR4 v1.0）已真机 boot 到 login：主线 kernel 7.1 + 主线 U-Boot + binman 自产 loader（零 vendor 工具），双 GMAC、eMMC、LCD ILI9881C、Panfrost Mali-G52、CAN、RTC、Goodix 触摸多外设板验；rootfs 走 buildroot Phase 2a 全功能栈（Qt6/Mesa/GStreamer/Weston）。课程化（章节、实践、证据挂接）仍在进行，板级 DT 正整理进有序补丁库（[boards/rk3568-atk/patches/](../../../boards/rk3568-atk/patches/)，内部代号 P4 工程债），WiFi 驱动（rtl8852bs）已接线集成、真机验证待做，VPU/NPU、PCIe/SATA 仍属 roadmap。
+> 状态：**partial**。RK3568（正点原子 ATK-DLRK3568 EVB1 DDR4 v1.0）已真机 boot 到 login：主线 kernel 7.1 + 主线 U-Boot + binman 自产 loader（零 vendor 工具），双 GMAC、eMMC、LCD（working-tree 里用 ILI9881C descriptor 点亮，panel IC 身份在 notes/41/42 两说、板上读 ID 前不写死）、Panfrost Mali-G52、CAN、RTC、Goodix 触摸多外设板验；rootfs 走 buildroot Phase 2a 全功能栈（Qt6/Mesa/GStreamer/Weston）。课程化（章节、实践、证据挂接）仍在进行，板级 DT 正整理进有序补丁库（[boards/rk3568-atk/patches/](../../../boards/rk3568-atk/patches/)，内部代号 P4 工程债），WiFi 驱动（rtl8852bs）已接线集成、真机验证待做，VPU/NPU、PCIe/SATA 仍属 roadmap。
 
 ## 1. 路线承诺
 
@@ -115,7 +115,7 @@ RK3568 与 RK3588 同为 AArch64，不代表二者能够共用 U-Boot、ATF、�
 
 ## 8. 硬件确认门
 
-以下事项中，开发板型号（ATK-DLRK3568 EVB1 DDR4 v1.0）、DRAM、eMMC、调试串口、以太网、显示（LCD ILI9881C）和触摸已在真板确认；其余仍待确认的，相应章节保持 `planned`：
+以下事项中，开发板型号（ATK-DLRK3568 EVB1 DDR4 v1.0）、DRAM、eMMC、调试串口、以太网、显示（LCD 点亮；panel IC 身份 HX8394 与 ILI9881C 两说，待板上读 ID 定谳）和触摸已在真板确认；其余仍待确认的，相应章节保持 `planned`：
 
 - 具体开发板型号和 PCB 版本；
 - DRAM 容量；

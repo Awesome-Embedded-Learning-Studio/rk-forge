@@ -9,7 +9,7 @@ title: 教程系列
 rk-forge 围绕三块 Rockchip 开发板组织教程，它们是一条递进的阶梯，不是三门平行的课：
 
 - 🟢 **[RK3506B 系列](#rk3506b-系列-完整教程)** —— 主线 bring-up 主课，也是教程最完整的一块：工具链 → rootfs → 外设 → SD 启动 → forge 编排器，五阶段全兑现。
-- 🟡 **[RK3568 系列](rk3568/)** —— 从 ARM32 进 AArch64、学标准 Linux 驱动框架。当前 MVP：启动首启章已写真板验证，其余课程建设中。
+- 🟡 **[RK3568 系列](rk3568/)** —— 从 ARM32 进 AArch64、学标准 Linux 驱动框架。当前 MVP：启动与板级 DT 两章已写板上验证，其余课程建设中。
 - 🟡 **[RK3588 系列](rk3588/)** —— 异构、媒体、桌面产品级。U-Boot / 内核 v7.3.1 / LCD / GPU / rootfs / TFTP+NFS / 外设 / NPU 九章已写板上验证，第十章 GPU 用户态是 QEMU 仿真研究线。
 
 新手从 RK3506B 进；做过 BSP 想系统学 AArch64 驱动框架的从 RK3568 进；做异构 / 媒体 / 桌面产品的从 RK3588 进。无论从哪块板进，第 0 步都一样——[环境准备](#环境准备三块板共用)：把 WSL2 搭干净、把 USB 设备直通进来。三块板的完整教学目标、课程顺序和当前状态，见 [三板教学路线](../planning/)。
@@ -119,11 +119,11 @@ RK3568 是 AArch64 + 标准驱动框架的中间级。主线 7.1 + binman 自产
 
 <ChapterNav>
   <ChapterLink num="00" href="rk3568/00_roadmap">路线图：RK3568 在阶梯里的位置</ChapterLink>
-  <ChapterLink num="01" href="rk3568/01_boot">引导启动：主线 7.1 真机首启到 login</ChapterLink>
+  <ChapterLink num="01" href="rk3568/01_boot">引导启动：主线 7.1 板上首启到 login</ChapterLink>
   <ChapterLink num="02" href="rk3568/02_peripherals">板级 DT 八子系统：从"能启动"到"能用"</ChapterLink>
 </ChapterNav>
 
-> 🚧 板级 DT 八子系统（PMIC / 双 GMAC / audio / 触摸 / LCD / GPU / CAN / RTC）、rtl8852bs WiFi、buildroot Phase 2a 全栈——在 [notes/40–42](../notes/) 有真机记录，但等板 DT patch 化（P4）落定后再课程化成章节。完整课程目标见 [RK3568 路线](../planning/rk3568/)。
+> 🚧 板级 DT 八子系统已写进 [02 章](rk3568/02_peripherals)（板验在案，但板级 DT 仍是 working-tree delta，等 patch 化（P4）落定后第二人才能 clone 复现）；rtl8852bs WiFi 驱动已接线进构建、板上验证待做，buildroot Phase 2a 全栈的课程化也排在后面，素材都在 [notes/40–42](../notes/)。完整课程目标见 [RK3568 路线](../planning/rk3568/)。
 
 ## RK3588 系列
 

@@ -6,7 +6,7 @@ title: RK3568 教程
 
 RK3568 是这条阶梯的中间级——从 RK3506B 的 ARM32 / 主线 bring-up，往上走到 AArch64、ATF 和标准 Linux 驱动框架。它的主线支持很成熟（Collabora 早就伺候明白），所以咱们在这块板上的活，和 RK3588 一样不是"补主线缺的驱动"，而是"把 vendor SDK 拔掉、主线 U-Boot + 主线 kernel + binman 自产 loader 重新走一遍"，顺带学 AArch64 那一套（EL0–EL3、ATF、PSCI、64 位地址）。
 
-> 诚实地说：RK3568 现在是 `partial`，而且比 RK3588 更靠前——教程目前**只有启动首启这一章是真机验证过的**。ROADMAP 里规划的那套完整的 AArch64 驱动框架课（字符设备、platform driver、DT binding、IRQ、DMA、I²C/SPI、DRM……）还没课程化；板级设备树的 8 个子系统（PMIC/eth/audio/touch/LCD/WiFi）移植虽然做了，**但目前是 working-tree delta，没正式 patch 化进 `patches/rk3568-atk/`**——这块板要能被第二人 clone 复现，得先把这个 patch 化的工程债还上（见 [sdk-diff-rk3568](../../sdk-diff-rk3568)）。所以本卷是 MVP：启动章能读，其余标"建设中"。
+> 诚实地说：RK3568 现在是 `partial`——01、02 两章已经写成，都有板上的串口证据撑着。ROADMAP 里规划的那套完整的 AArch64 驱动框架课（字符设备、platform driver、DT binding、IRQ、DMA、I²C/SPI、DRM……）还没课程化；板级设备树的 8 个子系统（PMIC、双 GMAC、audio、触摸、LCD、GPU、CAN、RTC）移植做了、板验了，**但板级 DT 目前是 working-tree delta，没正式 patch 化进 `patches/rk3568-atk/`**——这块板要能被第二人 clone 复现，得先把这个 patch 化的工程债还上（见 [sdk-diff-rk3568](../../sdk-diff-rk3568)）。所以本卷是 MVP：两章能读，其余标"建设中"。
 
 <ChapterNav>
   <ChapterLink num="00" href="00_roadmap">路线图：RK3568 在三板阶梯里的位置</ChapterLink>

@@ -22,7 +22,7 @@ RK3568 的主线支持很完整——`rk3568.dtsi` 里 SoC 级的控制器（GMA
 
 这八个子系统按移植难度分三档：接线就能亮的（A 类）、补一块数据 descriptor 的（LCD）、搬 vendor 驱动的（WiFi，不在这卷）。咱们按「先顺的、再卡住的、最后要写代码的」这个顺序走。
 
-大半是 A 类——主线驱动直接能用，咱们要做的只是把 ATK 板的具体硬件（PHY 型号、屏参、GPIO）在 DT 里接上线。双网口走两个 RTL8211F，给 gmac0/gmac1 配上 RGMII 的 phy-mode 和收发 delay，eth0/eth1 就亮；PMIC 是 RK809，给全板供电，顺带把 io-domain 按板上的 1.8V / 3.3V 配好（这步配错外设会不稳，是 A 类里唯一要动脑子的地方）；触摸 GT911（板上是 GT928），主线 goodix 驱动会 runtime 读 chip_id 自己适配，配上 falling-edge 的 IRQ 就有 `/dev/input/event0`；GPU 也在这档，主线 Panfrost 直接驱动 Mali-G52，板验看到 card1（card0 留给显示）。剩下 CAN1（rockchip_canfd）、RTC（pcf8563）、PWM 风扇（这里有个小坑要记一下：fan-supply 是 `dc_12v` 不是 5V，照惯例抄 5V 会带不动）、HDMI、eMMC HS200、TF 卡槽——全是接线即亮，没故事。这一档走完，板子已经「能用」一大半了。
+大半是 A 类——主线驱动直接能用，咱们要做的只是把 ATK 板的具体硬件（PHY 型号、屏参、GPIO）在 DT 里接上线。双网口走两个 RTL8211F，给 gmac0/gmac1 配上 RGMII 的 phy-mode 和收发 delay，eth0/eth1 就亮；PMIC 是 RK809，给全板供电，顺带把 io-domain 按板上的 1.8V / 3.3V 配好（这步配错外设会不稳，是 A 类里唯一要动脑子的地方）；触摸 GT911（板上是 GT928），主线 goodix 驱动会 runtime 读 chip_id 自己适配，配上 falling-edge 的 IRQ 就有 `/dev/input/event0`；GPU 也在这档，主线 Panfrost 直接驱动 Mali-G52，板验看到 card1（card0 留给显示）。剩下 CAN1（rockchip_canfd）、RTC（pcf8563）、PWM 风扇（这里有个小坑要记一下：fan-supply 是 `dc_12v` 不是 5V，照惯例抄 5V 会带不动）、eMMC HS200、TF 卡槽——全是接线即亮，没故事。HDMI 是个小例外，显示控制器的那路输出咱们没接屏，驱动倒是 bound 了，枚举成功就算它板上的终点，点亮咱们不宣称。这一档走完，板子已经「能用」一大半了。
 
 音频本来也该是 A 类，结果卡住了。这板没有 ES8388，模拟音频走 RK809 内置的 codec（主线 `rk817_codec.c`），machine driver 用 `simple-audio-card`——主线都有。可板验时 rk809-sound 声卡没 probe，dmesg 报：
 
@@ -76,7 +76,7 @@ CONFIG_SND_SIMPLE_CARD=y
 CONFIG_TOUCHSCREEN_GOODIX=y
 CONFIG_CAN_ROCKCHIP_CANFD=y
 CONFIG_RTC_DRV_PCF8563=y
-CONFIG_DRM_PANTHOR=y
+CONFIG_DRM_PANFROST=y
 ```
 
 ## 成功长这样
@@ -90,7 +90,7 @@ eth1: ... RTL8211F ...
 rockchip-pmics ... rk809 ...          # PMIC
 [drm] Initialized rockchip ...        # DRM 起
 card0-DSI-1: connected, fb0           # LCD 点亮
-panthor mali-g52 id 0x7402, card1     # GPU
+panfrost mali-g52 id 0x7402, card1     # GPU
 Goodix GT928, /dev/input/event0       # 触摸
 rockchip_canfd can0                   # CAN
 pcf8563                               # RTC
