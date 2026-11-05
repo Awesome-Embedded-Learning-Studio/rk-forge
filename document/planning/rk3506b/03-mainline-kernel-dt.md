@@ -46,6 +46,12 @@ title: "卷三：主线内核、设备树与补丁"
 |---|---|
 | [sdk-diff.md](../../sdk-diff.md) | 第 6 章活教材：BSP 与主线逐子系统差距 |
 | [boards/aes/patches/](../../../boards/aes/patches/) | 三组补丁系列（linux/uboot/openwrt，`0001-` 起编号）讲补丁秩序 |
+| [tutorial/boot/03](../../tutorial/boot/03_kernel.md) + [peripherals](../../tutorial/peripherals/) 各章 + [forge/00](../../tutorial/forge/00_forge.md) | 第 5 章正文已兑现于 boot/03 与 peripherals 各章 DT 实战；第 6 章纪律散见 boot/00、forge/00 与各章 patch 编号引用 |
 | [notes/02](../../notes/02-2026-06-14-mainline-bringup-handoff.md)、[04](../../notes/04-2026-06-14-mainline-uboot-via-vendor-spl.md)、[10](../../notes/10-2026-06-15-dt-migration-sfc-spi-nand-partitions.md)、[12](../../notes/12-2026-06-17-kill-vendor-sdk-assessment.md)、[17](../../notes/17-2026-06-18-patch-solidification-sop.md) | 取证链 |
 | [notes/23（RMIO 交叉开关）](../../notes/23-2026-06-19-peripheral-bringup-a2-rmio-i2c-uart2.md) | 第 5 章 RMIO 素材 |
 | books 的 ARMv7 编程手册与 Cortex-A7 TRM | 架构参考（`.claude/books/`，本地资料） |
+
+## 缺口（待写）
+
+- 第 5 章：「外设节点五件套 / probe 失败四层定位」方法论散在正文，未显式成节（小节级，可接受）。素材：[boot/03](../../tutorial/boot/03_kernel.md)、[peripherals/00 路线图](../../tutorial/peripherals/00_roadmap.md)。
+- 第 6 章：series 纪律专节、全新 clone `git am` 全 series 演练、补丁三命运、sdk-diff 维护方法、上游化预热池未写。素材：[boards/aes/patches/](../../../boards/aes/patches/)、[sdk-diff.md](../../sdk-diff.md)、[notes/17（补丁固化 SOP）](../../notes/17-2026-06-18-patch-solidification-sop.md)；Git 通论由 [host 总纲](../../tutorial/host/00_roadmap.md)第 3 章规划承接（未写）。

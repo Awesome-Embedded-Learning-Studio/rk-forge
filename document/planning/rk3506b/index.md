@@ -4,7 +4,7 @@ title: "RK3506B 教学路线：从主线 BSP 到可靠工业设备"
 
 # RK3506B 教学路线：从主线 BSP 到可靠工业设备
 
-> 状态：**partial（课程规划）**。仓库已经拥有 AES-RK3506B 的主线 U-Boot、Linux、SPI-NAND/UBIFS、SD、Buildroot、OpenWrt、外设和真板日志基线；本文件规划如何把这些工程成果组织成课程。单章是否完成仍须以对应配置、构建产物和真板证据为准。
+> 状态：**partial（主干课程已兑现，余项见下方卷表）**。仓库已经拥有 AES-RK3506B 的主线 U-Boot、Linux、SPI-NAND/UBIFS、SD、Buildroot、OpenWrt、外设和真板日志基线；主干正文已兑现于 [tutorial/](../../tutorial/)（boot、rootfs、peripherals、sd-boot、forge 五卷，加 openwrt 支线与 host 前置）。单章是否完成仍须以对应配置、构建产物和真板证据为准。
 
 ## 1. 路线承诺
 
@@ -35,6 +35,8 @@ RK3506B 路线不以“烧录一个 rootfs”作为终点，而是训练学习�
 课程只能把 AES-RK3506B 的真板结论用于该板卡。其他 RK3506/RK3506B 板卡即使 SoC 相同，也必须重新确认设备树、存储、接口和启动配置。
 
 ## 3. 适合谁学习
+
+> 第 0 步：[host 环境准备（三板共用）](../../tutorial/host/)——八章总纲 + WSL2/usbipd 两篇正文已兑现，本线不重述。
 
 ### 直接进入者
 
@@ -77,20 +79,21 @@ RK3506B 路线不以“烧录一个 rootfs”作为终点，而是训练学习�
 
 ## 5. 课程编排
 
-七个卷，十七章，外加三个候选毕业项目：
+前置第 0 步：[host 环境准备（三板共用）](../../tutorial/host/)。七个卷，十七章，外加三个候选毕业项目：
 
-| 卷 | 章 | 主题 | 状态 |
-|---|---|---|---|
-| [卷一：读取真板，而不是背诵命令](01-read-the-board.md) | 第 1–2 章 | 板上家当、两条启动路线、启动链总图、ARMv7-A 与 armhf | 🟡 partial |
-| [卷二：掌控 Rockchip 启动链](02-boot-chain.md) | 第 3–4 章 | rkbin 闭源边界、U-Boot、FIT 与启动策略 | 🟡 partial |
-| [卷三：主线内核、设备树与补丁](03-mainline-kernel-dt.md) | 第 5–6 章 | 从 SoC 支持到板级设备树、有序补丁与主线差距 | 🟡 partial |
-| [卷四：SPI-NAND 与可靠存储](04-spinand-storage.md) | 第 7–10 章 | MTD/UBI/UBIFS、首启置备、断电与长跑可靠性 | 🟡 partial |
-| [卷五：构建自己的用户系统](05-userland.md) | 第 11–12 章 | Buildroot 产品系统、OpenWrt 网络设备 | 🟡 partial |
-| [卷六：工业接口与网络](06-industrial-io.md) | 第 13–15 章 | 双网口 GMAC/PHY、I²C/SPI/UART 与 RMIO、USB/Wi-Fi/音频选修 | 🟡 partial |
-| [卷七：工程交付与真板取证](07-delivery-evidence.md) | 第 16–17 章 | 可复现构建与回归、怎样证明一项能力已经完成 | 🟡 partial |
-| [毕业项目](capstone-projects.md) | — | 工业双网口协议网关、OpenWrt 边缘路由、数据采集终端 | ⚪ planned |
+| 卷 | 章 | 主题 | 教程兑现 | 状态 |
+|---|---|---|---|---|
+| [卷一：读取真板，而不是背诵命令](01-read-the-board.md) | 第 1–2 章 | 板上家当、两条启动路线、启动链总图、ARMv7-A 与 armhf | [boot 卷 00–02](../../tutorial/boot/)：ch1 主体、ch2 实用子集（深架构未写） | 🟡 partial |
+| [卷二：掌控 Rockchip 启动链](02-boot-chain.md) | 第 3–4 章 | rkbin 闭源边界、U-Boot、FIT 与启动策略 | ch3/ch4 主体在 [boot/02](../../tutorial/boot/02_uboot_rkbin.md) + [sd-boot 全卷](../../tutorial/sd-boot/)（三入口设计小节待补） | 🟢 verified |
+| [卷三：主线内核、设备树与补丁](03-mainline-kernel-dt.md) | 第 5–6 章 | 从 SoC 支持到板级设备树、有序补丁与主线差距 | ch5 [boot/03](../../tutorial/boot/03_kernel.md) + [peripherals](../../tutorial/peripherals/) DT 实战；ch6 纪律散见 [boot/00](../../tutorial/boot/00_roadmap.md)、[forge/00](../../tutorial/forge/00_forge.md) | 🟢 verified |
+| [卷四：SPI-NAND 与可靠存储](04-spinand-storage.md) | 第 7–10 章 | MTD/UBI/UBIFS、首启置备、断电与长跑可靠性 | [rootfs/00、03](../../tutorial/rootfs/) saga 主体 + [sd-boot](../../tutorial/sd-boot/)（ch7 理论、ch10 实验课未写，约 2.5/4） | 🟡 partial |
+| [卷五：构建自己的用户系统](05-userland.md) | 第 11–12 章 | Buildroot 产品系统、OpenWrt 网络设备 | [rootfs/01–02](../../tutorial/rootfs/)（ch11 基础篇）+ [openwrt 支线单章](../../tutorial/openwrt/)（ch12；网络实战未写） | 🟡 partial |
+| [卷六：工业接口与网络](06-industrial-io.md) | 第 13–15 章 | 双网口 GMAC/PHY、I²C/SPI/UART 与 RMIO、USB/Wi-Fi/音频选修 | [peripherals 01–05](../../tutorial/peripherals/) 全卷（验收指标、RS-485 属小节级缺口） | 🟢 verified |
+| [卷七：工程交付与真板取证](07-delivery-evidence.md) | 第 16–17 章 | 可复现构建与回归、怎样证明一项能力已经完成 | ch16 [forge/00](../../tutorial/forge/00_forge.md)；ch17 未成章 | 🟡 partial |
+| [毕业项目](capstone-projects.md) | — | 工业双网口协议网关、OpenWrt 边缘路由、数据采集终端 | 不要求教程正文 | ⚪ planned |
+| （附）SD 启动挂接 | — | RKFW 容器、SD-1 手动启动、SD-2 autoboot | [sd-boot 三章](../../tutorial/sd-boot/)已全兑现（挂接卷二第 4 章、卷四第 9 章） | 🟢 verified |
 
-> 各卷状态按全仓四档口径标注（`verified` / `partial` / `planned` / `blocked`，见[三板教学路线](../index.md)的状态说明）。RK3506B 整线工程基线已板上验证、课程化在进行，故各卷标 `partial`；升 `verified` 以每章真板证据补齐为准。
+> 各卷状态按全仓四档口径标注（`verified` / `partial` / `planned` / `blocked`，见[三板教学路线](../index.md)的状态说明）。本卷表是章级兑现的唯一真相源：升 `verified` 以该卷规划章的正文与真板证据全部入库为准，章级缺口在各卷文件的「缺口（待写）」小节列明。
 
 ## 6. 候选毕业项目
 

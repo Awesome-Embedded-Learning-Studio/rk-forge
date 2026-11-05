@@ -85,6 +85,14 @@ title: "卷四：SPI-NAND 与可靠存储"
 | [pitfalls/04（SPI-NAND saga）](../../pitfalls/04-sfc-nand-saga.md) | 全仓最重的一篇复盘，本卷叙事主线 |
 | NAND 九篇流水：[05](../../notes/05-2026-06-15-nand-boot-bbm-ecc-debug.md)、[06](../../notes/06-2026-06-15-nand-recovery-vendor-sfc-bbt.md)、[14](../../notes/14-2026-06-18-rootfs-peb34-readpath-bug.md)、[15](../../notes/15-2026-06-18-sfc-nand-saga-finale-memo.md)、[16](../../notes/16-2026-06-18-spinand-ecc-diagnosis-playbook.md)、[24](../../notes/24-2026-06-19-sfc-abort-rootcause-reserved-memory-trust.md)、[25](../../notes/25-2026-06-19-sfc-abort-misdiagnosis-ddr-sfc-pitfalls.md)、[26](../../notes/26-2026-06-19-ubiprog-loader-weakwrite-status-and-rkbin-lead.md)、[27](../../notes/27-2026-06-20-loader-weakwrite-overturned-linux-sfc-read-bug-dma.md) | 逐案取证 |
 | [notes/11（断电与冷重启验证）](../../notes/11-2026-06-16-patch-verification-rw-rootfs.md) | 第 10 章验证记录 |
-| [tutorial/rootfs/03（loader 弱写与置备）](../../tutorial/rootfs/03_ubifs_loader_weakwrite.md) | 第 9 章初稿 |
+| [tutorial/rootfs/00、03](../../tutorial/rootfs/) | 第 7–10 章正文主体已兑现于 rootfs 卷（initramfs vs UBIFS 两路、ubiprog 置备 saga、三轮冷重启证据） |
+| [tutorial/sd-boot/](../../tutorial/sd-boot/) | 第 9 章「SD 适合置备/救援」的正文承接：RKFW 容器与置备/试验两条路 |
 | [pitfalls/05（reserved-memory 与 external abort）](../../pitfalls/05-secure-mem-reservation-imprecise-abort.md) | 存储与内存边界交叉案例 |
 | [logs/](../../logs/) 的 boot-sdl 长跑系列 | 多轮冷重启证据 |
+
+## 缺口（待写）
+
+- 第 7 章：page/OOB/坏块物理、EUCLEAN vs EBADMSG、写入四威胁（断电窗口/program disturb/read disturb/retention）、`mtd_debug`/`nanddump` 实验课未写。素材：[notes/16（ECC 诊断 playbook）](../../notes/16-2026-06-18-spinand-ecc-diagnosis-playbook.md)、[notes/05](../../notes/05-2026-06-15-nand-boot-bbm-ecc-debug.md)、[06](../../notes/06-2026-06-15-nand-recovery-vendor-sfc-bbt.md)。
+- 第 8 章：PEB/LEB/EC/VID header 理论章、`ubinize` 实验、人为制造 journal recovery 实验未写。素材：[notes/14（PEB34 读路径 bug）](../../notes/14-2026-06-18-rootfs-peb34-readpath-bug.md)、[notes/15（saga 终章备忘）](../../notes/15-2026-06-18-sfc-nand-saga-finale-memo.md)。
+- 第 9 章：救援镜像独立启动、「故意改坏 → 救援 → 恢复」演练、正常/置备/救援三镜像分工课未写。素材：[rootfs/03](../../tutorial/rootfs/03_ubifs_loader_weakwrite.md)（read-modify-write + marker + switch_root）、[forge/00](../../tutorial/forge/00_forge.md)（`--provision/--rescue`）、[sd-boot 卷](../../tutorial/sd-boot/)。
+- 第 10 章：故障注入循环、「X 轮冷重启 + Y 轮断电 + Z 小时连续写」验收指标、写放大三招专讲、存储可靠性报告课未写（证据已在，课未写）。素材：[notes/11（断电与冷重启验证）](../../notes/11-2026-06-16-patch-verification-rw-rootfs.md)、[logs/](../../logs/) 的 boot-sdl 长跑系列。

@@ -54,8 +54,13 @@ title: "卷六：工业接口与网络"
 
 | 资产 | 用途 |
 |---|---|
-| [tutorial/peripherals/01–05](../../tutorial/peripherals/) | 第 13、14 章初稿 |
+| [tutorial/peripherals/01–05](../../tutorial/peripherals/) | 第 13–15 章正文已兑现于 peripherals 全卷（01 双网口/SPI/MMC 翻案、02 USB、03 WiFi、04 RMIO/I²C/UART、05 音频） |
 | [notes/21](../../notes/21-2026-06-19-peripheral-bringup-a1-eth-mmc-spi.md)、[22](../../notes/22-2026-06-19-mmc-sd-error110-investigation.md)、[23](../../notes/23-2026-06-19-peripheral-bringup-a2-rmio-i2c-uart2.md) | 外设三篇流水与 RMIO 案例 |
 | [notes/28](../../notes/28-2026-06-20-usb-bringup-usb2phy-dwc2.md) + [pitfalls/06（USB2PHY 与 DWC2）](../../pitfalls/06-usb-bringup-usb2phy-dwc2.md) | USB 素材 |
 | [notes/29](../../notes/29-2026-06-20-wifi-rtl8733bu-driver-port-roadmap.md)、[30](../../notes/30-2026-06-20-wifi-rtl8733bu-port-complete.md) + [pitfalls/07（RTL8733BU 移植全案）](../../pitfalls/07-wifi-out-of-tree-port.md) | Wi-Fi 招牌素材 |
 | books/RK3506B 包的 CAN 入门与协议文档 | 工业接口参考（`.claude/books/`，本地资料） |
+
+## 缺口（待写）
+
+- 第 13 章：bring-up 已覆盖；bridge/routing/NAT 转发通路、`ethtool -S` 计数快照、iperf3 吞吐验收、双口 IRQ 绑核、24 小时长跑验收课未写。素材：[peripherals/01（gmac0/gmac1 翻案 saga）](../../tutorial/peripherals/01_eth_spi_mmc.md)。
+- 第 14 章：RS-485 方向控制（`SER_RS485`）未写；I²C 板验到总线扫描为止、无真实传感器设备（[peripherals/00](../../tutorial/peripherals/00_roadmap.md) 的 T3 档已诚实标注）。素材：[peripherals/04](../../tutorial/peripherals/04_i2c_uart_rmio.md)、[notes/23（RMIO）](../../notes/23-2026-06-19-peripheral-bringup-a2-rmio-i2c-uart2.md)。
