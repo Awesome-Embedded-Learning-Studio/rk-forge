@@ -6,7 +6,7 @@
 
 Realtek 这类 WiFi 驱动向来是出了名的 out-of-tree：代码量大（两百多个源文件）、跟着内核 API 漂移，Kbuild 还是一套一份的 Makefile，同时管所有 RTL8xxx 芯片的多芯片怪物。咱们这颗芯片的主线核查是做过一遍的，而且不是 `grep` 假象：内核是 Linux 7.1.0，`drivers/net/wireless` 里搜 `8733` 是空的，而 `0bda:b733` 没有任何驱动 claim，rtw89 顶到 8851B/8852 系就停了，而 rtl8xxxu 也不覆盖这颗。所以“找个 backport 目标”的路是没有的，咱们只有搬一份 out-of-tree 驱动的路。
 
-上游社区有个现成的 [wirenboard/rtl8733bu](https://github.com/wirenboard/rtl8733bu)（基于 Realtek `v5.15.12-264`，README 里 6.8 也是测过的），咱们以它为底往 7.1 上搬。主线内核里没有它的驱动这件事，用户已经授权松动——就这一颗——板载的 WiFi 走纯主线 7.1 内核加移植驱动，不依赖原厂的 BSP。集成方式是 in-tree `=m` 模块：放进内核树的 `drivers/net/wireless/realtek/rtl8733bu/`，编出的 `8733bu.ko` 进 rootfs，switch_root 之后咱们用 busybox `insmod` 把它装进来。为什么不是 `=y`？因为咱们的启动链要走 initramfs、ubiprog，而后再 switch_root 到 UBIFS，`=y` 会在还没挂上 UBIFS 的 initramfs 阶段 probe，那时的固件也不在，所以 `request_firmware` 必失败。而 `=m` 推到 switch_root 之后才加载，固件就在 `/lib/firmware/` 了。咱们把 CFG80211 内建成 `=y`，保证模块的依赖永远在。
+上游社区有个现成的 [wirenboard/rtl8733bu](https://github.com/wirenboard/rtl8733bu)（基于 Realtek `v5.15.12-264`，README 里 6.8 也是测过的），咱们以它为底往 7.1 上搬。主线内核里没有它的驱动，这一颗是全卷唯一获准的例外，板载的 WiFi 走纯主线 7.1 内核加移植驱动，不依赖原厂的 BSP。集成方式是 in-tree `=m` 模块：放进内核树的 `drivers/net/wireless/realtek/rtl8733bu/`，编出的 `8733bu.ko` 进 rootfs，switch_root 之后咱们用 busybox `insmod` 把它装进来。为什么不是 `=y`？因为咱们的启动链要走 initramfs、ubiprog，而后再 switch_root 到 UBIFS，`=y` 会在还没挂上 UBIFS 的 initramfs 阶段 probe，那时的固件也不在，所以 `request_firmware` 必失败。而 `=m` 推到 switch_root 之后才加载，固件就在 `/lib/firmware/` 了。咱们把 CFG80211 内建成 `=y`，保证模块的依赖永远在。
 
 ## Phase 1：稳住 in-tree build（Kbuild 重写）
 
@@ -51,7 +51,7 @@ struct 里的那 9 处赋值改成指向 wrapper（`.add_key = cfg80211_rtw_add_
 
 ⚠️ 一个常被忘的步骤：`boot.img` 必须**用新 zImage 重打**。CFG80211 从 `m` 翻成 `=y` 进了 vmlinux，旧 boot.img 里那个 zImage 没有内建 cfg80211 的符号，模块加载时符号对不上、直接就挂了。咱们把 `pack-fit.sh` 重打完再用 `assemble-update.sh` 出 `update.img`。
 
-rootfs 的集成咱们走 [`stage-rootfs.sh`](../../../scripts/stage-rootfs.sh)：`8733bu.ko` 注进 `lib/modules/`，固件 `rtl8733bu_fw` + `rtl8733bu_config` 进 `lib/firmware/`（它们原来在 ATK 的 vendor-sdk overlay 里，forge 这边现在已经脱钩到本地 `firmware/rtl8733bu/`，跟 ATK 的 vendor-sdk 解了绑），咱们再放一个 [`S99wifi`](../../../boards/aes/buildroot-external/overlay/etc/init.d/S99wifi) 开机脚本，它在 busybox init 的 rcS 末尾跑 `insmod /lib/modules/8733bu.ko`，非致命的设定、失败也不挡启动。buildroot 的 defconfig 补上 `wpa_supplicant`（带 NL80211）、`iw`、`wireless_tools`，libnl 会自动跟上的。
+rootfs 的集成当年落在 `stage-rootfs.sh` 手里，它是 bash 时代的一员，cce9f63 那次重写把它随整批脚本一起送走了，如今的对应活住在 [src/forge 的 staging 模块](../../../src/forge/stage.py)：`8733bu.ko` 注进 `lib/modules/`，固件 `rtl8733bu_fw` + `rtl8733bu_config` 进 `lib/firmware/`（它们原来在 ATK 的 vendor-sdk overlay 里，forge 这边现在已经脱钩到本地 `firmware/rtl8733bu/`，跟 ATK 的 vendor-sdk 解了绑），咱们再放一个 [`S99wifi`](../../../boards/aes/buildroot-external/overlay/etc/init.d/S99wifi) 开机脚本，它在 busybox init 的 rcS 末尾跑 `insmod /lib/modules/8733bu.ko`，非致命的设定、失败也不挡启动。buildroot 的 defconfig 补上 `wpa_supplicant`（带 NL80211）、`iw`、`wireless_tools`，libnl 会自动跟上的。
 
 buildroot 这步咱们碰上了 WSL 的一个老毛病：`make` 直接 `Your PATH contains spaces, TABs, and/or newline … Error 1`（`support/dependencies/dependencies.mk` 的 PATH 检查），原因是 WSL 默认 PATH 里漏进了 `/mnt/c/Program Files/...` 这类带空格的项，而 buildroot 是不接受它的。咱们剥掉含 `/mnt` 或空格的 PATH 项再 make：
 
@@ -67,7 +67,7 @@ PATH=$(echo "$PATH" | tr ':' '\n' | grep -vE '^/mnt| ' | paste -sd:) make
 
 ```
 S99wifi: loading RTL8733BU driver…
-8733bu: loading out-of tree module taints kernel.        ← 模块加载成功
+8733bu: loading out-of-tree module taints kernel.        ← 模块加载成功
 RTW: CHIP TYPE: RTL8733B                                  ← probe 进 HAL
 RTW: VID = 0x0BDA, PID = 0xB733
 RTW: rtl8733b_fw_dl Download Firmware from array success ← 固件从内建 array 下，v1.40 126664B
@@ -93,16 +93,16 @@ udhcpc -i wlan0
 
 Phase 1-5 做到了“能跑”，但一个 untracked 的 221 文件原始驱动包，是不算可复现的——新机器 `git checkout` 不会有那坨东西。所以咱们把它 patch 化了，把真相源收敛到了**一处**。
 
-真相源是咱们自己的一个 forge fork [`Awesome-Embedded-Learning-Studio/rtl8733bu-linux-driver`](https://github.com/Awesome-Embedded-Learning-Studio/rtl8733bu-linux-driver)，branch 定在了 `linux-7.1-port`，许可证标的是 GPL-2.0-only。从 Realtek 到 wirenboard `v5.15.12-264_for6.18` 再到 7.1 的整条移植链，从静态 Kbuild Makefile（替换 2803 行原版）、USB 加 CFG80211 的 Kconfig，到 `ioctl_cfg80211.c` 的 9 个 wdev wrapper，全 bake 进了 fork，fork 本身就是 ready-to-build 的驱动，clone 下来直接进内核树就能编了。rk-forge 这边只留三件 tracked 的小东西：
+真相源是咱们自己的一个 forge fork [`Awesome-Embedded-Learning-Studio/rtl8733bu-linux-driver`](https://github.com/Awesome-Embedded-Learning-Studio/rtl8733bu-linux-driver)，branch 定在了 `linux-7.1-port`，许可证标的是 GPL-2.0-only。从 Realtek 到 wirenboard `v5.15.12-264_for6.18` 再到 7.1 的整条移植链，从静态 Kbuild Makefile（替换 2803 行原版）、USB 加 CFG80211 的 Kconfig，到 `ioctl_cfg80211.c` 的 9 个 wdev wrapper，全 bake 进了 fork，fork 本身就是 ready-to-build 的驱动，clone 下来直接进内核树就能编了。rk-forge 这边当年的形态是三件 tracked 的小东西（补丁、fetch 脚本加 pin 文件），cce9f63 的 Python 重写之后收敛成了两件半，口径咱们照现状交代：
 
-- [patches/linux/0016](../../../boards/aes/patches/linux/0016-wifi-rtl8733bu-wire-realtek.patch)：那 2 行 realtek 接线（Kconfig source + Makefile obj-$()）。它是真 git commit，树保持干净。
-- [`scripts/fetch-rtl8733bu-driver.sh`](../../../scripts/fetch-rtl8733bu-driver.sh)：clone fork @ pin、strip `.git`、清构建产物，用 `.git/info/exclude`（不编辑 tracked `.gitignore`）把 `rtl8733bu/` 排除掉——`git status` 因此永远干净。幂等：`.forge-fetched` marker 记下 clone 的 commit SHA，重跑 no-op，`--force` 才刷新（fork 的 linux-7.1-port 推进后再用）。
-- [`pins/rtl8733bu`](../../../pins/rtl8733bu)：tracked pin，格式 `<git-url> <ref>`，锁 fork 的 `linux-7.1-port` branch。想 bit 级 reproducible 就把 ref 换成 SHA 或 tag。
+- [patches/linux/0016](../../../boards/aes/patches/linux/0016-wifi-rtl8733bu-wire-realtek.patch)：那 2 行 realtek 接线（Kconfig source + Makefile obj-$()）。它是真 git commit，树保持干净，如今仍在 series 里。
+- [forge.yaml 的 pin 条目](../../../forge.yaml)：`rtl8733bu: {url: <fork>, ref: linux-7.1-port}`，当年 `pins/rtl8733bu` 那个独立 pin 文件的继任，锁的还是 fork 的 `linux-7.1-port` branch。想 bit 级 reproducible 就把 ref 换成 SHA 或 tag。
+- fetch 脚本 `fetch-rtl8733bu-driver.sh`（clone fork @ pin、strip `.git`、清构建产物、`.forge-fetched` marker 幂等）已退役，继任是 [src/forge/fetch/driver.py](../../../src/forge/fetch/driver.py)：一个类同时伺候 rtl8733bu 与 rtl8852bs 两块板的 WiFi（当年两个脚本本就几乎同款），板的 `wifi_driver` 字段选驱动，clone、strip、排除、幂等那套语义原样搬了过来。
 
-咱们在执行顺序上让 `fetch-rtl8733bu-driver.sh` 赶在 `apply-series.sh` 之前，因为 patch 0016 要 source 的就是 `rtl8733bu/Kconfig`，所以得让 fetch 把 Kconfig 摆进树里。验证：从 fork fetch 的树和板上的驱动源逐字相同（source identical），在干净的 v7.1 上全 16-patch series apply 通过了，`8733bu.ko` 从 fetched 树零错地编了出来（4163516 B）。
+咱们在执行顺序上的约定没变：fetch 得赶在补丁应用之前，因为 patch 0016 要 source 的就是 `rtl8733bu/Kconfig`，咱们得让 fetch 把 Kconfig 提前摆进树里。验证：从 fork fetch 的树和板上的驱动源逐字相同（source identical），在干净的 v7.1 上全 16-patch series apply 通过了，`8733bu.ko` 从 fetched 树零错地编了出来（4163516 B）。
 
-固件这边同步脱钩：`stage-rootfs.sh` 不再硬依赖 ATK 的 vendor-sdk 路径，固件落到 forge-local 的 `firmware/rtl8733bu/`（gitignored blobs，跟闭源 blob 同立场——不进仓、本地填）。运行时这俩文件其实没用（驱动走 array），咱们 best-effort 暂存。许可层面：fork 是 GPL-2.0-only（Realtek 头加 fork 根 LICENSE 都是这么写的），而 rk-forge 仓是 MIT 的，fetch 引用不感染——这跟 Nixpkgs/Yocto 拉 GPL 源码而自身保持 MIT 是同一回事，咱们不 relicense、也不能 relicense。
+固件这边同步脱钩：staging 不再硬依赖 ATK 的 vendor-sdk 路径，固件落到 forge-local 的 `firmware/rtl8733bu/`（gitignored blobs，跟闭源 blob 同立场——不进仓、本地填）。运行时这俩文件其实没用（驱动走 array），咱们 best-effort 暂存。许可层面：fork 是 GPL-2.0-only（Realtek 头加 fork 根 LICENSE 都是这么写的），而 rk-forge 仓是 MIT 的，fetch 引用不感染——这跟 Nixpkgs/Yocto 拉 GPL 源码而自身保持 MIT 是同一回事，咱们不 relicense、也不能 relicense。
 
 ## 成功长这样
 
-WiFi 全链路咱们打通了：驱动编通、insmod、probe（`CHIP TYPE: RTL8733B`）、固件从 array 下、wlan0/wlan1 创建、ifup 触发完整上电、scan 扫到 AP，最后 wpa_supplicant 加 udhcpc 连上了网。这颗主线没有的板载 WiFi，被咱们用一份纯主线 7.1 内核加移植驱动点亮了，而且整套链路 fork 加 patch 化，新机器上 clone 加一个脚本就能逐字地重现。下一章换条路——RK3506 的 I2C/UART2 走一个主线 pinctrl 压根不认识的交叉开关，咱们得补一个驱动 patch。咱们 Ch4 见。
+WiFi 全链路咱们打通了：驱动编通、insmod、probe（`CHIP TYPE: RTL8733B`）、固件从 array 下、wlan0/wlan1 创建、ifup 触发完整上电、scan 扫到 AP，最后 wpa_supplicant 加 udhcpc 连上了网。这颗主线没有的板载 WiFi，被咱们用一份纯主线 7.1 内核加移植驱动点亮了，而且整套链路 fork 加 pin 化，新机器上 clone 之后 `forge fetch` 一条命令就能逐字地重现。下一章换条路——RK3506 的 I2C/UART2 走一个主线 pinctrl 压根不认识的交叉开关，咱们得补一个驱动 patch。咱们 Ch4 见。
