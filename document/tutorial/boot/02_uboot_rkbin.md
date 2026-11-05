@@ -4,7 +4,7 @@
 
 ## 前言：第一块砖，就撞上闭源咽喉
 
-工具链既然稳了，按计划下一步就是编 U-Boot。主线 U-Boot 对 RK3506 这颗 SoC 是有驱动的——pinctrl、clock、甚至 sdram 初始化的框架都在——但它**没有板级**：没有这块具体板子的 defconfig，没有设备树。这恰恰是 rk-forge 要补的，[patches/uboot/0001](../../../patches/uboot/0001-rockchip-rk3506-add-AES-RK3506B-board-support-DT-def.patch) 那个补丁干的就是这件事。
+工具链既然稳了，按计划下一步就是编 U-Boot。主线 U-Boot 对 RK3506 这颗 SoC 是有驱动的——pinctrl、clock、甚至 sdram 初始化的框架都在——但它**没有板级**：没有这块具体板子的 defconfig，没有设备树。这恰恰是 rk-forge 要补的，[patches/uboot/0001](../../../boards/aes/patches/uboot/0001-rockchip-rk3506-add-AES-RK3506B-board-support-DT-def.patch) 那个补丁干的就是这件事。
 
 编出来是一回事，跑起来是另一回事。RK3506 的启动链，U-Boot proper 是被 SPL 请出来的，而 SPL 这一环目前我们自己的写不出来（方案 A 崩了）。所以现阶段走的是方案 B：**借 vendor 的 DDR/SPL/OP-TEE blob 把链的前半段跑通，再把主线 U-Boot proper 装进 vendor 能认的 FIT 里**。诚实地讲，这不是纯主线 boot——前半段还在借厂商 blob。但它能让主线 U-Boot 在真板上真正跑起来，后面塞内核才有底座。
 
@@ -26,7 +26,7 @@ BootROM 先从存储的扇区 `0x40` 把 idblock 读进来。idblock 里塞着�
 
 这报错极具误导性，笔者一开始真以为是 hash 算法的事。直到老老实实拿 `dumpimage` 把 vendor 那个已知能跑的 `uboot.img` 解开看结构：optee 是 `Firmware` 装在 `0x1000`、uboot 是 `Standalone` 装在 `0x200000`、fdt 是 Flat DT，`conf` 里 `firmware=optee, loadables=uboot, fdt=fdt`。再去翻 vendor 的 `fit_nodes.sh`，人家自己生成的节点里写的也是 `hash { algo = "sha256"; }`——**vendor 自己就用 sha256**。所以根本不是算法问题，是 vendor fork 的 FIT 节点结构、命名、conf 定义，和主线 binman 生成的那套对不上。
 
-正解不是换算法，而是**结构复刻**：手写一个 [`rk3506-mainline.its`](../../../board/aes/fit/rk3506-mainline.its)，100% 照搬 vendor 已经跑通的 FIT 结构，只把 uboot 节点里那块二进制换成主线编出来的 `u-boot-nodtb.bin`。这一步把一个模糊的"hash 问题"收敛成了可操作的"照着抄结构"，是整个方案 B 最值钱的发现。
+正解不是换算法，而是**结构复刻**：手写一个 [`rk3506-mainline.its`](../../../boards/aes/fit/rk3506-mainline.its)，100% 照搬 vendor 已经跑通的 FIT 结构，只把 uboot 节点里那块二进制换成主线编出来的 `u-boot-nodtb.bin`。这一步把一个模糊的"hash 问题"收敛成了可操作的"照着抄结构"，是整个方案 B 最值钱的发现。
 
 ## 坑之二：TEXT_BASE 差了 6MB，还有 OP-TEE 到底跳哪里
 
@@ -48,7 +48,7 @@ banner 都出来了还崩，这种最磨人。顺着 `misc_init_r` 往里挖，�
 
 把上面这些加上打包烧录时踩的，归拢一下，其实就是闭源 rkbin SPL 给我们立的三个规矩——详见 [pitfalls/01](../../pitfalls/01-rkbin-spl-contracts.md)，这里浓缩讲。
 
-**第一个规矩是 chip tag**。打包出来的 `update.img` 头里有一个 chip tag，烧录前工具会拿它跟 loader 里写死的 `CHIP_NAME` 比对，对不上当场拒烧。坑在于：RK3506B 这颗 loader 的真实名字其实是 `RK350F`，对，不是 RK3506——咱们要是手滑硬编一个 `-RK3506`，tag 就对不上，工具翻脸不认人（[`RKBOOT-RK3506B-aes.ini`](../../../board/aes/RKBOOT-RK3506B-aes.ini) 第 13 行 `NAME=RK350F` 就是铁证）。正解是**永远从 loader 动态读这个 tag**：`RK$(dd if=loader bs=1 count=4 skip=21 | rev)`，别图省事硬编。
+**第一个规矩是 chip tag**。打包出来的 `update.img` 头里有一个 chip tag，烧录前工具会拿它跟 loader 里写死的 `CHIP_NAME` 比对，对不上当场拒烧。坑在于：RK3506B 这颗 loader 的真实名字其实是 `RK350F`，对，不是 RK3506——咱们要是手滑硬编一个 `-RK3506`，tag 就对不上，工具翻脸不认人（[`RKBOOT-RK3506B-aes.ini`](../../../boards/aes/RKBOOT-RK3506B-aes.ini) 第 13 行 `NAME=RK350F` 就是铁证）。正解是**永远从 loader 动态读这个 tag**：`RK$(dd if=loader bs=1 count=4 skip=21 | rev)`，别图省事硬编。
 
 **第二个规矩是 OP-TEE 的 hash**。整条 FIT 里，uboot 是 loadable、不被校验；fdt 也不被锁；**唯一被 SPL verified-boot 拿 sha256 锁死的，就是 optee 节点那颗 tee.bin**。方案 B 阶段我们借的是 vendor SPL，它锁的 hash 对应 tee v2.10（`93603ca22c...`）。咱们要是把 tee 换成公开仓里的 v2.40，hash 算出来变成 `616f8152...`，SPL 当场报 `optee Bad hash`——[boot-sdl-202606152121](../../logs/boot-sdl-202606152121.txt) 里这个过程记得一清二楚。所以当时 tee 必须锁定在 v2.10。
 
@@ -56,7 +56,7 @@ banner 都出来了还崩，这种最磨人。顺着 `misc_init_r` 往里挖，�
 
 **第三个规矩是 FIT 的字节布局**。就算咱们 tee 用对了 v2.10，只要这个 FIT 是用主线 `mkimage -E` 打的，optee 照样 Bad hash——只不过这次 hash 变成 `7b78fe4e...`（[boot-sdl-202606152144](../../logs/boot-sdl-202606152144.txt)）。原因很阴：主线 mkimage 和 vendor mkimage 都叫 `-E`（external data），但两者的外部数据**字节布局不一样**，vendor SPL 按它自己那套布局硬读 optee 节点，读错位了，sha256 算的是错位的字节，当然不等于期望值。所以 uboot FIT 必须用 vendor 那颗 2017.09 的 mkimage 打。这是 rkbin SPL 收的一笔"隐性税"。
 
-> 同样诚实一句：后来我们用纯 Python 写了 [fit-pack.py](../../../scripts/fit-pack.py)，把 vendor mkimage 那套 SPL 兼容布局字节级复刻了出来，才算彻底摆脱了 vendor mkimage。但方案 B 那会儿，老老实实用 vendor mkimage 是最快的路。
+> 同样诚实一句：后来我们用纯 Python 写了 [fit-pack.py](../../../src/forge/tools/fit_pack.py)，把 vendor mkimage 那套 SPL 兼容布局字节级复刻了出来，才算彻底摆脱了 vendor mkimage。但方案 B 那会儿，老老实实用 vendor mkimage 是最快的路。
 
 三条规矩看下来，本质是同一件事：rkbin SPL 闭源，它的 chip tag 表、verified boot 锁的 hash、读 FIT 的字节布局，全是它单方面定的契约，我们只能对齐、改不动。主线侧真正自由的只有 kernel FIT（那是主线 U-Boot 加载的，根本不经 SPL verified boot）。要干净掉这三条，唯一的办法是换掉 rkbin SPL——那是远期的事，这章我们先交了"入门税"。
 

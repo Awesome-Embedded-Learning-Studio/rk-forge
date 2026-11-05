@@ -28,16 +28,16 @@ OpenWrt 是另一套哲学：**它给你一套能现场生长的发行版**。ro
 | rootfs 树（busybox + procd + kmod） | **OpenWrt** | musl 工具链，kmod 已经在 `lib/modules/` 里 |
 | U-Boot | **rk-forge** | 主线，板上验过，[build-uboot.sh](../../../scripts/build-uboot.sh) |
 | loader（idbloader / MiniLoaderAll） | **rk-forge** | rkbin，[pack-loader.sh](../../../scripts/pack-loader.sh) |
-| FIT（boot.img / uboot.img） | **rk-forge** | [fit-pack.py](../../../scripts/fit-pack.py)，板上验过的加载地址 |
-| update.img | **rk-forge** | [rkfw-pack.py](../../../scripts/rkfw-pack.py) |
+| FIT（boot.img / uboot.img） | **rk-forge** | [fit-pack.py](../../../src/forge/tools/fit_pack.py)，板上验过的加载地址 |
+| update.img | **rk-forge** | [rkfw-pack.py](../../../src/forge/tools/rkfw_pack.py) |
 
 还有个意外之喜省了我们不少活：OpenWrt 这边 pin 的上游树（[`pins/openwrt`](../../../pins/openwrt) → `czz8888/rk-3506-openwrt-7.1@31d15c0`）已经把 rk-forge 那十六个内核补丁，用 quilt 的 `patches-7.1/series` 逐字搬过去了——也就是说，内核侧那十六个补丁的活儿，人家已经干了一半，OpenWrt 构建的时候 quilt 自己会 apply。咱们 rk-forge 这边只需要补两块 overlay：一块告诉 OpenWrt "aes 这块板子长这样"，一块补上它 config 里漏的几个开关。
 
 ## overlay 只补两块：Device/aes 和 config-7.1
 
-这两块 overlay 就放在 [`patches/openwrt/`](../../../patches/openwrt/)，和 linux/uboot 的补丁一个待遇，走 `apply-series.sh --component openwrt` 用 `git am` 落进 OpenWrt 树。注意，这里 `git am` 的只有 Device 和 config 这点 overlay，**不包括十六个内核补丁**——那些是 quilt 在构建时自己 apply 的，别重复打，重复打就冲突。
+这两块 overlay 就放在 [`patches/openwrt/`](../../../boards/aes/patches/openwrt/)，和 linux/uboot 的补丁一个待遇，走 `apply-series.sh --component openwrt` 用 `git am` 落进 OpenWrt 树。注意，这里 `git am` 的只有 Device 和 config 这点 overlay，**不包括十六个内核补丁**——那些是 quilt 在构建时自己 apply 的，别重复打，重复打就冲突。
 
-第一块 [`0001`](../../../patches/openwrt/0001-openwrt-rk3506-add-aes-nand-device.patch) 是给 OpenWrt 注册一块 `Device/aes_nand`。OpenWrt 的 rockchip target 本来有一套自己的 `rk3506-img` BOOT_FLOW，走它自己那套 u-boot idbloader + u-boot.itb 的流程——但我们压根不用 OpenWrt 的 u-boot，我们用 rk-forge 的主线 U-Boot。所以这个 Device 把 `IMAGES` 和 `BOOT_FLOW` 都留空，明确跳过 OpenWrt 自己的打包流程：
+第一块 [`0001`](../../../boards/aes/patches/openwrt/0001-openwrt-rk3506-add-aes-nand-device.patch) 是给 OpenWrt 注册一块 `Device/aes_nand`。OpenWrt 的 rockchip target 本来有一套自己的 `rk3506-img` BOOT_FLOW，走它自己那套 u-boot idbloader + u-boot.itb 的流程——但我们压根不用 OpenWrt 的 u-boot，我们用 rk-forge 的主线 U-Boot。所以这个 Device 把 `IMAGES` 和 `BOOT_FLOW` 都留空，明确跳过 OpenWrt 自己的打包流程：
 
 ```makefile
 define Device/aes_nand
@@ -54,9 +54,9 @@ endef
 TARGET_DEVICES += aes_nand
 ```
 
-注册了这个 Device，`make defconfig` 才会让我们在 [`aes-nand.config`](../../../board/aes/openwrt/aes-nand.config) 里选的 `CONFIG_TARGET_rockchip_rk3506_DEVICE_aes_nand=y` 生效。这块 patch 还有个写补丁时踩的小坑值得提一句：手写 unified diff 的时候，那个 `@@ -55,4 +55,17 @@` 的 hunk header 行数得算对，git-am 是按行数读的，算错一行它就把 `TARGET_DEVICES += aes_nand` 那行默默截掉，device 不进 `.targetinfo`，defconfig 选了等于没选——这种 silent fail 最坑，debug 半天。后来老实用 `git format-patch` 让 git 自己算行数，再没出过事。
+注册了这个 Device，`make defconfig` 才会让我们在 [`aes-nand.config`](../../../boards/aes/openwrt/aes-nand.config) 里选的 `CONFIG_TARGET_rockchip_rk3506_DEVICE_aes_nand=y` 生效。这块 patch 还有个写补丁时踩的小坑值得提一句：手写 unified diff 的时候，那个 `@@ -55,4 +55,17 @@` 的 hunk header 行数得算对，git-am 是按行数读的，算错一行它就把 `TARGET_DEVICES += aes_nand` 那行默默截掉，device 不进 `.targetinfo`，defconfig 选了等于没选——这种 silent fail 最坑，debug 半天。后来老实用 `git format-patch` 让 git 自己算行数，再没出过事。
 
-第二块 [`0002`](../../../patches/openwrt/0002-openwrt-rk3506-config-essentials.patch) 是 config 补丁，补 czz8888 那棵树（它原本是给 HZHY MiniEVM 配的）漏掉的、咱们 aes 板在 rk-forge 主线 U-Boot 下需要的几个开关。逐个说为什么。
+第二块 [`0002`](../../../boards/aes/patches/openwrt/0002-openwrt-rk3506-config-essentials.patch) 是 config 补丁，补 czz8888 那棵树（它原本是给 HZHY MiniEVM 配的）漏掉的、咱们 aes 板在 rk-forge 主线 U-Boot 下需要的几个开关。逐个说为什么。
 
 头一个是 `CONFIG_ARCH_MESON=y`，这个最反直觉——咱们是 Rockchip 的板子，开个 Meson（Amlogic）的 ARCH 干嘛？原因是它有个副作用：抬 `TEXT_OFFSET`。RK3506B 跑 OP-TEE，OP-TEE 占着物理内存最底下的 secure 区（`0x0` 起一段），如果内核的 zrel 清零区或页表落进这片 secure RAM，`Starting kernel...` 之后就是一个 data abort。开 `ARCH_MESON` 把内核加载偏移抬上去、避开 secure 区，这个问题就没了。咱们 buildroot 那颗内核也用的同一个 trick。这事其实和 [rootfs Ch3](../rootfs/03_ubifs_loader_weakwrite.md) 那颗伪装成 SFC abort 的 reserved-memory 坑是同一片 secure 区的两种表现——一个炸在用户态 dd 访问、一个炸在内核刚启动，根子都是 OP-TEE 那块物理内存没留出来。
 
@@ -98,7 +98,7 @@ OpenWrt 这条路，能比 read-modify-write 更狠一档：**from-source**。
 
 思路是这样的。read-modify-write 不管怎么优化，本质还是"从 NAND 读出 loader 写的（可能已经弱的）数据再写回去"——它信任 NAND 上的存量。但 OpenWrt 的 rootfs 小（musl，9 MB 量级），小到可以整个 gzip 之后塞进首启 initramfs、跟着 kernel 一起进 boot.img。这样首启的时候，ubiprog 手里攥着一份**从 host 打包出来的、确定的** rootfs image（在 RAM 里），它就不需要再信任 NAND 上读出来的任何东西了——直接把整个 mtd5 擦干净，从 RAM 里这份确定 image 一笔一笔写下去。
 
-[`board/aes/rootfs/ubiprog.c`](../../../board/aes/rootfs/ubiprog.c) 里这两个模式是靠参数分流的：传一个 image 文件路径就是 from-source，不传就是 legacy read-modify-write。from-source 的循环逻辑清晰得像它干的事一样——擦整个分区，image 覆盖到的 PEB 从 RAM 文件读出来写下去，image 之外的尾巴全擦成 `0xFF`：
+[`board/aes/rootfs/ubiprog.c`](../../../boards/aes/rootfs/ubiprog.c) 里这两个模式是靠参数分流的：传一个 image 文件路径就是 from-source，不传就是 legacy read-modify-write。from-source 的循环逻辑清晰得像它干的事一样——擦整个分区，image 覆盖到的 PEB 从 RAM 文件读出来写下去，image 之外的尾巴全擦成 `0xFF`：
 
 ```c
 if (image_file) {
@@ -131,7 +131,7 @@ OpenWrt 这条把 `rootfs.ubi.img` gzip 之后塞进 cpio（9.5 MB 压到 3.34 M
 
 ## 板验：NAND from-source + SD ext4，两条都通
 
-说了这么多设计，上板看真东西。NAND 这条，烧进去首启，[`/init`](../../../board/aes/initramfs/init) 发现没有置备 marker，就调 ubiprog 走 from-source 重写 mtd5。现场在 [openwrt_done.txt](../../logs/openwrt_done.txt)：
+说了这么多设计，上板看真东西。NAND 这条，烧进去首启，[`/init`](../../../boards/aes/initramfs/init) 发现没有置备 marker，就调 ubiprog 走 from-source 重写 mtd5。现场在 [openwrt_done.txt](../../logs/openwrt_done.txt)：
 
 ```
 [init] FIRST BOOT: ubiprog from-source rewriting /dev/mtd5 (9961472 B)…
@@ -185,7 +185,7 @@ SD 这条 kmodloader 全程 `done loading`，没一个 could not be probed——
 
 ## 加包、改 rootfs，还有 WiFi 得说实话
 
-板子跑起来了，OpenWrt 的意义才算发挥出来——加包。入口是 [`board/aes/openwrt/aes-nand.config`](../../../board/aes/openwrt/aes-nand.config)，这是给 OpenWrt `make defconfig` 用的 seed。想加 LuCI，加一行 `CONFIG_PACKAGE_luci=y`；想加别的包同理，包名在 OpenWrt 树里 `make menuconfig` 查。改完跑 `forge build --rootfs=openwrt --reconfigure`（那个 `--reconfigure` 让 OpenWrt 从 seed 重新展开 `.config`，别忘了，否则它还用老的），再 `forge pack` + `forge assemble`，链路自己往下走。
+板子跑起来了，OpenWrt 的意义才算发挥出来——加包。入口是 [`board/aes/openwrt/aes-nand.config`](../../../boards/aes/openwrt/aes-nand.config)，这是给 OpenWrt `make defconfig` 用的 seed。想加 LuCI，加一行 `CONFIG_PACKAGE_luci=y`；想加别的包同理，包名在 OpenWrt 树里 `make menuconfig` 查。改完跑 `forge build --rootfs=openwrt --reconfigure`（那个 `--reconfigure` 让 OpenWrt 从 seed 重新展开 `.config`，别忘了，否则它还用老的），再 `forge pack` + `forge assemble`，链路自己往下走。
 
 这里有个 WiFi 的事得如实交代，不能藏着。现在这版 seed 里 `DEVICE_PACKAGES` 只选了 `kmod-usb2 kmod-usb-storage`，**没选 RTL8733BU 的 kmod**，所以 OpenWrt 这条 profile 上，WiFi 栈目前只到 cfg80211 子系统这一层，没到芯片驱动。板上日志里能看到的 WiFi 相关输出只有这么一行：
 

@@ -12,9 +12,9 @@ RK3506 的引脚复用有个反直觉的设计。Ch1 那批 Ethernet / MMC / SPI
 
 ## 两个 patch
 
-[0007](../../../patches/linux/0007-pinctrl-rockchip-rk3506-rmio-crossbar-mux.patch) 是驱动 patch，三处改。先是 `struct rockchip_pinctrl` 加一个 `regmap_rmio` 字段，紧跟 `regmap_ioc1`；probe 里用 `syscon_regmap_lookup_by_phape_optional(np, "rockchip,rmio")` 取它——`_optional` 是关键，没指这个 phandle 的 SoC 直接拿到 NULL，不会因我们加了字段就把别的 SoC 搞挂。然后是新增的 `rockchip_set_rmio()`，从 vendor `:1271` 逐字搬，加一个 `if (!regmap) return -ENODEV;` 的 NULL 守卫，再在 `rockchip_set_mux()` 顶部、`rockchip_verify_mux` 之后调用它。整段函数 `ctrl->type == RK3506` + rmio syscon 双门控，**不影响任何其它 SoC**——别的 SoC 既不是 RK3506，DT 里也不会有 `rockchip,rmio`，函数进去就走 default 分支原样返回。
+[0007](../../../boards/aes/patches/linux/0007-pinctrl-rockchip-rk3506-rmio-crossbar-mux.patch) 是驱动 patch，三处改。先是 `struct rockchip_pinctrl` 加一个 `regmap_rmio` 字段，紧跟 `regmap_ioc1`；probe 里用 `syscon_regmap_lookup_by_phape_optional(np, "rockchip,rmio")` 取它——`_optional` 是关键，没指这个 phandle 的 SoC 直接拿到 NULL，不会因我们加了字段就把别的 SoC 搞挂。然后是新增的 `rockchip_set_rmio()`，从 vendor `:1271` 逐字搬，加一个 `if (!regmap) return -ENODEV;` 的 NULL 守卫，再在 `rockchip_set_mux()` 顶部、`rockchip_verify_mux` 之后调用它。整段函数 `ctrl->type == RK3506` + rmio syscon 双门控，**不影响任何其它 SoC**——别的 SoC 既不是 RK3506，DT 里也不会有 `rockchip,rmio`，函数进去就走 default 分支原样返回。
 
-[0008](../../../patches/linux/0008-ARM-dts-rockchip-rk3506b-aes-I2C-UART2-RMIO-GT911.patch) 是 DT patch。SoC 级 `rk3506.dtsi` 加 i2c0/1/2（ff040000/ff050000/ff060000）和 uart2（ff0c0000，dw-apb-uart，**删 dmas 走 PIO**——Ch5 会讲为什么 vendor 那套 5-cell DMA 编码绑不上主线 pl330）；pinctrl 节点加那行关键的 `rockchip,rmio = <&grf_pmu>`；然后是 8 个 RMIO 引脚组。板级 `rk3506b-aes.dts` 把四个控制器 `status = "okay"` enable 出来，i2c2 上挂一颗 GT911 触摸（goodix 驱动，@0x14）。
+[0008](../../../boards/aes/patches/linux/0008-ARM-dts-rockchip-rk3506b-aes-I2C-UART2-RMIO-GT911.patch) 是 DT patch。SoC 级 `rk3506.dtsi` 加 i2c0/1/2（ff040000/ff050000/ff060000）和 uart2（ff0c0000，dw-apb-uart，**删 dmas 走 PIO**——Ch5 会讲为什么 vendor 那套 5-cell DMA 编码绑不上主线 pl330）；pinctrl 节点加那行关键的 `rockchip,rmio = <&grf_pmu>`；然后是 8 个 RMIO 引脚组。板级 `rk3506b-aes.dts` 把四个控制器 `status = "okay"` enable 出来，i2c2 上挂一颗 GT911 触摸（goodix 驱动，@0x14）。
 
 ## RMIO 在 DT 里长什么样
 

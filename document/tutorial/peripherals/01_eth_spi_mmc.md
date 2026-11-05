@@ -2,13 +2,13 @@
 
 > 外设系列第一章。RK3506 这块板 bring-up 分了 A/B/C/D/E 五档，A1 是其中最干净的那一档：Ethernet、SPI、MMC/SD——三样的主线驱动一个不缺（dwmac-rk、spi-rockchip、dw_mmc-rockchip），config 也都 `=y`，预期就是把 vendor DT 的节点抄进我们的 `rk3506.dtsi` 和 `rk3506b-aes.dts`，build dtb、出 update.img、板验。Ethernet 双口通网是亮点，SPI 干净利落，MMC 中途 `-110` 绕了一大圈——真因出乎意料，教训比结论值钱。完整记录见 [notes/21](../../notes/21-2026-06-19-peripheral-bringup-a1-eth-mmc-spi.md)，MMC 单独排查见 [notes/22](../../notes/22-2026-06-19-mmc-sd-error110-investigation.md)。
 
-落在这三个 patch：[0004](../../../patches/linux/0004-ARM-dts-rockchip-rk3506b-aes-add-Ethernet-gmac1-RMII.patch) 把 gmac1 的 SoC 节点（`ethernet@ff4d0000`，`rockchip,rk3506-gmac + snps,dwmac-4.20a`）+ `mdio1` + `eth_rmii1` pinctrl（bank3，func2）写进 `rk3506.dtsi`，板级 override 写进 `rk3506b-aes.dts`；[0005](../../../patches/linux/0005-ARM-dts-rockchip-rk3506b-aes-add-MMC-SD-SPI0.patch) 一口气把 MMC/SD（`mmc@ff480000`，rk3288-dw-mshc fallback）和 SPI0（`spi@ff120000`，rk3066-spi fallback）的 SoC 节点 + sdmmc pinctrl（bank3 PA0-PA5 func1）+ spi0 pinctrl（bank0 func2）+ 板级 override 都加上——两个外设的 hunk 在 DT 里交织，合成一个 patch；[0006](../../../patches/linux/0006-ARM-dts-rockchip-rk3506b-aes-enable-2nd-Ethernet-gmac0.patch) 是后面翻案时补的 gmac0。
+落在这三个 patch：[0004](../../../boards/aes/patches/linux/0004-ARM-dts-rockchip-rk3506b-aes-add-Ethernet-gmac1-RMII.patch) 把 gmac1 的 SoC 节点（`ethernet@ff4d0000`，`rockchip,rk3506-gmac + snps,dwmac-4.20a`）+ `mdio1` + `eth_rmii1` pinctrl（bank3，func2）写进 `rk3506.dtsi`，板级 override 写进 `rk3506b-aes.dts`；[0005](../../../boards/aes/patches/linux/0005-ARM-dts-rockchip-rk3506b-aes-add-MMC-SD-SPI0.patch) 一口气把 MMC/SD（`mmc@ff480000`，rk3288-dw-mshc fallback）和 SPI0（`spi@ff120000`，rk3066-spi fallback）的 SoC 节点 + sdmmc pinctrl（bank3 PA0-PA5 func1）+ spi0 pinctrl（bank0 func2）+ 板级 override 都加上——两个外设的 hunk 在 DT 里交织，合成一个 patch；[0006](../../../boards/aes/patches/linux/0006-ARM-dts-rockchip-rk3506b-aes-enable-2nd-Ethernet-gmac0.patch) 是后面翻案时补的 gmac0。
 
 ## Ethernet：先栽在 carrier=0，双口才发现真相
 
 Ethernet 这一段的主角是 gmac1。第一次板验 gmac1 probe 得很漂亮——`rk_gmac-dwmac ff4d0000` RMII、Synopsys ID 0x51、PHY 在 MDIO 上探到了（`stmmac-1:01`），eth0 在、`ifconfig up` 也成，但 `carrier=0`，udhcpc 没响应。我那会儿第一反应是往物理上怀疑——这反应是错的，后面翻案。
 
-板级 override 长这样（[0004](../../../patches/linux/0004-ARM-dts-rockchip-rk3506b-aes-add-Ethernet-gmac1-RMII.patch)），typical 的 stmmac 板级接线：
+板级 override 长这样（[0004](../../../boards/aes/patches/linux/0004-ARM-dts-rockchip-rk3506b-aes-add-Ethernet-gmac1-RMII.patch)），typical 的 stmmac 板级接线：
 
 ```dts
 &gmac1 {
@@ -36,7 +36,7 @@ PHY 是 YT8512，但 DT 里不写 `ethernet-phy-ieee802.3-c22` 之外的私有 c
 
 翻案的钥匙是拿 vendor 镜像在同块板上对照。我烧了 vendor 的 SD 启动镜像抓 log（[boot-sdl-2026-06191732](../../logs/boot-sdl-2026-06191732.txt) + [vendor_sdk_ubifs](../../logs/vendor_sdk_ubifs.txt)），发现 vendor **同时 probe 了 gmac0（ff4c8000）和 gmac1（ff4d0000）两个口**，PHY 都是 YT8512，而且 vendor 的 eth0 = gmac0 link up 了 100M。也就是说这块 ATK 板有**两个 RJ45**，而我之前只照着 vendor DT 里 gmac1 那段开了 gmac1——**用户的网线插在 gmac0 那个口上**，forge 只开了 gmac1，eth0（=gmac1）自然 NO-CARRIER。
 
-修就是 [0006](../../../patches/linux/0006-ARM-dts-rockchip-rk3506b-aes-enable-2nd-Ethernet-gmac0.patch) 把 gmac0 全补上：SoC 节点（`ethernet@ff4c8000`，对称于 gmac1，interrupts GIC_SPI 66/69）+ `mdio0` + `eth_rmii0` pinctrl + 板级 `&gmac0`（reset 改 GPIO0_PA0）+ `rmii_phy0` + `ethernet0` alias。这里有个细节容易翻车：gmac0 的 RMII 引脚在 **bank2**（func1），gmac1 在 **bank3**（func2），两组 pinctrl 的 bank/func 完全不一样，照抄 gmac1 改个数字会写到错的 pad 上。重烧 `update-a1-eth-dualgmac-mmc-spi.img`，[boot-sdl-2026-06191755](../../logs/boot-sdl-2026-06191755.txt) 就是结果：
+修就是 [0006](../../../boards/aes/patches/linux/0006-ARM-dts-rockchip-rk3506b-aes-enable-2nd-Ethernet-gmac0.patch) 把 gmac0 全补上：SoC 节点（`ethernet@ff4c8000`，对称于 gmac1，interrupts GIC_SPI 66/69）+ `mdio0` + `eth_rmii0` pinctrl + 板级 `&gmac0`（reset 改 GPIO0_PA0）+ `rmii_phy0` + `ethernet0` alias。这里有个细节容易翻车：gmac0 的 RMII 引脚在 **bank2**（func1），gmac1 在 **bank3**（func2），两组 pinctrl 的 bank/func 完全不一样，照抄 gmac1 改个数字会写到错的 pad 上。重烧 `update-a1-eth-dualgmac-mmc-spi.img`，[boot-sdl-2026-06191755](../../logs/boot-sdl-2026-06191755.txt) 就是结果：
 
 ```
 rk_gmac-dwmac ff4c8000.ethernet eth0: PHY [stmmac-0:01] driver [Generic PHY]
@@ -51,7 +51,7 @@ Link Up + DHCP + ping 0% loss，Ethernet T3 全绿，板子也同时从上次的
 
 SPI0 这一段是这章最省心的。`rockchip-spi ff120000.spi` probe——PIO 模式，我故意删了 vendor 那套 5-cell DMA 编码（主线 pl330 那套 `dmas = <&dmac channel mux_reg mux_val ...>` 的 RK 风格编码主线不认，跟后面 Ch5 Audio 那边是同一个坑，这里干脆不挂 DMA，PIO 够用）。起手两条 `Failed to request optional TX/RX DMA channel -ENODEV` 是**良性的**——可选 DMA 没拿到，驱动继续走 PIO，别被吓到。`/dev/spidev0.0` 和 `0.1` 都在。
 
-板级接线（[0005](../../../patches/linux/0005-ARM-dts-rockchip-rk3506b-aes-add-MMC-SD-SPI0.patch)）：
+板级接线（[0005](../../../boards/aes/patches/linux/0005-ARM-dts-rockchip-rk3506b-aes-add-MMC-SD-SPI0.patch)）：
 
 ```dts
 &spi0 {
@@ -79,7 +79,7 @@ SPI0 这一段是这章最省心的。`rockchip-spi ff120000.spi` probe——PIO
 
 ## MMC/SD：-110 绕了一大圈，真因是卡没插紧
 
-MMC/SD 这一段的 DT 节点移植本身没问题。SoC 节点（[0005](../../../patches/linux/0005-ARM-dts-rockchip-rk3506b-aes-add-MMC-SD-SPI0.patch)）走 rk3288-dw-mshc fallback——主线 `dw_mmc-rockchip` 没给 rk3506 写专属条目，它就是靠 `rockchip,rk3288-dw-mshc` 这个 secondary compatible 命中 `rk3288_drv_data` 的 ops，vendor 也是这条路：
+MMC/SD 这一段的 DT 节点移植本身没问题。SoC 节点（[0005](../../../boards/aes/patches/linux/0005-ARM-dts-rockchip-rk3506b-aes-add-MMC-SD-SPI0.patch)）走 rk3288-dw-mshc fallback——主线 `dw_mmc-rockchip` 没给 rk3506 写专属条目，它就是靠 `rockchip,rk3288-dw-mshc` 这个 secondary compatible 命中 `rk3288_drv_data` 的 ops，vendor 也是这条路：
 
 ```dts
 mmc: mmc@ff480000 {

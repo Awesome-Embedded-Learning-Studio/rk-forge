@@ -53,7 +53,7 @@ rkfw-pack.py 还顺手把 SD 卡镜像那个坑也兜了：parameter 里写 `-0x
 
 mkimage 这块比 rkfw-pack 难，故事也长（完整 saga 见 [notes/20](../../notes/20-2026-06-19-mkimage-saga-handoff.md)）。简短地说：uboot.img 是一个 FIT `-E` external-data 镜像，rkbin SPL 只认 vendor mkimage 2017.09 那种 `-E` 布局；主线 mkimage 的 `-E` 把 optee 数据摆在不同 offset，SPL 读到错位的字节，炸 `optee Bad hash`。能编出兼容布局的那个 ATK fork 又是非公开的（正点原子内网 manifest），手搓 mkimage 又会拖进整条 U-Boot build 依赖链（generated autoconfh 一路反解到地狱）。
 
-解法和 rkfw-pack.py 一个路子：逆向 vendor `uboot.img` 的字节布局，纯 Python 自己拼 FIT。这就是 [`scripts/fit-pack.py`](../../../scripts/fit-pack.py)，关键就三件事。
+解法和 rkfw-pack.py 一个路子：逆向 vendor `uboot.img` 的字节布局，纯 Python 自己拼 FIT。这就是 [`scripts/fit-pack.py`](../../../src/forge/tools/fit_pack.py)，关键就三件事。
 
 一是 FIT `-E` 文件长这样：FDT blob（header + struct + strings）后面跟一段 external data，每个 image 的 blob 按 `FIT_ALIGN=0x200`（即 `image.h:958` 里的 `IMAGE_ALIGN_SIZE`）对齐排在 external 里，image 节点的 `data-offset`/`data-size` 指向它的位置和长度，hash 节点存那段 blob 的 sha256。二是 FDT 的 string table 顺序有讲究——它得忠实地复现 mkimage 的三阶段构建（ITS 原序 DFS 入串表 → root 自动 props → external 转换新加 props），否则字节对不上。三是一个踩出来的硬约束：根节点上那个 `/totalsize` 属性，得设成整个文件的大小，因为 Rockchip SPL 是按 `ceil(/totalsize / bl_len) * bl_len` 算加载量的（`spl_boot_image.c:293`），小于文件大小就只加载前半截、external 漏掉。
 

@@ -20,7 +20,7 @@ SD 启动链看上去和 NAND 差不多（idblock → SPL → U-Boot → kernel 
 
 根因要回到主线 U-Boot 的 rk3506.dtsi。我们在 [boot/03](../boot/03_kernel.md) 里说过同一件事的内核版：主线对 RK3506 是有驱动的骨架、缺的是设备树。U-Boot 这边一样，patch 0001 那份 bring-up dtsi 是极简版，**把 mmc 等外设全 deferred 了**，只留 console 和 SFC，`mmc@ff480000` 节点根本不存在。这里有个反直觉的点容易绕进去：SPL 明明能从 SD 读 uboot，怎么到了 proper 反而看不到卡？因为 SPL 自带一份精简的 SD 读驱动（够它把 uboot FIT 拽出来就行），而 U-Boot proper 走 driver model（DM），DT 没节点，`dwmmc_rockchip` 驱动就不 probe，自然没 MMC 设备。SPL 和 proper 是两套路径。
 
-修是 uboot patch [0004](../../../patches/uboot/0004-uboot-dts-mmc-sd-controller.patch)，给 dtsi 加上 mmc 节点：
+修是 uboot patch [0004](../../../boards/aes/patches/uboot/0004-uboot-dts-mmc-sd-controller.patch)，给 dtsi 加上 mmc 节点：
 
 ```dts
 mmc: mmc@ff480000 {
@@ -49,7 +49,7 @@ compatible 写 `rk3506-dw-mshc` 主线驱动本来不认，所以挂了个 `rk32
 
 mmc 修好，手敲引导能起 kernel 了，但 kernel panic：`Unable to mount root fs on /dev/mmcblk0p3`，试了 ext3/ext2/ext4/squashfs/vfat... 全失败。`mmcblk0p3` 分区在（GPT 写了、UUID 对、58GB grow），但**上面没有任何文件系统**——RK 工具建了分区、却没把 rootfs.ext4 写进去。
 
-根因在打包参数。我们的 `parameter-sd-aes.txt` 原来 rootfs 用 `grow`（`-@0x10000(rootfs:grow)`），意思是"剩下的扇区都给 rootfs"，听上去合理。但 [rkfw-pack.py](../../../scripts/rkfw-pack.py) 解析分区的正则要求 size 是 `0x..` 这种十六进制；grow 的 size 字段是个裸 `-`（无 `0x` 前缀），正则不匹配，于是 rootfs 的 `nand_addr` 没设、默认兜底成 `0xFFFFFFFF`。RK 工具按各分区的 nand_addr 写镜像：uboot/boot 有偏移（0x2000 / 0x4000）就写了，rootfs 是 `0xFFFFFFFF`——RK 工具不知道这玩意往哪写，索性跳过，结果只建了个空 GPT 分区，kernel 自然挂不上。
+根因在打包参数。我们的 `parameter-sd-aes.txt` 原来 rootfs 用 `grow`（`-@0x10000(rootfs:grow)`），意思是"剩下的扇区都给 rootfs"，听上去合理。但 [rkfw-pack.py](../../../src/forge/tools/rkfw_pack.py) 解析分区的正则要求 size 是 `0x..` 这种十六进制；grow 的 size 字段是个裸 `-`（无 `0x` 前缀），正则不匹配，于是 rootfs 的 `nand_addr` 没设、默认兜底成 `0xFFFFFFFF`。RK 工具按各分区的 nand_addr 写镜像：uboot/boot 有偏移（0x2000 / 0x4000）就写了，rootfs 是 `0xFFFFFFFF`——RK 工具不知道这玩意往哪写，索性跳过，结果只建了个空 GPT 分区，kernel 自然挂不上。
 
 修是 rootfs 改固定 512MB（`0x00100000@0x10000(rootfs)`），正则匹配上，`nand_addr=0x10000`，RK 工具正常落盘。512MB 对我们的 buildroot rootfs 绰绰有余（实际只用了 ~9MB），后续真要扩容，板上 `resize2fs /dev/mmcblk0p3` 一下就能长满整张卡。
 

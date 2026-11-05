@@ -6,7 +6,7 @@
 
 音频这趟水从 codec 流到内存，中间过两道桥：`ES8388(codec) ↔ SAI1(数字音频接口) ↔ PL330(DMA)`。ES8388 这颗 codec 主线驱动就在（`everest,es8388`，走 I2C 控制，老牌的 ES8328 驱动 `SND_SOC_ES8328_I2C` 兼容它）；SAI1 是 RK 这边的 I2S 数字接口，主线 `rockchip_sai.c` 也在；最末段 DMA 用 ARM 的 PL330，主线 `pl330.c` 驱动也在。三段驱动全现成，听上去就是接线的事。
 
-可两处接线断了。SAI 驱动的 of_match 表里压根没有 `rockchip,rk3506-sai`，probe 不到；DMA 这边更绕——RK3506 把外设的 DMA 请求过了一道 GRF crossbar（多路选择），主线 PL330 的 `of_dma_pl330_xlate` 只认单 cell 的 `dmas = <&dmac channel>`，不认 RK3506 这套 5-cell 编码。所以这一章的活儿就是 [0009](../../../patches/linux/0009-ASoC-dmaengine-rk3506-sai-pl330-dmamux.patch)（驱动侧：SAI of_match + PL330 5-cell dmamux）加 [0010](../../../patches/linux/0010-ARM-dts-rockchip-rk3506b-aes-ES8388-audio-sai1-dmac.patch)（DT 侧：sai1 + dmac0/dmac1 + es8388 + simple-card）。
+可两处接线断了。SAI 驱动的 of_match 表里压根没有 `rockchip,rk3506-sai`，probe 不到；DMA 这边更绕——RK3506 把外设的 DMA 请求过了一道 GRF crossbar（多路选择），主线 PL330 的 `of_dma_pl330_xlate` 只认单 cell 的 `dmas = <&dmac channel>`，不认 RK3506 这套 5-cell 编码。所以这一章的活儿就是 [0009](../../../boards/aes/patches/linux/0009-ASoC-dmaengine-rk3506-sai-pl330-dmamux.patch)（驱动侧：SAI of_match + PL330 5-cell dmamux）加 [0010](../../../boards/aes/patches/linux/0010-ARM-dts-rockchip-rk3506b-aes-ES8388-audio-sai1-dmac.patch)（DT 侧：sai1 + dmac0/dmac1 + es8388 + simple-card）。
 
 ## DMA 那道 crossbar：为什么是 5 个 cell
 
@@ -16,7 +16,7 @@ PL330 这段的弯绕值回票价，单独说。一般 SoC 的 DMA 请求是直�
 
 ## DT 接线
 
-DT 侧的活儿在 SoC 级 `rk3506.dtsi` 和板级 `rk3506b-aes.dts` 各加一坨。SoC 级加两个 dmac 节点（`dmac0@ff000000`、`dmac1@ff008000`，都标 `#dma-cells = <5>`）和一个 sai1 节点；板级启用 sai1、在 i2c0 挂 es8388、再用 simple-audio-card 把它们缝成一张声卡。SoC 级 sai1 长这样（细节在 [0010](../../../patches/linux/0010-ARM-dts-rockchip-rk3506b-aes-ES8388-audio-sai1-dmac.patch)）：
+DT 侧的活儿在 SoC 级 `rk3506.dtsi` 和板级 `rk3506b-aes.dts` 各加一坨。SoC 级加两个 dmac 节点（`dmac0@ff000000`、`dmac1@ff008000`，都标 `#dma-cells = <5>`）和一个 sai1 节点；板级启用 sai1、在 i2c0 挂 es8388、再用 simple-audio-card 把它们缝成一张声卡。SoC 级 sai1 长这样（细节在 [0010](../../../boards/aes/patches/linux/0010-ARM-dts-rockchip-rk3506b-aes-ES8388-audio-sai1-dmac.patch)）：
 
 ```dts
 sai1: sai@ff310000 {

@@ -12,7 +12,7 @@ U-Boot 能跑了，下一步自然是内核。这里有个对项目定位很关�
 
 搬 SoC 设备树听起来像体力活，但扒过一遍 vendor SDK 的 include 链之后，有个反直觉的发现能省不少事。vendor 对这块板的 DT 其实**稀疏得很**：io-domains 它根本不走 DT 建模（loader 配 IO 电压），PMIC 也不用（全是 fixed regulator），连 MTD 分区都走 cmdline `ubi.mtd=...` 而不是 DT 节点。换句话说，"对齐 vendor"能对齐的并不多，迁移的真身是补上 vendor 省略掉的那些主线板级 DT。
 
-具体补的 [`rk3506.dtsi`](../../../patches/linux/0001-ARM-dts-rockchip-rk3506b-aes-SFC-W25N04KV-SPI-NAND-R.patch)（SoC 级），核心是 cru（时钟）、grf/grf_pmu（寄存器）、ioc（IO 控制器）、pinctrl 加 gpio0-4、uart0、gic、timer、otp，再加 sfc（SPI Flash 控制器）节点；clock-ID 这块和 vendor 共用同一套 `rockchip,rk3506-cru.h`，所以适配量不大。然后在板级 `rk3506b-aes.dts` 里启用 `&sfc`、挂上 `flash@0`（那颗 Winbond W25N04KV SPI-NAND），再用 fixed-partitions 把 7 个分区（uboot/misc/vnvm/recovery/boot/rootfs/userdata）按我们自己的 parameter 表摆好。这里有个省心的点：W25N04KV 主线的 `drivers/mtd/nand/spi/winbond.c` **本来就支持**（芯片 id `aa,23`，4Gb），NAND 驱动我们一行都不用写。
+具体补的 [`rk3506.dtsi`](../../../boards/aes/patches/linux/0001-ARM-dts-rockchip-rk3506b-aes-SFC-W25N04KV-SPI-NAND-R.patch)（SoC 级），核心是 cru（时钟）、grf/grf_pmu（寄存器）、ioc（IO 控制器）、pinctrl 加 gpio0-4、uart0、gic、timer、otp，再加 sfc（SPI Flash 控制器）节点；clock-ID 这块和 vendor 共用同一套 `rockchip,rk3506-cru.h`，所以适配量不大。然后在板级 `rk3506b-aes.dts` 里启用 `&sfc`、挂上 `flash@0`（那颗 Winbond W25N04KV SPI-NAND），再用 fixed-partitions 把 7 个分区（uboot/misc/vnvm/recovery/boot/rootfs/userdata）按我们自己的 parameter 表摆好。这里有个省心的点：W25N04KV 主线的 `drivers/mtd/nand/spi/winbond.c` **本来就支持**（芯片 id `aa,23`，4Gb），NAND 驱动我们一行都不用写。
 
 ## 坑之一：SFC 读出来全是坏的——80MHz 裸奔的代价
 
@@ -22,7 +22,7 @@ DT 补好，内核一起来，SPI-NAND 读出来的数据却是坏的：bit 错�
 
 bringup 那会儿最快见效的解法是一行 DT：把 `spi-max-frequency` 从 80MHz 降到 50MHz，50MHz 下采样窗口大到不调谐也稳，读就干净了。但这只是权宜，不是终局。
 
-> 终局是把读速拿回 80MHz。后来我们从 vendor 驱动把 DLL 调谐移植进了主线 sfc 驱动（[patches/linux/0002](../../../patches/linux/0002-spi-rockchip-sfc-DLL-tuning-RK3506-power-good-gate-W.patch) + DT 侧 [0003](../../../patches/linux/0003-ARM-dts-rockchip-rk3506b-aes-bump-SFC-read-to-80MHz.patch)），上板扫出巨大的采样窗口、锁到 cell 130 附近（实测窗口 [90,170]），80MHz 下读稳，读速比 50MHz 快了一半，跟 vendor EVB（rk3506-evb2-v10 出厂就是 80MHz）对齐。完整 saga 见 [pitfalls/04](../../pitfalls/04-sfc-nand-saga.md)。所以现在的定型链是 80MHz + DLL 调谐，不是 50MHz 降频——50MHz 只是 bringup 阶段还没移植 DLL 时的过渡。
+> 终局是把读速拿回 80MHz。后来我们从 vendor 驱动把 DLL 调谐移植进了主线 sfc 驱动（[patches/linux/0002](../../../boards/aes/patches/linux/0002-spi-rockchip-sfc-DLL-tuning-RK3506-power-good-gate-W.patch) + DT 侧 [0003](../../../boards/aes/patches/linux/0003-ARM-dts-rockchip-rk3506b-aes-bump-SFC-read-to-80MHz.patch)），上板扫出巨大的采样窗口、锁到 cell 130 附近（实测窗口 [90,170]），80MHz 下读稳，读速比 50MHz 快了一半，跟 vendor EVB（rk3506-evb2-v10 出厂就是 80MHz）对齐。完整 saga 见 [pitfalls/04](../../pitfalls/04-sfc-nand-saga.md)。所以现在的定型链是 80MHz + DLL 调谐，不是 50MHz 降频——50MHz 只是 bringup 阶段还没移植 DLL 时的过渡。
 >
 > 这里还顺带交代一个阴的细节：100MHz 我们也试过，不行。80MHz 的实际时钟是 PLL 抽出来的 75MHz tap，DLL 才有窗口可扫；100MHz 那档 PLL 抽出来是 98MHz，DLL 扫出的窗口是 [0,0]——一个 cell 都不给。所以 80MHz 不是随便挑的，是这颗 DLL 在这颗 SoC 上能稳的最高档。
 

@@ -56,7 +56,7 @@ rockchip_sfc: dll ok best=[0,230] -> cell 92
 
 绕了一大圈，结论收敛到一句：既然是 loader 写我们这份 rootfs 写弱，那就**别让 loader 写 rootfs**，改由 Linux 自己落盘。Linux 是可靠写者（读了 DLL 调谐、写了 powergood/WPEN，读写都稳），让它来 erase + 重写 rootfs 数据块，loader 只负责搬运。
 
-具体落地是首启 initramfs 里跑一个 **ubiprog**：第一次 boot，[`/init`](../../../board/aes/initramfs/init) 发现没有置备 marker，就用 Linux 把 mtd5 的 rootfs 数据块擦了重写一遍，绕开 loader 的弱写，然后设上 marker；之后每次 boot 检到 marker 就跳过，直接 switch_root。
+具体落地是首启 initramfs 里跑一个 **ubiprog**：第一次 boot，[`/init`](../../../boards/aes/initramfs/init) 发现没有置备 marker，就用 Linux 把 mtd5 的 rootfs 数据块擦了重写一遍，绕开 loader 的弱写，然后设上 marker；之后每次 boot 检到 marker 就跳过，直接 switch_root。
 
 但这里又冒出一个细节——PEB 3/4 是 loader 已经写弱的，整块读不可纠。如果 ubiprog 笨乎乎地整块读→整块写，会把 PEB 头部的 master 节点也一起读废，首启就挂不上。
 

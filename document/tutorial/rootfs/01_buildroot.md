@@ -10,7 +10,7 @@ rootfs 这程要的是正规流程，所以上 buildroot。buildroot 会从源�
 
 ## 材料：buildroot 本体 + 我们的 BR2_EXTERNAL
 
-buildroot 本体用 loose 检出的上游 2026.08-dev（`third_party/buildroot/`，gitignored，和 uboot/linux 的 explore 模式一样）。我们的定制不直接改 buildroot，而是通过一棵 **BR2_EXTERNAL 树**注入——[`board/aes/buildroot-external/`](../../../board/aes/buildroot-external/)，这是 rk-forge 自有、进版本控制的：里面放着 `configs/rk3506_aes_defconfig`（板级 defconfig）、overlay（`/etc` 配置、init 脚本）、post-build hook。调用时 `make BR2_EXTERNAL=.../buildroot-external rk3506_aes_defconfig`，buildroot 就会注册这棵外部树、读我们的 defconfig。
+buildroot 本体用 loose 检出的上游 2026.08-dev（`third_party/buildroot/`，gitignored，和 uboot/linux 的 explore 模式一样）。我们的定制不直接改 buildroot，而是通过一棵 **BR2_EXTERNAL 树**注入——[`board/aes/buildroot-external/`](../../../boards/aes/buildroot-external/)，这是 rk-forge 自有、进版本控制的：里面放着 `configs/rk3506_aes_defconfig`（板级 defconfig）、overlay（`/etc` 配置、init 脚本）、post-build hook。调用时 `make BR2_EXTERNAL=.../buildroot-external rk3506_aes_defconfig`，buildroot 就会注册这棵外部树、读我们的 defconfig。
 
 这种"本体 loose + 定制走 BR2_EXTERNAL"的结构不是洁癖，是踩过坑才定的。当年 `git add -A` 把 buildroot 当 embedded git 仓（gitlink）加进去，结果 clone 根本拿不到内容；解法就是 buildroot 本体 gitignored，defconfig 和 overlay 全挪进 BR2_EXTERNAL 这棵真正进版本控制的树。详细决策记在 [notes/19](../../notes/19-2026-06-18-buildroot-minimal-rootfs-first-build.md)。
 
@@ -67,6 +67,6 @@ rootfs.tar    8.76 MB   ← 给 UBIFS staging 用
 
 里面的 busybox 是 ARM EABI5 **hard-float**（`ld-linux-armhf.so.3`），动态链接，`/sbin/init` 是 busybox 的符号链接，`/etc/inittab|passwd|shadow` 齐全，glibc 运行时加 libstdc++ 都在 `/lib`，FHS 结构完整。一份正规的、能烧能启的最小 rootfs，到手。
 
-这份 rootfs 烧进板子跑起来，是 [boot-sdl-202606181919](../../logs/boot-sdl-202606181919.txt) 那一轮——主线 U-Boot → ubiprog 置备 → switch_root → `Welcome to rk-forge buildroot` → root 登录。打包这条 rootfs 进 NAND 用的 FIT packer 已经从早期的 vendor mkimage 换成了纯 Python 的 [`scripts/fit-pack.py`](../../../scripts/fit-pack.py)（字节级复现 vendor mkimage 的 SPL 兼容 -E 外部数据布局，见 [notes/20](../../notes/20-2026-06-19-mkimage-saga-handoff.md)），ubiprog 和持久化细节则是 Ch3 的事；这章咱们只要知道，buildroot 出的这份 rootfs，板上能跑进 shell。
+这份 rootfs 烧进板子跑起来，是 [boot-sdl-202606181919](../../logs/boot-sdl-202606181919.txt) 那一轮——主线 U-Boot → ubiprog 置备 → switch_root → `Welcome to rk-forge buildroot` → root 登录。打包这条 rootfs 进 NAND 用的 FIT packer 已经从早期的 vendor mkimage 换成了纯 Python 的 [`scripts/fit-pack.py`](../../../src/forge/tools/fit_pack.py)（字节级复现 vendor mkimage 的 SPL 兼容 -E 外部数据布局，见 [notes/20](../../notes/20-2026-06-19-mkimage-saga-handoff.md)），ubiprog 和持久化细节则是 Ch3 的事；这章咱们只要知道，buildroot 出的这份 rootfs，板上能跑进 shell。
 
 rootfs 的内容有了。但内核 handoff 到这份 rootfs、busybox init 把 shell 起起来，中间还卡着两道 init 时序的暗门——一道是控制台被抢、一道是新根的 `/dev` 是空的。我们 Ch2 见。

@@ -20,7 +20,7 @@ make -p KSRC=/dev/null ARCH=arm KERNELRELEASE=7.1.0 CONFIG_RTL8733BU=m src=$(pwd
 
 再写一个 `dump.mk` include 驱动 Makefile、`@echo "$(8733bu-y)"` 拿到完全展开的 187 个 `.o`（rtk_core 62 + _HAL_INTFS_FILES 49 + _OS_INTFS_FILES 17 + _PHYDM_FILES 54 + _BTC_FILES 3 + _PLATFORM_FILES 1 + rtw_mp 1）。逐个验证 187 个 `.c` 都在（0 missing）。然后生成 Kbuild Makefile：`obj-$(CONFIG_RTL8733BU) += 8733bu.o` + `8733bu-y := <187>` + `ccflags-y`（路径宏 `/tmp/...` 改成 `$(src)/...`），替换驱动原 2803 行 Makefile。
 
-Kconfig 这边有个驱动自带的复制粘贴错：它写 `depends on MMC`——这明明是 USB 设备。改成 `depends on USB && CFG80211`，挂到内核树的 `drivers/net/wireless/realtek/Kconfig` 的 `if WLAN_VENDOR_REALTEK` 下。接线就是 patch [0016](../../../patches/linux/0016-wifi-rtl8733bu-wire-realtek.patch) 那 2 行：`realtek/Kconfig` 多一行 `source ".../rtl8733bu/Kconfig"`，`realtek/Makefile` 多一行 `obj-$(CONFIG_RTL8733BU) += rtl8733bu/`。
+Kconfig 这边有个驱动自带的复制粘贴错：它写 `depends on MMC`——这明明是 USB 设备。改成 `depends on USB && CFG80211`，挂到内核树的 `drivers/net/wireless/realtek/Kconfig` 的 `if WLAN_VENDOR_REALTEK` 下。接线就是 patch [0016](../../../boards/aes/patches/linux/0016-wifi-rtl8733bu-wire-realtek.patch) 那 2 行：`realtek/Kconfig` 多一行 `source ".../rtl8733bu/Kconfig"`，`realtek/Makefile` 多一行 `obj-$(CONFIG_RTL8733BU) += rtl8733bu/`。
 
 Phase 1 还有第二个 config 域的坑，跟 pitfalls/06 的 USB_SUPPORT 被偷杀是**完全同类**。`kernel-trim.config` 里有一行 `# CONFIG_WLAN is not set`，而 trim 在 merge 顺序最后（multi_v7 → kernel.config → kernel-trim → kernel-compress），它把 WLAN 整片关掉了——`menuconfig WLAN` → `if WLAN` → source realtek → `if WLAN_VENDOR_REALTEK` → RTL8733BU，WLAN 一关 realtek 树整片不参与配置，RTL8733BU 在 `.config` 里凭空消失。删那行，注释里标明"re-enabled for RTL8733BU"。这类坑的铁律：**grep 构建后的 `.config`**（`grep RTL8733BU .config`）确认，而不是 grep fragment——fragment 看着对、merge 顺序会骗你。
 
@@ -51,7 +51,7 @@ struct 那 9 处赋值改指向 wrapper（`.add_key = cfg80211_rtw_add_key_wdev,
 
 ⚠️ 一个常被忘的步骤：`boot.img` 必须**用新 zImage 重打**。CFG80211 从 `m` 翻成 `=y` 进了 vmlinux，旧 boot.img 里那个 zImage 没有内建 cfg80211 符号，模块加载时符号对不上、直接挂。`pack-fit.sh` 重打完，再 `assemble-update.sh` 出 `update.img`。
 
-rootfs 集成走 [`stage-rootfs.sh`](../../../scripts/stage-rootfs.sh)：`8733bu.ko` 注进 `lib/modules/`，固件 `rtl8733bu_fw` + `rtl8733bu_config` 进 `lib/firmware/`（这两个文件原在 ATK vendor-sdk overlay 里，forge 这边现在已经脱钩到本地 `firmware/rtl8733bu/`，跟 vendor-sdk 解绑），再放一个 [`S99wifi`](../../../board/aes/buildroot-external/overlay/etc/init.d/S99wifi) 开机脚本（busybox init 的 rcS 末尾 `insmod /lib/modules/8733bu.ko`，非致命、失败不挡启动）。buildroot defconfig 补 `wpa_supplicant`（带 NL80211）/`iw`/`wireless_tools`（libnl 自动跟上）。
+rootfs 集成走 [`stage-rootfs.sh`](../../../scripts/stage-rootfs.sh)：`8733bu.ko` 注进 `lib/modules/`，固件 `rtl8733bu_fw` + `rtl8733bu_config` 进 `lib/firmware/`（这两个文件原在 ATK vendor-sdk overlay 里，forge 这边现在已经脱钩到本地 `firmware/rtl8733bu/`，跟 vendor-sdk 解绑），再放一个 [`S99wifi`](../../../boards/aes/buildroot-external/overlay/etc/init.d/S99wifi) 开机脚本（busybox init 的 rcS 末尾 `insmod /lib/modules/8733bu.ko`，非致命、失败不挡启动）。buildroot defconfig 补 `wpa_supplicant`（带 NL80211）/`iw`/`wireless_tools`（libnl 自动跟上）。
 
 buildroot 这步笔者撞了个 WSL 老坑：`make` 直接 `Your PATH contains spaces, TABs, and/or newline … Error 1`（`support/dependencies/dependencies.mk` 的 PATH 检查），原因是 WSL 默认 PATH 里漏进 `/mnt/c/Program Files/...` 这种带空格的项，buildroot 不接受。剥掉含 `/mnt` 或空格的 PATH 项再 make：
 
@@ -95,7 +95,7 @@ Phase 1-5 是"能跑"，但一个 untracked 的 221 文件 vendor drop 不算可
 
 驱动真相源 = forge fork [`Awesome-Embedded-Learning-Studio/rtl8733bu-linux-driver`](https://github.com/Awesome-Embedded-Learning-Studio/rtl8733bu-linux-driver)（branch `linux-7.1-port`，GPL-2.0-only）。整个 Realtek → wirenboard `v5.15.12-264_for6.18` → 7.1 移植链——静态 Kbuild Makefile（替换 2803 行原版）、USB && CFG80211 的 Kconfig、`ioctl_cfg80211.c` 的 9 个 wdev wrapper——全 bake 进 fork，fork 本身就是 ready-to-build 的驱动，clone 下来直接进内核树就能编。rk-forge 这边只留三件 tracked 的小东西：
 
-- [patches/linux/0016](../../../patches/linux/0016-wifi-rtl8733bu-wire-realtek.patch)：那 2 行 realtek 接线（Kconfig source + Makefile obj-$）。它是真 git commit，树保持干净。
+- [patches/linux/0016](../../../boards/aes/patches/linux/0016-wifi-rtl8733bu-wire-realtek.patch)：那 2 行 realtek 接线（Kconfig source + Makefile obj-$）。它是真 git commit，树保持干净。
 - [`scripts/fetch-rtl8733bu-driver.sh`](../../../scripts/fetch-rtl8733bu-driver.sh)：clone fork @ pin、strip `.git`、清构建产物、用 `.git/info/exclude`（不编辑 tracked `.gitignore`）把 `rtl8733bu/` 排除掉——`git status` 因此永远干净。幂等：`.forge-fetched` marker 记下 clone 的 commit SHA，重跑 no-op，`--force` 才刷新（fork 的 linux-7.1-port 推进后再用）。
 - [`pins/rtl8733bu`](../../../pins/rtl8733bu)：tracked pin，格式 `<git-url> <ref>`，锁 fork 的 `linux-7.1-port` branch；想 bit-级 reproducible 就把 ref 换成 SHA 或 tag。
 

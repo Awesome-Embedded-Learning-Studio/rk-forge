@@ -18,7 +18,7 @@ USB bringup 一共三个缺口。主线 `drivers/phy/rockchip/phy-rockchip-inno-
 
 ## patch 0014：驱动侧怎么补
 
-[0014](../../../patches/linux/0014-phy-rockchip-inno-usb2-add-RK3506-support.patch) 给主线 inno-usb2 加 RK3506 支持，落点很克制。struct `rockchip_usb2phy` 加一个 `void __iomem *phy_base`，probe 里 `devm_platform_ioremap_resource(pdev, 0)` 拿窗，IS_ERR 就置 NULL——这样经典 GRF-only 的 PHY（节点不带 MEM 资源）完全不受影响，只有 RK3506 这个节点有 MEM 资源、才会真映射。
+[0014](../../../boards/aes/patches/linux/0014-phy-rockchip-inno-usb2-add-RK3506-support.patch) 给主线 inno-usb2 加 RK3506 支持，落点很克制。struct `rockchip_usb2phy` 加一个 `void __iomem *phy_base`，probe 里 `devm_platform_ioremap_resource(pdev, 0)` 拿窗，IS_ERR 就置 NULL——这样经典 GRF-only 的 PHY（节点不带 MEM 资源）完全不受影响，只有 RK3506 这个节点有 MEM 资源、才会真映射。
 
 ```c
 rphy->phy_base = devm_platform_ioremap_resource(pdev, 0);
@@ -32,7 +32,7 @@ of_match 表加 `rockchip,rk3506-usb2phy`，data 指向 `rk3506_phy_cfgs[]`：�
 
 ## patch 0015：DT 侧搬节点
 
-[0015](../../../patches/linux/0015-ARM-dts-rockchip-rk3506b-aes-add-USB2PHY-DWC2.patch) 在 SoC 级 `rk3506.dtsi` 加 PHY 和两个 DWC2 控制器，板级 `rk3506b-aes.dts` 把它们 enable 起来。SoC 级 PHY 节点长这样：
+[0015](../../../boards/aes/patches/linux/0015-ARM-dts-rockchip-rk3506b-aes-add-USB2PHY-DWC2.patch) 在 SoC 级 `rk3506.dtsi` 加 PHY 和两个 DWC2 控制器，板级 `rk3506b-aes.dts` 把它们 enable 起来。SoC 级 PHY 节点长这样：
 
 ```dts
 usb2phy: usb2-phy@ff2b0000 {

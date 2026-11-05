@@ -44,7 +44,7 @@ ROM(片上固化) → rkbin(TPL/SPL, 闭源) → U-Boot(主线, 开源) → Linu
 
 厂商不是给了 BSP 吗（ATK 那套就停在 linux 6.1.118），为什么放着现成的不用，非要去啃主线？因为主线意味着可持续、可上游、可教、可 bisect；而 BSP 意味着过期、锁死、黑盒。厂商的 6.1.118 在它出货那天是新的，但主线已经走到了 7.1，那些安全补丁、驱动修复、新特性，BSP 一辈子都吃不到。更要命的是，BSP 里往往混着一堆厂商私有改动，既没法把它拿到上游去，也没法在出问题时干净地二分定位。我们的态度很明确：主线是主线，BSP 是 Phase 4 的安全网——真到了主线某条路走不通、需要兜底的时候再去翻它，而不是一上来就把整个项目焊死在厂商的旧版本上。
 
-举个我们真实撞过的例子。vendor 的 U-Boot 是从 2017 版 fork 出来的，它读 FIT 镜像的那套代码和主线完全是两回事。我们最早把主线 U-Boot 往里装时，vendor 的 SPL 死活不肯加载我们的镜像，串口甩一句 `Unsupported hash algorithm`——表面看像是 hash 算法的事，可顺着 vendor 的 `fit_nodes.sh` 一翻，人家自己也用 sha256，真因是 vendor fork 的 FIT 节点结构和主线 binman 生成的对不上。这种 bug，咱们被困在 vendor 的私有 fork 里：主线的 git 历史帮不上忙，因为主线压根没有 vendor 那套 FIT 打包逻辑；也 bisect 不进去，因为那是 Rockchip 没开源的 2017 fork。最后是靠 `dumpimage` 把 vendor 镜像的 FIT 结构逆向出来、照着复刻才解决的（后来那一坨 vendor mkimage 也被我们用纯 Python 的 [scripts/fit-pack.py](../../../scripts/fit-pack.py) 替掉了，字节级复刻它认的 `-E` 外部布局，详见 forge 那章）。换成主线 U-Boot，同样的链路是透明可读的，每一步都能在源码里追、能 `git blame`、能动手改。所以 mainline-first 的收益不是情怀，是出问题时咱们手里真有工具。
+举个我们真实撞过的例子。vendor 的 U-Boot 是从 2017 版 fork 出来的，它读 FIT 镜像的那套代码和主线完全是两回事。我们最早把主线 U-Boot 往里装时，vendor 的 SPL 死活不肯加载我们的镜像，串口甩一句 `Unsupported hash algorithm`——表面看像是 hash 算法的事，可顺着 vendor 的 `fit_nodes.sh` 一翻，人家自己也用 sha256，真因是 vendor fork 的 FIT 节点结构和主线 binman 生成的对不上。这种 bug，咱们被困在 vendor 的私有 fork 里：主线的 git 历史帮不上忙，因为主线压根没有 vendor 那套 FIT 打包逻辑；也 bisect 不进去，因为那是 Rockchip 没开源的 2017 fork。最后是靠 `dumpimage` 把 vendor 镜像的 FIT 结构逆向出来、照着复刻才解决的（后来那一坨 vendor mkimage 也被我们用纯 Python 的 [scripts/fit-pack.py](../../../src/forge/tools/fit_pack.py) 替掉了，字节级复刻它认的 `-E` 外部布局，详见 forge 那章）。换成主线 U-Boot，同样的链路是透明可读的，每一步都能在源码里追、能 `git blame`、能动手改。所以 mainline-first 的收益不是情怀，是出问题时咱们手里真有工具。
 
 ## 这本书怎么走
 

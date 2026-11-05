@@ -4,9 +4,9 @@
 
 ## 为什么是第二份 defconfig，而不是改环境
 
-U-Boot 跑的是 `CONFIG_BOOTCOMMAND` 那串命令，我们这套板子的 env 又是 `nowhere`——不向任何介质存环境，所以每次 boot 都跑编译进二进制的默认 bootcmd。而 NAND 那份 defconfig（[0003](../../../patches/uboot/0003-uboot-autoboot-mtd-bootm.patch)）的 bootcmd 是 `mtd read boot ...`，从 NAND 读 kernel；SD 这边要的是 `mmc read ...`，从 SD 卡的 GPT 第二分区读到 kernel FIT。两套 bootcmd 不兼容，硬塞进同一份 defconfig 不行。
+U-Boot 跑的是 `CONFIG_BOOTCOMMAND` 那串命令，我们这套板子的 env 又是 `nowhere`——不向任何介质存环境，所以每次 boot 都跑编译进二进制的默认 bootcmd。而 NAND 那份 defconfig（[0003](../../../boards/aes/patches/uboot/0003-uboot-autoboot-mtd-bootm.patch)）的 bootcmd 是 `mtd read boot ...`，从 NAND 读 kernel；SD 这边要的是 `mmc read ...`，从 SD 卡的 GPT 第二分区读到 kernel FIT。两套 bootcmd 不兼容，硬塞进同一份 defconfig 不行。
 
-可走的路有两条：改环境，或者做 sibling defconfig。env=nowhere 直接把第一条堵死——没有 env 介质就没法在运行时覆盖 bootcmd，能改的只剩编译进二进制那一份默认值。于是正解就是 [0005](../../../patches/uboot/0005-uboot-sd-autoboot-mmc-defconfig.patch)：新增 `configs/evb-rk3506_sd_defconfig`，跟 NAND 那份除了 bootcmd 完全一样，NAND 的 defconfig 一行不动、NAND 那条 update.img 的 mtd-read 路径保持原样。两份 defconfig 各出一份 uboot（`uboot.img` / `uboot-sd.img`），由 pack/assemble 的 `--variant sd` 选着用。
+可走的路有两条：改环境，或者做 sibling defconfig。env=nowhere 直接把第一条堵死——没有 env 介质就没法在运行时覆盖 bootcmd，能改的只剩编译进二进制那一份默认值。于是正解就是 [0005](../../../boards/aes/patches/uboot/0005-uboot-sd-autoboot-mmc-defconfig.patch)：新增 `configs/evb-rk3506_sd_defconfig`，跟 NAND 那份除了 bootcmd 完全一样，NAND 的 defconfig 一行不动、NAND 那条 update.img 的 mtd-read 路径保持原样。两份 defconfig 各出一份 uboot（`uboot.img` / `uboot-sd.img`），由 pack/assemble 的 `--variant sd` 选着用。
 
 新 defconfig 的核心就这两行：
 
