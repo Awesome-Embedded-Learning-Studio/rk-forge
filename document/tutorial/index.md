@@ -9,8 +9,8 @@ title: 教程系列
 rk-forge 围绕三块 Rockchip 开发板组织教程，它们是一条递进的阶梯，不是三门平行的课：
 
 - 🟢 **[RK3506B 系列](#rk3506b-系列-完整教程)** —— 主线 bring-up 主课，也是教程最完整的一块：工具链 → rootfs → 外设 → SD 启动 → forge 编排器，五阶段全兑现。
-- 🟡 **[RK3568 系列](rk3568/)** —— 从 ARM32 进 AArch64、学标准 Linux 驱动框架。当前 MVP：启动首启章已写真板验证，其余课程建设中。
-- 🟡 **[RK3588 系列](rk3588/)** —— 异构、媒体、桌面产品级。启动 / LCD 移植 / GPU 固件 / Ubuntu rootfs 四章已写真板验证。
+- 🟡 **[RK3568 系列](rk3568/)** —— 从 ARM32 进 AArch64、学标准 Linux 驱动框架。当前 MVP：启动与板级 DT 两章已写板上验证，其余课程建设中。
+- 🟡 **[RK3588 系列](rk3588/)** —— 异构、媒体、桌面产品级。U-Boot / 内核 v7.3.1 / LCD / GPU / rootfs / TFTP+NFS / 外设 / NPU 九章已写板上验证，第十章 GPU 用户态是 QEMU 仿真研究线。
 
 新手从 RK3506B 进；做过 BSP 想系统学 AArch64 驱动框架的从 RK3568 进；做异构 / 媒体 / 桌面产品的从 RK3588 进。无论从哪块板进，第 0 步都一样——[环境准备](#环境准备三块板共用)：把 WSL2 搭干净、把 USB 设备直通进来。三块板的完整教学目标、课程顺序和当前状态，见 [三板教学路线](../planning/)。
 
@@ -119,26 +119,30 @@ RK3568 是 AArch64 + 标准驱动框架的中间级。主线 7.1 + binman 自产
 
 <ChapterNav>
   <ChapterLink num="00" href="rk3568/00_roadmap">路线图：RK3568 在阶梯里的位置</ChapterLink>
-  <ChapterLink num="01" href="rk3568/01_boot">引导启动：主线 7.1 真机首启到 login</ChapterLink>
+  <ChapterLink num="01" href="rk3568/01_boot">引导启动：主线 7.1 板上首启到 login</ChapterLink>
   <ChapterLink num="02" href="rk3568/02_peripherals">板级 DT 八子系统：从"能启动"到"能用"</ChapterLink>
 </ChapterNav>
 
-> 🚧 板级 DT 八子系统（PMIC / 双 GMAC / audio / 触摸 / LCD / GPU / CAN / RTC）、rtl8852bs WiFi、buildroot Phase 2a 全栈——在 [notes/40–42](../notes/) 有真机记录，但等板 DT patch 化（P4）落定后再课程化成章节。完整课程目标见 [RK3568 路线](../planning/rk3568/)。
+> 🚧 板级 DT 八子系统已写进 [02 章](rk3568/02_peripherals)（板验在案，但板级 DT 仍是 working-tree delta，等 patch 化（P4）落定后第二人才能 clone 复现）；rtl8852bs WiFi 驱动已接线进构建、板上验证待做，buildroot Phase 2a 全栈的课程化也排在后面，素材都在 [notes/40–42](../notes/)。完整课程目标见 [RK3568 路线](../planning/rk3568/)。
 
 ## RK3588 系列
 
-RK3588 是异构 / 媒体 / 桌面产品级的顶级。主线 boot 到 Ubuntu GNOME 桌面，LCD / GPU / 触摸板上点亮。
+RK3588 是异构 / 媒体 / 桌面产品级的顶级。主线 boot 到 Ubuntu GNOME 桌面，内核 v7.3.1，LCD / GPU / 触摸 / WiFi / DVFS / NPU 与多媒体核板上点亮，自研运行时跟原厂闭源库对到逐字节一致，TFTP+NFS 免烧录迭代引擎就位，QEMU 里的 GPU 用户态研究线收官。
 
 <ChapterNav>
-  <ChapterLink num="00" href="rk3588/00_roadmap">路线图：RK3588 在阶梯里的位置</ChapterLink>
-  <ChapterLink num="01" href="rk3588/01_boot">引导启动：bootloop 第 0 关 + 主线 SPL + autoboot</ChapterLink>
-  <ChapterLink num="02" href="rk3588/02_lcd">LCD 移植 saga：TC358775 桥 IC 与 9 条 gotcha</ChapterLink>
-  <ChapterLink num="03" href="rk3588/03_gpu">GPU 固件：Panthor early probe 与内建 raw 固件</ChapterLink>
-  <ChapterLink num="04" href="rk3588/04_rootfs">Ubuntu rootfs：从 ubuntu-base 到 GNOME 桌面</ChapterLink>
-  <ChapterLink num="05" href="rk3588/05_stability">稳定性调试：抓看不见的 hard-lock（方法论）</ChapterLink>
+  <ChapterLink num="00" href="rk3588/00_platform">平台与启动链：RK3588，以及拔掉原厂 SDK 之后会断在哪里</ChapterLink>
+  <ChapterLink num="01" href="rk3588/01_uboot">U-Boot 移植：无声 bootloop 与 rockusb Loader 模式</ChapterLink>
+  <ChapterLink num="02" href="rk3588/02_kernel">Linux 内核移植：把原厂 SDK 的设备树翻译成主线语法，一路追到 v7.3.1</ChapterLink>
+  <ChapterLink num="03" href="rk3588/03_lcd">LCD 显示：一块没有主线驱动的屏，和三场连环硬仗</ChapterLink>
+  <ChapterLink num="04" href="rk3588/04_gpu">GPU：Panthor、那颗绕不开的固件，和 GNOME 的第一帧</ChapterLink>
+  <ChapterLink num="05" href="rk3588/05_rootfs">Ubuntu rootfs：从 ubuntu-base 到 GNOME，再打进 eMMC</ChapterLink>
+  <ChapterLink num="06" href="rk3588/06_network">网络启动与免烧录迭代：TFTP+NFS 引擎，和一场显示杀死网卡的冤案</ChapterLink>
+  <ChapterLink num="07" href="rk3588/07_peripherals">外设收尾：WiFi 上桌，DVFS 落地</ChapterLink>
+  <ChapterLink num="08" href="rk3588/08_npu">NPU 收官：原厂驱动进主线，自研运行时逐字节对拍</ChapterLink>
+  <ChapterLink num="09" href="rk3588/09_gpu_userspace">GPU 用户态收官：QEMU 里的采样合成战役</ChapterLink>
 </ChapterNav>
 
-> 🚧 V4L2/ISP 摄像头、MPP 视频编解码、NPU/AI、Android 产品化方向课——主线驱动还在 roadmap、硬件未接齐，等真机数据补齐后补。LCD 的 VOP2 hard-lock 修复当前是候选镜像，连续稳定性板验未完。完整课程目标见 [RK3588 路线](../planning/rk3588/)。
+> 🚧 V4L2/ISP 摄像头、VPU 编码侧、Android 产品化方向课——主线驱动还在 roadmap、硬件未接齐，等板上的数据补齐后再补。LCD 的 VOP2 hard-lock 修复已经板上收敛，连续稳定性板验未完，教程里相应章节标了“出图，但不宣称稳定”。GPU 用户态章是 QEMU 仿真取证的研究线，产出的是理解材料而非板上的点亮。完整课程目标见 [RK3588 路线](../planning/rk3588/)。
 
 ::: tip 遇到问题？
 三块板这条链踩了一路坑——rkbin SPL 的隐性契约、SPI-NAND 读写 saga、reserved-memory 那个把人骗过两次的 imprecise abort、RK3588 那场看不见报错的 bootloop、TC358775 桥 IC 的 `.prepare` 生命周期、GPU 固件的 early-probe 时机……全记在 [踩坑日记](../pitfalls/) 和各章的"坑"小节里，每条挂着串口原文。提 [GitHub Issue](https://github.com/Awesome-Embedded-Learning-Studio/rk-forge/issues) 也欢迎。

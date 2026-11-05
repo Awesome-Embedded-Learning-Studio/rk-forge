@@ -20,7 +20,7 @@
 
 **主线 Linux 7.1 + 主线 U-Boot 在 RK3568 ATK 真机 boot 到 login——CPU 核心 + eMMC + 双 GMAC +
 LCD（ILI9881C）+ GPU（Panfrost G52）+ 触摸 + CAN + RTC 全主线打通并板验。** 启动链前段仍借闭源
-`rkbin` blob（DDR/SPL/BL31）。**尚未闭合**：WiFi（rtl8852bs 待移植）、音频（RK809 GPIO 冲突）、
+`rkbin` blob（DDR/SPL/BL31）。**尚未闭合**：WiFi（rtl8852bs 已接线进构建、板上验证待做）、音频（RK809 GPIO 冲突）、
 USB3/PCIe/VPU/NPU（roadmap），以及上条所述的 patch 化工程债。
 
 ## 子系统逐项对比
@@ -42,7 +42,7 @@ USB3/PCIe/VPU/NPU（roadmap），以及上条所述的 patch 化工程债。
 | **RTC** | ✅ | ✅ pcf8563，板验 | 已闭合 |
 | **HDMI** | ✅ | ⚠️ driver bound（card0-HDMI-A-1）但未接显示 | 驱动在，显示未接 |
 | **音频（RK809）** | ✅ | ⚠️ **card 没 probe** | hp-det（gpio1 PA4）抢 i2s1 mclk → rk809-sound 不 probe；只有 BT SCO（card0）。修：换 hp-det gpio 或 i2s1 mclk pinctrl（notes/42 待办） |
-| **WiFi（rtl8852bs，SDIO）** | ✅ vendor 851 文件私有驱动 | ❌ **待移植** | SDIO 总线通（mmc2:0001:1 枚举），主线 rtw89 无 SDIO；A1 路径=搬 vendor 驱动适配 5.10→7.1（notes/42 §三） |
+| **WiFi（rtl8852bs，SDIO）** | ✅ vendor 851 文件私有驱动 | 🟧 **已接线进构建、板上验证待做** | SDIO 总线通（mmc2:0001:1 枚举），主线 rtw89 无 SDIO；已换 armbian 适配版接线（series 0001 wire + 0002 适配 + fetch 脚本物化驱动，d8054d2 起进构建），验证待板上 |
 | **USB3 / PCIe / SATA** | ✅ | 🚧 roadmap | dwc3 defer-probe（notes/40）；PCIe/SATA DT+cfg 开但未板验 |
 | **VPU / RGA / NPU / 摄像头** | ✅ | 🚧 roadmap | RGA/CIF cfg=y 无 DT 节点；NPU 需 vendor rknpu2 + 闭源 librknnrt（主线 Rocket 只 RK3588），未移植 |
 
@@ -62,7 +62,7 @@ USB3/PCIe/VPU/NPU（roadmap），以及上条所述的 patch 化工程债。
 ## 下一步优先级
 
 1. **patch 化（最高优先，工程债）**：在真机把 LCD/panel 精调定稳后，`forge setup --board=rk3568-atk` 拉干净带 `.git` 的 v7.1 源树，把 ATK DT + panel descriptor + u-boot defconfig 改动做成 quilt patch 进 `patches/rk3568-atk/series`。**panel descriptor 当前未定稳（notes/42 待办：init delay + 尾命令），定稳前不应 patch 化。**
-2. **rtl8852bs WiFi 移植**：A1 路径（搬 vendor 851 文件 + 5.10→7.1 适配，见 notes/42 §三）。
+2. **rtl8852bs WiFi 板上验证**：接线已进构建（armbian 适配版路线替代 A1 的手搬，series 0001/0002 + fetch 脚本），剩板上验证。
 3. **音频 RK809 GPIO 冲突**：换 hp-det gpio 或调 i2s1 mclk pinctrl，让 rk809-sound card probe。
 4. **USB3 / PCIe / VPU / NPU**：roadmap，按需推进。
 

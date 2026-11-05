@@ -17,6 +17,8 @@ title: "卷七：工程交付与真板取证"
 - 增量构建靠内容哈希不是时间戳；三条纪律：算法稳定、输入集合完整、缓存可强制 invalidate——哈希算漏一个文件比全量重编危险
 - 干净构建 vs 日常增量的使用时机：交付/发版/标 verified 必须干净构建一次
 - 一项能力「已验证」= host / 构建 / 真板**三道检查都过**，互相不能替代
+- 纯 Python 打包链替代 vendor 工具：[rkfw_pack.py](../../../src/forge/tools/rkfw_pack.py) 替 afptool/rkImageMaker、[fit_pack.py](../../../src/forge/tools/fit_pack.py) 字节级复刻 vendor 认的 FIT 布局——正文已在 [forge 卷](../../tutorial/forge/)兑现
+- 去 vendor-sdk 的立身逻辑：仓库不携带厂商 SDK，主线源码 + 最小 rkbin blob 全部 pin 进 forge——正文同在 forge 卷
 
 实践：
 - 干净开发机全流程 clone → setup → build → assemble，不依赖本地未提交改动
@@ -50,4 +52,9 @@ title: "卷七：工程交付与真板取证"
 | [notes/32](../../notes/32-2026-06-21-sd-card-image-sd1.md)、[33](../../notes/33-2026-06-21-sd-card-autoboot-sd2.md) | SD 卡镜像两篇 |
 | [logs/](../../logs/) 的编号归档制度 | 第 17 章证据制度教材本身 |
 | [src/forge/](../../../src/forge/)（`doctor`、`pack/assemble`）与 [forge.yaml](../../../forge.yaml) | 可复现构建的教学实物 |
-| [tutorial/forge/](../../tutorial/forge/) | 编排器初稿 |
+| [tutorial/forge/](../../tutorial/forge/) | 第 16 章正文已兑现（forge/00：DAG + content-hash、八个子命令、去 vendor-sdk） |
+
+## 缺口（待写）
+
+- 第 16 章：pin 纪律专讲（forge.yaml / board.yaml `sources:`）、增量构建三纪律的算法细节、干净构建 vs 增量的使用时机、双构建哈希对比、三道检查演练未写。素材：[forge/00](../../tutorial/forge/00_forge.md)、[forge.yaml](../../../forge.yaml)、[notes/18（板级验证 playbook）](../../notes/18-2026-06-18-board-verification-playbook.md)。
+- 第 17 章：整章待写（或裁决并入第 16 章收尾与站点「证据库」层）。素材散在：各教程章「成功长这样」小节、[logs/](../../logs/) 编号归档制度、[三板教学路线](../index.md)的四档口径。

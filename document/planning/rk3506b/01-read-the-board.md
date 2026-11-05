@@ -13,7 +13,7 @@ title: "卷一：读取真板，而不是背诵命令"
 要点：
 
 - RK3506B = 3×Cortex-A7 跑 SMP Linux + M0 协处理器（多核异构 AMP，第 2 章展开）；板上家当：512MB DDR3、W25N04KV 512MB SPI-NAND、双 RJ45、RTL8733BU USB WiFi dongle；开发机 WSL2 几个 G 内存即可
-- 两条启动路线（SPI-NAND / SD）由板级 strap 决定，链结构相同、差别只在介质与偏移；NAND 是卷四的可靠性主课，SD 适合快速试验与置备
+- 两条启动路线（SPI-NAND / SD）由板级 strap 决定，链结构相同、差别只在介质与偏移；NAND 是卷四的可靠性主课，SD 路线不再只是预告——[sd-boot 卷](../../tutorial/sd-boot/)三章正文已兑现（RKFW 容器、SD-1 手动、SD-2 autoboot），适合快速试验与置备
 - 启动链背下来：`BootROM → rkbin(TPL/SPL/DDR init, 闭源) → 可选 OP-TEE → U-Boot(主线) → Linux(主线) → rootfs → init`
 - **闭源与开源的分界画在 rkbin 之后**——mainline-first 的咽喉，守不住就垮成又一个 BSP 镜像
 - 四档状态口径（verified / partial / planned / blocked）；诚实现状：U-Boot 2026.07 + Linux 7.1 已板上跑通，但纯主线 boot 卡在 rkbin DDR init（第 3 章专讲）
@@ -49,4 +49,9 @@ title: "卷一：读取真板，而不是背诵命令"
 | [boards/aes/](../../../boards/aes/) | 板级目录当实物教具：五套 kernel config、parameter 表、RKBOOT ini |
 | [logs/atk-standard-boot.txt](../../logs/atk-standard-boot.txt) | 第一份串口读物，第 1 章标注练习的原材料 |
 | books/RK3506B 包的 ARMv7 编程手册与 Cortex-A7 TRM | 第 2 章架构素材（`.claude/books/`，本地资料） |
-| [tutorial/host/](../../tutorial/host/) | 开发机环境旁证：WSL2 与 usbipd 两篇 |
+| [tutorial/host/](../../tutorial/host/) | 三板共用第 0 步前置卷（八章总纲 + WSL2/usbipd 两篇正文已兑现），第 1 章开发机环境在此承接，本卷不重述 |
+
+## 缺口（待写）
+
+- 第 1 章：「源码 → 产物 → 分区 → 日志」对照表练习未成章；逐行标注启动日志未设练习。素材：[logs/atk-standard-boot.txt](../../logs/atk-standard-boot.txt)、[boot/00 路线图](../../tutorial/boot/00_roadmap.md)。
+- 第 2 章：七种处理器模式、ARM/Thumb 混编对比、AAPCS 调用约定、PSCI 次级核上线、highmem 约束未写（[boot/01](../../tutorial/boot/01_toolchain.md) 只到实用子集）。素材：books 的 ARMv7 编程手册与 Cortex-A7 TRM（`.claude/books/`，本地资料），挂 boot/01 之后作进阶篇。

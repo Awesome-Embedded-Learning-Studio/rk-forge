@@ -49,7 +49,12 @@ title: "卷二：掌控 Rockchip 启动链"
 | [pitfalls/01（rkbin SPL 的三条隐性约定）](../../pitfalls/01-rkbin-spl-contracts.md) | 第 3 章正文骨架 |
 | [blobs.md](../../blobs.md) | 闭源清单单一真相源，第 3 章的现成正文 |
 | [notes/01](../../notes/01-2026-06-14-vendor-uboot-build-flow.md)、[03](../../notes/03-2026-06-14-maskrom-brick-recovery.md)、[13](../../notes/13-2026-06-17-p1-rkbin-public-loader-conquest.md) | 取证链 |
-| [tutorial/boot/01–03](../../tutorial/boot/) | 第 3、4 章初稿底子 |
+| [tutorial/boot/01–03](../../tutorial/boot/) | 第 3、4 章正文已兑现于 boot 卷（01 工具链、02 rkbin/U-Boot/FIT、03 内核迁移） |
+| [tutorial/sd-boot/](../../tutorial/sd-boot/)（三章全兑现） | 第 4 章「NAND 与 SD 两条路」的正文承接：RKFW 容器、SD-1 手动 mmc read/bootm、SD-2 baked-in bootcmd |
 | [notes/20（mkimage saga）](../../notes/20-2026-06-19-mkimage-saga-handoff.md) | FIT 打包教训 |
 | [src/forge/tools/fit_pack.py](../../../src/forge/tools/fit_pack.py) 与 [rkfw_pack.py](../../../src/forge/tools/rkfw_pack.py) | 打包器教学实物 |
 | [sdk-diff.md](../../sdk-diff.md) | 厂商 vs 主线启动链对照 |
+
+## 缺口（待写）
+
+- 第 4 章：U-Boot DM 模型（uclass/driver/device 与内核 device model 同构）专讲、环境变量回退设计、正常/置备/救援三入口设计课、启动失败决策树未写。素材：[forge/00](../../tutorial/forge/00_forge.md)（仅 `--provision/--rescue` 一笔带过）、[sd-boot/02](../../tutorial/sd-boot/02_sd2_autoboot.md)（baked-in bootcmd 实况）、[pitfalls/01](../../pitfalls/01-rkbin-spl-contracts.md)。

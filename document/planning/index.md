@@ -10,9 +10,9 @@ title: 三板教学路线
 
 | 板子 | SoC / 架构 | 你会学到 | 路线入口 | 进展 |
 |---|---|---|---|---|
-| **RK3506B** | RK3506B / ARMv7-A · Cortex-A7×3（32-bit armhf） | 主线 bring-up、SPI-NAND/UBIFS 可靠性、SD 启动、Buildroot/OpenWrt、工业接口 | [RK3506B 路线](rk3506b/) | 🟢 `verified` — 真板已验证，教程已在 [tutorial/](../tutorial/) 兑现 |
-| **RK3568** | RK3568 / AArch64 · Cortex-A55×4 | Linux 设备模型、IRQ/clock/regulator、I²C/SPI/UART、DMA、USB/PCIe、网络、DRM | [RK3568 路线](rk3568/) | 🟡 `partial` — ATK 真机 boot 已验证（多外设板验），课程化待建 |
-| **RK3588** | RK3588 / AArch64 · A76+A55 big.LITTLE | 异构、内存/SMMU/dma-buf、DRM/V4L2/MPP/RGA、AI(NPU)/媒体/Android/GPU | [RK3588 路线](rk3588/) | 🟡 `partial` — iTOP 真机 boot 到 GNOME 桌面已验证，课程化待建 |
+| **RK3506B** | RK3506B / ARMv7-A · Cortex-A7×3（32-bit armhf） | 主线 bring-up、SPI-NAND/UBIFS 可靠性、SD 启动、Buildroot/OpenWrt、工业接口 | [RK3506B 路线](rk3506b/) | 🟢 `verified` — 真板已验证；主干六卷（boot/rootfs/peripherals/sd-boot/forge/openwrt 支线）教程已兑现，余项（NAND 深讲、产品化、证据制度等）partial，详见 [卷表](rk3506b/) |
+| **RK3568** | RK3568 / AArch64 · Cortex-A55×4 | Linux 设备模型、IRQ/clock/regulator、I²C/SPI/UART、DMA、USB/PCIe、网络、DRM | [RK3568 路线](rk3568/) | 🟡 `partial` — ATK 真机 boot 已验证（多外设板验），教程 01/02 两章已成，P4 patch 化待落 |
+| **RK3588** | RK3588 / AArch64 · A76+A55 big.LITTLE | 异构、内存/SMMU/dma-buf、DRM/V4L2/MPP/RGA、AI(NPU)/媒体/Android/GPU | [RK3588 路线](rk3588/) | 🟡 `partial` — iTOP 真机 boot 到 GNOME 桌面已验证，教程十章已成（主线八章+NPU 板上章+GPU 用户态仿真章） |
 
 ## 结构怎么读
 

@@ -27,6 +27,8 @@ title: "卷五：构建自己的用户系统"
 
 一句话：要「opkg 装包、LuCI 配置、A/B 升级」的网络设备就切 OpenWrt profile——与 Buildroot 按产品定位二选一，不是谁替代谁。
 
+> 教程兑现：支线单章 [openwrt/00](../../tutorial/openwrt/00_openwrt.md)（自建 kernel+rootfs、vermagic、musl/glibc、LuCI 加包、NAND+SD 板验）；网络实战未写，见卷末「缺口（待写）」。教程侧 OpenWrt 是单章支线而非整章卷，别按卷五结构找第 12 章正文。
+
 要点：
 
 - 三层组织 target/subtarget/device：加一块新板主要是写 device 的 DTS 与 profile，定制留主树外
@@ -47,8 +49,13 @@ title: "卷五：构建自己的用户系统"
 
 | 资产 | 用途 |
 |---|---|
-| [tutorial/rootfs/01（buildroot）、02（init）](../../tutorial/rootfs/) | 第 11 章初稿 |
+| [tutorial/rootfs/01（buildroot）、02（init）](../../tutorial/rootfs/) | 第 11 章基础篇正文已兑现（BR2_EXTERNAL、defconfig 决策、canonical 调用、init/mdev 相邻章） |
 | [pitfalls/02（busybox init 两道暗门）](../../pitfalls/02-busybox-init-devtmpfs.md) | init 排障骨架 |
 | [notes/19](../../notes/19-2026-06-18-buildroot-minimal-rootfs-first-build.md)、[31](../../notes/31-2026-06-20-mk-rootfs-patch-maker-removal.md)、[34](../../notes/34-2026-07-11-openwrt-integration.md)、[35](../../notes/35-2026-07-12-openwrt-rootfs-flow.md) | 取证链 |
-| [tutorial/openwrt/](../../tutorial/openwrt/) | 第 12 章初稿 |
+| [tutorial/openwrt/](../../tutorial/openwrt/) | 第 12 章支线单章正文已兑现（openwrt/00） |
 | [boards/aes/](../../../boards/aes/) 的五套 kernel config 与 [README-evb-configs.md](../../../boards/aes/README-evb-configs.md) | 产品裁剪实证 |
+
+## 缺口（待写）
+
+- 第 11 章：自定义 package（`foo.mk` + `Config.in`）、overlay/post-build/package 三层定制专讲、`S90foo` 启动脚本演练、构建身份 `/etc/version` 注入未写。素材：[rootfs/01](../../tutorial/rootfs/01_buildroot.md)、[notes/19](../../notes/19-2026-06-18-buildroot-minimal-rootfs-first-build.md)、[31](../../notes/31-2026-06-20-mk-rootfs-patch-maker-removal.md)。
+- 第 12 章：procd 服务编写、uci 实战、`sysupgrade -b/-r`、双网口 WAN/LAN + DHCP + NAT + 防火墙、squashfs-on-UBI 未写（后一条 openwrt/00 已自行挂账）。素材：[openwrt/00 待办清单](../../tutorial/openwrt/00_openwrt.md)、[notes/34](../../notes/34-2026-07-11-openwrt-integration.md)、[35](../../notes/35-2026-07-12-openwrt-rootfs-flow.md)。
