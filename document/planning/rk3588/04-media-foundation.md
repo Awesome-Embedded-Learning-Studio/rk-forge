@@ -96,7 +96,7 @@ title: "卷四：显示、摄像头与媒体公共地基"
 
 | 资产 | 用途 |
 |---|---|
-| [tutorial/rk3588/02_lcd](../../tutorial/rk3588/02_lcd.md) | 第 9 章强锚点：DSI→LVDS（TC358775）真板出图全程 |
+| [tutorial/rk3588/03_lcd](../../tutorial/rk3588/03_lcd.md) | 第 9 章强锚点：DSI→LVDS（TC358775）真板出图全程 |
 | LCD 笔记：[44](../../notes/44-2026-07-31-rk3588-lcd-dsi-panel-port.md)、[45](../../notes/45-2026-07-31-rk3588-lcd-bringup-blockers.md)、[46](../../notes/46-2026-07-31-rk3588-lcd-dsi2-video-blocker-handoff.md)、[47](../../notes/47-2026-08-01-rk3588-lcd-video-fix-tc358775-init-prepare.md) | DSI/面板移植取证（五坑） |
 | VOP2 战役：[71](../../notes/71-2026-08-28-vop2-campaign-power-domain-cascade.md)、[72](../../notes/72-2026-08-28-vop2-campaign2-drm-initialized.md)、[73](../../notes/73-2026-08-28-vop2-campaign3-kms-userspace.md)、[74](../../notes/74-2026-08-29-vop2-campaign4-desktop-lights.md)、[54（hardlock 修复）](../../notes/54-2026-08-02-rk3588-vendor-vop2-handoff-hardlock-fix.md) | 第 9 章 DRM/VOP2 取证；hardlock 未闭环现状见线总览 |
 | 触摸笔记：[52](../../notes/52-2026-08-02-rk3588-gt911-vendor-polling-i2c-v5.md)、[55](../../notes/55-2026-08-02-rk3588-gt911-landscape-axis-fix.md) | input/触摸素材 |

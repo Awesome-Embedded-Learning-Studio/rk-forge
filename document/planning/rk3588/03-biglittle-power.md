@@ -63,6 +63,6 @@ title: "卷三：big.LITTLE、功耗与持续性能"
 | 资产 | 用途 |
 |---|---|
 | [notes/57（vendor cpufreq/DVFS 移植）](../../notes/57-2026-08-12-rk3588-vendor-cpufreq-dvfs-port.md) | 第 6 章 DVFS 真板素材 |
-| [notes/53（hard-lockup 与 ramoops/watchdog）](../../notes/53-2026-08-02-rk3588-hard-lockup-ramoops-watchdog.md)、[tutorial/rk3588/05_stability](../../tutorial/rk3588/05_stability.md) | 第 7 章长期稳定性取证 |
-| [tutorial/rk3588/04_rootfs](../../tutorial/rk3588/04_rootfs.md) | 满载基线的系统侧上下文 |
+| [notes/53（hard-lockup 与 ramoops/watchdog）](../../notes/53-2026-08-02-rk3588-hard-lockup-ramoops-watchdog.md)、[tutorial/rk3588/02_kernel](../../tutorial/rk3588/02_kernel.md) | 第 7 章长期稳定性取证 |
+| [tutorial/rk3588/05_rootfs](../../tutorial/rk3588/05_rootfs.md) | 满载基线的系统侧上下文 |
 | [logs/](../../logs/) 的 3588 系列 | 基线日志 |

@@ -68,7 +68,7 @@ title: "GPU 高级选修（RK3588 线）"
 
 | 资产 | 用途 |
 |---|---|
-| [tutorial/rk3588/03_gpu](../../tutorial/rk3588/03_gpu.md) | Panthor 板验强锚点（固件内嵌、GNOME 桌面） |
+| [tutorial/rk3588/04_gpu](../../tutorial/rk3588/04_gpu.md) | Panthor 板验强锚点（固件内嵌、GNOME 桌面） |
 | panthor 笔记 82–116（M0→M2n 全链战役：[110 真壁纸全屏](../../notes/110-2026-09-11-panthor-m2n-true-wallpaper-fullscreen.md)、[116 收官](../../notes/116-2026-09-12-panthor-m2n-wallpaper-visible-achieved.md) 等） | 第 2 章渲染/同步的完整实战现场，含被推翻的判断 |
 | [notes/48（GPU 固件内嵌与 GNOME 桌面）](../../notes/48-2026-08-01-rk3588-gpu-firmware-embedded-gnome-desktop.md) | 第 1 章固件边界素材 |
 | sim 研究线（[boards/rk3588-topeet/sim/](../../../boards/rk3588-topeet/sim/)） | GPU 仿真取证（M2n 扫描输出/AFBC 读侧等） |

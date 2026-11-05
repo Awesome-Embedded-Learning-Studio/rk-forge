@@ -46,7 +46,7 @@ title: "卷一：RK3588 平台、启动与安全边界"
 
 | 资产 | 用途 |
 |---|---|
-| [tutorial/rk3588/01_boot](../../tutorial/rk3588/01_boot.md) | 真机 boot 强锚点（主线 v7.1 + U-Boot 2026.07 + 主线 SPL） |
+| [tutorial/rk3588/01_uboot](../../tutorial/rk3588/01_uboot.md) | 真机 boot 强锚点（主线 v7.1 + U-Boot 2026.07 + 主线 SPL） |
 | [notes/49](../../notes/49-2026-07-27-rk3588-bootloop-mainline-spl.md)、[50](../../notes/50-2026-07-27-rk3588-first-boot-baud-root-dt.md)、[43](../../notes/43-2026-07-31-rk3588-autoboot-baud-bootcmd.md) | 启动链取证 |
 | [boot-rk3588.txt](../../../boot-rk3588.txt) | 串口抓取原件 |
 | [boards/rk3588-topeet/](../../../boards/rk3588-topeet/) | 板级 pinout、分区表、补丁 |
