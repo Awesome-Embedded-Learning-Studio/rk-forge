@@ -21,7 +21,7 @@ BootROM
   → EXT4 → busybox init → login
 ```
 
-和 RK3506B 比，RK3568 多了 ATF BL31 这一级（ARMv8-A 必需）；和 RK3588 比，RK3568 的 vendor SPL 跟 BL31 没有基址冲突，所以这一级可以继续借 vendor blob，不用像 [RK3588 启动章](../rk3588/01_boot) 那样切主线 SPL。
+和 RK3506B 比，RK3568 多了 ATF BL31 这一级（ARMv8-A 必需）；和 RK3588 比，RK3568 的 vendor SPL 跟 BL31 没有基址冲突，所以这一级可以继续借 vendor blob，不用像 [RK3588 U-Boot 章](../rk3588/01_uboot) 那样切主线 SPL。
 
 > 这一章值得记的一个工程进步是 idbloader 由 binman 自产——也就是说 loader 这段不再依赖 vendor 的打包工具，binman 直接从主线 U-Boot 的构建产物 + rkbin 的 DDR/usbplug blob 组出 idblock。这是 RK3568 移植一开始就立起来的「零 vendor 打包工具」基线，后面 RK3588 沿用了同一条路。
 
@@ -89,7 +89,7 @@ bootm 0x08000000
 
 注意 root 是 `mmcblk1p3`——RK3568 ATK 的 eMMC 在 kernel 里是 `mmcblk1`（RK3588 topeet 是 `mmcblk0`，两板不一样，照搬必踩 `Waiting for root device`）。
 
-可一松手让它 autoboot，它又不动。根因和 RK3588 一样：U-Boot 的 `bootflow scan` 对 eMMC（dev 0）不扫分区，手动 `mmc dev 0` 它认，bootflow 偏不扫。RK3588 那边用 `CONFIG_BOOTCOMMAND` 写死成「直接 `load mmc 0:3 boot.scr; source`」绕开了（见 [RK3588 autoboot 节](../rk3588/01_boot#autoboot-bootflow-不扫-emmc-分区-就绕开它)）；RK3568 这条自动化当时没收尾——上电还得在 U-Boot 里手动敲上面那串。这是已知尾巴，落 `CONFIG_BOOTCOMMAND` 的 patch 是后续。
+可一松手让它 autoboot，它又不动。根因和 RK3588 一样：U-Boot 的 `bootflow scan` 对 eMMC（dev 0）不扫分区，手动 `mmc dev 0` 它认，bootflow 偏不扫。RK3588 那边用 `CONFIG_BOOTCOMMAND` 写死成「直接 `load mmc 0:3 boot.scr; source`」绕开了（见 [RK3588 autoboot 节](../rk3588/01_uboot#串口波特率与-autoboot)）；RK3568 这条自动化当时没收尾——上电还得在 U-Boot 里手动敲上面那串。这是已知尾巴，落 `CONFIG_BOOTCOMMAND` 的 patch 是后续。
 
 ## 成功长这样
 
