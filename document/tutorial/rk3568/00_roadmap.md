@@ -26,7 +26,7 @@ RK3568 的主线支持比 RK3506 成熟太多——pinctrl/clk/GIC/USB/PCIe/GMAC
 
 | 章 | 主题 | 状态 |
 |---|---|---|
-| [01 引导启动](01_boot) | 主线 7.1 + binman 自产 loader，真机首启到 login | ✅ 真机验证 |
+| [01 引导启动](01_boot) | 主线 7.1 + binman 自产 loader，板上首启到 login | ✅ 板上验证 |
 | [02 板级 DT 八子系统](02_peripherals) | PMIC/双 GMAC/audio/touch/LCD/GPU/CAN/RTC | 🟡 板验，DT 待 P4 patch 化 |
 | （后续）WiFi rtl8852bs | vendor 851 文件驱动移植到 7.1 | 🚧 待移植 |
 | （后续）buildroot 全栈 | Qt6/Mesa/GStreamer/Weston | 🚧 待真机验证 |

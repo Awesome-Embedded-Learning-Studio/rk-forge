@@ -10,7 +10,7 @@ RK3568 是这条阶梯的中间级——从 RK3506B 的 ARM32 / 主线 bring-up�
 
 <ChapterNav>
   <ChapterLink num="00" href="00_roadmap">路线图：RK3568 在三板阶梯里的位置</ChapterLink>
-  <ChapterLink num="01" href="01_boot">引导启动：主线 7.1 真机首启到 login</ChapterLink>
+  <ChapterLink num="01" href="01_boot">引导启动：主线 7.1 板上首启到 login</ChapterLink>
   <ChapterLink num="02" href="02_peripherals">板级 DT 八子系统：从"能启动"到"能用"</ChapterLink>
 </ChapterNav>
 
