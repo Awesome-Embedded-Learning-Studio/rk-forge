@@ -33,7 +33,7 @@ RK3588 这卷咱们瞄准的是 GNOME 桌面加一票主线外设，这个体量
 forge build ubuntu-rootfs   # chroot 里 apt 装包 + 配置，产出 ubuntu-rootfs.tar（要 sudo）
 forge stage                 # 解包 tar 到 out/rootfs/，注入运行时配置（fakeroot 下）
 forge pack emmc             # mke2fs -d 把树压成 rootfs.ext4（fakeroot 下，免 sudo）
-forge assemble emmc         # RKAF/RKFW 打包出 update.img（纯 Python，免 sudo）
+forge assemble --variant emmc    # RKAF/RKFW 打包出 update.img（纯 Python，免 sudo）
 ```
 
 这四步咱们跑完之后，`out/rk3588-topeet/` 货架上咱们数出这五样东西，后面各节咱们逐个认脸：

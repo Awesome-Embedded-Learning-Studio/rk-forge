@@ -6,7 +6,7 @@
 
 Ch0 交代过这板一个别扭的事实：RK3506B 的 BootROM **只认 Rockchip 工具（RKDevTool / SD Firmware Tool）写出来的 SD 卡**，拿 `dd` 裸写的 `sd.img` 插上去，ROM 是不认的。这件事不是咱们瞎猜的——原厂的 `rk3506b_update_sd.img` 解开看，开头四个字节就是 `RKFW` 的魔数，和咱们 NAND 的 `update.img`（rkfw-pack.py 产）**完全同一种容器**。RK 工具吃的就是 RKFW，它把 RKFW 解开、转成 SD 上 ROM 认的布局（idblock 写到 sector 0x40、各分区镜像按 GPT 摆好），裸 `sd.img` 的开头是 protective MBR，RK 工具直接给的答复是“打开失败”。
 
-所以 SD-1 真正的交付件是 `forge assemble --sd` 产出的 `update-sd.img`（RKFW 格式），咱们拿到 Windows 用 RK 工具写进 SD 卡。裸 `sd.img`（[pack-sd.sh](../../../scripts/pack-sd.sh) 产）在咱们这块板是用不上的。但 pack-sd 这一步 forge 还是要跑的，因为 RKFW 里 rootfs 分区装的 ext4 镜像，就是 pack-sd 用 `mke2fs -d` 从 buildroot 树填出来的。pack-sd 产的 `rootfs.ext4`，就是 RKFW 的上游原料。
+所以 SD-1 真正的交付件是 `forge assemble --variant sd` 产出的 `update-sd.img`（RKFW 格式），咱们拿到 Windows 用 RK 工具写进 SD 卡。裸 `sd.img` 在咱们这块板是用不上的。但 SD 打包这一步 forge 还是要跑的，因为 RKFW 里 rootfs 分区装的 ext4 镜像，就是它用 `mke2fs -d` 从 buildroot 树填出来的。SD 打包产的 `rootfs.ext4`，就是 RKFW 的上游原料。
 
 ## 启动协议：从两条独立证据对出来的
 

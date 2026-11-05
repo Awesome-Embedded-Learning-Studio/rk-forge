@@ -167,7 +167,7 @@ root@OpenWrt:~#
 
 到这里 OpenWrt userspace 就起来了，busybox 换成了它自己的 musl 版（`v1.36.1 ... built-in shell (ash)`），buildroot 的那个没有跟过来。NAND 路那轮日志里的那批 vermagic 错位（前面 config 小节里贴过），就是 THUMB2 配错那一轮的现场，它是 openwrt profile 调通过程里咱们真实犯过的错，而不是合成出来的演示。
 
-SD 这一路更值得咱们夸一句，它几乎没写新的代码。`forge assemble --rootfs=openwrt --sd` 直接复用 buildroot 那边已经验过的 pack-sd，把 OpenWrt 的 TARGET_DIR 喂给 `mke2fs -d` 出一份 ext4 rootfs，boot-sd.img 当 kernel、组一个 RKFW 的 update-sd.img（本板 ROM 只认 RK-tool 的卡、不认裸 dd）。kernel 拿着 `root=/dev/mmcblk0p3` 的参数挂上 ext4，procd 起来就是 OpenWrt 的 shell，咱们去看 [openwrt_sd.txt](../../logs/openwrt_sd.txt) 的日志：
+SD 这一路更值得咱们夸一句，它几乎没写新的代码。`forge assemble --rootfs=openwrt --variant sd` 直接复用 buildroot 那边已经验过的 SD 打包，把 OpenWrt 的 TARGET_DIR 喂给 `mke2fs -d` 出一份 ext4 rootfs，boot-sd.img 当 kernel、组一个 RKFW 的 update-sd.img（本板 ROM 只认 RK-tool 的卡、不认裸 dd）。kernel 拿着 `root=/dev/mmcblk0p3` 的参数挂上 ext4，procd 起来就是 OpenWrt 的 shell，咱们去看 [openwrt_sd.txt](../../logs/openwrt_sd.txt) 的日志：
 
 ```
 mmcblk0: mmc0:b36a SDABC 58.2 GiB

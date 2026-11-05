@@ -14,7 +14,7 @@ SD 这一路第一个要认清的事实，就是咱们一开始理所当然地�
 
 证据咱们直接摆出来。原厂的 `rk3506b_update_sd.img` 开头四个字节是 `RKFW`，也就是 Rockchip Firmware 的统一更新容器，跟咱们 NAND 那边 `update.img`（`scripts/rkfw-pack.py` 产）是同一种格式。而咱们 `pack-sd.sh` 出的裸 `sd.img` 开头是 protective MBR，RK 工具的答复是“打开失败”。拿 `rkfw-pack.py info` 把原厂的 update_sd.img 解开看，里面装的是 parameter（GPT），再加 loader 和 uboot/boot/rootfs 的分区镜像。RK 工具拿到后会把它转成能启动的 SD：在 sector 0x40 的位置写 idblock，再把各分区的镜像按 GPT 摆好位置写下去。
 
-所以 SD 这一路真正交付的是 RKFW 格式的 `update-sd.img`（`forge assemble --sd` 产），裸 `sd.img` 反而是副产品——它能给那些 ROM 能认裸镜像的板子 dd 用，咱们这块板是用不上的。但 `pack-sd.sh` 这一步咱们还是要跑，因为 RKFW 里塞进去的 `rootfs.ext4` 正是它产的。
+所以 SD 这一路真正交付的是 RKFW 格式的 `update-sd.img`（`forge assemble --variant sd` 产），裸 `sd.img` 反而是副产品——它能给那些 ROM 能认裸镜像的板子 dd 用，咱们这块板是用不上的。但 SD 打包这一步咱们还是要跑的，因为 RKFW 里塞进去的 `rootfs.ext4` 正是它产的。
 
 ## SD 启动协议：不是猜的，是两处证据对上的
 

@@ -16,7 +16,7 @@ rk-forge 起步走的是 RK3506，一颗几乎没人理的、便宜又朴素的�
 
 这本书从头到尾的主角就一块板，也就是正点原子（ATK）出的那块 RK3506B 开发板，咱们要在它身上反复折腾。咱们管它叫“AES 板”，AES 是 Awesome Embedded Studio（咱们工作室）的缩写，给这块咱们亲手移植的上层 SDK 冠上自己的别名，顺便也避开了 ATK 这个正点原子的商标。它的样子朴素得很，也挺可爱的：CPU 是三个核的 32-bit ARM Cortex-A7，外加的还有一颗 M0 协处理器。板载的内存是 512MB DDR3，存储用的是 Winbond 的 W25N04KV，一颗 512MB 的 SPI-NAND。面板上有两个 RJ45 网口、一块 800×1280 的屏接口，WiFi 靠一个插在 USB 上的 RTL8733BU dongle。
 
-开发机的配置不需要多豪华。笔者自己是在 WSL2（Ubuntu）里干完所有事的，WSL 只给了几个 G 内存，照样愉快地把活干完了。16GB 内存的规格是隔壁 RK3588 群的事，轮到 RK3506 这个量级的板子就用不到了。交叉工具链用的是 `arm-linux-gnueabihf`（Arm GNU Toolchain 15.2，由 [config/toolchain.conf](../../../config/toolchain.conf) 声明、`forge` 编排器自动选用的那一套）。RK3506 的核是 Cortex-A7、带硬浮点，所以工具链后缀是 `hf`，⚠️ 千万别手滑装成 soft-float 的那个 `gcc-arm-linux-gnueabi`，不然咱们会在一个完全想不到的地方收获一堆链接错误。具体的环境检查咱们放到 [Ch1](01_toolchain.md) 再细讲，这里咱们只要记下一件事：一块 RK3506B 板子、一根串口线、一台装了 WSL2 的机器，就足够了。
+开发机的配置不需要多豪华。笔者自己是在 WSL2（Ubuntu）里干完所有事的，WSL 只给了几个 G 内存，照样愉快地把活干完了。16GB 内存的规格是隔壁 RK3588 群的事，轮到 RK3506 这个量级的板子就用不到了。交叉工具链用的是 `arm-linux-gnueabihf`（Arm GNU Toolchain 15.2，当年的声明住在 `config/toolchain.conf` 里，那文件后来随 cce9f63 退役了，继任的是 [boards/aes/board.yaml](../../../boards/aes/board.yaml) 的 `toolchain:` 块，`forge` 编排器自动选用的还是它）。RK3506 的核是 Cortex-A7、带硬浮点，所以工具链后缀是 `hf`，⚠️ 千万别手滑装成 soft-float 的那个 `gcc-arm-linux-gnueabi`，不然咱们会在一个完全想不到的地方收获一堆链接错误。具体的环境检查咱们放到 [Ch1](01_toolchain.md) 再细讲，这里咱们只要记下一件事：一块 RK3506B 板子、一根串口线、一台装了 WSL2 的机器，就足够了。
 
 ## 启动链：链长什么样，哪里闭源、哪里开源
 

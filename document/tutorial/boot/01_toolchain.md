@@ -14,11 +14,11 @@
 
 为什么不用 apt 那套、也不用 ATK 自带的？咱们想要的是用上最前沿的编译器，享受最现代的优化和软件支持，咱们还抱着一条明确的目标，就是把构建链上每一个借原厂的地方都换掉。早期咱们用的是 ATK BSP 里自带的 Linaro gcc 10.3，板上那套 U-Boot、内核、rootfs 都是它编出来、并逐字节板上验证过的，这是一条已知的、可靠的底线。后来咱们把它换成了上游的 Arm GNU 15.2，并在 2026-06-17 完成了板上复验：用 15.2 编出来的链，主线 boot 和 NAND 读写都过了。所以现在 15.2 是正式工具链，gcc 10.3 退到了 fallback 的位置，配置里留了注释，万一 15.2 哪天在板上翻了车，改一行 `TOOLCHAIN_BIN_DIR` 就能切回去了。buildroot 那一路后来也接了同一个外部工具链（详见 [notes/19](../../notes/19-2026-06-18-buildroot-minimal-rootfs-first-build.md)），glibc 2.42、headers 6.6.76 的组合在板上也起得来。
 
-咱们要查“用哪个工具链”的真相，它全声明在一个地方：[`config/toolchain.conf`](../../../config/toolchain.conf)。它写明前缀（`TOOLCHAIN_PREFIX`）、`/opt` 下的 bin 目录（`TOOLCHAIN_BIN_DIR`），还有一句要紧的注释，写的是这个文件本身不 `export` 任何东西、只存配置，真正去读它、把环境导出来的是 [`scripts/lib/toolchain.sh`](../../../scripts/lib/toolchain.sh)。“配置和副作用分开”的写法并不是洁癖：等到将来上 Python CLI 的时候，配置文件是可以被直接读的，而不是非得去 source 一个 shell 脚本。最近的 refactor（commit `a3f2936`）把工具链路径彻底改成了从 `toolchain.conf` 派生，以前依赖的是 PATH 里碰巧有它，现在脚本显式拼的是 `${TOOLCHAIN_BIN_DIR}:${PATH}`，路径从哪来一目了然，调试和复现也都干净了。
+咱们要查“用哪个工具链”的真相，当年它全声明在一个地方：`config/toolchain.conf`。它写明前缀（`TOOLCHAIN_PREFIX`）、`/opt` 下的 bin 目录（`TOOLCHAIN_BIN_DIR`），还有一句要紧的注释，写的是这个文件本身不 `export` 任何东西、只存配置，真正去读它、把环境导出来的是 `scripts/lib/toolchain.sh`。“配置和副作用分开”的写法并不是洁癖：等到将来上 Python CLI 的时候，配置文件是可以被直接读的，而不是非得去 source 一个 shell 脚本。后来的 Python 重写正是这么读的，`toolchain.conf` 与 `toolchain.sh` 已随 cce9f63 退役了，继任的是 [boards/aes/board.yaml](../../../boards/aes/board.yaml) 里的 `toolchain:` 块，块里写的就是 `prefix` 与 `bin_dir`，读它的模块则是 [src/forge/config/board.py](../../../src/forge/config/board.py)，配置与副作用分开的立场原样传了下来。最近的 refactor（commit `a3f2936`）把工具链路径彻底改成了从 `toolchain.conf` 派生，以前依赖的是 PATH 里碰巧有它，从那以后脚本显式拼的是 `${TOOLCHAIN_BIN_DIR}:${PATH}`，路径从哪来一目了然，调试和复现也都干净了。
 
 ## 让 doctor 替咱们检查环境
 
-forge 给了一个独立的检查脚本 [`scripts/doctor.sh`](../../../scripts/doctor.sh)。咱们不用记要装哪些包，跑它就行了：
+forge 给了一个独立的检查脚本 `scripts/doctor.sh`，它后来随 cce9f63 退役了，如今干这活的是 [src/forge/doctor.py](../../../src/forge/doctor.py)，咱们跑 `forge doctor` 一条命令就行。咱们不用记要装哪些包，跑它就行了：
 
 ```bash
 ./scripts/doctor.sh
@@ -40,13 +40,13 @@ source scripts/env-setup.sh
 
 咱们要注意的是 `source`，而不是直接执行，直接跑的话，导出的变量出不了那个子进程。脚本做的事很简单：它去读 `toolchain.conf` 里的配置，把 `ARCH`、`CROSS_COMPILE`（也就是 `arm-none-linux-gnueabihf-`）、`PROJECT_ROOT` 给咱们导出来，并把 `/opt` 下的 bin 目录加到 `PATH` 的最前面（`toolchain.sh` 里那行 `export PATH="${TOOLCHAIN_BIN_DIR}:${PATH}"`）。跑完了它会打印一行确认，告诉你当前的 `ARCH`、`CROSS_COMPILE`、`PROJECT_ROOT` 是什么。
 
-咱们还得提前说一下 shell 这边的一颗小雷。如果咱们的登录 shell 是 zsh（现在不少发行版默认就是它），脚本里用的是 `BASH_SOURCE` 定位自己，zsh 下这个变量是空的。`source` 环境变量的这一下通常没事，但跑 `forge.sh` 那样的编排脚本的时候，咱们要养成习惯一律用 `bash scripts/forge.sh ...` 来调，而不是直接 `./scripts/forge.sh`，省得咱们在 shell 兼容性上栽跟头。
+咱们还得提前说一下 shell 这边的一颗小雷。如果咱们的登录 shell 是 zsh（现在不少发行版默认就是它），脚本里用的是 `BASH_SOURCE` 定位自己，zsh 下这个变量是空的。`source` 环境变量的这一下通常没事，但跑 `forge.sh` 那样的编排脚本的时候，咱们要养成习惯一律用 `bash scripts/forge.sh ...` 来调，而不是直接 `./scripts/forge.sh`，省得咱们在 shell 兼容性上栽跟头（`forge.sh` 后来随 cce9f63 退役了，继任的是 [src/forge/cli.py](../../../src/forge/cli.py) 这个 Python 入口，如今 `forge build` 这样的命令不再经过 shell 脚本，这颗雷也就没了）。
 
 ### WSL2 那个 PATH 含空格的坎
 
 WSL2 的用户还得过一个坎。Windows 默认是把整个 Windows PATH 互操作进来的，里面塞满了 `/mnt/c/Program Files/...`、`/mnt/c/Users/.../AppData/...` 这样带空格的路径条目。日常用倒是没事，但 buildroot 的 `support/dependencies/dependencies.mk` 只要见到 PATH 里任何一条带空格、TAB 或换行的条目，就直接给你 exit 1，出错的时候连工具链校验都还没跑到，打出来的错误信息是 `Your PATH contains spaces, TABs, and/or newline`。咱们头一回遇上它的时候，盯着 defconfig 排查了半天，根因其实在环境。
 
-咱们把修法放在了 [`scripts/lib/host.sh`](../../../scripts/lib/host.sh) 里。干活的函数是 `forge_clean_path`，它把 PATH 按 `:` 的分隔切开，剥掉所有以 `/mnt/` 开头的条目和任何含空白字符的条目、再 paste 回去：
+咱们把修法放在了 `scripts/lib/host.sh` 里（已随 cce9f63 退役，继任是 [src/forge/build/host.py](../../../src/forge/build/host.py) 的 `clean_path`，剥 `/mnt/` 条目和空白条目的语义原样搬了过去）。干活的函数是 `forge_clean_path`，它把 PATH 按 `:` 的分隔切开，剥掉所有以 `/mnt/` 开头的条目和任何含空白字符的条目、再 paste 回去：
 
 ```bash
 forge_clean_path() {

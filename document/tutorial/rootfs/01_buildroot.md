@@ -54,7 +54,7 @@ make
 
 有两个易踩的点咱们得记下来。一是改了 `configs/*.defconfig` 之后要跑的是 `make <name>_defconfig`，**不是** `make olddefconfig`——后者只对已有的 `.config` 做比对、不重读 defconfig 文件，这次的语言标志头一回没生效，就栽在了这上面。二是咱们别画蛇添足传 `O=output`，buildroot 默认 `O=$(CURDIR)/output` 已经把 build 树放进 `output/` 了、`.config` 留 in-tree，这本来就是上游的设计、不是 hack（`git diff Makefile` 空）。
 
-自动化的事咱们也顺带交代一句。这个调用咱们已经封进 [`scripts/build-rootfs.sh`](../../../scripts/build-rootfs.sh)，直接跑 `scripts/build-rootfs.sh [--reconfigure] [--clean]` 就可以了。脚本里 PATH 清洗走 `lib/host.sh` 的 `forge_clean_path`，工具链路径走 `lib/toolchain.sh` 从 [`config/toolchain.conf`](../../../config/toolchain.conf) 推导出来的单一来源（commit a3f2936），所以工具链挪位置只动 `toolchain.conf` 一处，不用改 defconfig 里的硬编码，也不用咱们手改 PATH。
+自动化的事咱们也顺带交代一句。当年这个调用咱们封进过 `scripts/build-rootfs.sh`，直接跑 `scripts/build-rootfs.sh [--reconfigure] [--clean]` 就可以了。脚本里 PATH 清洗走 `lib/host.sh` 的 `forge_clean_path`，工具链路径走 `lib/toolchain.sh` 从 `config/toolchain.conf` 推导出来的单一来源（commit a3f2936），所以工具链挪位置只动 `toolchain.conf` 一处，不用改 defconfig 里的硬编码，也不用咱们手改 PATH。这一套已随 cce9f63 退役了，继任的是 [src/forge/build/rootfs.py](../../../src/forge/build/rootfs.py)：PATH 清洗并进了 [src/forge/build/host.py](../../../src/forge/build/host.py) 的 `clean_path`，工具链的单一来源挪进了 [boards/aes/board.yaml](../../../boards/aes/board.yaml) 的 `toolchain:` 块，构建时从 `toolchain_bin_dir` 改写 defconfig 里硬编码的路径，单一来源的立场没变。
 
 ## 成功长这样
 

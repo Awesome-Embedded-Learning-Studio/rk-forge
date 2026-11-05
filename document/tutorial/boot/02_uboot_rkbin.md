@@ -62,9 +62,9 @@ banner 都出来了它还崩，这样的毛病最磨人。咱们顺着 `misc_ini
 
 ## 把镜像凑出来，烧到板上
 
-约定讲完了，咱们说说怎么把东西真的弄进板子。forge 现在的打包分几步：[pack-loader.sh](../../../scripts/pack-loader.sh) 用 Rockchip 的 `boot_merger` 从公开 rkbin 把 loader/idblock 打出来（DDR + usbplug + SPL），[pack-fit.sh](../../../scripts/pack-fit.sh) 打 uboot 的 FIT，最后 assemble 成一个完整的 `update.img`。诚实地讲，方案 B 那会儿咱们混着用的是原厂 mkimage、boot_merger 加手写 ITS，后来才一点点地纯化成了 fit-pack.py 加全公开 rkbin，纯化的过程是另一条弧线，这一章讲的是 bringup 过程，混着用是没有毛病的。
+约定讲完了，咱们说说怎么把东西真的弄进板子。forge 当年的打包分两步：`pack-loader.sh` 用 Rockchip 的 `boot_merger` 从公开 rkbin 把 loader/idblock 打出来（DDR + usbplug + SPL），`pack-fit.sh` 打 uboot 的 FIT，最后 assemble 成一个完整的 `update.img`。它们后来都随 cce9f63 退役了，继任的是 [src/forge/pack/](../../../src/forge/pack/) 的 loader.py 与 fit.py，分工跟当年的一样，loader 还是 boot_merger 打出来的，FIT 走的还是 fit-pack。诚实地讲，方案 B 那会儿咱们混着用的是原厂 mkimage、boot_merger 加手写 ITS，后来才一点点地纯化成了 fit-pack.py 加全公开 rkbin，纯化的过程是另一条弧线，这一章讲的是 bringup 过程，混着用是没有毛病的。
 
-烧录的路有两条，走哪一条的依据是板子从哪儿启动。这块 RK3506B 实测是 **SPI-NAND 排在前头**启动的，依据是 [notes/01](../../notes/01-2026-06-14-vendor-uboot-build-flow.md) 的 Stage 3 验证。SD 卡咱们裸写一个镜像进去、bootrom 根本不选，转头就去起 NAND 里出厂烧进去的原厂系统。所以主线落地走的是 NAND，咱们用 RKDevTool 把 `update.img` 烧进板载的 SPI-NAND（chip tag 对得上的话才烧得下去，对应的是上面第一条约定）。SD 卡这一路咱们留作开发和恢复用的第二媒体，写卡用的是 [flash-sd.sh](../../../scripts/flash-sd.sh)，它用 `dd` 把 sd.img 写进了卡，这脚本是一堆安全检查裹出来的：拒绝写挂载着的设备、拒绝写系统盘、拒绝分区节点，写之前还非要咱们手敲一遍设备名确认，生怕咱们把宿主盘抹了。WSL2 的用户记得 SD 卡得提前走 `usbipd-win` 透传进来。
+烧录的路有两条，走哪一条的依据是板子从哪儿启动。这块 RK3506B 实测是 **SPI-NAND 排在前头**启动的，依据是 [notes/01](../../notes/01-2026-06-14-vendor-uboot-build-flow.md) 的 Stage 3 验证。SD 卡咱们裸写一个镜像进去、bootrom 根本不选，转头就去起 NAND 里出厂烧进去的原厂系统。所以主线落地走的是 NAND，咱们用 RKDevTool 把 `update.img` 烧进板载的 SPI-NAND（chip tag 对得上的话才烧得下去，对应的是上面第一条约定）。SD 卡这一路咱们留作开发和恢复用的第二媒体，当年写卡用的是 `flash-sd.sh`（已随 cce9f63 退役，继任是 [src/forge 的 flash 模块](../../../src/forge/flash.py)），它用 `dd` 把 sd.img 写进了卡，那套安全检查原样传了下来：拒绝写挂载着的设备、拒绝写系统盘、拒绝分区节点，写之前还非要咱们手敲一遍设备名确认，生怕咱们把宿主盘抹了。WSL2 的用户记得 SD 卡得提前走 `usbipd-win` 透传进来。
 
 ## 成功长这样
 
