@@ -4,7 +4,7 @@ title: "RK3588 教学路线：异构计算、媒体与产品工程"
 
 # RK3588 教学路线：异构计算、媒体与产品工程
 
-> 状态：**partial**。RK3588（迅为 iTOP-RK3588 EVB，eMMC）已真机 boot 到 Ubuntu 26.04 GNOME 桌面：主线 kernel 7.1 + 主线 U-Boot 2026.07 + 主线 SPL（规避 vendor SPL/BL31 基址错配 bootloop），Panthor Mali-G610 GPU（固件内嵌）、LCD DSI→LVDS 1024×600（TC358775）出图、GT911 触摸轴映射已修、eMMC HS400、PMIC rk806 均板上验证。课程化仍在进行；LCD 的 VOP2 hard-lock 修复当前为候选镜像，连续冷/热启动稳定性验证未闭环，故不写成稳定支持；WiFi（rtw88_8723du，主线 rtw88）已板验——关联+DHCP 通、2.4G 单频；BT、NPU（主线 Rocket）、VPU、摄像头仍属 roadmap。
+> 状态：**partial**。RK3588（迅为 iTOP-RK3588 EVB，eMMC）已真机 boot 到 Ubuntu 26.04 GNOME 桌面：主线 kernel 7.1 + 主线 U-Boot 2026.07 + 主线 SPL（规避 vendor SPL/BL31 基址错配 bootloop），Panthor Mali-G610 GPU（固件内嵌）、LCD DSI→LVDS 1024×600（TC358775）出图、GT911 触摸轴映射已修、eMMC HS400、PMIC rk806 均板上验证。课程化仍在进行；LCD 的 VOP2 hard-lock 修复当前为候选镜像，连续冷/热启动稳定性验证未闭环，故不写成稳定支持；WiFi（rtw88_8723du，主线 rtw88）已板验——关联+DHCP 通、2.4G 单频。NPU 已板验——原厂 GPL 驱动移植进主线加 C++ 自研运行时，九个模型与闭源库逐字节一致（[教程 08 章](../../tutorial/rk3588/08_npu.md)），CMake 重构后的新库实板复验挂起（[笔记 017](../../notes/rknn/017-2026-11-08-自研运行时测试体系登记.md)）。RGA3×2、JPEG×4、H.264×2 已逐核并发板验（[笔记 015](../../notes/rknn/015-2026-11-04-多媒体初始化修正与八核实板验收.md)）。BT、摄像头、主线 Rocket/Teflon 路线仍属 roadmap。
 
 ## 1. 路线承诺
 
@@ -91,8 +91,8 @@ GPU 高级选修为独立卷，可与主方向组合，但不是结课必需。
 | [卷二：内存、IOMMU 与跨设备共享](02-memory-iommu.md) | 第 3–5 章 | 64 位内存/CMA、SMMU、dma-buf/fence/零拷贝 | ⚪ planned |
 | [卷三：big.LITTLE、功耗与持续性能](03-biglittle-power.md) | 第 6–8 章 | 调度/DVFS、thermal、性能取证 | ⚪ planned — DVFS/稳定性有真板素材 |
 | [卷四：显示、摄像头与媒体公共地基](04-media-foundation.md) | 第 9–13 章 | DRM/KMS、V4L2/ISP、MPP、RGA、端到端流水线 | 🟡 partial — LCD/GPU 板验；VOP2 hardlock 未闭环，摄像头未接 |
-| [AI/NPU 方向](ai-npu.md) | 方向第 1–5 章 | RKNN 工具链、量化校准、推理后处理、实时流水线、AI 服务 | ⚪ planned — NPU 未板验 |
-| [媒体方向](media.md) | 方向第 1–5 章 | 编解码与数据格式、MPP—RGA—DRM、采集编码、多流背压、媒体服务 | ⚪ planned — VPU/摄像头未接 |
+| [AI/NPU 方向](ai-npu.md) | 方向第 1–5 章 | RKNN 工具链、量化校准、推理后处理、实时流水线、AI 服务 | 🟡 partial — NPU 已板验（自研运行时九模型 byte-exact，[08 章](../../tutorial/rk3588/08_npu.md)，重构后复验挂起），方向 1–5 章未开写 |
+| [媒体方向](media.md) | 方向第 1–5 章 | 编解码与数据格式、MPP—RGA—DRM、采集编码、多流背压、媒体服务 | 🟡 partial — RGA3/JPEG/H.264 逐核并发已自研板验（[笔记 015](../../notes/rknn/015-2026-11-04-多媒体初始化修正与八核实板验收.md)），MPP 成品链与摄像头未接 |
 | [Android 方向](android.md) | 方向第 1–6 章 | AOSP 与分区、init/SELinux、HAL、人机交互、Camera/MediaCodec、产品化 | ⚪ planned — SDK 版本未定 |
 | [GPU 高级选修](gpu.md) | 选修第 1–3 章 | Mali-G610 软件栈、渲染同步、compute 与 profiling | 🟡 partial — Panthor 桌面板验通 |
 | [毕业项目](capstone-projects.md) | — | RKNN 边缘 AI 盒、MPP/RGA/DRM 媒体设备、智能屏/Android 终端 | ⚪ planned |
@@ -136,7 +136,7 @@ GPU 高级选修为独立卷，可与主方向组合，但不是结课必需。
 
 ## 7. 明确不讲或推迟
 
-- 不把 RK3588 写成稳定/完整支持——当前是 `partial`（真机 boot 到 GNOME 桌面 + GPU/LCD/触摸板验，WiFi 已板验），但 VOP2 hard-lock 修复仍是候选镜像、BT、NPU/VPU、摄像头未接，连续冷/热启动稳定性验证未完；
+- 不把 RK3588 写成稳定/完整支持——当前是 `partial`（真机 boot 到 GNOME 桌面 + GPU/LCD/触摸板验，WiFi 已板验，NPU 与 RGA3/JPEG/H.264 多媒体核经自研路线板验），但 VOP2 hard-lock 修复仍是候选镜像、BT、摄像头未接，NPU 运行时 CMake 重构后的实板复验未做，连续冷/热启动稳定性验证未完；
 - eMMC 烧录与量产链深讲不入本线——工具操作按仓库 QUICK_START，量产课题暂缓（与 RK3568 同口径）；
 - 开发板和主要配套硬件已确认（iTOP-RK3588 + LCD/触摸），DTS/镜像布局见 [boards/rk3588-topeet/](../../../boards/rk3588-topeet/)，但摄像头、Android 等未确认方向不写结论；
 - 不把运行厂商 demo 计为课程完成；
